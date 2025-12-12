@@ -515,7 +515,7 @@ function createMenu() {
               type: 'info',
               title: 'About PanConverter',
               message: 'PanConverter',
-              detail: 'A cross-platform Markdown editor and converter using Pandoc.\n\nVersion: 1.9.0\nAuthor: Amit Haridas\nEmail: amit.wh@gmail.com\nLicense: MIT\n\nFeatures:\n• Custom Headers & Footers for PDF, DOCX, ODT, and PowerPoint exports\n• Dynamic field support: $PAGE$, $TOTAL$, $DATE$, $TIME$, $TITLE$, $AUTHOR$, $FILENAME$\n• Logo/image embedding in headers and footers\n• Modern glassmorphism UI with gradient backgrounds\n• Enhanced PDF export via Word template with configurable start page\n• Configurable template settings (start page selection)\n• Streamlined PDF Editor UI (merge, split, compress, rotate, watermark, encrypt)\n• Universal File Converter (LibreOffice, ImageMagick, FFmpeg, Pandoc)\n• Windows Explorer context menu integration\n• Tabbed interface for multiple files\n• Advanced markdown editing with live preview\n• Real-time preview updates while typing\n• Full toolbar markdown editing functions\n• Enhanced PDF export with built-in Electron fallback\n• Enhanced Word export with template support (single file & batch)\n• File association support for .md files\n• Command-line interface for batch conversion\n• Advanced export options with templates and metadata\n• Batch file conversion with progress tracking\n• Improved preview typography and spacing\n• Adjustable font sizes via menu (Ctrl+Shift+Plus/Minus)\n• Complete theme support including Monokai fixes\n• Find & replace with match highlighting\n• Line numbers and auto-indentation\n• Export to multiple formats via Pandoc\n• PowerPoint & presentation export\n• Export tables to Excel/ODS spreadsheets\n• Document import & conversion\n• Table creation helper\n• 22 beautiful themes (including Dracula, Nord, Tokyo Night, Gruvbox, Ayu, Concrete, and more)\n• Undo/redo functionality\n• Live word count and statistics',
+              detail: 'A cross-platform Markdown editor and converter using Pandoc.\n\nVersion: 1.9.1\nAuthor: Amit Haridas\nEmail: amit.wh@gmail.com\nLicense: MIT\n\nFeatures:\n• Preserved ASCII art, charts, tables, flowcharts in exports (NEW in v1.9.1)\n• Custom Headers & Footers for PDF, DOCX, ODT, and PowerPoint exports\n• Dynamic field support: $PAGE$, $TOTAL$, $DATE$, $TIME$, $TITLE$, $AUTHOR$, $FILENAME$\n• Logo/image embedding in headers and footers\n• Modern glassmorphism UI with gradient backgrounds\n• Enhanced PDF export via Word template with configurable start page\n• Configurable template settings (start page selection)\n• Streamlined PDF Editor UI (merge, split, compress, rotate, watermark, encrypt)\n• Universal File Converter (LibreOffice, ImageMagick, FFmpeg, Pandoc)\n• Windows Explorer context menu integration\n• Tabbed interface for multiple files\n• Advanced markdown editing with live preview\n• Real-time preview updates while typing\n• Full toolbar markdown editing functions\n• Enhanced PDF export with built-in Electron fallback\n• Enhanced Word export with template support (single file & batch)\n• File association support for .md files\n• Command-line interface for batch conversion\n• Advanced export options with templates and metadata\n• Batch file conversion with progress tracking\n• Improved preview typography and spacing\n• Adjustable font sizes via menu (Ctrl+Shift+Plus/Minus)\n• Complete theme support including Monokai fixes\n• Find & replace with match highlighting\n• Line numbers and auto-indentation\n• Export to multiple formats via Pandoc\n• PowerPoint & presentation export\n• Export tables to Excel/ODS spreadsheets\n• Document import & conversion\n• Table creation helper\n• 22 beautiful themes (including Dracula, Nord, Tokyo Night, Gruvbox, Ayu, Concrete, and more)\n• Undo/redo functionality\n• Live word count and statistics',
               buttons: ['OK']
             });
           }
@@ -1263,6 +1263,10 @@ function performExportWithOptions(format, options) {
       pandocCmd += ` --pdf-engine="${pdfEngine}"`;
       if (options.geometry) pandocCmd += ` -V geometry:"${options.geometry}"`;
 
+      // Add monospace font settings for code blocks (ASCII art preservation)
+      pandocCmd += ' -V monofont="Consolas"';
+      pandocCmd += ' --highlight-style=tango';
+
       // Add header/footer if enabled
       if (headerFooterSettings.enabled) {
         const filename = currentFile ? path.basename(currentFile, path.extname(currentFile)) : 'document';
@@ -1337,6 +1341,10 @@ function tryPdfFallback(inputFile, outputFile, engines, index, options, lastErro
 
   const engine = engines[index];
   let pandocCmd = `${getPandocPath()} "${inputFile}" --pdf-engine=${engine} -o "${outputFile}"`;
+
+  // Add monospace font settings for code blocks (ASCII art preservation)
+  pandocCmd += ' -V monofont="Consolas"';
+  pandocCmd += ' --highlight-style=tango';
 
   // Add geometry if specified
   if (options.geometry) pandocCmd = pandocCmd.replace(` -o `, ` -V geometry:"${options.geometry}" -o `);
@@ -1494,7 +1502,7 @@ function exportToHTML(outputFile) {
     const marked = require('marked');
     const markdownContent = fs.readFileSync(currentFile, 'utf8');
     const htmlContent = marked.parse(markdownContent);
-    
+
     const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1514,21 +1522,37 @@ function exportToHTML(outputFile) {
             margin-top: 1.5em;
             margin-bottom: 0.5em;
         }
+        /* Inline code */
         code {
             background: #f4f4f4;
             padding: 2px 4px;
             border-radius: 3px;
             font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 0.9em;
         }
+        /* Code blocks - critical for ASCII art preservation */
         pre {
-            background: #f4f4f4;
+            background: #f5f5f5;
             padding: 1em;
             border-radius: 5px;
             overflow-x: auto;
+            white-space: pre;
+            word-wrap: normal;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            border: 1px solid #e0e0e0;
+            margin: 1em 0;
         }
         pre code {
             background: transparent;
             padding: 0;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            white-space: pre;
+            word-wrap: normal;
+            display: block;
         }
         blockquote {
             border-left: 4px solid #ddd;
@@ -1560,6 +1584,18 @@ function exportToHTML(outputFile) {
             max-width: 100%;
             height: auto;
         }
+        @media print {
+            pre {
+                white-space: pre;
+                word-wrap: normal;
+                overflow: visible;
+                page-break-inside: avoid;
+            }
+            pre code {
+                white-space: pre;
+                word-wrap: normal;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1582,7 +1618,7 @@ function exportToPDFElectron(outputFile) {
     const marked = require('marked');
     const markdownContent = fs.readFileSync(currentFile, 'utf8');
     const htmlContent = marked.parse(markdownContent);
-    
+
     const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1602,21 +1638,38 @@ function exportToPDFElectron(outputFile) {
             margin-top: 1.5em;
             margin-bottom: 0.5em;
         }
+        /* Inline code */
         code {
             background: #f4f4f4;
             padding: 2px 4px;
             border-radius: 3px;
             font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 0.9em;
         }
+        /* Code blocks - critical for ASCII art preservation */
         pre {
-            background: #f4f4f4;
+            background: #f5f5f5;
             padding: 1em;
             border-radius: 5px;
-            overflow-x: auto;
+            overflow-x: visible;
+            overflow-y: visible;
+            white-space: pre;
+            word-wrap: normal;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            border: 1px solid #e0e0e0;
+            margin: 1em 0;
         }
         pre code {
             background: transparent;
             padding: 0;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            white-space: pre;
+            word-wrap: normal;
+            display: block;
         }
         blockquote {
             border-left: 4px solid #ddd;
@@ -1643,6 +1696,16 @@ function exportToPDFElectron(outputFile) {
         }
         @media print {
             body { padding: 20px; }
+            pre {
+                white-space: pre;
+                word-wrap: normal;
+                overflow: visible;
+                page-break-inside: avoid;
+            }
+            pre code {
+                white-space: pre;
+                word-wrap: normal;
+            }
         }
     </style>
 </head>
@@ -2344,6 +2407,9 @@ function buildPandocCommand(content, format, outputPath) {
   switch (format) {
     case 'pdf':
       command += ' --pdf-engine=xelatex --variable geometry:margin=1in';
+      // Add monospace font settings for code blocks (ASCII art preservation)
+      command += ' -V monofont="Consolas"';
+      command += ' --highlight-style=tango';
 
       // Add header/footer if enabled
       if (headerFooterSettings.enabled) {

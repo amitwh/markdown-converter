@@ -4,7 +4,7 @@
 
 **PanConverter** is a cross-platform Markdown editor and converter powered by Pandoc, built with Electron. It provides professional-grade editing capabilities with comprehensive export options.
 
-**Current Version**: v1.9.0
+**Current Version**: v1.9.1
 **Author**: Amit Haridas (amit.wh@gmail.com)
 **License**: MIT
 **Repository**: https://github.com/amitwh/pan-converter
@@ -113,7 +113,77 @@ gh release create v1.2.1 --title "Title" --notes "Release notes" \
 
 ## Feature Implementation Guide
 
-### v1.9.0 Custom Headers & Footers (Latest)
+### v1.9.1 ASCII Art & Code Block Preservation (Latest)
+
+#### 🎨 Preserved ASCII Art in Exports
+**ASCII Art, Charts, Tables & Flowcharts Now Export Exactly as Previewed** (`src/wordTemplateExporter.js`, `src/main.js`)
+
+**Problem Solved:**
+- Previously, ASCII art, flowcharts, and code blocks were being corrupted during export to Word and PDF
+- Line breaks, spacing, and monospace alignment were lost
+- Box-drawing characters and diagrams became unreadable
+
+**Solution Implemented:**
+1. **Enhanced Word Template Exporter** (`src/wordTemplateExporter.js:259-289`)
+   - Code blocks now render each line as a separate paragraph with exact spacing
+   - `white-space: pre` and `word-wrap: normal` prevent text wrapping
+   - Monospace font (Consolas) with consistent 18pt size
+   - Light gray background (#F5F5F5) for visual distinction
+   - `<w:keepLines/>` and `<w:wordWrap w:val="0"/>` preserve exact formatting
+
+2. **Improved ASCII Art Detection** (`src/wordTemplateExporter.js:410-456`)
+   - Extended Unicode box-drawing character support (╭╮╯╰ rounded corners, heavy box characters)
+   - Additional arrow characters (↔↕⇒⇐⇓⇑)
+   - More ASCII patterns detected (+---+---+, <---->, etc.)
+   - Better markdown table vs ASCII art differentiation
+
+3. **Enhanced PDF Export** (`src/main.js:1266-1268`, `src/main.js:1345-1347`, `src/main.js:2410-2412`)
+   - Added `-V monofont="Consolas"` for monospace code blocks
+   - Added `--highlight-style=tango` for syntax highlighting
+   - Applied to main export, fallback export, and CLI conversion
+
+4. **Electron PDF Fallback** (`src/main.js:1613-1637`)
+   - Enhanced CSS for `<pre>` and `<code>` elements
+   - `white-space: pre` prevents wrapping
+   - `font-family: Consolas, Monaco, 'Courier New', monospace`
+   - Print media query preserves formatting when printing
+
+5. **HTML Export** (`src/main.js:1525-1548`)
+   - Same CSS improvements as Electron PDF
+   - Code blocks maintain exact preview appearance
+
+**Key CSS Properties for ASCII Preservation:**
+```css
+pre {
+    white-space: pre;
+    word-wrap: normal;
+    font-family: Consolas, Monaco, 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+pre code {
+    white-space: pre;
+    word-wrap: normal;
+    display: block;
+}
+```
+
+**Word XML Properties for ASCII Preservation:**
+```xml
+<w:pPr>
+    <w:spacing w:line="240" w:lineRule="exact"/>
+    <w:keepLines/>
+    <w:wordWrap w:val="0"/>
+</w:pPr>
+<w:rPr>
+    <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/>
+    <w:noProof/>
+</w:rPr>
+```
+
+---
+
+### v1.9.0 Custom Headers & Footers
 
 #### 📄 Comprehensive Header & Footer System
 **Custom Headers & Footers for Standard Exports** (`src/main.js:701-853`, `src/index.html:929-1042`, `src/renderer.js:2560-2747`, `src/styles.css:3162-3432`)
@@ -1109,7 +1179,7 @@ if (!gotTheLock) {
 
 ## Pending Tasks & Future Enhancements
 
-No pending tasks at this time. All planned v1.9.0 features have been completed.
+No pending tasks at this time. All planned v1.9.1 features have been completed.
 
 ### Potential Future Enhancements
 - Image embedding in headers/footers (partially implemented - logo upload UI ready)
@@ -1119,19 +1189,19 @@ No pending tasks at this time. All planned v1.9.0 features have been completed.
 
 ---
 
-**Last Updated**: October 28, 2025
-**Claude Assistant**: Development completed for v1.9.0 with Custom Headers & Footers!
+**Last Updated**: December 12, 2025
+**Claude Assistant**: Development completed for v1.9.1 with ASCII Art Preservation!
 
-### v1.9.0 - Latest Release Summary
-- **Custom Headers & Footers**: Professional headers/footers for PDF, DOCX, ODT, and PowerPoint exports
-- **Dynamic Field Support**: $PAGE$, $TOTAL$, $DATE$, $TIME$, $TITLE$, $AUTHOR$, $FILENAME$
-- **Logo Upload UI**: Ready for image embedding in headers/footers
-- **Three-Column Layout**: Left/Center/Right positioning for headers and footers
-- **Batch Support**: Full header/footer integration in batch converter
-- **Persistent Settings**: Configurations saved across sessions
-- **Dark Theme Support**: Complete styling for all 22 themes
+### v1.9.1 - Latest Release Summary
+- **ASCII Art Preservation**: Code blocks, flowcharts, tables, and ASCII art now export exactly as shown in preview
+- **Enhanced Code Block Rendering**: Each line rendered separately to preserve exact spacing and alignment
+- **Monospace Font Support**: Consolas font used consistently across all export formats
+- **Improved ASCII Detection**: Extended Unicode box-drawing and arrow character support
+- **PDF Export Enhancement**: Added monofont and highlight-style options for better code rendering
+- **HTML/Electron PDF Fix**: Enhanced CSS to prevent text wrapping in code blocks
 
 ### Previous Releases
+- v1.9.0: Custom Headers & Footers for PDF, DOCX, ODT, PowerPoint exports
 - v1.8.3: Streamlined PDF Editor UI & Configurable Template Settings
 - v1.8.2: Enhanced PDF Export & Print Fix
 - v1.8.1: Streamlined PDF Editor UI
