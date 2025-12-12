@@ -255,6 +255,7 @@ class WordTemplateExporter {
     /**
      * Create code block XML - renders each line as separate paragraph
      * to preserve exact formatting like in preview (monospace, no wrapping)
+     * Background shading applied at paragraph level to extend full width
      */
     createCodeBlockXml(code) {
         const lines = code.split('\n');
@@ -264,10 +265,13 @@ class WordTemplateExporter {
             const escapedLine = this.escapeXml(line);
 
             // Each line gets its own paragraph with exact spacing and no wrapping
+            // Shading (shd) is at paragraph level so background extends full width
             xml += `<w:p>
                 <w:pPr>
+                    <w:pStyle w:val="Normal"/>
+                    <w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>
                     <w:spacing w:before="${index === 0 ? '120' : '0'}" w:after="${index === lines.length - 1 ? '120' : '0'}" w:line="240" w:lineRule="exact"/>
-                    <w:ind w:left="284" w:right="0"/>
+                    <w:ind w:left="284" w:right="284"/>
                     <w:jc w:val="left"/>
                     <w:keepLines/>
                     <w:wordWrap w:val="0"/>
@@ -277,7 +281,6 @@ class WordTemplateExporter {
                         <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/>
                         <w:sz w:val="18"/>
                         <w:szCs w:val="18"/>
-                        <w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>
                         <w:noProof/>
                     </w:rPr>
                     <w:t xml:space="preserve">${escapedLine}</w:t>
@@ -457,6 +460,7 @@ class WordTemplateExporter {
 
     /**
      * Create ASCII art XML with monospace font
+     * Background shading applied at paragraph level to extend full width
      */
     createAsciiArtXml(asciiContent) {
         // Split ASCII art into individual lines and create a paragraph for each
@@ -464,10 +468,13 @@ class WordTemplateExporter {
         let xml = '';
 
         lines.forEach((line, index) => {
+            // Shading (shd) is at paragraph level so background extends full width
             xml += `<w:p>
                 <w:pPr>
+                    <w:pStyle w:val="Normal"/>
+                    <w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>
                     <w:spacing w:before="${index === 0 ? '120' : '0'}" w:after="${index === lines.length - 1 ? '120' : '0'}" w:line="240" w:lineRule="exact"/>
-                    <w:ind w:left="0" w:right="0"/>
+                    <w:ind w:left="284" w:right="284"/>
                     <w:jc w:val="left"/>
                     <w:keepLines/>
                     <w:wordWrap w:val="0"/>
@@ -480,7 +487,6 @@ class WordTemplateExporter {
             if (hasArrow) {
                 // Split line into parts and color arrows red
                 let remainingLine = line;
-                let processedText = '';
 
                 while (remainingLine.length > 0) {
                     let foundArrow = false;
@@ -506,7 +512,6 @@ class WordTemplateExporter {
                                     <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/>
                                     <w:sz w:val="16"/>
                                     <w:szCs w:val="16"/>
-                                    <w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>
                                     <w:noProof/>
                                 </w:rPr>
                                 <w:t xml:space="preserve">${beforeArrow}</w:t>
@@ -521,7 +526,6 @@ class WordTemplateExporter {
                                 <w:sz w:val="16"/>
                                 <w:szCs w:val="16"/>
                                 <w:color w:val="FF0000"/>
-                                <w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>
                                 <w:noProof/>
                             </w:rPr>
                             <w:t xml:space="preserve">${escapedArrow}</w:t>
@@ -537,7 +541,6 @@ class WordTemplateExporter {
                                 <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/>
                                 <w:sz w:val="16"/>
                                 <w:szCs w:val="16"/>
-                                <w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>
                                 <w:noProof/>
                             </w:rPr>
                             <w:t xml:space="preserve">${escapedRemaining}</w:t>
@@ -553,7 +556,6 @@ class WordTemplateExporter {
                         <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/>
                         <w:sz w:val="16"/>
                         <w:szCs w:val="16"/>
-                        <w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>
                         <w:noProof/>
                     </w:rPr>
                     <w:t xml:space="preserve">${escapedLine}</w:t>
