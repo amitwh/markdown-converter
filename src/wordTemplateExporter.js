@@ -253,23 +253,39 @@ class WordTemplateExporter {
     }
 
     /**
-     * Create code block XML
+     * Create code block XML - renders each line as separate paragraph
+     * to preserve exact formatting like in preview (monospace, no wrapping)
      */
     createCodeBlockXml(code) {
-        const escapedCode = this.escapeXml(code);
+        const lines = code.split('\n');
+        let xml = '';
 
-        return `<w:p>
-            <w:pPr>
-                <w:pStyle w:val="Code"/>
-            </w:pPr>
-            <w:r>
-                <w:rPr>
-                    <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>
-                    <w:sz w:val="18"/>
-                </w:rPr>
-                <w:t xml:space="preserve">${escapedCode}</w:t>
-            </w:r>
-        </w:p>`;
+        lines.forEach((line, index) => {
+            const escapedLine = this.escapeXml(line);
+
+            // Each line gets its own paragraph with exact spacing and no wrapping
+            xml += `<w:p>
+                <w:pPr>
+                    <w:spacing w:before="${index === 0 ? '120' : '0'}" w:after="${index === lines.length - 1 ? '120' : '0'}" w:line="240" w:lineRule="exact"/>
+                    <w:ind w:left="284" w:right="0"/>
+                    <w:jc w:val="left"/>
+                    <w:keepLines/>
+                    <w:wordWrap w:val="0"/>
+                </w:pPr>
+                <w:r>
+                    <w:rPr>
+                        <w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/>
+                        <w:sz w:val="18"/>
+                        <w:szCs w:val="18"/>
+                        <w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>
+                        <w:noProof/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">${escapedLine}</w:t>
+                </w:r>
+            </w:p>`;
+        });
+
+        return xml;
     }
 
     /**
@@ -397,15 +413,22 @@ class WordTemplateExporter {
     isAsciiArt(line) {
         // Don't treat markdown tables as ASCII art
         if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
-            return false;
+            // Check if it's a proper markdown table (has multiple cells)
+            const cells = line.split('|').filter(c => c.trim());
+            if (cells.length >= 2) {
+                return false;
+            }
         }
 
-        // Common ASCII art characters
+        // Common ASCII art characters (Unicode box drawing and symbols)
         const asciiArtChars = [
             '─', '│', '┌', '┐', '└', '┘', '├', '┤', '┬', '┴', '┼',  // Box drawing
             '═', '║', '╔', '╗', '╚', '╝', '╠', '╣', '╦', '╩', '╬',  // Double box
-            '▲', '▼', '◄', '►', '♦', '●', '○', '■', '□',             // Shapes
-            '↓', '→', '←', '↑',                                      // Arrows
+            '╭', '╮', '╯', '╰',                                      // Rounded corners
+            '▲', '▼', '◄', '►', '♦', '●', '○', '■', '□', '◆', '◇',  // Shapes
+            '↓', '→', '←', '↑', '↔', '↕', '⇒', '⇐', '⇓', '⇑',      // Arrows
+            '┃', '━', '┏', '┓', '┗', '┛', '┣', '┫', '┳', '┻', '╋',  // Heavy box
+            '░', '▒', '▓', '█',                                      // Shading
         ];
 
         // Check for box drawing characters
@@ -415,14 +438,18 @@ class WordTemplateExporter {
 
         // Check for ASCII box patterns with regular characters
         const asciiPatterns = [
-            /^\s*\+[-=_]+\+/,                    // +-----+
+            /^\s*\+[-=_+]+\+/,                   // +-----+ or +=====+
             /^\s*\|[-=_]{3,}\|/,                 // |-----|
             /^\s*[-=_]{5,}$/,                    // -----
+            /^\s*\+[-]+\+[-]+\+/,                // +---+---+
             /^\s*\([A-Z][a-z]+\)\s*\|\|/,       // (Deformable) ||
             /^\s*\|\s+[A-Z\s]+[-:]\s+[A-Z]/,    // | TILE ADHESIVE - TYPE
             /^\s*\|\s*\[[^\]]+\]/,              // | [BIS Mark / CE Mark]
             /^\s*\|\s{2,}\w+.*\|\|/,            // ||  text  ||
-            /^\s*\[[^\]]+\]/,                   // [Step in brackets]
+            /^\s*\[[^\]]+\]\s*$/,               // [Step in brackets]
+            /^\s*<[-=]+>/,                       // <----> or <====>
+            /^\s*\/[-_\\\/]+\//,                 // /----/
+            /^\s*\*[-=\*]+\*/,                   // *----*
         ];
 
         return asciiPatterns.some(pattern => pattern.test(line));
