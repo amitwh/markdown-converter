@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="styles-modern.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <!-- Mermaid.js for diagram rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -148,6 +150,19 @@
                 </div>
                 <div class="export-dialog-body">
                     <!-- Simple/Advanced Export Toggle -->
+                    <!-- Export Profiles -->
+                    <div class="export-section export-profiles">
+                        <label>Export Profile:</label>
+                        <div class="profile-controls">
+                            <select id="export-profile-select">
+                                <option value="">Custom Settings</option>
+                            </select>
+                            <button id="save-profile-btn" type="button" title="Save current settings as profile">💾 Save</button>
+                            <button id="delete-profile-btn" type="button" title="Delete selected profile">🗑️ Delete</button>
+                        </div>
+                        <small class="export-help">Save and reuse your favorite export configurations</small>
+                    </div>
+
                     <div class="export-section export-mode-toggle">
                         <label class="checkbox-label">
                             <input type="checkbox" id="advanced-export-toggle">
@@ -244,6 +259,37 @@
 
                     <!-- Basic Export Options (always visible) -->
                     <div class="export-section basic-options">
+                        <label>Page Size & Orientation:</label>
+                        <div class="form-row">
+                            <label for="page-size">Size:</label>
+                            <select id="page-size">
+                                <option value="a4">A4 (210×297mm)</option>
+                                <option value="a3">A3 (297×420mm)</option>
+                                <option value="a5">A5 (148×210mm)</option>
+                                <option value="b4">B4 (250×353mm)</option>
+                                <option value="b5">B5 (176×250mm)</option>
+                                <option value="letter">Letter (8.5×11in)</option>
+                                <option value="legal">Legal (8.5×14in)</option>
+                                <option value="tabloid">Tabloid (11×17in)</option>
+                                <option value="custom">Custom...</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="page-orientation">Orientation:</label>
+                            <select id="page-orientation">
+                                <option value="portrait">Portrait</option>
+                                <option value="landscape">Landscape</option>
+                            </select>
+                        </div>
+                        <div id="custom-page-size" class="form-row" style="display: none;">
+                            <label>Custom Size:</label>
+                            <input type="text" id="custom-width" placeholder="Width (e.g., 210mm)" style="width: 45%; display: inline-block;">
+                            <span style="display: inline-block; width: 5%; text-align: center;">×</span>
+                            <input type="text" id="custom-height" placeholder="Height (e.g., 297mm)" style="width: 45%; display: inline-block;">
+                        </div>
+                    </div>
+
+                    <div class="export-section basic-options">
                         <label>Quick Export Settings:</label>
                         <div class="checkbox-group">
                             <label><input type="checkbox" id="basic-toc"> Include Table of Contents</label>
@@ -254,6 +300,154 @@
                 <div class="export-dialog-footer">
                     <button id="export-cancel">Cancel</button>
                     <button id="export-confirm" class="primary">Export</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Command Palette -->
+        <div id="command-palette" class="command-palette hidden">
+            <div class="command-palette-content">
+                <input type="text" id="command-search" placeholder="Type a command..." autofocus>
+                <div id="command-list" class="command-list"></div>
+                <div class="command-palette-footer">
+                    <span>↑↓ Navigate</span>
+                    <span>Enter Execute</span>
+                    <span>Esc Close</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Generator Dialog -->
+        <div id="table-generator-dialog" class="export-dialog hidden">
+            <div class="export-dialog-content" style="max-width: 500px;">
+                <div class="export-dialog-header">
+                    <h3>📊 Table Generator</h3>
+                    <button id="table-dialog-close" title="Close">×</button>
+                </div>
+                <div class="export-dialog-body">
+                    <div class="export-section">
+                        <label for="table-rows">Number of Rows:</label>
+                        <input type="number" id="table-rows" min="1" max="50" value="3" style="width: 100px;">
+                        <small>Total rows including header (if enabled)</small>
+                    </div>
+
+                    <div class="export-section">
+                        <label for="table-cols">Number of Columns:</label>
+                        <input type="number" id="table-cols" min="1" max="20" value="3" style="width: 100px;">
+                    </div>
+
+                    <div class="export-section">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="table-has-header" checked>
+                            Include Header Row
+                        </label>
+                        <small>First row will be formatted as table headers</small>
+                    </div>
+
+                    <div class="export-section">
+                        <label for="table-alignment">Column Alignment:</label>
+                        <select id="table-alignment">
+                            <option value="left">Left</option>
+                            <option value="center">Center</option>
+                            <option value="right">Right</option>
+                        </select>
+                        <small>Applies to all columns</small>
+                    </div>
+
+                    <div class="export-section">
+                        <label for="table-preview">Preview:</label>
+                        <pre id="table-preview" style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; max-height: 300px; overflow: auto;"></pre>
+                    </div>
+                </div>
+                <div class="export-dialog-footer">
+                    <button id="table-generate-preview" class="btn-secondary">Update Preview</button>
+                    <button id="table-insert" class="btn-primary">Insert Table</button>
+                    <button id="table-cancel" class="btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ASCII Art Generator Dialog -->
+        <div id="ascii-art-dialog" class="export-dialog hidden">
+            <div class="export-dialog-content" style="max-width: 700px;">
+                <div class="export-dialog-header">
+                    <h3>🎨 ASCII Art Generator</h3>
+                    <button id="ascii-dialog-close" title="Close">×</button>
+                </div>
+                <div class="export-dialog-body">
+                    <div class="export-section">
+                        <label>Mode:</label>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <button id="ascii-mode-text" class="btn-secondary ascii-mode-btn active">Text Banner</button>
+                            <button id="ascii-mode-box" class="btn-secondary ascii-mode-btn">Box/Frame</button>
+                            <button id="ascii-mode-templates" class="btn-secondary ascii-mode-btn">Templates</button>
+                        </div>
+                    </div>
+
+                    <!-- Text Banner Mode -->
+                    <div id="ascii-text-mode" class="ascii-mode-section">
+                        <div class="export-section">
+                            <label for="ascii-text-input">Text to Convert:</label>
+                            <input type="text" id="ascii-text-input" placeholder="Enter your text..." maxlength="50">
+                        </div>
+                        <div class="export-section">
+                            <label for="ascii-font-style">Style:</label>
+                            <select id="ascii-font-style">
+                                <option value="standard">Standard</option>
+                                <option value="banner">Banner</option>
+                                <option value="block">Block</option>
+                                <option value="bubble">Bubble</option>
+                                <option value="digital">Digital</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Box/Frame Mode -->
+                    <div id="ascii-box-mode" class="ascii-mode-section hidden">
+                        <div class="export-section">
+                            <label for="ascii-box-text">Text Content:</label>
+                            <textarea id="ascii-box-text" rows="3" placeholder="Enter text for the box..."></textarea>
+                        </div>
+                        <div class="export-section">
+                            <label for="ascii-box-style">Box Style:</label>
+                            <select id="ascii-box-style">
+                                <option value="single">Single Line (─│┌┐└┘)</option>
+                                <option value="double">Double Line (═║╔╗╚╝)</option>
+                                <option value="rounded">Rounded (─│╭╮╰╯)</option>
+                                <option value="bold">Bold (━┃┏┓┗┛)</option>
+                                <option value="ascii">ASCII (+|-)</option>
+                            </select>
+                        </div>
+                        <div class="export-section">
+                            <label for="ascii-box-padding">Padding:</label>
+                            <input type="number" id="ascii-box-padding" min="1" max="10" value="2" style="width: 80px;">
+                        </div>
+                    </div>
+
+                    <!-- Templates Mode -->
+                    <div id="ascii-templates-mode" class="ascii-mode-section hidden">
+                        <div class="export-section">
+                            <label>Select Template:</label>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                                <button class="btn-secondary ascii-template-btn" data-template="arrow-right">Arrow →</button>
+                                <button class="btn-secondary ascii-template-btn" data-template="arrow-down">Arrow ↓</button>
+                                <button class="btn-secondary ascii-template-btn" data-template="check">Checkmark ✓</button>
+                                <button class="btn-secondary ascii-template-btn" data-template="divider">Divider</button>
+                                <button class="btn-secondary ascii-template-btn" data-template="header">Header</button>
+                                <button class="btn-secondary ascii-template-btn" data-template="flowchart">Flowchart</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="export-section">
+                        <label for="ascii-preview">Preview:</label>
+                        <pre id="ascii-preview" style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-size: 12px; max-height: 400px; overflow: auto; font-family: 'Courier New', monospace; line-height: 1.2;"></pre>
+                    </div>
+                </div>
+                <div class="export-dialog-footer">
+                    <button id="ascii-generate" class="btn-secondary">Generate Preview</button>
+                    <button id="ascii-insert" class="btn-primary">Insert ASCII Art</button>
+                    <button id="ascii-cancel" class="btn-secondary">Cancel</button>
                 </div>
             </div>
         </div>
@@ -1049,7 +1243,11 @@
                         <textarea id="editor-1" class="editor-textarea"></textarea>
                     </div>
                 </div>
+                <div class="pane-resizer" id="pane-resizer-1" title="Drag to resize"></div>
                 <div id="preview-pane-1" class="pane">
+                    <div class="preview-header">
+                        <button class="preview-popout-btn" id="preview-popout-1" title="Pop out preview in new window">⬜</button>
+                    </div>
                     <div id="preview-1" class="preview-content"></div>
                 </div>
             </div>

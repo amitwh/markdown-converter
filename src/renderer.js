@@ -133,7 +133,11 @@ class TabManager {
                     <textarea id="editor-${tab.id}" class="editor-textarea"></textarea>
                 </div>
             </div>
+            <div class="pane-resizer" id="pane-resizer-${tab.id}" title="Drag to resize"></div>
             <div id="preview-pane-${tab.id}" class="pane">
+                <div class="preview-header">
+                    <button class="preview-popout-btn" id="preview-popout-${tab.id}" title="Pop out preview in new window">⬜</button>
+                </div>
                 <div id="preview-${tab.id}" class="preview-content"></div>
             </div>
         `;
@@ -321,6 +325,47 @@ class TabManager {
                     });
                 } catch (mathError) {
                     console.warn('Math rendering error:', mathError);
+                }
+            }
+
+            // Render Mermaid diagrams if Mermaid is available
+            if (window.mermaid) {
+                try {
+                    // Find all code blocks with language-mermaid class
+                    const mermaidBlocks = preview.querySelectorAll('pre code.language-mermaid');
+                    mermaidBlocks.forEach((block, index) => {
+                        const code = block.textContent;
+                        const pre = block.parentElement;
+
+                        // Create a div for mermaid rendering
+                        const mermaidDiv = document.createElement('div');
+                        mermaidDiv.className = 'mermaid';
+                        mermaidDiv.setAttribute('data-processed', 'true');
+                        mermaidDiv.textContent = code;
+
+                        // Replace the pre element with the mermaid div
+                        pre.parentElement.replaceChild(mermaidDiv, pre);
+                    });
+
+                    // Initialize Mermaid with dark theme support
+                    const theme = document.body.className.includes('theme-dark') ? 'dark' : 'default';
+                    mermaid.initialize({
+                        startOnLoad: false,
+                        theme: theme,
+                        securityLevel: 'loose'
+                    });
+
+                    // Render all mermaid diagrams
+                    mermaid.run({
+                        querySelector: '.mermaid:not([data-rendered])'
+                    }).then(() => {
+                        // Mark as rendered
+                        preview.querySelectorAll('.mermaid').forEach(el => {
+                            el.setAttribute('data-rendered', 'true');
+                        });
+                    });
+                } catch (mermaidError) {
+                    console.warn('Mermaid rendering error:', mermaidError);
                 }
             }
         } catch (error) {
@@ -1215,15 +1260,23 @@ ipcRenderer.on('show-export-dialog', (event, format) => {
 });
 
 function showExportDialog(format) {
+    console.log('showExportDialog called with format:', format);
     const dialog = document.getElementById('export-dialog');
     const title = document.getElementById('export-dialog-title');
 
+    if (!dialog) {
+        console.error('Export dialog element not found!');
+        return;
+    }
+
+    console.log('Dialog found, showing export options for:', format);
     title.textContent = `Export as ${format.toUpperCase()}`;
     dialog.setAttribute('data-format', format);
     dialog.classList.remove('hidden');
 
     // Initialize form values
     initializeExportForm(format);
+    console.log('Export dialog should now be visible');
 }
 
 function hideExportDialog() {
@@ -1271,6 +1324,9 @@ function initializeExportForm(format) {
     // Clear bibliography fields
     document.getElementById('bibliography-file').value = '';
     document.getElementById('csl-file').value = '';
+
+    // Request current page settings from main process and apply them
+    ipcRenderer.send('get-page-settings');
 }
 
 function collectExportOptions() {
@@ -1337,11 +1393,155 @@ function collectExportOptions() {
         }
     }
 
+    // Collect page size and orientation (always collected, from basic options)
+    const pageSize = document.getElementById('page-size').value;
+    const pageOrientation = document.getElementById('page-orientation').value;
+    const customWidth = document.getElementById('custom-width').value.trim();
+    const customHeight = document.getElementById('custom-height').value.trim();
+
+    // Send page settings to main process
+    ipcRenderer.send('update-page-settings', {
+        size: pageSize,
+        orientation: pageOrientation,
+        customWidth: customWidth || null,
+        customHeight: customHeight || null
+    });
+
     return options;
+}
+
+// Export Profiles Management
+let exportProfiles = {};
+
+function loadExportProfiles() {
+    const saved = localStorage.getItem('exportProfiles');
+    if (saved) {
+        try {
+            exportProfiles = JSON.parse(saved);
+            populateProfileDropdown();
+        } catch (e) {
+            console.error('Failed to load export profiles:', e);
+            exportProfiles = {};
+        }
+    }
+}
+
+function saveExportProfiles() {
+    localStorage.setItem('exportProfiles', JSON.stringify(exportProfiles));
+}
+
+function populateProfileDropdown() {
+    const select = document.getElementById('export-profile-select');
+    if (!select) return;
+
+    // Clear existing options except the first one
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+
+    // Add saved profiles
+    Object.keys(exportProfiles).forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+    });
+}
+
+function saveCurrentProfile() {
+    const name = prompt('Enter a name for this export profile:', 'My Profile');
+    if (!name || name.trim() === '') return;
+
+    const profileName = name.trim();
+
+    // Collect current settings
+    const profile = {
+        format: currentExportFormat,
+        advancedMode: document.getElementById('advanced-export-toggle').checked,
+        pageSize: document.getElementById('page-size').value,
+        pageOrientation: document.getElementById('page-orientation').value,
+        basicToc: document.getElementById('basic-toc').checked,
+        basicNumberSections: document.getElementById('basic-number-sections').checked
+    };
+
+    // Add advanced options if enabled
+    if (profile.advancedMode) {
+        profile.template = document.getElementById('export-template').value;
+        profile.toc = document.getElementById('export-toc').checked;
+        profile.tocDepth = document.getElementById('export-toc-depth').value;
+        profile.numberSections = document.getElementById('export-number-sections').checked;
+        profile.citeproc = document.getElementById('export-citeproc').checked;
+
+        if (currentExportFormat === 'pdf') {
+            profile.pdfEngine = document.getElementById('pdf-engine').value;
+            profile.pdfGeometry = document.getElementById('pdf-geometry').value;
+        }
+    }
+
+    exportProfiles[profileName] = profile;
+    saveExportProfiles();
+    populateProfileDropdown();
+
+    // Select the newly created profile
+    document.getElementById('export-profile-select').value = profileName;
+
+    alert(`Profile "${profileName}" saved successfully!`);
+}
+
+function loadProfile(profileName) {
+    if (!profileName || !exportProfiles[profileName]) return;
+
+    const profile = exportProfiles[profileName];
+
+    // Apply settings
+    if (profile.advancedMode !== undefined) {
+        document.getElementById('advanced-export-toggle').checked = profile.advancedMode;
+        const advancedOptions = document.getElementById('advanced-export-options');
+        if (profile.advancedMode) {
+            advancedOptions.classList.remove('hidden');
+        } else {
+            advancedOptions.classList.add('hidden');
+        }
+    }
+
+    if (profile.pageSize) document.getElementById('page-size').value = profile.pageSize;
+    if (profile.pageOrientation) document.getElementById('page-orientation').value = profile.pageOrientation;
+    if (profile.basicToc !== undefined) document.getElementById('basic-toc').checked = profile.basicToc;
+    if (profile.basicNumberSections !== undefined) document.getElementById('basic-number-sections').checked = profile.basicNumberSections;
+
+    // Advanced options
+    if (profile.advancedMode && profile.template) document.getElementById('export-template').value = profile.template;
+    if (profile.toc !== undefined) document.getElementById('export-toc').checked = profile.toc;
+    if (profile.tocDepth) document.getElementById('export-toc-depth').value = profile.tocDepth;
+    if (profile.numberSections !== undefined) document.getElementById('export-number-sections').checked = profile.numberSections;
+    if (profile.citeproc !== undefined) document.getElementById('export-citeproc').checked = profile.citeproc;
+
+    if (profile.pdfEngine) document.getElementById('pdf-engine').value = profile.pdfEngine;
+    if (profile.pdfGeometry) document.getElementById('pdf-geometry').value = profile.pdfGeometry;
+}
+
+function deleteSelectedProfile() {
+    const select = document.getElementById('export-profile-select');
+    const profileName = select.value;
+
+    if (!profileName) {
+        alert('Please select a profile to delete.');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to delete the profile "${profileName}"?`)) {
+        delete exportProfiles[profileName];
+        saveExportProfiles();
+        populateProfileDropdown();
+        select.value = '';
+        alert(`Profile "${profileName}" deleted successfully!`);
+    }
 }
 
 // Event listeners for export dialog
 document.addEventListener('DOMContentLoaded', () => {
+    // Load export profiles on startup
+    loadExportProfiles();
     // Template selection
     document.getElementById('export-template').addEventListener('change', (e) => {
         const customPath = document.getElementById('custom-template-path');
@@ -1387,6 +1587,57 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             customGeometry.style.display = 'none';
         }
+    });
+
+    // Page size selection - show/hide custom size inputs
+    document.getElementById('page-size').addEventListener('change', (e) => {
+        const customPageSize = document.getElementById('custom-page-size');
+        if (e.target.value === 'custom') {
+            customPageSize.style.display = 'block';
+        } else {
+            customPageSize.style.display = 'none';
+        }
+    });
+
+    // Load saved page settings on startup
+    ipcRenderer.send('get-page-settings');
+
+    // Handle page settings data (can be called multiple times)
+    ipcRenderer.on('page-settings-data', (event, settings) => {
+        console.log('Received page settings:', settings);
+        if (settings) {
+            const pageSizeEl = document.getElementById('page-size');
+            const pageOrientationEl = document.getElementById('page-orientation');
+            const customPageSizeEl = document.getElementById('custom-page-size');
+            const customWidthEl = document.getElementById('custom-width');
+            const customHeightEl = document.getElementById('custom-height');
+
+            if (pageSizeEl) pageSizeEl.value = settings.size || 'a4';
+            if (pageOrientationEl) pageOrientationEl.value = settings.orientation || 'portrait';
+
+            if (customWidthEl && settings.customWidth) {
+                customWidthEl.value = settings.customWidth;
+            }
+            if (customHeightEl && settings.customHeight) {
+                customHeightEl.value = settings.customHeight;
+            }
+
+            // Show custom inputs if size is custom
+            if (customPageSizeEl) {
+                if (settings.size === 'custom') {
+                    customPageSizeEl.style.display = 'block';
+                } else {
+                    customPageSizeEl.style.display = 'none';
+                }
+            }
+        }
+    });
+
+    // Export Profile buttons
+    document.getElementById('save-profile-btn').addEventListener('click', saveCurrentProfile);
+    document.getElementById('delete-profile-btn').addEventListener('click', deleteSelectedProfile);
+    document.getElementById('export-profile-select').addEventListener('change', (e) => {
+        loadProfile(e.target.value);
     });
 
     // Add metadata field
@@ -2050,6 +2301,11 @@ ipcRenderer.on('recent-files-cleared', () => {
 
 let currentPDFOperation = null;
 let mergeFilePaths = [];
+
+// Show Table Generator Dialog
+ipcRenderer.on('show-table-generator', () => {
+    showTableGenerator();
+});
 
 // Show PDF Editor Dialog
 ipcRenderer.on('show-pdf-editor-dialog', (event, operation) => {
@@ -2737,3 +2993,885 @@ window.openHeaderFooterDialog = openHeaderFooterDialog;
 ipcRenderer.on('open-header-footer-dialog', () => {
     openHeaderFooterDialog();
 });
+// Command Palette Implementation
+const commands = [
+    { name: 'New File', action: () => tabManager.createTab(), shortcut: 'Ctrl+N' },
+    { name: 'Open File', action: () => ipcRenderer.send('open-file'), shortcut: 'Ctrl+O' },
+    { name: 'Save File', action: () => ipcRenderer.send('save-file'), shortcut: 'Ctrl+S' },
+    { name: 'Save As', action: () => ipcRenderer.send('save-file-as'), shortcut: 'Ctrl+Shift+S' },
+    { name: 'Export to PDF', action: () => ipcRenderer.send('export', 'pdf'), shortcut: '' },
+    { name: 'Export to DOCX', action: () => ipcRenderer.send('export', 'docx'), shortcut: '' },
+    { name: 'Export to HTML', action: () => ipcRenderer.send('export', 'html'), shortcut: '' },
+    { name: 'Toggle Preview', action: () => tabManager.togglePreview(), shortcut: 'Ctrl+Shift+P' },
+    { name: 'Toggle Line Numbers', action: () => tabManager.toggleLineNumbers(), shortcut: '' },
+    { name: 'Find & Replace', action: () => showFindDialog(), shortcut: 'Ctrl+F' },
+    { name: 'New Tab', action: () => tabManager.createTab(), shortcut: 'Ctrl+T' },
+    { name: 'Close Tab', action: () => tabManager.closeTab(tabManager.activeTabId), shortcut: 'Ctrl+W' },
+    { name: 'Undo', action: () => tabManager.undo(), shortcut: 'Ctrl+Z' },
+    { name: 'Redo', action: () => tabManager.redo(), shortcut: 'Ctrl+Shift+Z' },
+    { name: 'Bold', action: () => insertMarkdown('**', '**'), shortcut: 'Ctrl+B' },
+    { name: 'Italic', action: () => insertMarkdown('*', '*'), shortcut: 'Ctrl+I' },
+    { name: 'Heading 1', action: () => insertMarkdown('# ', ''), shortcut: '' },
+    { name: 'Heading 2', action: () => insertMarkdown('## ', ''), shortcut: '' },
+    { name: 'Heading 3', action: () => insertMarkdown('### ', ''), shortcut: '' },
+    { name: 'Insert Link', action: () => insertMarkdown('[', '](url)'), shortcut: '' },
+    { name: 'Insert Image', action: () => insertMarkdown('![', '](image.jpg)'), shortcut: '' },
+    { name: 'Insert Code Block', action: () => insertMarkdown('```\n', '\n```'), shortcut: '' },
+    { name: 'Insert Table', action: () => insertMarkdown('\n| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |\n', ''), shortcut: '' },
+    { name: 'Table Generator', action: () => showTableGenerator(), shortcut: '' },
+    { name: 'ASCII Art Generator', action: () => showASCIIGenerator(), shortcut: '' },
+    { name: 'Increase Font Size', action: () => ipcRenderer.send('adjust-font-size', 'increase'), shortcut: 'Ctrl+Shift++' },
+    { name: 'Decrease Font Size', action: () => ipcRenderer.send('adjust-font-size', 'decrease'), shortcut: 'Ctrl+Shift+-' }
+];
+
+let commandPaletteSelectedIndex = 0;
+let filteredCommands = [...commands];
+
+function showCommandPalette() {
+    const palette = document.getElementById('command-palette');
+    const searchInput = document.getElementById('command-search');
+
+    palette.classList.remove('hidden');
+    searchInput.value = '';
+    searchInput.focus();
+
+    filteredCommands = [...commands];
+    commandPaletteSelectedIndex = 0;
+    renderCommandList();
+}
+
+function hideCommandPalette() {
+    const palette = document.getElementById('command-palette');
+    palette.classList.add('hidden');
+}
+
+function renderCommandList() {
+    const list = document.getElementById('command-list');
+    list.innerHTML = '';
+
+    filteredCommands.forEach((cmd, index) => {
+        const item = document.createElement('div');
+        item.className = 'command-item';
+        if (index === commandPaletteSelectedIndex) {
+            item.classList.add('selected');
+        }
+
+        const name = document.createElement('span');
+        name.className = 'command-name';
+        name.textContent = cmd.name;
+
+        const shortcut = document.createElement('span');
+        shortcut.className = 'command-shortcut';
+        shortcut.textContent = cmd.shortcut || '';
+
+        item.appendChild(name);
+        if (cmd.shortcut) {
+            item.appendChild(shortcut);
+        }
+
+        item.addEventListener('click', () => {
+            executeCommand(cmd);
+        });
+
+        list.appendChild(item);
+    });
+}
+
+function filterCommands(query) {
+    const lowerQuery = query.toLowerCase();
+    filteredCommands = commands.filter(cmd =>
+        cmd.name.toLowerCase().includes(lowerQuery)
+    );
+    commandPaletteSelectedIndex = 0;
+    renderCommandList();
+}
+
+function executeCommand(cmd) {
+    hideCommandPalette();
+    if (cmd && cmd.action) {
+        cmd.action();
+    }
+}
+
+function navigateCommandPalette(direction) {
+    commandPaletteSelectedIndex += direction;
+    if (commandPaletteSelectedIndex < 0) {
+        commandPaletteSelectedIndex = filteredCommands.length - 1;
+    }
+    if (commandPaletteSelectedIndex >= filteredCommands.length) {
+        commandPaletteSelectedIndex = 0;
+    }
+    renderCommandList();
+}
+
+// Command Palette Event Listeners
+document.addEventListener('keydown', (e) => {
+    // Ctrl+Shift+P to open command palette
+    if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+        e.preventDefault();
+        showCommandPalette();
+        return;
+    }
+
+    // Handle command palette navigation when open
+    const palette = document.getElementById('command-palette');
+    if (!palette.classList.contains('hidden')) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            hideCommandPalette();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            navigateCommandPalette(1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            navigateCommandPalette(-1);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (filteredCommands[commandPaletteSelectedIndex]) {
+                executeCommand(filteredCommands[commandPaletteSelectedIndex]);
+            }
+        }
+    }
+});
+
+document.getElementById('command-search').addEventListener('input', (e) => {
+    filterCommands(e.target.value);
+});
+
+// Close on backdrop click
+document.getElementById('command-palette').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('command-palette')) {
+        hideCommandPalette();
+    }
+});
+
+// ============================================================================
+// TABLE GENERATOR
+// ============================================================================
+
+function showTableGenerator() {
+    const dialog = document.getElementById('table-generator-dialog');
+    dialog.classList.remove('hidden');
+
+    // Generate initial preview
+    generateTablePreview();
+
+    // Focus on rows input
+    setTimeout(() => {
+        document.getElementById('table-rows').focus();
+    }, 100);
+}
+
+function hideTableGenerator() {
+    const dialog = document.getElementById('table-generator-dialog');
+    dialog.classList.add('hidden');
+}
+
+function generateTablePreview() {
+    const rows = parseInt(document.getElementById('table-rows').value) || 3;
+    const cols = parseInt(document.getElementById('table-cols').value) || 3;
+    const hasHeader = document.getElementById('table-has-header').checked;
+    const alignment = document.getElementById('table-alignment').value;
+
+    const table = generateMarkdownTable(rows, cols, hasHeader, alignment);
+    document.getElementById('table-preview').textContent = table;
+}
+
+function generateMarkdownTable(rows, cols, hasHeader, alignment) {
+    let table = '';
+
+    // Generate alignment string
+    let alignChar = '-';
+    if (alignment === 'center') {
+        alignChar = ':' + '-'.repeat(Math.max(8, 10)) + ':';
+    } else if (alignment === 'right') {
+        alignChar = '-'.repeat(Math.max(8, 10)) + ':';
+    } else {
+        alignChar = '-'.repeat(Math.max(8, 10));
+    }
+
+    // Generate header row
+    if (hasHeader) {
+        table += '| ';
+        for (let c = 1; c <= cols; c++) {
+            table += `Header ${c}`;
+            if (c < cols) table += ' | ';
+        }
+        table += ' |\n';
+
+        // Separator row
+        table += '| ';
+        for (let c = 1; c <= cols; c++) {
+            table += alignChar;
+            if (c < cols) table += ' | ';
+        }
+        table += ' |\n';
+
+        // Data rows (excluding header)
+        for (let r = 1; r < rows; r++) {
+            table += '| ';
+            for (let c = 1; c <= cols; c++) {
+                table += `Cell ${r},${c}`;
+                if (c < cols) table += ' | ';
+            }
+            table += ' |\n';
+        }
+    } else {
+        // No header - all rows are data rows
+        // First row (acts as separator position)
+        table += '| ';
+        for (let c = 1; c <= cols; c++) {
+            table += `Cell 1,${c}`;
+            if (c < cols) table += ' | ';
+        }
+        table += ' |\n';
+
+        // Separator row
+        table += '| ';
+        for (let c = 1; c <= cols; c++) {
+            table += alignChar;
+            if (c < cols) table += ' | ';
+        }
+        table += ' |\n';
+
+        // Remaining data rows
+        for (let r = 2; r <= rows; r++) {
+            table += '| ';
+            for (let c = 1; c <= cols; c++) {
+                table += `Cell ${r},${c}`;
+                if (c < cols) table += ' | ';
+            }
+            table += ' |\n';
+        }
+    }
+
+    return table;
+}
+
+function insertGeneratedTable() {
+    const table = document.getElementById('table-preview').textContent;
+
+    if (!table) {
+        alert('Please generate a table preview first');
+        return;
+    }
+
+    // Get active editor
+    const activeTabId = tabManager ? tabManager.activeTabId : 1;
+    const editor = document.getElementById(`editor-${activeTabId}`);
+
+    if (!editor) {
+        alert('No active editor found');
+        return;
+    }
+
+    // Insert table at cursor position
+    const start = editor.selectionStart;
+    const before = editor.value.substring(0, start);
+    const after = editor.value.substring(editor.selectionEnd);
+
+    // Add newlines for spacing
+    const tableWithSpacing = '\n' + table + '\n';
+    editor.value = before + tableWithSpacing + after;
+
+    // Update cursor position
+    editor.selectionStart = editor.selectionEnd = start + tableWithSpacing.length;
+    editor.focus();
+
+    // Trigger update
+    if (tabManager) {
+        tabManager.handleEditorInput(activeTabId);
+    }
+
+    // Close dialog
+    hideTableGenerator();
+}
+
+// Table Generator Event Listeners
+document.getElementById('table-dialog-close').addEventListener('click', hideTableGenerator);
+document.getElementById('table-cancel').addEventListener('click', hideTableGenerator);
+document.getElementById('table-generate-preview').addEventListener('click', generateTablePreview);
+document.getElementById('table-insert').addEventListener('click', insertGeneratedTable);
+
+// Auto-update preview when inputs change
+document.getElementById('table-rows').addEventListener('input', generateTablePreview);
+document.getElementById('table-cols').addEventListener('input', generateTablePreview);
+document.getElementById('table-has-header').addEventListener('change', generateTablePreview);
+document.getElementById('table-alignment').addEventListener('change', generateTablePreview);
+
+// Close dialog on backdrop click
+document.getElementById('table-generator-dialog').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('table-generator-dialog')) {
+        hideTableGenerator();
+    }
+});
+
+// Handle Enter key in inputs
+document.getElementById('table-rows').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        insertGeneratedTable();
+    }
+});
+
+document.getElementById('table-cols').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        insertGeneratedTable();
+    }
+});
+
+// ============================================================================
+// ASCII ART GENERATOR
+// ============================================================================
+
+let currentASCIIMode = 'text';
+
+function showASCIIGenerator() {
+    const dialog = document.getElementById('ascii-art-dialog');
+    dialog.classList.remove('hidden');
+
+    // Initialize with text mode
+    switchASCIIMode('text');
+
+    // Generate initial preview
+    setTimeout(() => {
+        generateASCIIPreview();
+    }, 100);
+}
+
+function hideASCIIGenerator() {
+    const dialog = document.getElementById('ascii-art-dialog');
+    dialog.classList.add('hidden');
+}
+
+function switchASCIIMode(mode) {
+    currentASCIIMode = mode;
+
+    // Update button states
+    document.querySelectorAll('.ascii-mode-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Hide all mode sections
+    document.querySelectorAll('.ascii-mode-section').forEach(section => {
+        section.classList.add('hidden');
+    });
+
+    // Show selected mode
+    if (mode === 'text') {
+        document.getElementById('ascii-mode-text').classList.add('active');
+        document.getElementById('ascii-text-mode').classList.remove('hidden');
+    } else if (mode === 'box') {
+        document.getElementById('ascii-mode-box').classList.add('active');
+        document.getElementById('ascii-box-mode').classList.remove('hidden');
+    } else if (mode === 'templates') {
+        document.getElementById('ascii-mode-templates').classList.add('active');
+        document.getElementById('ascii-templates-mode').classList.remove('hidden');
+    }
+
+    // Generate preview
+    generateASCIIPreview();
+}
+
+function generateASCIIPreview() {
+    let result = '';
+
+    if (currentASCIIMode === 'text') {
+        const text = document.getElementById('ascii-text-input').value || 'Sample';
+        const style = document.getElementById('ascii-font-style').value;
+        result = textToASCII(text, style);
+    } else if (currentASCIIMode === 'box') {
+        const text = document.getElementById('ascii-box-text').value || 'Sample Text';
+        const style = document.getElementById('ascii-box-style').value;
+        const padding = parseInt(document.getElementById('ascii-box-padding').value) || 2;
+        result = createASCIIBox(text, style, padding);
+    } else if (currentASCIIMode === 'templates') {
+        result = 'Select a template from the buttons above';
+    }
+
+    document.getElementById('ascii-preview').textContent = result;
+}
+
+// Simple ASCII art text generator
+function textToASCII(text, style) {
+    const fonts = {
+        standard: {
+            height: 5,
+            chars: {
+                'A': ['  _  ', ' / \\ ', '/___\\', '|   |', '|   |'],
+                'B': ['____ ', '|   \\', '|___/', '|   \\', '|___/'],
+                'C': [' ___ ', '/  _/', '|   \\', '|    ', '\\___/'],
+                'D': ['____ ', '|   \\', '|    |', '|    |', '|___/'],
+                'E': ['_____', '|    ', '|___ ', '|    ', '|____'],
+                'F': ['_____', '|    ', '|___ ', '|    ', '|    '],
+                'G': [' ___ ', '/   _', '|  ||', '|   |', '\\___/'],
+                'H': ['|   |', '|   |', '|___|', '|   |', '|   |'],
+                'I': ['_____', '  |  ', '  |  ', '  |  ', '_____'],
+                'J': ['_____', '   | ', '   | ', '|  | ', '\\__/ '],
+                'K': ['|   |', '|  / ', '|_/  ', '| \\  ', '|  \\ '],
+                'L': ['|    ', '|    ', '|    ', '|    ', '|____'],
+                'M': ['|   |', '|\\ /|', '| V |', '|   |', '|   |'],
+                'N': ['|   |', '|\\  |', '| \\ |', '|  \\|', '|   |'],
+                'O': [' ___ ', '/   \\', '|   |', '|   |', '\\___/'],
+                'P': ['____ ', '|   \\', '|___/', '|    ', '|    '],
+                'Q': [' ___ ', '/   \\', '|   |', '| |\\ ', '\\__\\|'],
+                'R': ['____ ', '|   \\', '|___/', '| \\  ', '|  \\ '],
+                'S': [' ___ ', '/  _/', '\\_  \\', '   \\ ', '\\___/'],
+                'T': ['_____', '  |  ', '  |  ', '  |  ', '  |  '],
+                'U': ['|   |', '|   |', '|   |', '|   |', '\\___/'],
+                'V': ['|   |', '|   |', '|   |', ' \\ / ', '  V  '],
+                'W': ['|   |', '|   |', '| W |', '|/ \\|', '|   |'],
+                'X': ['|   |', ' \\ / ', '  X  ', ' / \\ ', '|   |'],
+                'Y': ['|   |', ' \\ / ', '  Y  ', '  |  ', '  |  '],
+                'Z': ['_____', '   / ', '  /  ', ' /   ', '/___ '],
+                ' ': ['     ', '     ', '     ', '     ', '     '],
+                '0': [' ___ ', '/   \\', '| | |', '|   |', '\\___/'],
+                '1': ['  |  ', ' ||  ', '  |  ', '  |  ', ' _|_ '],
+                '2': [' ___ ', '\\   /', ' __/ ', '/    ', '\\____'],
+                '3': [' ___ ', '\\   /', ' __/ ', '   / ', '\\___/'],
+                '4': ['|   |', '|   |', '|___|', '    |', '    |'],
+                '5': [' ___ ', '|    ', '|___ ', '   / ', '\\___/'],
+                '6': [' ___ ', '/    ', '|___ ', '|   |', '\\___/'],
+                '7': ['_____', '   / ', '  /  ', ' /   ', '/    '],
+                '8': [' ___ ', '|   |', ' ___ ', '|   |', '\\___/'],
+                '9': [' ___ ', '|   |', '\\___|', '    |', '\\___/']
+            }
+        },
+        banner: {
+            height: 7,
+            chars: {
+                'A': ['   ###   ', '  ## ##  ', ' ##   ## ', ' ##   ## ', ' ####### ', ' ##   ## ', ' ##   ## '],
+                'B': [' ######  ', ' ##   ## ', ' ##   ## ', ' ######  ', ' ##   ## ', ' ##   ## ', ' ######  '],
+                'C': ['  #####  ', ' ##   ## ', ' ##      ', ' ##      ', ' ##      ', ' ##   ## ', '  #####  '],
+                ' ': ['         ', '         ', '         ', '         ', '         ', '         ', '         ']
+            }
+        }
+    };
+
+    // Use standard font or fallback to simple text
+    const font = fonts[style] || fonts.standard;
+    const lines = [];
+    const upperText = text.toUpperCase();
+
+    for (let i = 0; i < font.height; i++) {
+        lines[i] = '';
+    }
+
+    for (let char of upperText) {
+        const charLines = font.chars[char] || font.chars[' '];
+        for (let i = 0; i < font.height; i++) {
+            lines[i] += charLines[i];
+        }
+    }
+
+    return lines.join('\n');
+}
+
+// Create ASCII box/frame
+function createASCIIBox(text, style, padding) {
+    const styles = {
+        single: { tl: '┌', tr: '┐', bl: '└', br: '┘', h: '─', v: '│' },
+        double: { tl: '╔', tr: '╗', bl: '╚', br: '╝', h: '═', v: '║' },
+        rounded: { tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│' },
+        bold: { tl: '┏', tr: '┓', bl: '┗', br: '┛', h: '━', v: '┃' },
+        ascii: { tl: '+', tr: '+', bl: '+', br: '+', h: '-', v: '|' }
+    };
+
+    const chars = styles[style] || styles.single;
+    const lines = text.split('\n');
+    const maxLength = Math.max(...lines.map(l => l.length));
+    const width = maxLength + (padding * 2);
+
+    let result = '';
+
+    // Top border
+    result += chars.tl + chars.h.repeat(width) + chars.tr + '\n';
+
+    // Padding rows above
+    for (let i = 0; i < padding - 1; i++) {
+        result += chars.v + ' '.repeat(width) + chars.v + '\n';
+    }
+
+    // Content lines
+    for (let line of lines) {
+        const paddedLine = line.padEnd(maxLength, ' ');
+        result += chars.v + ' '.repeat(padding) + paddedLine + ' '.repeat(padding) + chars.v + '\n';
+    }
+
+    // Padding rows below
+    for (let i = 0; i < padding - 1; i++) {
+        result += chars.v + ' '.repeat(width) + chars.v + '\n';
+    }
+
+    // Bottom border
+    result += chars.bl + chars.h.repeat(width) + chars.br;
+
+    return result;
+}
+
+// ASCII Art Templates
+function getASCIITemplate(templateName) {
+    const templates = {
+        'arrow-right': `
+    ┌────┐
+    │    │
+────►    │
+    │    │
+    └────┘`,
+        'arrow-down': `
+    │
+    │
+    ▼
+  ┌───┐
+  │   │
+  └───┘`,
+        'check': `
+  ✓ Task completed
+  ✓ All tests passed
+  ✓ Ready to deploy`,
+        'divider': `
+═══════════════════════════════════════════════════════════
+`,
+        'header': `
+╔══════════════════════════════════════╗
+║         SECTION HEADER               ║
+╚══════════════════════════════════════╝`,
+        'flowchart': `
+┌─────────────┐
+│   START     │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│   PROCESS   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│     END     │
+└─────────────┘`
+    };
+
+    return templates[templateName] || '';
+}
+
+function loadASCIITemplate(templateName) {
+    const template = getASCIITemplate(templateName);
+    document.getElementById('ascii-preview').textContent = template;
+}
+
+function insertASCIIArt() {
+    const asciiArt = document.getElementById('ascii-preview').textContent;
+
+    if (!asciiArt || asciiArt === 'Select a template from the buttons above') {
+        alert('Please generate ASCII art first');
+        return;
+    }
+
+    // Get active editor
+    const activeTabId = tabManager ? tabManager.activeTabId : 1;
+    const editor = document.getElementById(`editor-${activeTabId}`);
+
+    if (!editor) {
+        alert('No active editor found');
+        return;
+    }
+
+    // Insert in code block for proper rendering
+    const start = editor.selectionStart;
+    const before = editor.value.substring(0, start);
+    const after = editor.value.substring(editor.selectionEnd);
+
+    const codeBlock = '\n```\n' + asciiArt + '\n```\n';
+    editor.value = before + codeBlock + after;
+
+    // Update cursor position
+    editor.selectionStart = editor.selectionEnd = start + codeBlock.length;
+    editor.focus();
+
+    // Trigger update
+    if (tabManager) {
+        tabManager.handleEditorInput(activeTabId);
+    }
+
+    // Close dialog
+    hideASCIIGenerator();
+}
+
+// ASCII Art Event Listeners
+document.getElementById('ascii-dialog-close').addEventListener('click', hideASCIIGenerator);
+document.getElementById('ascii-cancel').addEventListener('click', hideASCIIGenerator);
+document.getElementById('ascii-generate').addEventListener('click', generateASCIIPreview);
+document.getElementById('ascii-insert').addEventListener('click', insertASCIIArt);
+
+// Mode switching
+document.getElementById('ascii-mode-text').addEventListener('click', () => switchASCIIMode('text'));
+document.getElementById('ascii-mode-box').addEventListener('click', () => switchASCIIMode('box'));
+document.getElementById('ascii-mode-templates').addEventListener('click', () => switchASCIIMode('templates'));
+
+// Auto-update preview for text mode
+document.getElementById('ascii-text-input').addEventListener('input', generateASCIIPreview);
+document.getElementById('ascii-font-style').addEventListener('change', generateASCIIPreview);
+
+// Auto-update preview for box mode
+document.getElementById('ascii-box-text').addEventListener('input', generateASCIIPreview);
+document.getElementById('ascii-box-style').addEventListener('change', generateASCIIPreview);
+document.getElementById('ascii-box-padding').addEventListener('input', generateASCIIPreview);
+
+// Template buttons
+document.querySelectorAll('.ascii-template-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const template = this.getAttribute('data-template');
+        loadASCIITemplate(template);
+    });
+});
+
+// Close dialog on backdrop click
+document.getElementById('ascii-art-dialog').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('ascii-art-dialog')) {
+        hideASCIIGenerator();
+    }
+});
+
+// IPC listener for menu
+ipcRenderer.on('show-ascii-generator', () => {
+    showASCIIGenerator();
+});
+
+// ============================================================================
+// PANE RESIZING
+// ============================================================================
+
+let isResizing = false;
+let currentResizer = null;
+
+document.addEventListener('mousedown', (e) => {
+    if (e.target.classList.contains('pane-resizer')) {
+        isResizing = true;
+        currentResizer = e.target;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    }
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+
+    const container = currentResizer.parentElement;
+    const editorPane = currentResizer.previousElementSibling;
+    const previewPane = currentResizer.nextElementSibling;
+
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const mouseX = e.clientX - containerRect.left;
+
+    // Calculate percentages (minimum 20%, maximum 80% for each pane)
+    let editorPercentage = (mouseX / containerWidth) * 100;
+    editorPercentage = Math.max(20, Math.min(80, editorPercentage));
+
+    const previewPercentage = 100 - editorPercentage;
+
+    editorPane.style.flex = `0 0 ${editorPercentage}%`;
+    previewPane.style.flex = `0 0 ${previewPercentage}%`;
+});
+
+document.addEventListener('mouseup', () => {
+    if (isResizing) {
+        isResizing = false;
+        currentResizer = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    }
+});
+
+// ============================================================================
+// PREVIEW POP-OUT
+// ============================================================================
+
+let popoutWindow = null;
+
+function popoutPreview(tabId) {
+    const previewContent = document.getElementById(`preview-${tabId}`);
+
+    if (!previewContent) {
+        alert('No preview content to pop out');
+        return;
+    }
+
+    // Close existing popout if open
+    if (popoutWindow && !popoutWindow.closed) {
+        popoutWindow.close();
+    }
+
+    // Create new window
+    popoutWindow = window.open('', 'Preview Window', 'width=800,height=600,menubar=no,toolbar=no,location=no,status=no');
+
+    if (!popoutWindow) {
+        alert('Pop-up blocked! Please allow pop-ups for this application.');
+        return;
+    }
+
+    // Write content to popout window
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Preview - PanConverter</title>
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                    padding: 20px;
+                    background: #ffffff;
+                    color: #24292f;
+                    line-height: 1.6;
+                }
+                ${getPreviewStyles()}
+            </style>
+        </head>
+        <body>
+            <div id="preview-content">
+                ${previewContent.innerHTML}
+            </div>
+            <script>
+                // Update content when parent window updates
+                window.addEventListener('message', (event) => {
+                    if (event.data.type === 'preview-update') {
+                        document.getElementById('preview-content').innerHTML = event.data.content;
+                    }
+                });
+            </script>
+        </body>
+        </html>
+    `;
+
+    popoutWindow.document.write(htmlContent);
+    popoutWindow.document.close();
+
+    // Setup auto-update
+    setupPopoutAutoUpdate(tabId);
+}
+
+function getPreviewStyles() {
+    // Extract relevant preview styles
+    return `
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+        h1 {
+            font-size: 2em;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+        }
+        h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+        }
+        p {
+            margin-bottom: 16px;
+        }
+        code {
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            background-color: #f6f8fa;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+        }
+        pre {
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+            background-color: #f6f8fa;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        pre code {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        table {
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            width: 100%;
+        }
+        table th, table td {
+            padding: 6px 13px;
+            border: 1px solid #dfe2e5;
+        }
+        table th {
+            font-weight: 600;
+            background-color: #f6f8fa;
+        }
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        blockquote {
+            padding: 0 1em;
+            color: #6a737d;
+            border-left: 0.25em solid #dfe2e5;
+            margin-bottom: 16px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        ul, ol {
+            padding-left: 2em;
+            margin-bottom: 16px;
+        }
+        li {
+            margin-bottom: 4px;
+        }
+    `;
+}
+
+function setupPopoutAutoUpdate(tabId) {
+    // Monitor for preview changes and update popout
+    const observer = new MutationObserver(() => {
+        if (popoutWindow && !popoutWindow.closed) {
+            const previewContent = document.getElementById(`preview-${tabId}`);
+            popoutWindow.postMessage({
+                type: 'preview-update',
+                content: previewContent.innerHTML
+            }, '*');
+        } else {
+            observer.disconnect();
+        }
+    });
+
+    const previewElement = document.getElementById(`preview-${tabId}`);
+    if (previewElement) {
+        observer.observe(previewElement, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    }
+}
+
+// Pop-out button event listener
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('preview-popout-btn')) {
+        const tabId = e.target.id.replace('preview-popout-', '');
+        popoutPreview(tabId);
+    }
+});
+

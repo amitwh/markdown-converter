@@ -10,9 +10,10 @@ const PizZip = require('pizzip');
 const Docx = require('docx4js').default;
 
 class WordTemplateExporter {
-    constructor(templatePath, startPage = 3) {
+    constructor(templatePath, startPage = 3, pageSettings = null) {
         this.templatePath = templatePath || path.join(__dirname, '../word_template.docx');
         this.startPage = startPage; // Which page to start inserting content
+        this.pageSettings = pageSettings; // Page size and orientation settings
     }
 
     /**
@@ -25,7 +26,12 @@ class WordTemplateExporter {
             const zip = new PizZip(templateBuffer);
 
             // Extract document.xml
-            const documentXml = zip.file('word/document.xml').asText();
+            let documentXml = zip.file('word/document.xml').asText();
+
+            // Set page size if settings provided
+            if (this.pageSettings) {
+                documentXml = this.setPageSize(documentXml);
+            }
 
             // Parse markdown and generate Word XML
             const newContentXml = this.markdownToWordXml(markdownContent);
@@ -45,6 +51,56 @@ class WordTemplateExporter {
             console.error('Error in Word export:', error);
             throw error;
         }
+    }
+
+    /**
+     * Set page size in document XML
+     */
+    setPageSize(documentXml) {
+        // Import PAGE_SIZES from main process (need to pass as parameter)
+        const PAGE_SIZES = {
+            a4: { width: 11906, height: 16838 },
+            a3: { width: 16838, height: 23811 },
+            a5: { width: 8391, height: 11906 },
+            b4: { width: 14170, height: 20015 },
+            b5: { width: 9979, height: 14170 },
+            letter: { width: 12240, height: 15840 },
+            legal: { width: 12240, height: 20160 },
+            tabloid: { width: 15840, height: 24480 }
+        };
+
+        let width, height;
+        const pageSize = PAGE_SIZES[this.pageSettings.size];
+
+        if (pageSize) {
+            width = pageSize.width;
+            height = pageSize.height;
+        } else {
+            // Default to A4
+            width = 11906;
+            height = 16838;
+        }
+
+        // Swap dimensions for landscape
+        if (this.pageSettings.orientation === 'landscape') {
+            [width, height] = [height, width];
+        }
+
+        // Update all <w:pgSz> elements in section properties
+        const pgSzRegex = /<w:pgSz[^>]*\/>/g;
+        let modifiedXml = documentXml.replace(pgSzRegex, () => {
+            return `<w:pgSz w:w="${width}" w:h="${height}" w:orient="${this.pageSettings.orientation}"/>`;
+        });
+
+        // If no pgSz found, add it to all sectPr elements
+        if (!pgSzRegex.test(documentXml)) {
+            const sectPrRegex = /<w:sectPr[^>]*>/g;
+            modifiedXml = modifiedXml.replace(sectPrRegex, (match) => {
+                return `${match}<w:pgSz w:w="${width}" w:h="${height}" w:orient="${this.pageSettings.orientation}"/>`;
+            });
+        }
+
+        return modifiedXml;
     }
 
     /**
@@ -306,6 +362,7 @@ class WordTemplateExporter {
 
     /**
      * Create table XML from markdown table lines with template styling
+     * Uses full-width tables with equal column distribution matching template style
      */
     createTableXml(tableLines) {
         // Parse table
@@ -327,13 +384,19 @@ class WordTemplateExporter {
         // Calculate number of columns
         const numCols = Math.max(...rows.map(row => row.length));
 
+        // Calculate column width in twips (1440 twips = 1 inch)
+        // Assume standard page width of 9360 twips (6.5 inches usable)
+        const totalTableWidth = 9360;
+        const colWidth = Math.floor(totalTableWidth / numCols);
+
         // Build table XML
         let tableXml = '<w:tbl>';
 
-        // Table properties - use template table style
+        // Table properties - use template table style with full width
         tableXml += `<w:tblPr>
             <w:tblStyle w:val="TableGrid"/>
-            <w:tblW w:w="5000" w:type="pct"/>
+            <w:tblW w:w="0" w:type="auto"/>
+            <w:tblLayout w:type="fixed"/>
             <w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/>
             <w:tblBorders>
                 <w:top w:val="single" w:sz="8" w:space="0" w:color="F58220"/>
@@ -345,19 +408,21 @@ class WordTemplateExporter {
             </w:tblBorders>
         </w:tblPr>`;
 
-        // Table grid
+        // Table grid with explicit column widths
         tableXml += '<w:tblGrid>';
         for (let i = 0; i < numCols; i++) {
-            tableXml += '<w:gridCol/>';
+            tableXml += `<w:gridCol w:w="${colWidth}"/>`;
         }
         tableXml += '</w:tblGrid>';
 
         // Table rows
         rows.forEach((rowCells, rowIndex) => {
             const isHeader = rowIndex === 0;
-            const isEvenRow = rowIndex % 2 === 0;
 
             tableXml += '<w:tr>';
+
+            // Row properties for consistent height
+            tableXml += '<w:trPr><w:trHeight w:val="0" w:hRule="atLeast"/></w:trPr>';
 
             // Pad row to have same number of columns
             while (rowCells.length < numCols) {
@@ -368,9 +433,14 @@ class WordTemplateExporter {
                 tableXml += '<w:tc>';
                 tableXml += '<w:tcPr>';
 
+                // Cell width
+                tableXml += `<w:tcW w:w="${colWidth}" w:type="dxa"/>`;
+
                 // Cell shading - orange for header, white for data rows
                 if (isHeader) {
-                    tableXml += '<w:shd w:val="clear" w:color="FFFFFF" w:fill="F58220"/>';
+                    tableXml += '<w:shd w:val="clear" w:color="auto" w:fill="F58220"/>';
+                } else {
+                    tableXml += '<w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/>';
                 }
 
                 // Cell borders
@@ -380,12 +450,21 @@ class WordTemplateExporter {
                     '<w:bottom w:val="single" w:sz="8" w:space="0" w:color="F58220"/>' +
                     '<w:right w:val="single" w:sz="8" w:space="0" w:color="F58220"/>' +
                     '</w:tcBorders>';
+
+                // Cell margins for proper padding
+                tableXml += '<w:tcMar>' +
+                    '<w:top w:w="80" w:type="dxa"/>' +
+                    '<w:left w:w="120" w:type="dxa"/>' +
+                    '<w:bottom w:w="80" w:type="dxa"/>' +
+                    '<w:right w:w="120" w:type="dxa"/>' +
+                    '</w:tcMar>';
+
                 tableXml += '</w:tcPr>';
 
                 // Cell content
                 tableXml += '<w:p>';
                 tableXml += '<w:pPr>';
-                tableXml += '<w:spacing w:before="100" w:after="100"/>';
+                tableXml += '<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>';
                 tableXml += '</w:pPr>';
 
                 const runs = this.parseInlineFormatting(cellText);
@@ -406,6 +485,9 @@ class WordTemplateExporter {
         });
 
         tableXml += '</w:tbl>';
+
+        // Add spacing after table
+        tableXml += '<w:p><w:pPr><w:spacing w:before="120" w:after="0"/></w:pPr></w:p>';
 
         return tableXml;
     }
