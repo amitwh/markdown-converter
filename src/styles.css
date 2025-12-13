@@ -10,6 +10,10 @@ body {
     height: 100vh;
 }
 
+.hidden {
+    display: none !important;
+}
+
 .container {
     display: flex;
     flex-direction: column;
@@ -156,7 +160,53 @@ body {
 }
 
 .pane:first-child {
-    border-right: 1px solid #ddd;
+    border-right: none;
+}
+
+/* Pane Resizer */
+.pane-resizer {
+    width: 6px;
+    background: #e0e0e0;
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.pane-resizer:hover {
+    background: #999;
+}
+
+.pane-resizer:active {
+    background: #666;
+}
+
+/* Preview Header */
+.preview-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 4px 8px;
+    background: #f6f8fa;
+    border-bottom: 1px solid #dfe2e5;
+    min-height: 32px;
+}
+
+.preview-popout-btn {
+    background: transparent;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #57606a;
+    transition: all 0.2s;
+}
+
+.preview-popout-btn:hover {
+    background: #f3f4f6;
+    border-color: #8c959f;
+    color: #24292f;
 }
 
 .editor-textarea {
@@ -207,10 +257,15 @@ body {
     background: #fff;
 }
 
-#preview {
+/* GitHub Light Theme for Preview (Default) */
+#preview, [id^="preview-"], .preview-content {
     max-width: 800px;
     margin: 0 auto;
     font-size: 15px;
+    padding: 20px;
+    background: #ffffff;
+    color: #24292f;
+    line-height: 1.6;
 }
 
 /* Status Bar */
@@ -251,22 +306,25 @@ body {
     line-height: 1.6;
 }
 
-#preview code, .preview-content code {
+#preview code, .preview-content code, [id^="preview-"] code {
     padding: 0.2em 0.4em;
     margin: 0;
     font-size: 85%;
-    background-color: rgba(27,31,35,0.05);
-    border-radius: 3px;
-    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    background-color: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    color: #24292f;
 }
 
-#preview pre, .preview-content pre {
+#preview pre, .preview-content pre, [id^="preview-"] pre {
     padding: 16px;
     overflow: auto;
     font-size: 85%;
     line-height: 1.45;
     background-color: #f6f8fa;
-    border-radius: 3px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
     margin-bottom: 16px;
 }
 
@@ -287,6 +345,126 @@ body {
     color: #6a737d;
     border-left: 0.25em solid #dfe2e5;
     margin-bottom: 16px;
+}
+
+/* GitHub Dark Theme for Preview */
+body.theme-dark #preview,
+body.theme-dark [id^="preview-"],
+body.theme-dark .preview-content {
+    background: #0d1117;
+    color: #c9d1d9;
+}
+
+body.theme-dark #preview h1,
+body.theme-dark [id^="preview-"] h1,
+body.theme-dark .preview-content h1 {
+    color: #c9d1d9;
+    border-bottom-color: #21262d;
+}
+
+body.theme-dark #preview h2,
+body.theme-dark [id^="preview-"] h2,
+body.theme-dark .preview-content h2 {
+    color: #c9d1d9;
+    border-bottom-color: #21262d;
+}
+
+body.theme-dark #preview h3,
+body.theme-dark #preview h4,
+body.theme-dark #preview h5,
+body.theme-dark #preview h6,
+body.theme-dark [id^="preview-"] h3,
+body.theme-dark [id^="preview-"] h4,
+body.theme-dark [id^="preview-"] h5,
+body.theme-dark [id^="preview-"] h6,
+body.theme-dark .preview-content h3,
+body.theme-dark .preview-content h4,
+body.theme-dark .preview-content h5,
+body.theme-dark .preview-content h6 {
+    color: #c9d1d9;
+}
+
+body.theme-dark #preview p,
+body.theme-dark [id^="preview-"] p,
+body.theme-dark .preview-content p {
+    color: #c9d1d9;
+}
+
+body.theme-dark #preview code,
+body.theme-dark [id^="preview-"] code,
+body.theme-dark .preview-content code {
+    background-color: #161b22;
+    border-color: #30363d;
+    color: #c9d1d9;
+}
+
+body.theme-dark #preview pre,
+body.theme-dark [id^="preview-"] pre,
+body.theme-dark .preview-content pre {
+    background-color: #161b22;
+    border-color: #30363d;
+}
+
+body.theme-dark #preview blockquote,
+body.theme-dark [id^="preview-"] blockquote,
+body.theme-dark .preview-content blockquote {
+    color: #8b949e;
+    border-left-color: #3b434b;
+}
+
+body.theme-dark #preview a,
+body.theme-dark [id^="preview-"] a,
+body.theme-dark .preview-content a {
+    color: #58a6ff;
+}
+
+body.theme-dark #preview a:hover,
+body.theme-dark [id^="preview-"] a:hover,
+body.theme-dark .preview-content a:hover {
+    color: #79c0ff;
+}
+
+body.theme-dark #preview table,
+body.theme-dark [id^="preview-"] table,
+body.theme-dark .preview-content table {
+    border-color: #30363d;
+}
+
+body.theme-dark #preview table th,
+body.theme-dark [id^="preview-"] table th,
+body.theme-dark .preview-content table th {
+    background-color: #161b22;
+    color: #c9d1d9;
+    border-color: #30363d;
+}
+
+body.theme-dark #preview table td,
+body.theme-dark [id^="preview-"] table td,
+body.theme-dark .preview-content table td {
+    border-color: #30363d;
+    color: #c9d1d9;
+}
+
+body.theme-dark #preview hr,
+body.theme-dark [id^="preview-"] hr,
+body.theme-dark .preview-content hr {
+    background-color: #21262d;
+    border-color: #21262d;
+}
+
+body.theme-dark #preview ul,
+body.theme-dark #preview ol,
+body.theme-dark [id^="preview-"] ul,
+body.theme-dark [id^="preview-"] ol,
+body.theme-dark .preview-content ul,
+body.theme-dark .preview-content ol {
+    color: #c9d1d9;
+}
+
+body.theme-dark #preview li,
+body.theme-dark [id^="preview-"] li,
+body.theme-dark .preview-content li {
+    color: #c9d1d9;
 }
 
 #preview ul, #preview ol, .preview-content ul, .preview-content ol {
@@ -326,10 +504,11 @@ body {
 
 #preview table th, .preview-content table th {
     font-weight: 600;
+    background-color: #f6f8fa;
 }
 
 #preview table tr:nth-child(2n), .preview-content table tr:nth-child(2n) {
-    background-color: #f6f8fa;
+    background-color: #ffffff;
 }
 
 /* Theme: Dark */
@@ -1514,6 +1693,42 @@ body.theme-github .line-numbers {
     background: #fafbfc;
     border-right-color: #e1e4e8;
     color: #586069;
+}
+
+/* Export Profiles Styles */
+.export-profiles {
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.profile-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.profile-controls select {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.profile-controls button {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f5f5f5;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.profile-controls button:hover {
+    background: #e8e8e8;
 }
 
 /* Advanced Export Toggle Styles */
@@ -3445,4 +3660,144 @@ body[data-theme="dark"] .field-option {
 body[data-theme="dark"] .field-option:hover {
     background: #0d6efd;
     color: white;
+}
+/* Mermaid Diagram Styles */
+.mermaid {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+}
+
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+
+body.theme-dark .mermaid {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+body.theme-solarized .mermaid {
+    background: #fdf6e3;
+    border-color: #eee8d5;
+}
+
+body.theme-monokai .mermaid {
+    background: #2f2f2f;
+    border-color: #49483e;
+}
+
+body.theme-github .mermaid {
+    background: #f6f8fa;
+    border-color: #e1e4e8;
+}
+
+/* Command Palette Styles */
+.command-palette {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 100px;
+    z-index: 10000;
+}
+
+.command-palette.hidden {
+    display: none;
+}
+
+.command-palette-content {
+    background: #fff;
+    border-radius: 12px;
+    width: 600px;
+    max-width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+#command-search {
+    width: 100%;
+    padding: 20px;
+    font-size: 18px;
+    border: none;
+    border-bottom: 1px solid #e0e0e0;
+    outline: none;
+}
+
+.command-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.command-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.15s;
+}
+
+.command-item:hover,
+.command-item.selected {
+    background: #f0f0f0;
+}
+
+.command-name {
+    font-weight: 500;
+}
+
+.command-shortcut {
+    font-size: 12px;
+    color: #666;
+    background: #f5f5f5;
+    padding: 3px 8px;
+    border-radius: 3px;
+}
+
+.command-palette-footer {
+    padding: 12px 20px;
+    background: #f9f9f9;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Dark theme support for command palette */
+body.theme-dark .command-palette-content {
+    background: #2d2d2d;
+    color: #f0f0f0;
+}
+
+body.theme-dark #command-search {
+    background: #2d2d2d;
+    color: #f0f0f0;
+    border-color: #444;
+}
+
+body.theme-dark .command-item:hover,
+body.theme-dark .command-item.selected {
+    background: #3d3d3d;
+}
+
+body.theme-dark .command-shortcut {
+    background: #3d3d3d;
+    color: #ccc;
+}
+
+body.theme-dark .command-palette-footer {
+    background: #252525;
+    border-color: #444;
+    color: #999;
 }

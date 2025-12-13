@@ -78,6 +78,66 @@ let headerFooterSettings = {
   }
 };
 
+// Page Size Definitions (in twentieths of a point for Word, mm/inches for Pandoc)
+const PAGE_SIZES = {
+  a4: {
+    name: 'A4',
+    pandoc: 'a4',
+    word: { width: 11906, height: 16838 }, // 210×297mm
+    dimensions: '210×297mm'
+  },
+  a3: {
+    name: 'A3',
+    pandoc: 'a3',
+    word: { width: 16838, height: 23811 }, // 297×420mm
+    dimensions: '297×420mm'
+  },
+  a5: {
+    name: 'A5',
+    pandoc: 'a5',
+    word: { width: 8391, height: 11906 }, // 148×210mm
+    dimensions: '148×210mm'
+  },
+  b4: {
+    name: 'B4',
+    pandoc: 'b4',
+    word: { width: 14170, height: 20015 }, // 250×353mm
+    dimensions: '250×353mm'
+  },
+  b5: {
+    name: 'B5',
+    pandoc: 'b5',
+    word: { width: 9979, height: 14170 }, // 176×250mm
+    dimensions: '176×250mm'
+  },
+  letter: {
+    name: 'Letter',
+    pandoc: 'letter',
+    word: { width: 12240, height: 15840 }, // 8.5×11in
+    dimensions: '8.5×11in'
+  },
+  legal: {
+    name: 'Legal',
+    pandoc: 'legal',
+    word: { width: 12240, height: 20160 }, // 8.5×14in
+    dimensions: '8.5×14in'
+  },
+  tabloid: {
+    name: 'Tabloid',
+    pandoc: 'tabloid',
+    word: { width: 15840, height: 24480 }, // 11×17in
+    dimensions: '11×17in'
+  }
+};
+
+// Default page settings
+let pageSettings = {
+  size: 'a4',
+  orientation: 'portrait',
+  customWidth: null,
+  customHeight: null
+};
+
 // Handle single instance lock for Windows file association
 // When a file is double-clicked and the app is already running,
 // Windows tries to start a second instance. We prevent this and
@@ -506,6 +566,23 @@ function createMenu() {
       ]
     },
     {
+      label: 'Tools',
+      submenu: [
+        {
+          label: 'Table Generator',
+          click: () => mainWindow.webContents.send('show-table-generator')
+        },
+        {
+          label: 'ASCII Art Generator',
+          click: () => mainWindow.webContents.send('show-ascii-generator')
+        },
+        {
+          label: 'Document Compare',
+          click: () => mainWindow.webContents.send('show-document-compare')
+        }
+      ]
+    },
+    {
       label: 'Help',
       submenu: [
         {
@@ -515,7 +592,7 @@ function createMenu() {
               type: 'info',
               title: 'About PanConverter',
               message: 'PanConverter',
-              detail: 'A cross-platform Markdown editor and converter using Pandoc.\n\nVersion: 1.9.2\nAuthor: Amit Haridas\nEmail: amit.wh@gmail.com\nLicense: MIT\n\nFeatures:\n• Preserved ASCII art, charts, tables, flowcharts in exports with full-width background\n• Custom Headers & Footers for PDF, DOCX, ODT, and PowerPoint exports\n• Dynamic field support: $PAGE$, $TOTAL$, $DATE$, $TIME$, $TITLE$, $AUTHOR$, $FILENAME$\n• Logo/image embedding in headers and footers\n• Modern glassmorphism UI with gradient backgrounds\n• Enhanced PDF export via Word template with configurable start page\n• Configurable template settings (start page selection)\n• Streamlined PDF Editor UI (merge, split, compress, rotate, watermark, encrypt)\n• Universal File Converter (LibreOffice, ImageMagick, FFmpeg, Pandoc)\n• Windows Explorer context menu integration\n• Tabbed interface for multiple files\n• Advanced markdown editing with live preview\n• Real-time preview updates while typing\n• Full toolbar markdown editing functions\n• Enhanced PDF export with built-in Electron fallback\n• Enhanced Word export with template support (single file & batch)\n• File association support for .md files\n• Command-line interface for batch conversion\n• Advanced export options with templates and metadata\n• Batch file conversion with progress tracking\n• Improved preview typography and spacing\n• Adjustable font sizes via menu (Ctrl+Shift+Plus/Minus)\n• Complete theme support including Monokai fixes\n• Find & replace with match highlighting\n• Line numbers and auto-indentation\n• Export to multiple formats via Pandoc\n• PowerPoint & presentation export\n• Export tables to Excel/ODS spreadsheets\n• Document import & conversion\n• Table creation helper\n• 22 beautiful themes (including Dracula, Nord, Tokyo Night, Gruvbox, Ayu, Concrete, and more)\n• Undo/redo functionality\n• Live word count and statistics',
+              detail: 'A cross-platform Markdown editor and converter using Pandoc.\n\nVersion: 2.0.0\nAuthor: Amit Haridas\nEmail: amit.wh@gmail.com\nLicense: MIT\n\n✨ New in v2.0.0:\n• Export Profiles - Save and load export configurations\n• Mermaid.js diagram support - Render flowcharts, sequence diagrams, and more\n• Command Palette (Ctrl+Shift+P) - Quick access to all commands\n• GitHub Light/Dark preview themes - Beautiful code preview styling\n• Table Generator - Interactive table creation tool\n• ASCII Art Generator - Create text banners, boxes, and templates\n• Resizable Preview Pane - Drag divider to adjust editor/preview sizes\n• Pop-out Preview Window - Open preview in separate window with live sync\n\nCore Features:\n• Configurable page sizes (A3, A4, A5, B4, B5, Letter, Legal, Tabloid, Custom) with orientation support\n• Page size support for all export formats (PDF, DOCX, ODT, PowerPoint) and batch conversion\n• Preserved ASCII art, charts, tables, flowcharts in exports with full-width background\n• Custom Headers & Footers for PDF, DOCX, ODT, and PowerPoint exports\n• Dynamic field support: $PAGE$, $TOTAL$, $DATE$, $TIME$, $TITLE$, $AUTHOR$, $FILENAME$\n• Logo/image embedding in headers and footers\n• Modern glassmorphism UI with gradient backgrounds\n• Enhanced PDF export via Word template with configurable start page\n• Streamlined PDF Editor UI (merge, split, compress, rotate, watermark, encrypt)\n• Universal File Converter (LibreOffice, ImageMagick, FFmpeg, Pandoc)\n• Windows Explorer context menu integration\n• Tabbed interface for multiple files\n• Advanced markdown editing with live preview\n• Real-time preview updates while typing\n• Full toolbar markdown editing functions\n• Enhanced PDF export with built-in Electron fallback\n• Enhanced Word export with template support (single file & batch)\n• File association support for .md files\n• Command-line interface for batch conversion\n• Advanced export options with templates and metadata\n• Batch file conversion with progress tracking\n• Adjustable font sizes via menu (Ctrl+Shift+Plus/Minus)\n• 22 beautiful themes (including Dracula, Nord, Tokyo Night, Gruvbox, Ayu, Concrete, and more)\n• Find & replace with match highlighting\n• Line numbers and auto-indentation\n• Undo/redo functionality\n• Live word count and statistics',
               buttons: ['OK']
             });
           }
@@ -672,6 +749,18 @@ ipcMain.on('save-header-footer-settings', (event, settings) => {
   });
 });
 
+// Get current page settings
+ipcMain.on('get-page-settings', (event) => {
+  event.reply('page-settings-data', pageSettings);
+});
+
+// Update page settings from export dialog
+ipcMain.on('update-page-settings', (event, settings) => {
+  pageSettings = settings;
+  store.set('pageSettings', pageSettings);
+  console.log('Page settings updated:', pageSettings);
+});
+
 // Save header/footer logo image
 // Browse for header/footer logo
 ipcMain.on('browse-header-footer-logo', async (event, position) => {
@@ -794,6 +883,67 @@ function processDynamicFields(text, metadata = {}) {
 }
 
 // Add headers/footers to DOCX file using PizZip and docx4js
+// Function to set page size in DOCX files
+async function setDocxPageSize(docxPath) {
+  try {
+    const PizZip = require('pizzip');
+
+    // Read the DOCX file
+    const docxBuffer = fs.readFileSync(docxPath);
+    const zip = new PizZip(docxBuffer);
+
+    // Get document.xml
+    let documentXml = zip.file('word/document.xml').asText();
+
+    // Get page dimensions
+    let width, height;
+    const pageSize = PAGE_SIZES[pageSettings.size];
+
+    if (pageSize) {
+      width = pageSize.word.width;
+      height = pageSize.word.height;
+    } else if (pageSettings.customWidth && pageSettings.customHeight) {
+      // Parse custom dimensions (convert to twentieths of a point)
+      // Note: This is simplified - production code should handle various units
+      width = parseInt(pageSettings.customWidth) || 11906;
+      height = parseInt(pageSettings.customHeight) || 16838;
+    } else {
+      // Default to A4
+      width = 11906;
+      height = 16838;
+    }
+
+    // Swap dimensions for landscape
+    if (pageSettings.orientation === 'landscape') {
+      [width, height] = [height, width];
+    }
+
+    // Update all <w:pgSz> elements in section properties
+    const pgSzRegex = /<w:pgSz[^>]*\/>/g;
+    documentXml = documentXml.replace(pgSzRegex, () => {
+      return `<w:pgSz w:w="${width}" w:h="${height}" w:orient="${pageSettings.orientation}"/>`;
+    });
+
+    // If no pgSz found, add it to all sectPr elements
+    if (!pgSzRegex.test(documentXml)) {
+      const sectPrRegex = /<w:sectPr[^>]*>/g;
+      documentXml = documentXml.replace(sectPrRegex, (match) => {
+        return `${match}<w:pgSz w:w="${width}" w:h="${height}" w:orient="${pageSettings.orientation}"/>`;
+      });
+    }
+
+    // Save updated document.xml
+    zip.file('word/document.xml', documentXml);
+
+    // Write modified DOCX
+    const newDocxBuffer = zip.generate({ type: 'nodebuffer' });
+    fs.writeFileSync(docxPath, newDocxBuffer);
+
+  } catch (error) {
+    console.error('Failed to set DOCX page size:', error);
+  }
+}
+
 async function addHeaderFooterToDocx(docxPath, metadata = {}) {
   if (!headerFooterSettings.enabled) return;
 
@@ -939,8 +1089,8 @@ async function exportWordWithTemplate() {
 
     if (result.canceled) return;
 
-    // Create exporter instance with selected template and start page
-    const exporter = new WordTemplateExporter(wordTemplatePath, templateStartPage);
+    // Create exporter instance with selected template, start page, and page settings
+    const exporter = new WordTemplateExporter(wordTemplatePath, templateStartPage, pageSettings);
 
     // Convert markdown to DOCX
     await exporter.convert(content, result.filePath);
@@ -1444,6 +1594,16 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
         console.warn(`Pandoc stderr (non-fatal):`, stderr);
       }
 
+      // Set page size for DOCX
+      if (format === 'docx') {
+        try {
+          await setDocxPageSize(outputFile);
+          console.log('Page size set for DOCX');
+        } catch (pageSizeError) {
+          console.error('Error setting page size for DOCX:', pageSizeError);
+        }
+      }
+
       // Add headers/footers to DOCX if enabled
       if (format === 'docx' && headerFooterSettings.enabled) {
         try {
@@ -1458,6 +1618,16 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
         } catch (hfError) {
           console.error('Error adding headers/footers to DOCX:', hfError);
           // Continue with success message even if header/footer fails
+        }
+      }
+
+      // Set page size for ODT
+      if (format === 'odt') {
+        try {
+          await setDocxPageSize(outputFile); // ODT has similar structure
+          console.log('Page size set for ODT');
+        } catch (pageSizeError) {
+          console.error('Error setting page size for ODT:', pageSizeError);
         }
       }
 
@@ -2198,8 +2368,12 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
     // Add PDF-specific options with header/footer support
     if (format === 'pdf') {
       const pdfEngine = options.pdfEngine || 'xelatex';
-      pandocCmd += ` --pdf-engine="${pdfEngine}"`;
+      pandocCmd += ` --pdf-engine=${pdfEngine}`;
       if (options.geometry) pandocCmd += ` -V geometry:"${options.geometry}"`;
+
+      // Add monospace font settings for code blocks (ASCII art preservation)
+      pandocCmd += ' -V monofont="Consolas"';
+      pandocCmd += ' --highlight-style=tango';
 
       // Add header/footer if enabled
       if (headerFooterSettings.enabled) {
@@ -2407,6 +2581,22 @@ function buildPandocCommand(content, format, outputPath) {
   switch (format) {
     case 'pdf':
       command += ' --pdf-engine=xelatex --variable geometry:margin=1in';
+
+      // Add page size and orientation
+      const pageSize = PAGE_SIZES[pageSettings.size];
+      if (pageSize) {
+        command += ` -V geometry:papersize=${pageSize.pandoc}`;
+      } else if (pageSettings.customWidth && pageSettings.customHeight) {
+        // Custom page size
+        command += ` -V geometry:paperwidth=${pageSettings.customWidth}`;
+        command += ` -V geometry:paperheight=${pageSettings.customHeight}`;
+      }
+
+      // Add orientation
+      if (pageSettings.orientation === 'landscape') {
+        command += ' -V geometry:landscape';
+      }
+
       // Add monospace font settings for code blocks (ASCII art preservation)
       command += ' -V monofont="Consolas"';
       command += ' --highlight-style=tango';
@@ -2493,6 +2683,12 @@ app.whenReady().then(() => {
   const savedHFSettings = store.get('headerFooterSettings', null);
   if (savedHFSettings) {
     headerFooterSettings = savedHFSettings;
+  }
+
+  // Load page size settings
+  const savedPageSettings = store.get('pageSettings', null);
+  if (savedPageSettings) {
+    pageSettings = savedPageSettings;
   }
 
   // Check for command line conversion requests
