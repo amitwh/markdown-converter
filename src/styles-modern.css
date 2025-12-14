@@ -444,8 +444,8 @@ body {
 
 .preview-content table th {
   font-weight: 600;
-  background: var(--primary-gradient);
-  color: white;
+  background: #f0f0f0;
+  color: #333333;
 }
 
 .preview-content table tr:nth-child(even) {

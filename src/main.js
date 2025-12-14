@@ -592,7 +592,7 @@ function createMenu() {
               type: 'info',
               title: 'About PanConverter',
               message: 'PanConverter',
-              detail: 'A cross-platform Markdown editor and converter using Pandoc.\n\nVersion: 2.0.0\nAuthor: Amit Haridas\nEmail: amit.wh@gmail.com\nLicense: MIT\n\n✨ New in v2.0.0:\n• Export Profiles - Save and load export configurations\n• Mermaid.js diagram support - Render flowcharts, sequence diagrams, and more\n• Command Palette (Ctrl+Shift+P) - Quick access to all commands\n• GitHub Light/Dark preview themes - Beautiful code preview styling\n• Table Generator - Interactive table creation tool\n• ASCII Art Generator - Create text banners, boxes, and templates\n• Resizable Preview Pane - Drag divider to adjust editor/preview sizes\n• Pop-out Preview Window - Open preview in separate window with live sync\n\nCore Features:\n• Configurable page sizes (A3, A4, A5, B4, B5, Letter, Legal, Tabloid, Custom) with orientation support\n• Page size support for all export formats (PDF, DOCX, ODT, PowerPoint) and batch conversion\n• Preserved ASCII art, charts, tables, flowcharts in exports with full-width background\n• Custom Headers & Footers for PDF, DOCX, ODT, and PowerPoint exports\n• Dynamic field support: $PAGE$, $TOTAL$, $DATE$, $TIME$, $TITLE$, $AUTHOR$, $FILENAME$\n• Logo/image embedding in headers and footers\n• Modern glassmorphism UI with gradient backgrounds\n• Enhanced PDF export via Word template with configurable start page\n• Streamlined PDF Editor UI (merge, split, compress, rotate, watermark, encrypt)\n• Universal File Converter (LibreOffice, ImageMagick, FFmpeg, Pandoc)\n• Windows Explorer context menu integration\n• Tabbed interface for multiple files\n• Advanced markdown editing with live preview\n• Real-time preview updates while typing\n• Full toolbar markdown editing functions\n• Enhanced PDF export with built-in Electron fallback\n• Enhanced Word export with template support (single file & batch)\n• File association support for .md files\n• Command-line interface for batch conversion\n• Advanced export options with templates and metadata\n• Batch file conversion with progress tracking\n• Adjustable font sizes via menu (Ctrl+Shift+Plus/Minus)\n• 22 beautiful themes (including Dracula, Nord, Tokyo Night, Gruvbox, Ayu, Concrete, and more)\n• Find & replace with match highlighting\n• Line numbers and auto-indentation\n• Undo/redo functionality\n• Live word count and statistics',
+              detail: 'A cross-platform Markdown editor and converter using Pandoc.\n\nVersion: 2.1.0\nAuthor: Amit Haridas\nEmail: amit.wh@gmail.com\nLicense: MIT\n\n✨ New in v2.1.0:\n• Subtle & Small Preview Popout Button - Cleaner, minimalist design\n• Simplified Table Headers - Light gray background with better readability\n• Comprehensive Format-to-Markdown Conversion - Support for 30+ formats (RST, Textile, MediaWiki, Org-mode, AsciiDoc, CSV, JSON, and more)\n• Exhaustive ASCII Art Generator - 5 text banner styles (Standard, Banner, Block, Bubble, Digital) and 19 professional templates\n• Enhanced Templates - Flowcharts, sequence diagrams, network diagrams, hierarchy trees, timelines, note boxes, warning boxes, and decorative elements\n\n✨ Features from v2.0.0:\n• Export Profiles - Save and load export configurations\n• Mermaid.js diagram support - Render flowcharts, sequence diagrams, and more\n• Command Palette (Ctrl+Shift+P) - Quick access to all commands\n• GitHub Light/Dark preview themes - Beautiful code preview styling\n• Table Generator - Interactive table creation tool\n• Resizable Preview Pane - Drag divider to adjust editor/preview sizes\n• Pop-out Preview Window - Open preview in separate window with live sync\n\nCore Features:\n• Configurable page sizes (A3, A4, A5, B4, B5, Letter, Legal, Tabloid, Custom) with orientation support\n• Page size support for all export formats (PDF, DOCX, ODT, PowerPoint) and batch conversion\n• Preserved ASCII art, charts, tables, flowcharts in exports with full-width background\n• Custom Headers & Footers for PDF, DOCX, ODT, and PowerPoint exports\n• Dynamic field support: $PAGE$, $TOTAL$, $DATE$, $TIME$, $TITLE$, $AUTHOR$, $FILENAME$\n• Logo/image embedding in headers and footers\n• Modern glassmorphism UI with gradient backgrounds\n• Enhanced PDF export via Word template with configurable start page\n• Streamlined PDF Editor UI (merge, split, compress, rotate, watermark, encrypt)\n• Universal File Converter (LibreOffice, ImageMagick, FFmpeg, Pandoc)\n• Windows Explorer context menu integration\n• Tabbed interface for multiple files\n• Advanced markdown editing with live preview\n• Real-time preview updates while typing\n• Full toolbar markdown editing functions\n• Enhanced PDF export with built-in Electron fallback\n• Enhanced Word export with template support (single file & batch)\n• File association support for .md files\n• Command-line interface for batch conversion\n• Advanced export options with templates and metadata\n• Batch file conversion with progress tracking\n• Adjustable font sizes via menu (Ctrl+Shift+Plus/Minus)\n• 22 beautiful themes (including Dracula, Nord, Tokyo Night, Gruvbox, Ayu, Concrete, and more)\n• Find & replace with match highlighting\n• Line numbers and auto-indentation\n• Undo/redo functionality\n• Live word count and statistics',
               buttons: ['OK']
             });
           }
@@ -1934,32 +1934,58 @@ function importDocument() {
   const files = dialog.showOpenDialogSync(mainWindow, {
     properties: ['openFile'],
     filters: [
-      { name: 'Documents', extensions: ['docx', 'odt', 'rtf', 'html', 'tex', 'epub', 'pdf'] },
+      { name: 'Documents', extensions: ['docx', 'odt', 'rtf', 'html', 'htm', 'tex', 'epub', 'pdf', 'txt'] },
       { name: 'Presentations', extensions: ['pptx', 'odp'] },
+      { name: 'Markup Languages', extensions: ['rst', 'textile', 'mediawiki', 'org', 'asciidoc', 'twiki', 'opml'] },
+      { name: 'E-book Formats', extensions: ['epub', 'fb2'] },
+      { name: 'LaTeX Formats', extensions: ['tex', 'latex', 'ltx'] },
+      { name: 'Web Formats', extensions: ['html', 'htm', 'xhtml'] },
+      { name: 'Wiki Formats', extensions: ['mediawiki', 'dokuwiki', 'tikiwiki', 'twiki'] },
+      { name: 'CSV/TSV', extensions: ['csv', 'tsv'] },
+      { name: 'JSON', extensions: ['json'] },
       { name: 'All Files', extensions: ['*'] }
     ]
   });
 
   if (files && files[0]) {
     const inputFile = files[0];
+    const ext = path.extname(inputFile).toLowerCase().slice(1);
     const outputFile = inputFile.replace(/\.[^/.]+$/, '.md');
-    
+
+    // Determine format-specific conversion options
+    let additionalOptions = '';
+
+    // For PDFs, extract text properly
+    if (ext === 'pdf') {
+      additionalOptions = '--pdf-engine=xelatex';
+    }
+
+    // For CSV/TSV, convert as tables
+    if (ext === 'csv' || ext === 'tsv') {
+      additionalOptions = '--from=csv -t markdown';
+    }
+
+    // For JSON, handle structure
+    if (ext === 'json') {
+      additionalOptions = '--from=json -t markdown';
+    }
+
     // Convert to markdown using pandoc
-    const pandocCmd = `${getPandocPath()} "${inputFile}" -t markdown -o "${outputFile}"`;
-    
+    const pandocCmd = `${getPandocPath()} "${inputFile}" -t markdown ${additionalOptions} -o "${outputFile}"`;
+
     exec(pandocCmd, (error, stdout, stderr) => {
       if (error) {
-        dialog.showErrorBox('Import Error', `Failed to import: ${error.message}\n\nMake sure Pandoc is installed.`);
+        dialog.showErrorBox('Import Error', `Failed to import: ${error.message}\n\nMake sure Pandoc is installed.\n\nSupported formats: DOCX, ODT, RTF, HTML, LaTeX, EPUB, PDF, PPTX, ODP, RST, Textile, MediaWiki, Org-mode, AsciiDoc, CSV, and more.`);
       } else {
         // Open the converted markdown file
         currentFile = outputFile;
         const content = fs.readFileSync(outputFile, 'utf-8');
         mainWindow.webContents.send('file-opened', { path: outputFile, content });
-        
+
         dialog.showMessageBox(mainWindow, {
           type: 'info',
           title: 'Import Complete',
-          message: `Document imported successfully as ${outputFile}`,
+          message: `Document imported successfully as ${path.basename(outputFile)}\n\nOriginal format: ${ext.toUpperCase()}\nConverted to: Markdown`,
           buttons: ['OK']
         });
       }
