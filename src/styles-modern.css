@@ -50,9 +50,7 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   overflow: hidden;
   height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-  background-size: 200% 200%;
-  animation: gradientShift 15s ease infinite;
+  /* Background controlled by themes - do not set here */
   color: var(--gray-900);
 }
 
@@ -66,8 +64,8 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 12px;
-  gap: 12px;
+  padding: 4px 8px;
+  gap: 2px;
 }
 
 /* Glass Container for main content */
@@ -90,10 +88,11 @@ body {
   align-items: center;
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 8px 12px;
-  min-height: 48px;
-  gap: 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 4px 8px;
+  min-height: 36px;
+  gap: 4px;
+  border-radius: 8px;
 }
 
 .tab {
@@ -114,17 +113,14 @@ body {
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .tab.active {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
-  color: white;
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-  transform: translateY(-2px);
+  background: #ffffff;
+  color: #24292e;
+  border-bottom: 2px solid #0366d6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .tab-title {
@@ -185,38 +181,36 @@ body {
 .toolbar {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  padding: 4px 8px;
   background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  gap: 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  gap: 2px;
+  border-radius: 8px;
 }
 
 .toolbar button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(8px);
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all var(--transition-speed) var(--transition-ease);
-  color: var(--gray-700);
+  transition: all 0.15s ease;
+  color: #586069;
 }
 
 .toolbar button:hover {
-  background: var(--primary-gradient);
-  border-color: transparent;
-  color: white;
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+  background: rgba(0, 0, 0, 0.06);
+  color: #24292e;
 }
 
 .toolbar button:active {
-  transform: translateY(0) scale(0.98);
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(0.95);
 }
 
 .toolbar-separator {
@@ -272,14 +266,14 @@ body {
 
 .pane::-webkit-scrollbar-thumb,
 .editor-textarea::-webkit-scrollbar-thumb {
-  background: var(--primary-gradient);
+  background: rgba(0, 0, 0, 0.25);
   border-radius: 10px;
   border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .pane::-webkit-scrollbar-thumb:hover,
 .editor-textarea::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #8b9aff, #9d6fd8);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .editor-textarea {
@@ -293,13 +287,12 @@ body {
   outline: none;
   resize: none;
   background: transparent;
-  color: var(--gray-900);
+  /* Color controlled by theme */
 }
 
 .pane:last-child {
   padding: 0;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(15px);
+  /* Background controlled by theme */
 }
 
 .preview-content {
@@ -308,30 +301,23 @@ body {
   padding: 24px 32px;
   line-height: 1.8;
   font-size: 15px;
-  color: var(--gray-900);
+  /* Color controlled by theme */
 }
 
-/* Status Bar - Glassmorphism */
+/* Status Bar */
 .status-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 20px;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0 0 20px 20px;
+  /* Background and color controlled by theme */
   font-size: 12px;
-  color: var(--gray-600);
   font-weight: 500;
 }
 
 /* Preview Styles - Modern Typography */
 .preview-content h1, .preview-content h2, .preview-content h3 {
-  background: var(--primary-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  /* Color controlled by theme */
   font-weight: 700;
   margin-top: 28px;
   margin-bottom: 16px;
@@ -340,14 +326,13 @@ body {
 
 .preview-content h1 {
   font-size: 2.5em;
-  border-bottom: 3px solid;
-  border-image: var(--primary-gradient) 1;
+  border-bottom: 3px solid #e1e4e8;
   padding-bottom: 12px;
 }
 
 .preview-content h2 {
   font-size: 2em;
-  border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+  border-bottom: 2px solid #e1e4e8;
   padding-bottom: 10px;
 }
 
@@ -360,8 +345,8 @@ body {
   padding: 3px 8px;
   margin: 0 2px;
   font-size: 90%;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  background: rgba(175, 184, 193, 0.2);
+  border: 1px solid #e1e4e8;
   border-radius: 6px;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-weight: 500;
@@ -372,9 +357,8 @@ body {
   overflow-x: auto;
   font-size: 14px;
   line-height: 1.6;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  background: #f6f8fa;
+  border: 1px solid #e1e4e8;
   border-radius: 12px;
   margin-bottom: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -390,17 +374,15 @@ body {
 .preview-content blockquote {
   padding: 16px 20px;
   color: var(--gray-700);
-  border-left: 4px solid;
-  border-image: var(--primary-gradient) 1;
+  border-left: 4px solid #e1e4e8;
   margin-bottom: 20px;
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(8px);
+  background: #f6f8fa;
   border-radius: 0 8px 8px 0;
   font-style: italic;
 }
 
 .preview-content a {
-  color: #667eea;
+  color: #0366d6;
   text-decoration: none;
   font-weight: 600;
   position: relative;
@@ -414,12 +396,12 @@ body {
   bottom: -2px;
   width: 0;
   height: 2px;
-  background: var(--primary-gradient);
+  background: #0366d6;
   transition: width var(--transition-speed) var(--transition-ease);
 }
 
 .preview-content a:hover {
-  color: #764ba2;
+  color: #0366d6;
 }
 
 .preview-content a:hover::after {
@@ -439,7 +421,7 @@ body {
 .preview-content table th,
 .preview-content table td {
   padding: 12px 16px;
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  border: 1px solid #e1e4e8;
 }
 
 .preview-content table th {
@@ -515,8 +497,8 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
-  background: var(--primary-gradient);
+  border-bottom: 1px solid #e1e4e8;
+  background: #24292e;
   border-radius: 20px 20px 0 0;
 }
 
@@ -553,7 +535,7 @@ body {
 .batch-section input {
   width: 100%;
   padding: 10px 14px;
-  border: 2px solid rgba(102, 126, 234, 0.2);
+  border: 2px solid #e1e4e8;
   border-radius: 10px;
   font-size: 14px;
   background: rgba(255, 255, 255, 0.8);
@@ -566,8 +548,8 @@ body {
 .batch-section select:focus,
 .batch-section input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  border-color: #0366d6;
+  box-shadow: 0 0 0 4px rgba(3, 102, 214, 0.1);
   background: white;
 }
 
@@ -578,9 +560,8 @@ body {
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid rgba(102, 126, 234, 0.2);
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(10px);
+  border-top: 1px solid #e1e4e8;
+  background: #f6f8fa;
   border-radius: 0 0 20px 20px;
 }
 
@@ -600,30 +581,31 @@ body {
 
 .export-dialog-footer button.primary,
 .batch-dialog-footer button.primary {
-  background: var(--primary-gradient);
+  background: #2ea44f;
   color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(46, 164, 79, 0.3);
 }
 
 .export-dialog-footer button.primary:hover,
 .batch-dialog-footer button.primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  background: #22863a;
+  box-shadow: 0 6px 20px rgba(34, 134, 58, 0.4);
 }
 
 .export-dialog-footer button:not(.primary),
 .batch-dialog-footer button:not(.primary),
 .folder-input-group button {
-  background: rgba(255, 255, 255, 0.8);
+  background: #fafbfc;
   color: var(--gray-700);
-  border: 2px solid rgba(102, 126, 234, 0.2);
+  border: 1px solid #e1e4e8;
 }
 
 .export-dialog-footer button:not(.primary):hover,
 .batch-dialog-footer button:not(.primary):hover,
 .folder-input-group button:hover {
-  background: white;
-  border-color: #667eea;
+  background: #f3f4f6;
+  border-color: #d0d7de;
   transform: translateY(-2px);
 }
 
@@ -662,7 +644,7 @@ body {
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: rgba(102, 126, 234, 0.1);
+  background: #e1e4e8;
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 12px;
@@ -670,7 +652,7 @@ body {
 
 .progress-fill {
   height: 100%;
-  background: var(--primary-gradient);
+  background: #2ea44f;
   transition: width 0.4s var(--transition-ease);
   width: 0%;
   position: relative;
@@ -706,14 +688,14 @@ body {
   position: fixed;
   top: 24px;
   right: 24px;
-  background: var(--primary-gradient);
+  background: #2ea44f;
   color: white;
   padding: 10px 20px;
   border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
   z-index: 10000;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 20px rgba(46, 164, 79, 0.3);
   animation: slideInRight 0.3s ease-out;
   display: flex;
   align-items: center;
@@ -726,7 +708,7 @@ body {
   width: 18px;
   height: 18px;
   background: white;
-  color: #667eea;
+  color: #2ea44f;
   border-radius: 50%;
   font-size: 12px;
   display: flex;
@@ -751,7 +733,7 @@ body {
   padding: 12px 8px;
   background: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(8px);
-  border-right: 1px solid rgba(102, 126, 234, 0.2);
+  border-right: 1px solid #e1e4e8;
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
   line-height: 1.7;
@@ -822,4 +804,1310 @@ body {
 
 .pane.full-width {
   border-right: none;
+}
+
+/* ========================================
+   Dynamic Pane Resizer
+   Draggable splitter between editor/preview
+   ======================================== */
+
+.pane-resizer {
+  width: 6px;
+  background: linear-gradient(to right, #e1e4e8, #d0d7de, #e1e4e8);
+  cursor: col-resize;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+  border-radius: 3px;
+}
+
+.pane-resizer:hover {
+  background: linear-gradient(to right, #0366d6, #0366d6, #0366d6);
+}
+
+.pane-resizer:active {
+  background: #0366d6;
+}
+
+.pane-resizer::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 1px;
+}
+
+.pane-resizer:hover::before {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Dark theme resizer */
+body.theme-dark .pane-resizer,
+body.theme-one-dark .pane-resizer,
+body.theme-dracula .pane-resizer,
+body.theme-nord .pane-resizer,
+body.theme-tokyo-night .pane-resizer,
+body.theme-palenight .pane-resizer,
+body.theme-ayu-dark .pane-resizer,
+body.theme-ayu-mirage .pane-resizer,
+body.theme-oceanic-next .pane-resizer,
+body.theme-gruvbox-dark .pane-resizer,
+body.theme-cobalt2 .pane-resizer {
+  background: linear-gradient(to right, #333, #444, #333);
+}
+
+body.theme-dark .pane-resizer:hover,
+body.theme-one-dark .pane-resizer:hover,
+body.theme-dracula .pane-resizer:hover {
+  background: #61afef;
+}
+
+/* ========================================
+   PDF Viewer Styles
+   Full-featured PDF reader
+   ======================================== */
+
+.pdf-viewer-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #525659;
+}
+
+.pdf-viewer-container.hidden {
+  display: none;
+}
+
+.pdf-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #323639;
+  border-bottom: 1px solid #1a1a1a;
+  flex-shrink: 0;
+}
+
+.pdf-viewer-toolbar button {
+  background: #474a4d;
+  border: 1px solid #5a5d60;
+  border-radius: 4px;
+  color: #fff;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.pdf-viewer-toolbar button:hover {
+  background: #5a5d60;
+}
+
+.pdf-viewer-toolbar button:active {
+  background: #0366d6;
+}
+
+.pdf-toolbar-separator {
+  width: 1px;
+  height: 24px;
+  background: #5a5d60;
+  margin: 0 4px;
+}
+
+#pdf-page-info {
+  color: #fff;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#pdf-page-input {
+  width: 50px;
+  padding: 4px 6px;
+  border: 1px solid #5a5d60;
+  border-radius: 4px;
+  background: #474a4d;
+  color: #fff;
+  text-align: center;
+  font-size: 13px;
+}
+
+#pdf-zoom-level {
+  color: #fff;
+  font-size: 13px;
+  min-width: 50px;
+  text-align: center;
+}
+
+.pdf-filename {
+  color: #aaa;
+  font-size: 12px;
+  flex: 1;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+#pdf-close {
+  background: #c0392b !important;
+  border-color: #e74c3c !important;
+}
+
+#pdf-close:hover {
+  background: #e74c3c !important;
+}
+
+/* PDF Editor Toolbar Buttons */
+.pdf-editor-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #3498db, #2980b9) !important;
+  border: 1px solid #2980b9 !important;
+  color: #fff !important;
+  padding: 5px 8px !important;
+  font-size: 11px !important;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pdf-editor-btn:hover {
+  background: linear-gradient(135deg, #2980b9, #1a5276) !important;
+  transform: translateY(-1px);
+}
+
+.pdf-editor-btn:active {
+  transform: translateY(0);
+}
+
+.pdf-editor-btn svg {
+  flex-shrink: 0;
+}
+
+.pdf-editor-btn span {
+  white-space: nowrap;
+}
+
+/* PDF toolbar wrapping for smaller screens */
+.pdf-toolbar-main {
+  flex-wrap: wrap;
+  min-height: auto;
+  padding: 6px 10px !important;
+}
+
+/* Light theme PDF toolbar - refined styling */
+body.theme-light .pdf-viewer-toolbar,
+body.theme-atomonelight .pdf-viewer-toolbar,
+body.theme-github .pdf-viewer-toolbar,
+body.theme-solarized .pdf-viewer-toolbar,
+body.theme-gruvbox-light .pdf-viewer-toolbar,
+body.theme-ayu-light .pdf-viewer-toolbar,
+body.theme-sepia .pdf-viewer-toolbar,
+body.theme-paper .pdf-viewer-toolbar,
+body.theme-rosepine-dawn .pdf-viewer-toolbar {
+  background: linear-gradient(180deg, #fafafa 0%, #f0f0f0 100%) !important;
+  border-bottom: 1px solid #d0d0d0 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+body.theme-light .pdf-viewer-toolbar button,
+body.theme-atomonelight .pdf-viewer-toolbar button,
+body.theme-github .pdf-viewer-toolbar button,
+body.theme-solarized .pdf-viewer-toolbar button,
+body.theme-gruvbox-light .pdf-viewer-toolbar button,
+body.theme-ayu-light .pdf-viewer-toolbar button,
+body.theme-sepia .pdf-viewer-toolbar button,
+body.theme-paper .pdf-viewer-toolbar button,
+body.theme-rosepine-dawn .pdf-viewer-toolbar button {
+  background: #fff !important;
+  border: 1px solid #ccc !important;
+  color: #333 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+body.theme-light .pdf-viewer-toolbar button:hover,
+body.theme-atomonelight .pdf-viewer-toolbar button:hover,
+body.theme-github .pdf-viewer-toolbar button:hover,
+body.theme-solarized .pdf-viewer-toolbar button:hover,
+body.theme-gruvbox-light .pdf-viewer-toolbar button:hover,
+body.theme-ayu-light .pdf-viewer-toolbar button:hover,
+body.theme-sepia .pdf-viewer-toolbar button:hover,
+body.theme-paper .pdf-viewer-toolbar button:hover,
+body.theme-rosepine-dawn .pdf-viewer-toolbar button:hover {
+  background: #e8e8e8 !important;
+  border-color: #bbb !important;
+}
+
+/* Light theme PDF editor buttons */
+body.theme-light .pdf-editor-btn,
+body.theme-atomonelight .pdf-editor-btn,
+body.theme-github .pdf-editor-btn,
+body.theme-solarized .pdf-editor-btn,
+body.theme-gruvbox-light .pdf-editor-btn,
+body.theme-ayu-light .pdf-editor-btn,
+body.theme-sepia .pdf-editor-btn,
+body.theme-paper .pdf-editor-btn,
+body.theme-rosepine-dawn .pdf-editor-btn {
+  background: linear-gradient(135deg, #4a90d9, #357abd) !important;
+  border: 1px solid #357abd !important;
+}
+
+body.theme-light .pdf-editor-btn:hover,
+body.theme-atomonelight .pdf-editor-btn:hover,
+body.theme-github .pdf-editor-btn:hover,
+body.theme-solarized .pdf-editor-btn:hover,
+body.theme-gruvbox-light .pdf-editor-btn:hover,
+body.theme-ayu-light .pdf-editor-btn:hover,
+body.theme-sepia .pdf-editor-btn:hover,
+body.theme-paper .pdf-editor-btn:hover,
+body.theme-rosepine-dawn .pdf-editor-btn:hover {
+  background: linear-gradient(135deg, #357abd, #2868a0) !important;
+}
+
+/* Light theme page info */
+body.theme-light #pdf-page-info,
+body.theme-atomonelight #pdf-page-info,
+body.theme-github #pdf-page-info,
+body.theme-solarized #pdf-page-info,
+body.theme-gruvbox-light #pdf-page-info,
+body.theme-ayu-light #pdf-page-info,
+body.theme-sepia #pdf-page-info,
+body.theme-paper #pdf-page-info,
+body.theme-rosepine-dawn #pdf-page-info,
+body.theme-light #pdf-zoom-level,
+body.theme-atomonelight #pdf-zoom-level,
+body.theme-github #pdf-zoom-level,
+body.theme-solarized #pdf-zoom-level,
+body.theme-gruvbox-light #pdf-zoom-level,
+body.theme-ayu-light #pdf-zoom-level,
+body.theme-sepia #pdf-zoom-level,
+body.theme-paper #pdf-zoom-level,
+body.theme-rosepine-dawn #pdf-zoom-level {
+  color: #444 !important;
+  font-weight: 500;
+}
+
+body.theme-light #pdf-page-input,
+body.theme-atomonelight #pdf-page-input,
+body.theme-github #pdf-page-input,
+body.theme-solarized #pdf-page-input,
+body.theme-gruvbox-light #pdf-page-input,
+body.theme-ayu-light #pdf-page-input,
+body.theme-sepia #pdf-page-input,
+body.theme-paper #pdf-page-input,
+body.theme-rosepine-dawn #pdf-page-input {
+  background: #fff !important;
+  border: 1px solid #ccc !important;
+  color: #333 !important;
+}
+
+body.theme-light .pdf-toolbar-separator,
+body.theme-atomonelight .pdf-toolbar-separator,
+body.theme-github .pdf-toolbar-separator,
+body.theme-solarized .pdf-toolbar-separator,
+body.theme-gruvbox-light .pdf-toolbar-separator,
+body.theme-ayu-light .pdf-toolbar-separator,
+body.theme-sepia .pdf-toolbar-separator,
+body.theme-paper .pdf-toolbar-separator,
+body.theme-rosepine-dawn .pdf-toolbar-separator {
+  background: #d0d0d0 !important;
+}
+
+body.theme-light .pdf-filename,
+body.theme-atomonelight .pdf-filename,
+body.theme-github .pdf-filename,
+body.theme-solarized .pdf-filename,
+body.theme-gruvbox-light .pdf-filename,
+body.theme-ayu-light .pdf-filename,
+body.theme-sepia .pdf-filename,
+body.theme-paper .pdf-filename,
+body.theme-rosepine-dawn .pdf-filename {
+  color: #555 !important;
+}
+
+/* Sepia theme specific */
+body.theme-sepia .pdf-viewer-toolbar {
+  background: linear-gradient(180deg, #f4f0e8 0%, #e8e4dc 100%) !important;
+  border-bottom-color: #cdc8c0 !important;
+}
+
+body.theme-sepia .pdf-viewer {
+  background: #d8d4cc !important;
+}
+
+/* Rose Pine Dawn specific */
+body.theme-rosepine-dawn .pdf-viewer-toolbar {
+  background: linear-gradient(180deg, #faf4ed 0%, #f2e9e1 100%) !important;
+  border-bottom-color: #ddd8d1 !important;
+}
+
+body.theme-rosepine-dawn .pdf-viewer {
+  background: #e6e0d8 !important;
+}
+
+/* Dark theme PDF toolbar refinement */
+body.theme-dark .pdf-viewer-toolbar,
+body.theme-onedark .pdf-viewer-toolbar,
+body.theme-one-dark .pdf-viewer-toolbar,
+body.theme-dracula .pdf-viewer-toolbar,
+body.theme-nord .pdf-viewer-toolbar,
+body.theme-tokyo-night .pdf-viewer-toolbar,
+body.theme-tokyonight .pdf-viewer-toolbar,
+body.theme-palenight .pdf-viewer-toolbar,
+body.theme-monokai .pdf-viewer-toolbar,
+body.theme-material .pdf-viewer-toolbar,
+body.theme-gruvbox-dark .pdf-viewer-toolbar,
+body.theme-ayu-dark .pdf-viewer-toolbar,
+body.theme-ayu-mirage .pdf-viewer-toolbar,
+body.theme-oceanic-next .pdf-viewer-toolbar,
+body.theme-cobalt2 .pdf-viewer-toolbar,
+body.theme-concrete-dark .pdf-viewer-toolbar,
+body.theme-concrete-warm .pdf-viewer-toolbar {
+  background: linear-gradient(180deg, #2d2d2d 0%, #252525 100%) !important;
+  border-bottom: 1px solid #1a1a1a !important;
+}
+
+body.theme-dark .pdf-viewer-toolbar button,
+body.theme-onedark .pdf-viewer-toolbar button,
+body.theme-one-dark .pdf-viewer-toolbar button,
+body.theme-dracula .pdf-viewer-toolbar button,
+body.theme-nord .pdf-viewer-toolbar button,
+body.theme-tokyo-night .pdf-viewer-toolbar button,
+body.theme-tokyonight .pdf-viewer-toolbar button,
+body.theme-palenight .pdf-viewer-toolbar button,
+body.theme-monokai .pdf-viewer-toolbar button,
+body.theme-material .pdf-viewer-toolbar button,
+body.theme-gruvbox-dark .pdf-viewer-toolbar button,
+body.theme-ayu-dark .pdf-viewer-toolbar button,
+body.theme-ayu-mirage .pdf-viewer-toolbar button,
+body.theme-oceanic-next .pdf-viewer-toolbar button,
+body.theme-cobalt2 .pdf-viewer-toolbar button,
+body.theme-concrete-dark .pdf-viewer-toolbar button,
+body.theme-concrete-warm .pdf-viewer-toolbar button {
+  background: #3d3d3d !important;
+  border: 1px solid #4d4d4d !important;
+  color: #e0e0e0 !important;
+}
+
+body.theme-dark .pdf-viewer-toolbar button:hover,
+body.theme-onedark .pdf-viewer-toolbar button:hover,
+body.theme-one-dark .pdf-viewer-toolbar button:hover,
+body.theme-dracula .pdf-viewer-toolbar button:hover,
+body.theme-nord .pdf-viewer-toolbar button:hover,
+body.theme-tokyo-night .pdf-viewer-toolbar button:hover,
+body.theme-tokyonight .pdf-viewer-toolbar button:hover,
+body.theme-palenight .pdf-viewer-toolbar button:hover,
+body.theme-monokai .pdf-viewer-toolbar button:hover,
+body.theme-material .pdf-viewer-toolbar button:hover,
+body.theme-gruvbox-dark .pdf-viewer-toolbar button:hover,
+body.theme-ayu-dark .pdf-viewer-toolbar button:hover,
+body.theme-ayu-mirage .pdf-viewer-toolbar button:hover,
+body.theme-oceanic-next .pdf-viewer-toolbar button:hover,
+body.theme-cobalt2 .pdf-viewer-toolbar button:hover,
+body.theme-concrete-dark .pdf-viewer-toolbar button:hover,
+body.theme-concrete-warm .pdf-viewer-toolbar button:hover {
+  background: #4d4d4d !important;
+  border-color: #5d5d5d !important;
+}
+
+body.theme-dark .pdf-viewer,
+body.theme-onedark .pdf-viewer,
+body.theme-one-dark .pdf-viewer,
+body.theme-dracula .pdf-viewer,
+body.theme-nord .pdf-viewer,
+body.theme-tokyo-night .pdf-viewer,
+body.theme-tokyonight .pdf-viewer,
+body.theme-palenight .pdf-viewer,
+body.theme-monokai .pdf-viewer,
+body.theme-material .pdf-viewer,
+body.theme-gruvbox-dark .pdf-viewer,
+body.theme-ayu-dark .pdf-viewer,
+body.theme-ayu-mirage .pdf-viewer,
+body.theme-oceanic-next .pdf-viewer,
+body.theme-cobalt2 .pdf-viewer,
+body.theme-concrete-dark .pdf-viewer,
+body.theme-concrete-warm .pdf-viewer {
+  background: #1a1a1a !important;
+}
+
+body.theme-dark .pdf-viewer-container,
+body.theme-onedark .pdf-viewer-container,
+body.theme-one-dark .pdf-viewer-container,
+body.theme-dracula .pdf-viewer-container,
+body.theme-nord .pdf-viewer-container,
+body.theme-tokyo-night .pdf-viewer-container,
+body.theme-tokyonight .pdf-viewer-container,
+body.theme-palenight .pdf-viewer-container,
+body.theme-monokai .pdf-viewer-container,
+body.theme-material .pdf-viewer-container,
+body.theme-gruvbox-dark .pdf-viewer-container,
+body.theme-ayu-dark .pdf-viewer-container,
+body.theme-ayu-mirage .pdf-viewer-container,
+body.theme-oceanic-next .pdf-viewer-container,
+body.theme-cobalt2 .pdf-viewer-container,
+body.theme-concrete-dark .pdf-viewer-container,
+body.theme-concrete-warm .pdf-viewer-container {
+  background: #1a1a1a !important;
+}
+
+body.theme-dark #pdf-page-input,
+body.theme-onedark #pdf-page-input,
+body.theme-one-dark #pdf-page-input,
+body.theme-dracula #pdf-page-input,
+body.theme-nord #pdf-page-input,
+body.theme-tokyo-night #pdf-page-input,
+body.theme-tokyonight #pdf-page-input,
+body.theme-palenight #pdf-page-input,
+body.theme-monokai #pdf-page-input,
+body.theme-material #pdf-page-input,
+body.theme-gruvbox-dark #pdf-page-input,
+body.theme-ayu-dark #pdf-page-input,
+body.theme-ayu-mirage #pdf-page-input,
+body.theme-oceanic-next #pdf-page-input,
+body.theme-cobalt2 #pdf-page-input,
+body.theme-concrete-dark #pdf-page-input,
+body.theme-concrete-warm #pdf-page-input {
+  background: #3d3d3d !important;
+  border: 1px solid #4d4d4d !important;
+  color: #e0e0e0 !important;
+}
+
+body.theme-dark .pdf-toolbar-separator,
+body.theme-onedark .pdf-toolbar-separator,
+body.theme-one-dark .pdf-toolbar-separator,
+body.theme-dracula .pdf-toolbar-separator,
+body.theme-nord .pdf-toolbar-separator,
+body.theme-tokyo-night .pdf-toolbar-separator,
+body.theme-tokyonight .pdf-toolbar-separator,
+body.theme-palenight .pdf-toolbar-separator,
+body.theme-monokai .pdf-toolbar-separator,
+body.theme-material .pdf-toolbar-separator,
+body.theme-gruvbox-dark .pdf-toolbar-separator,
+body.theme-ayu-dark .pdf-toolbar-separator,
+body.theme-ayu-mirage .pdf-toolbar-separator,
+body.theme-oceanic-next .pdf-toolbar-separator,
+body.theme-cobalt2 .pdf-toolbar-separator,
+body.theme-concrete-dark .pdf-toolbar-separator,
+body.theme-concrete-warm .pdf-toolbar-separator {
+  background: #3d3d3d !important;
+}
+
+.pdf-viewer {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  background: #525659;
+}
+
+#pdf-canvas {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  background: white;
+}
+
+/* Light theme PDF viewer */
+body.theme-light .pdf-viewer-container,
+body.theme-atomonelight .pdf-viewer-container,
+body.theme-github .pdf-viewer-container,
+body.theme-solarized .pdf-viewer-container,
+body.theme-gruvbox-light .pdf-viewer-container,
+body.theme-ayu-light .pdf-viewer-container,
+body.theme-sepia .pdf-viewer-container,
+body.theme-paper .pdf-viewer-container,
+body.theme-rosepine-dawn .pdf-viewer-container {
+  background: #e8e8e8;
+}
+
+body.theme-light .pdf-viewer-toolbar,
+body.theme-atomonelight .pdf-viewer-toolbar,
+body.theme-github .pdf-viewer-toolbar,
+body.theme-solarized .pdf-viewer-toolbar,
+body.theme-gruvbox-light .pdf-viewer-toolbar,
+body.theme-ayu-light .pdf-viewer-toolbar,
+body.theme-sepia .pdf-viewer-toolbar,
+body.theme-paper .pdf-viewer-toolbar,
+body.theme-rosepine-dawn .pdf-viewer-toolbar {
+  background: #f5f5f5;
+  border-bottom-color: #ddd;
+}
+
+body.theme-light .pdf-viewer-toolbar button,
+body.theme-atomonelight .pdf-viewer-toolbar button,
+body.theme-github .pdf-viewer-toolbar button {
+  background: #fff;
+  border-color: #ddd;
+  color: #333;
+}
+
+body.theme-light .pdf-viewer-toolbar button:hover,
+body.theme-atomonelight .pdf-viewer-toolbar button:hover,
+body.theme-github .pdf-viewer-toolbar button:hover {
+  background: #e8e8e8;
+}
+
+body.theme-light #pdf-page-info,
+body.theme-atomonelight #pdf-page-info,
+body.theme-github #pdf-page-info,
+body.theme-light #pdf-zoom-level,
+body.theme-atomonelight #pdf-zoom-level,
+body.theme-github #pdf-zoom-level {
+  color: #333;
+}
+
+body.theme-light #pdf-page-input,
+body.theme-atomonelight #pdf-page-input,
+body.theme-github #pdf-page-input {
+  background: #fff;
+  border-color: #ddd;
+  color: #333;
+}
+
+body.theme-light .pdf-filename,
+body.theme-atomonelight .pdf-filename,
+body.theme-github .pdf-filename {
+  color: #666;
+}
+
+body.theme-light .pdf-viewer,
+body.theme-atomonelight .pdf-viewer,
+body.theme-github .pdf-viewer,
+body.theme-solarized .pdf-viewer,
+body.theme-gruvbox-light .pdf-viewer,
+body.theme-ayu-light .pdf-viewer,
+body.theme-sepia .pdf-viewer,
+body.theme-paper .pdf-viewer,
+body.theme-rosepine-dawn .pdf-viewer {
+  background: #d0d0d0;
+}
+
+/* ========================================
+   Print Styles for styles-modern.css
+   Ensures proper print output
+   ======================================== */
+
+@media print {
+  /* Reset container for print */
+  .container {
+    padding: 0;
+    gap: 0;
+    display: block !important;
+  }
+
+  /* Hide all UI elements */
+  .tab-bar,
+  .toolbar,
+  .status-bar,
+  .pane-resizer,
+  .preview-header,
+  .find-dialog,
+  .export-dialog,
+  .batch-dialog,
+  .editor-pane,
+  [id^="editor-pane-"],
+  .new-tab-button,
+  .tab-close {
+    display: none !important;
+  }
+
+  /* Show preview content */
+  .preview-pane,
+  [id^="preview-pane-"],
+  .preview-content,
+  [id^="preview-"] {
+    display: block !important;
+    width: 100% !important;
+    padding: 20px !important;
+    position: static !important;
+    overflow: visible !important;
+  }
+
+  /* Reset main content glass */
+  .main-content-glass {
+    backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Reset editor container */
+  .editor-container {
+    display: block !important;
+  }
+
+  /* Reset tab content */
+  .tab-content {
+    display: block !important;
+  }
+
+  /* Reset pane */
+  .pane {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* NO STYLES MODE - Black text on white (ink-saving) */
+  body.printing-no-styles .container,
+  body.printing-no-styles .main-content-glass,
+  body.printing-no-styles .tab-content,
+  body.printing-no-styles .pane,
+  body.printing-no-styles .preview-pane,
+  body.printing-no-styles [id^="preview-pane-"],
+  body.printing-no-styles .preview-content,
+  body.printing-no-styles [id^="preview-"] {
+    background: white !important;
+    color: #000 !important;
+  }
+
+  body.printing-no-styles .preview-content h1,
+  body.printing-no-styles .preview-content h2,
+  body.printing-no-styles .preview-content h3,
+  body.printing-no-styles .preview-content h4,
+  body.printing-no-styles .preview-content h5,
+  body.printing-no-styles .preview-content h6,
+  body.printing-no-styles .preview-content p,
+  body.printing-no-styles .preview-content li,
+  body.printing-no-styles .preview-content td,
+  body.printing-no-styles .preview-content th {
+    color: #000 !important;
+  }
+
+  body.printing-no-styles .preview-content code,
+  body.printing-no-styles .preview-content pre {
+    background: #f5f5f5 !important;
+    color: #000 !important;
+    border-color: #ddd !important;
+  }
+
+  body.printing-no-styles .preview-content a {
+    color: #000 !important;
+  }
+
+  body.printing-no-styles .preview-content blockquote {
+    background: #f9f9f9 !important;
+    color: #333 !important;
+    border-left-color: #ccc !important;
+  }
+
+  /* WITH STYLES MODE - Preserve theme colors */
+  /* The theme colors are inherited from the body class */
+}
+
+/* ========================================
+   Dark Theme Overrides for styles-modern.css
+   These ensure dark themes work properly
+   ======================================== */
+
+/* Common dark theme styles for preview content */
+body.theme-dark .preview-content,
+body.theme-dark [id^="preview-"],
+body.theme-one-dark .preview-content,
+body.theme-one-dark [id^="preview-"],
+body.theme-dracula .preview-content,
+body.theme-dracula [id^="preview-"],
+body.theme-nord .preview-content,
+body.theme-nord [id^="preview-"],
+body.theme-tokyo-night .preview-content,
+body.theme-tokyo-night [id^="preview-"],
+body.theme-palenight .preview-content,
+body.theme-palenight [id^="preview-"],
+body.theme-ayu-dark .preview-content,
+body.theme-ayu-dark [id^="preview-"],
+body.theme-ayu-mirage .preview-content,
+body.theme-ayu-mirage [id^="preview-"],
+body.theme-oceanic-next .preview-content,
+body.theme-oceanic-next [id^="preview-"],
+body.theme-gruvbox-dark .preview-content,
+body.theme-gruvbox-dark [id^="preview-"],
+body.theme-cobalt2 .preview-content,
+body.theme-cobalt2 [id^="preview-"] {
+  color: #e6e6e6;
+  background: transparent;
+}
+
+/* Dark theme headings */
+body.theme-dark .preview-content h1,
+body.theme-dark .preview-content h2,
+body.theme-dark .preview-content h3,
+body.theme-dark .preview-content h4,
+body.theme-dark .preview-content h5,
+body.theme-dark .preview-content h6,
+body.theme-one-dark .preview-content h1,
+body.theme-one-dark .preview-content h2,
+body.theme-one-dark .preview-content h3,
+body.theme-one-dark .preview-content h4,
+body.theme-one-dark .preview-content h5,
+body.theme-one-dark .preview-content h6,
+body.theme-dracula .preview-content h1,
+body.theme-dracula .preview-content h2,
+body.theme-dracula .preview-content h3,
+body.theme-dracula .preview-content h4,
+body.theme-dracula .preview-content h5,
+body.theme-dracula .preview-content h6,
+body.theme-nord .preview-content h1,
+body.theme-nord .preview-content h2,
+body.theme-nord .preview-content h3,
+body.theme-nord .preview-content h4,
+body.theme-nord .preview-content h5,
+body.theme-nord .preview-content h6,
+body.theme-tokyo-night .preview-content h1,
+body.theme-tokyo-night .preview-content h2,
+body.theme-tokyo-night .preview-content h3,
+body.theme-tokyo-night .preview-content h4,
+body.theme-tokyo-night .preview-content h5,
+body.theme-tokyo-night .preview-content h6,
+body.theme-palenight .preview-content h1,
+body.theme-palenight .preview-content h2,
+body.theme-palenight .preview-content h3,
+body.theme-palenight .preview-content h4,
+body.theme-palenight .preview-content h5,
+body.theme-palenight .preview-content h6,
+body.theme-ayu-dark .preview-content h1,
+body.theme-ayu-dark .preview-content h2,
+body.theme-ayu-dark .preview-content h3,
+body.theme-ayu-dark .preview-content h4,
+body.theme-ayu-dark .preview-content h5,
+body.theme-ayu-dark .preview-content h6,
+body.theme-ayu-mirage .preview-content h1,
+body.theme-ayu-mirage .preview-content h2,
+body.theme-ayu-mirage .preview-content h3,
+body.theme-ayu-mirage .preview-content h4,
+body.theme-ayu-mirage .preview-content h5,
+body.theme-ayu-mirage .preview-content h6,
+body.theme-oceanic-next .preview-content h1,
+body.theme-oceanic-next .preview-content h2,
+body.theme-oceanic-next .preview-content h3,
+body.theme-oceanic-next .preview-content h4,
+body.theme-oceanic-next .preview-content h5,
+body.theme-oceanic-next .preview-content h6,
+body.theme-gruvbox-dark .preview-content h1,
+body.theme-gruvbox-dark .preview-content h2,
+body.theme-gruvbox-dark .preview-content h3,
+body.theme-gruvbox-dark .preview-content h4,
+body.theme-gruvbox-dark .preview-content h5,
+body.theme-gruvbox-dark .preview-content h6,
+body.theme-cobalt2 .preview-content h1,
+body.theme-cobalt2 .preview-content h2,
+body.theme-cobalt2 .preview-content h3,
+body.theme-cobalt2 .preview-content h4,
+body.theme-cobalt2 .preview-content h5,
+body.theme-cobalt2 .preview-content h6 {
+  color: #f0f0f0;
+  border-bottom-color: #444;
+}
+
+/* Dark theme paragraphs and text */
+body.theme-dark .preview-content p,
+body.theme-dark .preview-content li,
+body.theme-dark .preview-content td,
+body.theme-one-dark .preview-content p,
+body.theme-one-dark .preview-content li,
+body.theme-one-dark .preview-content td,
+body.theme-dracula .preview-content p,
+body.theme-dracula .preview-content li,
+body.theme-dracula .preview-content td,
+body.theme-nord .preview-content p,
+body.theme-nord .preview-content li,
+body.theme-nord .preview-content td,
+body.theme-tokyo-night .preview-content p,
+body.theme-tokyo-night .preview-content li,
+body.theme-tokyo-night .preview-content td,
+body.theme-palenight .preview-content p,
+body.theme-palenight .preview-content li,
+body.theme-palenight .preview-content td,
+body.theme-ayu-dark .preview-content p,
+body.theme-ayu-dark .preview-content li,
+body.theme-ayu-dark .preview-content td,
+body.theme-ayu-mirage .preview-content p,
+body.theme-ayu-mirage .preview-content li,
+body.theme-ayu-mirage .preview-content td,
+body.theme-oceanic-next .preview-content p,
+body.theme-oceanic-next .preview-content li,
+body.theme-oceanic-next .preview-content td,
+body.theme-gruvbox-dark .preview-content p,
+body.theme-gruvbox-dark .preview-content li,
+body.theme-gruvbox-dark .preview-content td,
+body.theme-cobalt2 .preview-content p,
+body.theme-cobalt2 .preview-content li,
+body.theme-cobalt2 .preview-content td {
+  color: #d4d4d4;
+}
+
+/* Dark theme code blocks */
+body.theme-dark .preview-content pre,
+body.theme-one-dark .preview-content pre,
+body.theme-dracula .preview-content pre,
+body.theme-nord .preview-content pre,
+body.theme-tokyo-night .preview-content pre,
+body.theme-palenight .preview-content pre,
+body.theme-ayu-dark .preview-content pre,
+body.theme-ayu-mirage .preview-content pre,
+body.theme-oceanic-next .preview-content pre,
+body.theme-gruvbox-dark .preview-content pre,
+body.theme-cobalt2 .preview-content pre {
+  background: #1e1e1e;
+  border-color: #333;
+  color: #d4d4d4;
+}
+
+/* Dark theme inline code */
+body.theme-dark .preview-content code,
+body.theme-one-dark .preview-content code,
+body.theme-dracula .preview-content code,
+body.theme-nord .preview-content code,
+body.theme-tokyo-night .preview-content code,
+body.theme-palenight .preview-content code,
+body.theme-ayu-dark .preview-content code,
+body.theme-ayu-mirage .preview-content code,
+body.theme-oceanic-next .preview-content code,
+body.theme-gruvbox-dark .preview-content code,
+body.theme-cobalt2 .preview-content code {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #444;
+  color: #e06c75;
+}
+
+/* Dark theme blockquotes */
+body.theme-dark .preview-content blockquote,
+body.theme-one-dark .preview-content blockquote,
+body.theme-dracula .preview-content blockquote,
+body.theme-nord .preview-content blockquote,
+body.theme-tokyo-night .preview-content blockquote,
+body.theme-palenight .preview-content blockquote,
+body.theme-ayu-dark .preview-content blockquote,
+body.theme-ayu-mirage .preview-content blockquote,
+body.theme-oceanic-next .preview-content blockquote,
+body.theme-gruvbox-dark .preview-content blockquote,
+body.theme-cobalt2 .preview-content blockquote {
+  background: rgba(255, 255, 255, 0.05);
+  border-left-color: #555;
+  color: #aaa;
+}
+
+/* Dark theme links */
+body.theme-dark .preview-content a,
+body.theme-one-dark .preview-content a,
+body.theme-dracula .preview-content a,
+body.theme-nord .preview-content a,
+body.theme-tokyo-night .preview-content a,
+body.theme-palenight .preview-content a,
+body.theme-ayu-dark .preview-content a,
+body.theme-ayu-mirage .preview-content a,
+body.theme-oceanic-next .preview-content a,
+body.theme-gruvbox-dark .preview-content a,
+body.theme-cobalt2 .preview-content a {
+  color: #61afef;
+}
+
+/* Dark theme tables */
+body.theme-dark .preview-content table,
+body.theme-one-dark .preview-content table,
+body.theme-dracula .preview-content table,
+body.theme-nord .preview-content table,
+body.theme-tokyo-night .preview-content table,
+body.theme-palenight .preview-content table,
+body.theme-ayu-dark .preview-content table,
+body.theme-ayu-mirage .preview-content table,
+body.theme-oceanic-next .preview-content table,
+body.theme-gruvbox-dark .preview-content table,
+body.theme-cobalt2 .preview-content table {
+  border-color: #444;
+}
+
+body.theme-dark .preview-content table th,
+body.theme-one-dark .preview-content table th,
+body.theme-dracula .preview-content table th,
+body.theme-nord .preview-content table th,
+body.theme-tokyo-night .preview-content table th,
+body.theme-palenight .preview-content table th,
+body.theme-ayu-dark .preview-content table th,
+body.theme-ayu-mirage .preview-content table th,
+body.theme-oceanic-next .preview-content table th,
+body.theme-gruvbox-dark .preview-content table th,
+body.theme-cobalt2 .preview-content table th {
+  background: #2d2d2d;
+  color: #e6e6e6;
+  border-color: #444;
+}
+
+body.theme-dark .preview-content table td,
+body.theme-one-dark .preview-content table td,
+body.theme-dracula .preview-content table td,
+body.theme-nord .preview-content table td,
+body.theme-tokyo-night .preview-content table td,
+body.theme-palenight .preview-content table td,
+body.theme-ayu-dark .preview-content table td,
+body.theme-ayu-mirage .preview-content table td,
+body.theme-oceanic-next .preview-content table td,
+body.theme-gruvbox-dark .preview-content table td,
+body.theme-cobalt2 .preview-content table td {
+  border-color: #444;
+}
+
+body.theme-dark .preview-content table tr:nth-child(even),
+body.theme-one-dark .preview-content table tr:nth-child(even),
+body.theme-dracula .preview-content table tr:nth-child(even),
+body.theme-nord .preview-content table tr:nth-child(even),
+body.theme-tokyo-night .preview-content table tr:nth-child(even),
+body.theme-palenight .preview-content table tr:nth-child(even),
+body.theme-ayu-dark .preview-content table tr:nth-child(even),
+body.theme-ayu-mirage .preview-content table tr:nth-child(even),
+body.theme-oceanic-next .preview-content table tr:nth-child(even),
+body.theme-gruvbox-dark .preview-content table tr:nth-child(even),
+body.theme-cobalt2 .preview-content table tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Dark theme horizontal rules */
+body.theme-dark .preview-content hr,
+body.theme-one-dark .preview-content hr,
+body.theme-dracula .preview-content hr,
+body.theme-nord .preview-content hr,
+body.theme-tokyo-night .preview-content hr,
+body.theme-palenight .preview-content hr,
+body.theme-ayu-dark .preview-content hr,
+body.theme-ayu-mirage .preview-content hr,
+body.theme-oceanic-next .preview-content hr,
+body.theme-gruvbox-dark .preview-content hr,
+body.theme-cobalt2 .preview-content hr {
+  border-color: #444;
+  background: #444;
+}
+
+/* ========================================
+   Modal/Dialog Theming
+   Dialogs inherit app theme colors
+   ======================================== */
+
+/* Dark theme modals */
+body.theme-dark .export-dialog-content,
+body.theme-dark .batch-dialog-content,
+body.theme-dark .pdf-editor-content,
+body.theme-one-dark .export-dialog-content,
+body.theme-one-dark .batch-dialog-content,
+body.theme-one-dark .pdf-editor-content,
+body.theme-onedark .export-dialog-content,
+body.theme-onedark .batch-dialog-content,
+body.theme-onedark .pdf-editor-content,
+body.theme-dracula .export-dialog-content,
+body.theme-dracula .batch-dialog-content,
+body.theme-dracula .pdf-editor-content,
+body.theme-nord .export-dialog-content,
+body.theme-nord .batch-dialog-content,
+body.theme-nord .pdf-editor-content,
+body.theme-tokyo-night .export-dialog-content,
+body.theme-tokyo-night .batch-dialog-content,
+body.theme-tokyo-night .pdf-editor-content,
+body.theme-tokyonight .export-dialog-content,
+body.theme-tokyonight .batch-dialog-content,
+body.theme-tokyonight .pdf-editor-content,
+body.theme-palenight .export-dialog-content,
+body.theme-palenight .batch-dialog-content,
+body.theme-palenight .pdf-editor-content,
+body.theme-ayu-dark .export-dialog-content,
+body.theme-ayu-dark .batch-dialog-content,
+body.theme-ayu-dark .pdf-editor-content,
+body.theme-ayu-mirage .export-dialog-content,
+body.theme-ayu-mirage .batch-dialog-content,
+body.theme-ayu-mirage .pdf-editor-content,
+body.theme-oceanic-next .export-dialog-content,
+body.theme-oceanic-next .batch-dialog-content,
+body.theme-oceanic-next .pdf-editor-content,
+body.theme-gruvbox-dark .export-dialog-content,
+body.theme-gruvbox-dark .batch-dialog-content,
+body.theme-gruvbox-dark .pdf-editor-content,
+body.theme-cobalt2 .export-dialog-content,
+body.theme-cobalt2 .batch-dialog-content,
+body.theme-cobalt2 .pdf-editor-content,
+body.theme-monokai .export-dialog-content,
+body.theme-monokai .batch-dialog-content,
+body.theme-monokai .pdf-editor-content,
+body.theme-material .export-dialog-content,
+body.theme-material .batch-dialog-content,
+body.theme-material .pdf-editor-content,
+body.theme-concrete-dark .export-dialog-content,
+body.theme-concrete-dark .batch-dialog-content,
+body.theme-concrete-dark .pdf-editor-content,
+body.theme-concrete-warm .export-dialog-content,
+body.theme-concrete-warm .batch-dialog-content,
+body.theme-concrete-warm .pdf-editor-content {
+  background: #2d2d2d !important;
+  border-color: #444 !important;
+  color: #e6e6e6 !important;
+}
+
+/* Dark theme dialog headers */
+body.theme-dark .export-dialog-header,
+body.theme-dark .batch-dialog-header,
+body.theme-one-dark .export-dialog-header,
+body.theme-one-dark .batch-dialog-header,
+body.theme-onedark .export-dialog-header,
+body.theme-onedark .batch-dialog-header,
+body.theme-dracula .export-dialog-header,
+body.theme-dracula .batch-dialog-header,
+body.theme-nord .export-dialog-header,
+body.theme-nord .batch-dialog-header,
+body.theme-tokyo-night .export-dialog-header,
+body.theme-tokyo-night .batch-dialog-header,
+body.theme-tokyonight .export-dialog-header,
+body.theme-tokyonight .batch-dialog-header,
+body.theme-palenight .export-dialog-header,
+body.theme-palenight .batch-dialog-header,
+body.theme-ayu-dark .export-dialog-header,
+body.theme-ayu-dark .batch-dialog-header,
+body.theme-ayu-mirage .export-dialog-header,
+body.theme-ayu-mirage .batch-dialog-header,
+body.theme-oceanic-next .export-dialog-header,
+body.theme-oceanic-next .batch-dialog-header,
+body.theme-gruvbox-dark .export-dialog-header,
+body.theme-gruvbox-dark .batch-dialog-header,
+body.theme-cobalt2 .export-dialog-header,
+body.theme-cobalt2 .batch-dialog-header,
+body.theme-monokai .export-dialog-header,
+body.theme-monokai .batch-dialog-header,
+body.theme-material .export-dialog-header,
+body.theme-material .batch-dialog-header,
+body.theme-concrete-dark .export-dialog-header,
+body.theme-concrete-dark .batch-dialog-header,
+body.theme-concrete-warm .export-dialog-header,
+body.theme-concrete-warm .batch-dialog-header {
+  background: #1a1a1a !important;
+  border-bottom-color: #333 !important;
+}
+
+/* Dark theme dialog header text */
+body.theme-dark .export-dialog-header h3,
+body.theme-dark .batch-dialog-header h3,
+body.theme-onedark .export-dialog-header h3,
+body.theme-onedark .batch-dialog-header h3,
+body.theme-dracula .export-dialog-header h3,
+body.theme-dracula .batch-dialog-header h3,
+body.theme-nord .export-dialog-header h3,
+body.theme-nord .batch-dialog-header h3,
+body.theme-tokyonight .export-dialog-header h3,
+body.theme-tokyonight .batch-dialog-header h3,
+body.theme-monokai .export-dialog-header h3,
+body.theme-monokai .batch-dialog-header h3,
+body.theme-material .export-dialog-header h3,
+body.theme-material .batch-dialog-header h3 {
+  color: #fff !important;
+}
+
+/* Dark theme dialog body */
+body.theme-dark .export-dialog-body,
+body.theme-dark .batch-dialog-body,
+body.theme-one-dark .export-dialog-body,
+body.theme-one-dark .batch-dialog-body,
+body.theme-dracula .export-dialog-body,
+body.theme-dracula .batch-dialog-body,
+body.theme-nord .export-dialog-body,
+body.theme-nord .batch-dialog-body,
+body.theme-tokyo-night .export-dialog-body,
+body.theme-tokyo-night .batch-dialog-body,
+body.theme-palenight .export-dialog-body,
+body.theme-palenight .batch-dialog-body,
+body.theme-ayu-dark .export-dialog-body,
+body.theme-ayu-dark .batch-dialog-body,
+body.theme-ayu-mirage .export-dialog-body,
+body.theme-ayu-mirage .batch-dialog-body,
+body.theme-oceanic-next .export-dialog-body,
+body.theme-oceanic-next .batch-dialog-body,
+body.theme-gruvbox-dark .export-dialog-body,
+body.theme-gruvbox-dark .batch-dialog-body,
+body.theme-cobalt2 .export-dialog-body,
+body.theme-cobalt2 .batch-dialog-body {
+  background: transparent;
+}
+
+/* Dark theme dialog labels */
+body.theme-dark .export-section label,
+body.theme-dark .batch-section label,
+body.theme-one-dark .export-section label,
+body.theme-one-dark .batch-section label,
+body.theme-dracula .export-section label,
+body.theme-dracula .batch-section label,
+body.theme-nord .export-section label,
+body.theme-nord .batch-section label,
+body.theme-tokyo-night .export-section label,
+body.theme-tokyo-night .batch-section label,
+body.theme-palenight .export-section label,
+body.theme-palenight .batch-section label,
+body.theme-ayu-dark .export-section label,
+body.theme-ayu-dark .batch-section label,
+body.theme-ayu-mirage .export-section label,
+body.theme-ayu-mirage .batch-section label,
+body.theme-oceanic-next .export-section label,
+body.theme-oceanic-next .batch-section label,
+body.theme-gruvbox-dark .export-section label,
+body.theme-gruvbox-dark .batch-section label,
+body.theme-cobalt2 .export-section label,
+body.theme-cobalt2 .batch-section label {
+  color: #ccc;
+}
+
+/* Dark theme dialog inputs and selects */
+body.theme-dark .export-section select,
+body.theme-dark .export-section input,
+body.theme-dark .batch-section select,
+body.theme-dark .batch-section input,
+body.theme-one-dark .export-section select,
+body.theme-one-dark .export-section input,
+body.theme-one-dark .batch-section select,
+body.theme-one-dark .batch-section input,
+body.theme-dracula .export-section select,
+body.theme-dracula .export-section input,
+body.theme-dracula .batch-section select,
+body.theme-dracula .batch-section input,
+body.theme-nord .export-section select,
+body.theme-nord .export-section input,
+body.theme-nord .batch-section select,
+body.theme-nord .batch-section input,
+body.theme-tokyo-night .export-section select,
+body.theme-tokyo-night .export-section input,
+body.theme-tokyo-night .batch-section select,
+body.theme-tokyo-night .batch-section input,
+body.theme-palenight .export-section select,
+body.theme-palenight .export-section input,
+body.theme-palenight .batch-section select,
+body.theme-palenight .batch-section input,
+body.theme-ayu-dark .export-section select,
+body.theme-ayu-dark .export-section input,
+body.theme-ayu-dark .batch-section select,
+body.theme-ayu-dark .batch-section input,
+body.theme-ayu-mirage .export-section select,
+body.theme-ayu-mirage .export-section input,
+body.theme-ayu-mirage .batch-section select,
+body.theme-ayu-mirage .batch-section input,
+body.theme-oceanic-next .export-section select,
+body.theme-oceanic-next .export-section input,
+body.theme-oceanic-next .batch-section select,
+body.theme-oceanic-next .batch-section input,
+body.theme-gruvbox-dark .export-section select,
+body.theme-gruvbox-dark .export-section input,
+body.theme-gruvbox-dark .batch-section select,
+body.theme-gruvbox-dark .batch-section input,
+body.theme-cobalt2 .export-section select,
+body.theme-cobalt2 .export-section input,
+body.theme-cobalt2 .batch-section select,
+body.theme-cobalt2 .batch-section input {
+  background: #2d2d2d;
+  border-color: #444;
+  color: #e6e6e6;
+}
+
+/* Dark theme dialog footer */
+body.theme-dark .export-dialog-footer,
+body.theme-dark .batch-dialog-footer,
+body.theme-one-dark .export-dialog-footer,
+body.theme-one-dark .batch-dialog-footer,
+body.theme-dracula .export-dialog-footer,
+body.theme-dracula .batch-dialog-footer,
+body.theme-nord .export-dialog-footer,
+body.theme-nord .batch-dialog-footer,
+body.theme-tokyo-night .export-dialog-footer,
+body.theme-tokyo-night .batch-dialog-footer,
+body.theme-palenight .export-dialog-footer,
+body.theme-palenight .batch-dialog-footer,
+body.theme-ayu-dark .export-dialog-footer,
+body.theme-ayu-dark .batch-dialog-footer,
+body.theme-ayu-mirage .export-dialog-footer,
+body.theme-ayu-mirage .batch-dialog-footer,
+body.theme-oceanic-next .export-dialog-footer,
+body.theme-oceanic-next .batch-dialog-footer,
+body.theme-gruvbox-dark .export-dialog-footer,
+body.theme-gruvbox-dark .batch-dialog-footer,
+body.theme-cobalt2 .export-dialog-footer,
+body.theme-cobalt2 .batch-dialog-footer {
+  background: #1a1a1a;
+  border-top-color: #333;
+}
+
+/* Sepia theme modals */
+body.theme-sepia .export-dialog-content,
+body.theme-sepia .batch-dialog-content,
+body.theme-sepia .pdf-editor-content {
+  background: rgba(244, 236, 216, 0.98);
+  border-color: #d4c4a8;
+  color: #5b4636;
+}
+
+body.theme-sepia .export-dialog-header,
+body.theme-sepia .batch-dialog-header {
+  background: #e8dcc8;
+  border-bottom-color: #d4c4a8;
+}
+
+body.theme-sepia .export-dialog-header h3,
+body.theme-sepia .batch-dialog-header h3 {
+  color: #3d2914;
+}
+
+body.theme-sepia .export-section label,
+body.theme-sepia .batch-section label {
+  color: #5b4636;
+}
+
+body.theme-sepia .export-section select,
+body.theme-sepia .export-section input,
+body.theme-sepia .batch-section select,
+body.theme-sepia .batch-section input {
+  background: #f4ecd8;
+  border-color: #d4c4a8;
+  color: #5b4636;
+}
+
+body.theme-sepia .export-dialog-footer,
+body.theme-sepia .batch-dialog-footer {
+  background: #e8dcc8;
+  border-top-color: #d4c4a8;
+}
+
+/* Rose Pine Dawn theme modals */
+body.theme-rosepine-dawn .export-dialog-content,
+body.theme-rosepine-dawn .batch-dialog-content,
+body.theme-rosepine-dawn .pdf-editor-content {
+  background: rgba(250, 244, 237, 0.98);
+  border-color: #dfdad9;
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .export-dialog-header,
+body.theme-rosepine-dawn .batch-dialog-header {
+  background: #f2e9e1;
+  border-bottom-color: #dfdad9;
+}
+
+body.theme-rosepine-dawn .export-dialog-header h3,
+body.theme-rosepine-dawn .batch-dialog-header h3 {
+  color: #286983;
+}
+
+body.theme-rosepine-dawn .export-section label,
+body.theme-rosepine-dawn .batch-section label {
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .export-section select,
+body.theme-rosepine-dawn .export-section input,
+body.theme-rosepine-dawn .batch-section select,
+body.theme-rosepine-dawn .batch-section input {
+  background: #faf4ed;
+  border-color: #dfdad9;
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .export-dialog-footer,
+body.theme-rosepine-dawn .batch-dialog-footer {
+  background: #f2e9e1;
+  border-top-color: #dfdad9;
 }

@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PanConverter - Markdown Editor</title>
+    <title>MarkdownConverter</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="styles-modern.css">
+    <link rel="stylesheet" href="styles-concreteinfo.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
     <!-- Mermaid.js for diagram rendering -->
@@ -16,6 +17,16 @@
 </head>
 <body>
     <div class="container">
+        <!-- App Header with ConcreteInfo Logo -->
+        <div class="app-header" id="app-header">
+            <div class="app-header-left">
+                <img src="../assets/docico1.png" alt="MarkdownConverter" class="app-logo" id="app-logo">
+                <span class="app-title">MarkdownConverter</span>
+            </div>
+            <div class="app-header-right">
+                <span class="app-version">v3.0.0</span>
+            </div>
+        </div>
         <div class="tab-bar" id="tab-bar">
             <div class="tab active" data-tab-id="1">
                 <span class="tab-title">Untitled</span>
@@ -870,10 +881,13 @@
                             </div>
                         </div>
                         <div class="export-section">
-                            <label>Output File:</label>
+                            <label class="checkbox-inline"><input type="checkbox" id="compress-overwrite"> Overwrite original file</label>
+                        </div>
+                        <div class="export-section" id="compress-saveas-section">
+                            <label>Save As:</label>
                             <div class="folder-input-group">
-                                <input type="text" id="compress-output-path" placeholder="Choose output location..." readonly>
-                                <button id="browse-compress-output">Browse</button>
+                                <input type="text" id="compress-output-path" placeholder="Select save location..." readonly>
+                                <button id="browse-compress-output">Save As</button>
                             </div>
                         </div>
                     </div>
@@ -901,10 +915,13 @@
                             </select>
                         </div>
                         <div class="export-section">
-                            <label>Output File:</label>
+                            <label class="checkbox-inline"><input type="checkbox" id="rotate-overwrite"> Overwrite original file</label>
+                        </div>
+                        <div class="export-section" id="rotate-saveas-section">
+                            <label>Save As:</label>
                             <div class="folder-input-group">
-                                <input type="text" id="rotate-output-path" placeholder="Choose output location..." readonly>
-                                <button id="browse-rotate-output">Browse</button>
+                                <input type="text" id="rotate-output-path" placeholder="Select save location..." readonly>
+                                <button id="browse-rotate-output">Save As</button>
                             </div>
                         </div>
                     </div>
@@ -924,10 +941,13 @@
                             <small>Separate page numbers/ranges with commas</small>
                         </div>
                         <div class="export-section">
-                            <label>Output File:</label>
+                            <label class="checkbox-inline"><input type="checkbox" id="delete-overwrite"> Overwrite original file</label>
+                        </div>
+                        <div class="export-section" id="delete-saveas-section">
+                            <label>Save As:</label>
                             <div class="folder-input-group">
-                                <input type="text" id="delete-output-path" placeholder="Choose output location..." readonly>
-                                <button id="browse-delete-output">Browse</button>
+                                <input type="text" id="delete-output-path" placeholder="Select save location..." readonly>
+                                <button id="browse-delete-output">Save As</button>
                             </div>
                         </div>
                     </div>
@@ -953,10 +973,13 @@
                             </div>
                         </div>
                         <div class="export-section">
-                            <label>Output File:</label>
+                            <label class="checkbox-inline"><input type="checkbox" id="reorder-overwrite"> Overwrite original file</label>
+                        </div>
+                        <div class="export-section" id="reorder-saveas-section">
+                            <label>Save As:</label>
                             <div class="folder-input-group">
-                                <input type="text" id="reorder-output-path" placeholder="Choose output location..." readonly>
-                                <button id="browse-reorder-output">Browse</button>
+                                <input type="text" id="reorder-output-path" placeholder="Select save location..." readonly>
+                                <button id="browse-reorder-output">Save As</button>
                             </div>
                         </div>
                     </div>
@@ -1009,10 +1032,13 @@
                             <input type="text" id="watermark-custom-pages" placeholder="e.g., 1-5, 7, 9-12" class="hidden">
                         </div>
                         <div class="export-section">
-                            <label>Output File:</label>
+                            <label class="checkbox-inline"><input type="checkbox" id="watermark-overwrite"> Overwrite original file</label>
+                        </div>
+                        <div class="export-section" id="watermark-saveas-section">
+                            <label>Save As:</label>
                             <div class="folder-input-group">
-                                <input type="text" id="watermark-output-path" placeholder="Choose output location..." readonly>
-                                <button id="browse-watermark-output">Browse</button>
+                                <input type="text" id="watermark-output-path" placeholder="Select save location..." readonly>
+                                <button id="browse-watermark-output">Save As</button>
                             </div>
                         </div>
                     </div>
@@ -1058,10 +1084,13 @@
                             <small>These permissions apply when owner password is set</small>
                         </div>
                         <div class="export-section">
-                            <label>Output File:</label>
+                            <label class="checkbox-inline"><input type="checkbox" id="encrypt-overwrite"> Overwrite original file</label>
+                        </div>
+                        <div class="export-section" id="encrypt-saveas-section">
+                            <label>Save As:</label>
                             <div class="folder-input-group">
-                                <input type="text" id="encrypt-output-path" placeholder="Choose output location..." readonly>
-                                <button id="browse-encrypt-output">Browse</button>
+                                <input type="text" id="encrypt-output-path" placeholder="Select save location..." readonly>
+                                <button id="browse-encrypt-output">Save As</button>
                             </div>
                         </div>
                     </div>
@@ -1081,10 +1110,13 @@
                             <small>Enter the password to unlock and remove protection</small>
                         </div>
                         <div class="export-section">
-                            <label>Output File:</label>
+                            <label class="checkbox-inline"><input type="checkbox" id="decrypt-overwrite"> Overwrite original file</label>
+                        </div>
+                        <div class="export-section" id="decrypt-saveas-section">
+                            <label>Save As:</label>
                             <div class="folder-input-group">
-                                <input type="text" id="decrypt-output-path" placeholder="Choose output location..." readonly>
-                                <button id="browse-decrypt-output">Browse</button>
+                                <input type="text" id="decrypt-output-path" placeholder="Select save location..." readonly>
+                                <button id="browse-decrypt-output">Save As</button>
                             </div>
                         </div>
                     </div>
@@ -1121,10 +1153,13 @@
                             </div>
                         </div>
                         <div class="export-section">
-                            <label>Output File:</label>
+                            <label class="checkbox-inline"><input type="checkbox" id="permissions-overwrite"> Overwrite original file</label>
+                        </div>
+                        <div class="export-section" id="permissions-saveas-section">
+                            <label>Save As:</label>
                             <div class="folder-input-group">
-                                <input type="text" id="permissions-output-path" placeholder="Choose output location..." readonly>
-                                <button id="browse-permissions-output">Browse</button>
+                                <input type="text" id="permissions-output-path" placeholder="Select save location..." readonly>
+                                <button id="browse-permissions-output">Save As</button>
                             </div>
                         </div>
                     </div>
@@ -1271,10 +1306,102 @@
                 </div>
                 <div class="pane-resizer" id="pane-resizer-1" title="Drag to resize"></div>
                 <div id="preview-pane-1" class="pane">
-                    <div class="preview-header">
-                        <button class="preview-popout-btn" id="preview-popout-1" title="Pop out preview in new window">⬜</button>
-                    </div>
                     <div id="preview-1" class="preview-content"></div>
+                </div>
+            </div>
+
+            <!-- PDF Viewer Container (hidden by default) -->
+            <div id="pdf-viewer-container" class="pdf-viewer-container hidden">
+                <div class="pdf-viewer-toolbar pdf-toolbar-main">
+                    <!-- Navigation -->
+                    <button id="pdf-prev-page" title="Previous Page">◀</button>
+                    <span id="pdf-page-info">Page <input type="number" id="pdf-page-input" min="1" value="1"> of <span id="pdf-total-pages">0</span></span>
+                    <button id="pdf-next-page" title="Next Page">▶</button>
+                    <div class="pdf-toolbar-separator"></div>
+                    <!-- Zoom -->
+                    <button id="pdf-zoom-out" title="Zoom Out">−</button>
+                    <span id="pdf-zoom-level">100%</span>
+                    <button id="pdf-zoom-in" title="Zoom In">+</button>
+                    <button id="pdf-fit-width" title="Fit Width">↔</button>
+                    <button id="pdf-fit-page" title="Fit Page">⬜</button>
+                    <div class="pdf-toolbar-separator"></div>
+                    <!-- Rotation -->
+                    <button id="pdf-rotate-left" title="Rotate Left">↺</button>
+                    <button id="pdf-rotate-right" title="Rotate Right">↻</button>
+                    <div class="pdf-toolbar-separator"></div>
+                    <!-- PDF Editor Functions -->
+                    <button id="pdf-tb-merge" class="pdf-editor-btn" title="Merge PDFs">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+                            <rect x="14" y="3" width="7" height="9" rx="1"></rect>
+                            <path d="M12 15v6m-3-3h6"></path>
+                        </svg>
+                        <span>Merge</span>
+                    </button>
+                    <button id="pdf-tb-split" class="pdf-editor-btn" title="Split PDF">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="9" rx="1"></rect>
+                            <path d="M12 12v9M9 18l3 3 3-3"></path>
+                        </svg>
+                        <span>Split</span>
+                    </button>
+                    <button id="pdf-tb-compress" class="pdf-editor-btn" title="Compress PDF">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 14h16M4 10h16M7 6l5 4 5-4M7 18l5-4 5 4"></path>
+                        </svg>
+                        <span>Compress</span>
+                    </button>
+                    <button id="pdf-tb-rotate" class="pdf-editor-btn" title="Rotate Pages">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 11-6.219-8.56"></path>
+                            <polyline points="21 3 21 9 15 9"></polyline>
+                        </svg>
+                        <span>Rotate</span>
+                    </button>
+                    <button id="pdf-tb-delete" class="pdf-editor-btn" title="Delete Pages">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"></path>
+                        </svg>
+                        <span>Delete</span>
+                    </button>
+                    <button id="pdf-tb-reorder" class="pdf-editor-btn" title="Reorder Pages">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                            <polyline points="7 9 4 12 7 15"></polyline>
+                            <polyline points="17 9 20 12 17 15"></polyline>
+                        </svg>
+                        <span>Reorder</span>
+                    </button>
+                    <button id="pdf-tb-watermark" class="pdf-editor-btn" title="Add Watermark">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                            <path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                        </svg>
+                        <span>Watermark</span>
+                    </button>
+                    <button id="pdf-tb-encrypt" class="pdf-editor-btn" title="Encrypt PDF">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0110 0v4"></path>
+                        </svg>
+                        <span>Encrypt</span>
+                    </button>
+                    <button id="pdf-tb-decrypt" class="pdf-editor-btn" title="Decrypt PDF">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 019.9-1"></path>
+                        </svg>
+                        <span>Decrypt</span>
+                    </button>
+                    <div class="pdf-toolbar-separator"></div>
+                    <!-- File Info and Close -->
+                    <span id="pdf-filename" class="pdf-filename"></span>
+                    <button id="pdf-close" title="Close PDF">✕</button>
+                </div>
+                <div id="pdf-viewer" class="pdf-viewer">
+                    <canvas id="pdf-canvas"></canvas>
                 </div>
             </div>
         </div>

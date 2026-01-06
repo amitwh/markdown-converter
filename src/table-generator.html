@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Generator - MarkdownConverter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ci-dark-gray: #464646;
+            --ci-medium-gray: #9a9696;
+            --ci-accent: #e5461f;
+            --ci-light-gray: #e3e3e3;
+            --ci-black: #0d0b09;
+            --ci-white: #ffffff;
+            --ci-bg: #f5f5f5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--ci-bg);
+            color: var(--ci-dark-gray);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--ci-dark-gray) 0%, var(--ci-black) 100%);
+            padding: 16px 24px;
+            border-bottom: 3px solid var(--ci-accent);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            color: var(--ci-white);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .container {
+            padding: 24px;
+            flex: 1;
+            overflow: auto;
+        }
+
+        .section {
+            background: var(--ci-white);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--ci-dark-gray);
+            font-size: 0.95rem;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--ci-medium-gray);
+        }
+
+        .form-input, .form-select {
+            padding: 8px 12px;
+            border: 2px solid var(--ci-light-gray);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            min-width: 100px;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--ci-accent);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--ci-accent);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        .editable-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        .editable-table th,
+        .editable-table td {
+            border: 1px solid var(--ci-light-gray);
+            padding: 0;
+        }
+
+        .editable-table th {
+            background: var(--ci-dark-gray);
+            color: var(--ci-white);
+        }
+
+        .editable-table input {
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            font-family: inherit;
+            font-size: 0.875rem;
+            background: transparent;
+        }
+
+        .editable-table input:focus {
+            outline: 2px solid var(--ci-accent);
+            outline-offset: -2px;
+            background: rgba(229, 70, 31, 0.05);
+        }
+
+        .editable-table th input {
+            color: var(--ci-white);
+            font-weight: 600;
+        }
+
+        .editable-table th input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .preview-container {
+            background: var(--ci-black);
+            border-radius: 8px;
+            padding: 16px;
+            max-height: 250px;
+            overflow: auto;
+        }
+
+        .preview-content {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #00ff00;
+            white-space: pre;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 24px;
+            background: var(--ci-white);
+            border-top: 1px solid var(--ci-light-gray);
+        }
+
+        .footer-left {
+            display: flex;
+            gap: 8px;
+        }
+
+        .footer-right {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--ci-accent);
+            color: var(--ci-white);
+        }
+
+        .btn-primary:hover {
+            background: #c93a18;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--ci-light-gray);
+            color: var(--ci-dark-gray);
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--ci-accent);
+            color: var(--ci-accent);
+        }
+
+        .btn-outline:hover {
+            background: var(--ci-accent);
+            color: var(--ci-white);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+        }
+
+        .quick-templates {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .template-chip {
+            padding: 6px 12px;
+            background: var(--ci-light-gray);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .template-chip:hover {
+            background: var(--ci-accent);
+            color: var(--ci-white);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Table Generator</h1>
+    </div>
+
+    <div class="container">
+        <div class="section">
+            <div class="section-title">Table Settings</div>
+            <div class="controls-row">
+                <div class="control-group">
+                    <span class="control-label">Rows</span>
+                    <input type="number" id="rows" class="form-input" min="1" max="50" value="4" style="width: 80px;">
+                </div>
+                <div class="control-group">
+                    <span class="control-label">Columns</span>
+                    <input type="number" id="cols" class="form-input" min="1" max="20" value="4" style="width: 80px;">
+                </div>
+                <div class="control-group">
+                    <span class="control-label">Alignment</span>
+                    <select id="alignment" class="form-select">
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+                <div class="control-group" style="justify-content: flex-end;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="has-header" checked>
+                        Include Header Row
+                    </label>
+                </div>
+            </div>
+            <div class="quick-templates">
+                <button class="template-chip" data-rows="3" data-cols="2">2-Column (3 rows)</button>
+                <button class="template-chip" data-rows="5" data-cols="3">3-Column (5 rows)</button>
+                <button class="template-chip" data-rows="4" data-cols="4">4x4 Grid</button>
+                <button class="template-chip" data-rows="10" data-cols="3">Data Table (10 rows)</button>
+                <button class="template-chip" data-rows="2" data-cols="5">Wide Table</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Edit Table Content</div>
+            <div class="table-container">
+                <table class="editable-table" id="editable-table">
+                    <!-- Generated dynamically -->
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Markdown Preview</div>
+            <div class="preview-container">
+                <div id="preview" class="preview-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-left">
+            <button class="btn btn-secondary btn-sm" id="btn-clear">Clear All</button>
+            <button class="btn btn-outline btn-sm" id="btn-fill-sample">Fill Sample Data</button>
+        </div>
+        <div class="footer-right">
+            <button class="btn btn-secondary" id="btn-copy">Copy Markdown</button>
+            <button class="btn btn-primary" id="btn-insert">Insert to Editor</button>
+        </div>
+    </div>
+
+    <script>
+        let currentRows = 4;
+        let currentCols = 4;
+        let hasHeader = true;
+        let alignment = 'left';
+
+        // Generate the editable table
+        function generateEditableTable() {
+            const table = document.getElementById('editable-table');
+            hasHeader = document.getElementById('has-header').checked;
+            alignment = document.getElementById('alignment').value;
+
+            let html = '';
+
+            for (let i = 0; i < currentRows; i++) {
+                html += '<tr>';
+                for (let j = 0; j < currentCols; j++) {
+                    const isHeader = hasHeader && i === 0;
+                    const tag = isHeader ? 'th' : 'td';
+                    const placeholder = isHeader ? `Header ${j + 1}` : `Cell ${i},${j + 1}`;
+                    html += `<${tag}><input type="text" data-row="${i}" data-col="${j}" placeholder="${placeholder}"></${tag}>`;
+                }
+                html += '</tr>';
+            }
+
+            table.innerHTML = html;
+
+            // Add event listeners for live preview
+            table.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', updatePreview);
+            });
+
+            updatePreview();
+        }
+
+        // Get table data
+        function getTableData() {
+            const data = [];
+            for (let i = 0; i < currentRows; i++) {
+                const row = [];
+                for (let j = 0; j < currentCols; j++) {
+                    const input = document.querySelector(`input[data-row="${i}"][data-col="${j}"]`);
+                    row.push(input ? input.value || '' : '');
+                }
+                data.push(row);
+            }
+            return data;
+        }
+
+        // Generate markdown table
+        function generateMarkdown(data) {
+            if (data.length === 0 || data[0].length === 0) return '';
+
+            // Calculate column widths
+            const colWidths = [];
+            for (let j = 0; j < data[0].length; j++) {
+                let maxWidth = 3; // Minimum width for separator
+                for (let i = 0; i < data.length; i++) {
+                    maxWidth = Math.max(maxWidth, (data[i][j] || '').length);
+                }
+                colWidths.push(maxWidth);
+            }
+
+            // Generate alignment function
+            const alignCell = (text, width) => {
+                text = text || '';
+                const padding = width - text.length;
+                if (alignment === 'center') {
+                    const left = Math.floor(padding / 2);
+                    const right = padding - left;
+                    return ' '.repeat(left) + text + ' '.repeat(right);
+                } else if (alignment === 'right') {
+                    return ' '.repeat(padding) + text;
+                }
+                return text + ' '.repeat(padding);
+            };
+
+            // Generate separator based on alignment
+            const getSeparator = (width) => {
+                if (alignment === 'center') {
+                    return ':' + '-'.repeat(width - 2) + ':';
+                } else if (alignment === 'right') {
+                    return '-'.repeat(width - 1) + ':';
+                }
+                return '-'.repeat(width);
+            };
+
+            let markdown = '';
+            const startRow = hasHeader ? 0 : -1;
+
+            for (let i = startRow; i < data.length; i++) {
+                if (i === -1) {
+                    // Generate empty header for tables without header
+                    markdown += '| ' + colWidths.map(w => ' '.repeat(w)).join(' | ') + ' |\n';
+                } else {
+                    const row = data[i];
+                    const cells = row.map((cell, j) => alignCell(cell, colWidths[j]));
+                    markdown += '| ' + cells.join(' | ') + ' |\n';
+                }
+
+                // Add separator after first row
+                if ((hasHeader && i === 0) || (!hasHeader && i === -1)) {
+                    const separators = colWidths.map(w => getSeparator(w));
+                    markdown += '| ' + separators.join(' | ') + ' |\n';
+                }
+            }
+
+            return markdown;
+        }
+
+        // Update preview
+        function updatePreview() {
+            const data = getTableData();
+            const markdown = generateMarkdown(data);
+            document.getElementById('preview').textContent = markdown;
+        }
+
+        // Event listeners
+        document.getElementById('rows').addEventListener('change', (e) => {
+            currentRows = parseInt(e.target.value) || 4;
+            generateEditableTable();
+        });
+
+        document.getElementById('cols').addEventListener('change', (e) => {
+            currentCols = parseInt(e.target.value) || 4;
+            generateEditableTable();
+        });
+
+        document.getElementById('alignment').addEventListener('change', () => {
+            updatePreview();
+        });
+
+        document.getElementById('has-header').addEventListener('change', () => {
+            generateEditableTable();
+        });
+
+        // Quick templates
+        document.querySelectorAll('.template-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                currentRows = parseInt(chip.dataset.rows);
+                currentCols = parseInt(chip.dataset.cols);
+                document.getElementById('rows').value = currentRows;
+                document.getElementById('cols').value = currentCols;
+                generateEditableTable();
+            });
+        });
+
+        // Clear all
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            document.querySelectorAll('#editable-table input').forEach(input => {
+                input.value = '';
+            });
+            updatePreview();
+        });
+
+        // Fill sample data
+        document.getElementById('btn-fill-sample').addEventListener('click', () => {
+            const sampleHeaders = ['Name', 'Description', 'Status', 'Priority', 'Due Date'];
+            const sampleData = [
+                ['Task 1', 'First task description', 'In Progress', 'High', '2024-01-15'],
+                ['Task 2', 'Second task description', 'Completed', 'Medium', '2024-01-10'],
+                ['Task 3', 'Third task description', 'Pending', 'Low', '2024-01-20'],
+                ['Task 4', 'Fourth task description', 'In Review', 'High', '2024-01-18']
+            ];
+
+            for (let i = 0; i < currentRows; i++) {
+                for (let j = 0; j < currentCols; j++) {
+                    const input = document.querySelector(`input[data-row="${i}"][data-col="${j}"]`);
+                    if (input) {
+                        if (hasHeader && i === 0) {
+                            input.value = sampleHeaders[j % sampleHeaders.length];
+                        } else {
+                            const dataRow = hasHeader ? i - 1 : i;
+                            if (dataRow < sampleData.length && j < sampleData[dataRow].length) {
+                                input.value = sampleData[dataRow][j];
+                            } else {
+                                input.value = `Data ${i}-${j + 1}`;
+                            }
+                        }
+                    }
+                }
+            }
+            updatePreview();
+        });
+
+        // Copy markdown
+        document.getElementById('btn-copy').addEventListener('click', () => {
+            const markdown = document.getElementById('preview').textContent;
+            navigator.clipboard.writeText(markdown).then(() => {
+                const btn = document.getElementById('btn-copy');
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = 'Copy Markdown';
+                }, 2000);
+            });
+        });
+
+        // Insert to editor
+        document.getElementById('btn-insert').addEventListener('click', () => {
+            const content = document.getElementById('preview').textContent;
+            if (content && window.electronAPI) {
+                window.electronAPI.send('insert-generated-content', '\n' + content + '\n');
+                window.close();
+            }
+        });
+
+        // Initialize
+        generateEditableTable();
+    </script>
+</body>
+</html>

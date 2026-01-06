@@ -1,0 +1,969 @@
+/**
+ * ConcreteInfo Theme for MarkdownConverter
+ * Based on logo palette: #464646, #9a9696, #e5461f, #e3e3e3, #0d0b09
+ * Version: 3.0.0
+ */
+
+/* ============================================
+   CSS Variables - ConcreteInfo Theme
+   ============================================ */
+:root {
+  /* Primary Colors from Logo Palette */
+  --ci-dark-gray: #464646;
+  --ci-medium-gray: #9a9696;
+  --ci-accent: #e5461f;
+  --ci-light-gray: #e3e3e3;
+  --ci-black: #0d0b09;
+
+  /* Extended Palette */
+  --ci-accent-hover: #c93a18;
+  --ci-accent-light: rgba(229, 70, 31, 0.1);
+  --ci-white: #ffffff;
+  --ci-bg: #f5f5f5;
+  --ci-border: #d0d0d0;
+
+  /* Semantic Colors */
+  --ci-success: #28a745;
+  --ci-warning: #ffc107;
+  --ci-danger: #dc3545;
+  --ci-info: #17a2b8;
+
+  /* Typography */
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+}
+
+/* ============================================
+   ConcreteInfo Theme Application
+   ============================================ */
+body.theme-concreteinfo {
+  background: var(--ci-bg);
+  color: var(--ci-dark-gray);
+}
+
+body.theme-concreteinfo .toolbar {
+  background: linear-gradient(135deg, var(--ci-dark-gray) 0%, var(--ci-black) 100%);
+  border-bottom: 3px solid var(--ci-accent);
+}
+
+body.theme-concreteinfo .toolbar button {
+  color: var(--ci-white);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+body.theme-concreteinfo .toolbar button:hover {
+  background: var(--ci-accent);
+  border-color: var(--ci-accent);
+  transform: translateY(-1px);
+}
+
+body.theme-concreteinfo .tab-bar {
+  background: var(--ci-dark-gray);
+  border-bottom: 2px solid var(--ci-accent);
+}
+
+body.theme-concreteinfo .tab {
+  background: var(--ci-medium-gray);
+  color: var(--ci-white);
+  border: none;
+  margin: 2px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: all var(--transition-fast);
+}
+
+body.theme-concreteinfo .tab:hover {
+  background: var(--ci-accent-light);
+}
+
+body.theme-concreteinfo .tab.active {
+  background: var(--ci-accent);
+  color: var(--ci-white);
+}
+
+body.theme-concreteinfo .editor-textarea {
+  background: var(--ci-white);
+  color: var(--ci-black);
+  border: 1px solid var(--ci-border);
+  font-family: var(--font-mono);
+}
+
+body.theme-concreteinfo .preview-content {
+  background: var(--ci-white);
+  color: var(--ci-dark-gray);
+  border-left: 3px solid var(--ci-accent);
+}
+
+body.theme-concreteinfo .status-bar {
+  background: var(--ci-dark-gray);
+  color: var(--ci-light-gray);
+  border-top: 2px solid var(--ci-accent);
+}
+
+/* ============================================
+   Modern Modal Styles
+   ============================================ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(13, 11, 9, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-normal);
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: var(--ci-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  max-width: 600px;
+  width: 90%;
+  max-height: 85vh;
+  overflow: hidden;
+  transform: scale(0.9) translateY(20px);
+  transition: transform var(--transition-normal);
+}
+
+.modal-overlay.active .modal-content {
+  transform: scale(1) translateY(0);
+}
+
+.modal-header {
+  background: linear-gradient(135deg, var(--ci-dark-gray) 0%, var(--ci-black) 100%);
+  color: var(--ci-white);
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid var(--ci-accent);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--ci-white);
+  font-size: 1.5rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.modal-close:hover {
+  background: var(--ci-accent);
+  transform: rotate(90deg);
+}
+
+.modal-body {
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.modal-footer {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--ci-light-gray);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  border-top: 1px solid var(--ci-border);
+}
+
+/* ============================================
+   Button Styles
+   ============================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-primary {
+  background: var(--ci-accent);
+  color: var(--ci-white);
+}
+
+.btn-primary:hover {
+  background: var(--ci-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: var(--ci-medium-gray);
+  color: var(--ci-white);
+}
+
+.btn-secondary:hover {
+  background: var(--ci-dark-gray);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--ci-accent);
+  color: var(--ci-accent);
+}
+
+.btn-outline:hover {
+  background: var(--ci-accent);
+  color: var(--ci-white);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ci-dark-gray);
+}
+
+.btn-ghost:hover {
+  background: var(--ci-light-gray);
+}
+
+/* ============================================
+   Form Controls
+   ============================================ */
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+  color: var(--ci-dark-gray);
+  font-size: 0.875rem;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  border: 2px solid var(--ci-border);
+  border-radius: var(--radius-md);
+  background: var(--ci-white);
+  color: var(--ci-dark-gray);
+  transition: all var(--transition-fast);
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--ci-accent);
+  box-shadow: 0 0 0 3px var(--ci-accent-light);
+}
+
+.form-input::placeholder {
+  color: var(--ci-medium-gray);
+}
+
+/* ============================================
+   App Header with Logo
+   ============================================ */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  background: #ffffff;
+  border-bottom: 2px solid #e1e4e8;
+  min-height: 36px;
+}
+
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-logo {
+  height: 22px;
+  width: auto;
+}
+
+.app-title {
+  color: #24292e;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+.app-version {
+  color: #6a737d;
+  font-size: 0.7rem;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+}
+
+/* Dark theme header adjustments */
+body.theme-dark .app-header,
+body.theme-dracula .app-header,
+body.theme-onedark .app-header,
+body.theme-tokyonight .app-header,
+body.theme-monokai .app-header,
+body.theme-cobalt2 .app-header,
+body.theme-gruvbox-dark .app-header,
+body.theme-ayu-dark .app-header,
+body.theme-ayu-mirage .app-header,
+body.theme-palenight .app-header,
+body.theme-oceanic-next .app-header,
+body.theme-nord .app-header,
+body.theme-concrete-dark .app-header {
+  background: #1f2937;
+  border-bottom-color: #374151;
+}
+
+body.theme-dark .app-title,
+body.theme-dracula .app-title,
+body.theme-onedark .app-title,
+body.theme-tokyonight .app-title,
+body.theme-monokai .app-title,
+body.theme-cobalt2 .app-title,
+body.theme-gruvbox-dark .app-title,
+body.theme-ayu-dark .app-title,
+body.theme-ayu-mirage .app-title,
+body.theme-palenight .app-title,
+body.theme-oceanic-next .app-title,
+body.theme-nord .app-title,
+body.theme-concrete-dark .app-title {
+  color: #f3f4f6;
+}
+
+body.theme-dark .app-version,
+body.theme-dracula .app-version,
+body.theme-onedark .app-version,
+body.theme-tokyonight .app-version,
+body.theme-monokai .app-version,
+body.theme-cobalt2 .app-version,
+body.theme-gruvbox-dark .app-version,
+body.theme-ayu-dark .app-version,
+body.theme-ayu-mirage .app-version,
+body.theme-palenight .app-version,
+body.theme-oceanic-next .app-version,
+body.theme-nord .app-version,
+body.theme-concrete-dark .app-version {
+  color: #9ca3af;
+}
+
+body.theme-dark .app-logo,
+body.theme-dracula .app-logo,
+body.theme-onedark .app-logo,
+body.theme-tokyonight .app-logo,
+body.theme-monokai .app-logo,
+body.theme-cobalt2 .app-logo,
+body.theme-gruvbox-dark .app-logo,
+body.theme-ayu-dark .app-logo,
+body.theme-ayu-mirage .app-logo,
+body.theme-palenight .app-logo,
+body.theme-oceanic-next .app-logo,
+body.theme-nord .app-logo,
+body.theme-concrete-dark .app-logo {
+  filter: none;
+}
+
+/* ============================================
+   Converter Cards
+   ============================================ */
+.converter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.converter-card {
+  background: var(--ci-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  text-align: center;
+  border: 2px solid var(--ci-border);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.converter-card:hover {
+  border-color: var(--ci-accent);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.converter-card-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.converter-card-title {
+  font-weight: 600;
+  color: var(--ci-dark-gray);
+  margin-bottom: var(--spacing-xs);
+}
+
+.converter-card-desc {
+  font-size: 0.875rem;
+  color: var(--ci-medium-gray);
+}
+
+/* ============================================
+   Progress Bar
+   ============================================ */
+.progress-bar {
+  height: 8px;
+  background: var(--ci-light-gray);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ci-accent) 0%, var(--ci-accent-hover) 100%);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-normal);
+}
+
+/* ============================================
+   File Drop Zone
+   ============================================ */
+.drop-zone {
+  border: 2px dashed var(--ci-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  text-align: center;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+  border-color: var(--ci-accent);
+  background: var(--ci-accent-light);
+}
+
+.drop-zone-icon {
+  font-size: 3rem;
+  color: var(--ci-medium-gray);
+  margin-bottom: var(--spacing-md);
+}
+
+.drop-zone-text {
+  color: var(--ci-dark-gray);
+  font-weight: 500;
+}
+
+.drop-zone-hint {
+  color: var(--ci-medium-gray);
+  font-size: 0.875rem;
+  margin-top: var(--spacing-xs);
+}
+
+/* ============================================
+   Syntax Highlighting for Editor
+   ============================================ */
+.editor-syntax .md-heading {
+  color: var(--ci-accent);
+  font-weight: bold;
+}
+
+.editor-syntax .md-bold {
+  color: var(--ci-dark-gray);
+  font-weight: bold;
+}
+
+.editor-syntax .md-italic {
+  color: var(--ci-dark-gray);
+  font-style: italic;
+}
+
+.editor-syntax .md-code {
+  background: var(--ci-light-gray);
+  color: var(--ci-accent);
+  font-family: var(--font-mono);
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.editor-syntax .md-link {
+  color: var(--ci-info);
+  text-decoration: underline;
+}
+
+.editor-syntax .md-list {
+  color: var(--ci-accent);
+}
+
+.editor-syntax .md-blockquote {
+  color: var(--ci-medium-gray);
+  border-left: 3px solid var(--ci-accent);
+  padding-left: var(--spacing-md);
+}
+
+/* ============================================
+   ASCII Art Generator Styles
+   ============================================ */
+.ascii-preview {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.2;
+  background: var(--ci-black);
+  color: #00ff00;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.ascii-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+/* ============================================
+   Table Generator Styles
+   ============================================ */
+.table-generator-grid {
+  display: grid;
+  gap: 1px;
+  background: var(--ci-border);
+  border: 1px solid var(--ci-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.table-generator-cell {
+  background: var(--ci-white);
+  padding: var(--spacing-sm);
+  min-width: 80px;
+  min-height: 32px;
+}
+
+.table-generator-cell input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-family: var(--font-mono);
+}
+
+.table-generator-cell.header {
+  background: var(--ci-light-gray);
+  font-weight: 600;
+}
+
+/* ============================================
+   PDF Viewer/Editor Styles
+   ============================================ */
+.pdf-viewer {
+  background: var(--ci-dark-gray);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdf-page {
+  background: var(--ci-white);
+  box-shadow: var(--shadow-lg);
+  max-width: 100%;
+}
+
+.pdf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--ci-light-gray);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+}
+
+/* ============================================
+   Dark Mode for ConcreteInfo Theme
+   ============================================ */
+body.theme-concreteinfo-dark {
+  --ci-bg: #1a1a1a;
+  --ci-white: #2a2a2a;
+  --ci-light-gray: #3a3a3a;
+  --ci-border: #4a4a4a;
+}
+
+body.theme-concreteinfo-dark .editor-textarea,
+body.theme-concreteinfo-dark .preview-content {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+body.theme-concreteinfo-dark .modal-content {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+body.theme-concreteinfo-dark .modal-body {
+  background: #2a2a2a;
+}
+
+body.theme-concreteinfo-dark .modal-footer {
+  background: #1a1a1a;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-normal);
+}
+
+.animate-slide-up {
+  animation: slideUp var(--transition-normal);
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .converter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-header {
+    flex-wrap: wrap;
+  }
+}
+
+/* ============================================
+   Concrete Dark Theme
+   ============================================ */
+body.theme-concrete-dark {
+  background: #1a1a1a;
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .toolbar {
+  background: linear-gradient(135deg, #0d0b09 0%, #1a1a1a 100%);
+  border-bottom: 3px solid #e5461f;
+}
+
+body.theme-concrete-dark .toolbar button {
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .toolbar button:hover {
+  background: #e5461f;
+}
+
+body.theme-concrete-dark .tab-bar {
+  background: #0d0b09;
+  border-bottom: 2px solid #e5461f;
+}
+
+body.theme-concrete-dark .tab {
+  background: #2a2a2a;
+  color: #e3e3e3;
+  border-radius: 4px 4px 0 0;
+}
+
+body.theme-concrete-dark .tab.active {
+  background: #464646;
+  border-bottom: 2px solid #e5461f;
+}
+
+body.theme-concrete-dark .editor-textarea,
+body.theme-concrete-dark .editor-pane {
+  background: #1a1a1a;
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .preview-content {
+  background: #1a1a1a;
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .status-bar {
+  background: #0d0b09;
+  color: #9a9696;
+  border-top: 1px solid #464646;
+}
+
+body.theme-concrete-dark .export-dialog-content,
+body.theme-concrete-dark .batch-dialog-content {
+  background: #2a2a2a;
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .export-dialog-header,
+body.theme-concrete-dark .batch-dialog-header {
+  background: #1a1a1a;
+  border-bottom: 2px solid #e5461f;
+}
+
+body.theme-concrete-dark .export-dialog-footer,
+body.theme-concrete-dark .batch-dialog-footer {
+  background: #1a1a1a;
+}
+
+body.theme-concrete-dark input,
+body.theme-concrete-dark select,
+body.theme-concrete-dark textarea {
+  background: #1a1a1a;
+  color: #e3e3e3;
+  border-color: #464646;
+}
+
+body.theme-concrete-dark input:focus,
+body.theme-concrete-dark select:focus,
+body.theme-concrete-dark textarea:focus {
+  border-color: #e5461f;
+}
+
+body.theme-concrete-dark .line-numbers {
+  background: #0d0b09;
+  color: #9a9696;
+}
+
+/* ============================================
+   Concrete Light Theme
+   ============================================ */
+body.theme-concrete-light {
+  background: #f5f5f5;
+  color: #464646;
+}
+
+body.theme-concrete-light .toolbar {
+  background: #ffffff;
+  border-bottom: 3px solid #e5461f;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+body.theme-concrete-light .toolbar button {
+  color: #464646;
+}
+
+body.theme-concrete-light .toolbar button:hover {
+  background: #e5461f;
+  color: #ffffff;
+}
+
+body.theme-concrete-light .tab-bar {
+  background: #ffffff;
+  border-bottom: 2px solid #e3e3e3;
+}
+
+body.theme-concrete-light .tab {
+  background: #f5f5f5;
+  color: #464646;
+  border-radius: 4px 4px 0 0;
+}
+
+body.theme-concrete-light .tab.active {
+  background: #ffffff;
+  border-bottom: 2px solid #e5461f;
+  color: #e5461f;
+}
+
+body.theme-concrete-light .editor-textarea,
+body.theme-concrete-light .editor-pane {
+  background: #ffffff;
+  color: #464646;
+}
+
+body.theme-concrete-light .preview-content {
+  background: #ffffff;
+  color: #464646;
+}
+
+body.theme-concrete-light .status-bar {
+  background: #ffffff;
+  color: #9a9696;
+  border-top: 1px solid #e3e3e3;
+}
+
+body.theme-concrete-light .export-dialog-content,
+body.theme-concrete-light .batch-dialog-content {
+  background: #ffffff;
+  color: #464646;
+}
+
+body.theme-concrete-light .export-dialog-header,
+body.theme-concrete-light .batch-dialog-header {
+  background: #f5f5f5;
+  border-bottom: 2px solid #e5461f;
+}
+
+body.theme-concrete-light .line-numbers {
+  background: #f5f5f5;
+  color: #9a9696;
+}
+
+/* ============================================
+   Concrete Warm Theme
+   ============================================ */
+body.theme-concrete-warm {
+  background: #faf8f5;
+  color: #464646;
+}
+
+body.theme-concrete-warm .toolbar {
+  background: linear-gradient(135deg, #464646 0%, #5a5a5a 100%);
+  border-bottom: 3px solid #e5461f;
+}
+
+body.theme-concrete-warm .toolbar button {
+  color: #faf8f5;
+}
+
+body.theme-concrete-warm .toolbar button:hover {
+  background: #e5461f;
+}
+
+body.theme-concrete-warm .tab-bar {
+  background: #464646;
+  border-bottom: 2px solid #e5461f;
+}
+
+body.theme-concrete-warm .tab {
+  background: #6a6a6a;
+  color: #faf8f5;
+  border-radius: 4px 4px 0 0;
+}
+
+body.theme-concrete-warm .tab.active {
+  background: #faf8f5;
+  color: #e5461f;
+  border-bottom: 2px solid #e5461f;
+}
+
+body.theme-concrete-warm .editor-textarea,
+body.theme-concrete-warm .editor-pane {
+  background: #faf8f5;
+  color: #464646;
+}
+
+body.theme-concrete-warm .preview-content {
+  background: #faf8f5;
+  color: #464646;
+}
+
+body.theme-concrete-warm .status-bar {
+  background: #f0ebe4;
+  color: #9a9696;
+  border-top: 1px solid #e3e3e3;
+}
+
+body.theme-concrete-warm .export-dialog-content,
+body.theme-concrete-warm .batch-dialog-content {
+  background: #faf8f5;
+  color: #464646;
+}
+
+body.theme-concrete-warm .export-dialog-header,
+body.theme-concrete-warm .batch-dialog-header {
+  background: #f0ebe4;
+  border-bottom: 2px solid #e5461f;
+}
+
+body.theme-concrete-warm h1,
+body.theme-concrete-warm h2,
+body.theme-concrete-warm h3,
+body.theme-concrete-warm h4,
+body.theme-concrete-warm h5,
+body.theme-concrete-warm h6 {
+  color: #e5461f;
+}
+
+body.theme-concrete-warm a {
+  color: #e5461f;
+}
+
+body.theme-concrete-warm .line-numbers {
+  background: #f0ebe4;
+  color: #9a9696;
+}

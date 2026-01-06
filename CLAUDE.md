@@ -1,11 +1,11 @@
-# PanConverter - Claude Development Guide
+# MarkdownConverter - Claude Development Guide
 
 ## Project Overview
 
-**PanConverter** is a cross-platform Markdown editor and converter powered by Pandoc, built with Electron. It provides professional-grade editing capabilities with comprehensive export options.
+**MarkdownConverter** (formerly PanConverter) is a cross-platform Markdown editor and universal file converter powered by Pandoc, built with Electron. It provides professional-grade editing capabilities with comprehensive export options, media conversion, and PDF editing tools.
 
-**Current Version**: v2.1.0
-**Author**: Amit Haridas (amit.wh@gmail.com)
+**Current Version**: v3.0.0
+**Author**: Amit Haridas / ConcreteInfo (amit.wh@gmail.com)
 **License**: MIT
 **Repository**: https://github.com/amitwh/pan-converter
 
@@ -25,17 +25,28 @@
 ### Application Structure
 ```
 src/
-├── main.js            # Electron main process, menu system, IPC handlers
-├── renderer.js        # TabManager class, multi-file editing, event handling
-├── index.html         # Application layout with tabbed interface
-├── styles.css         # Base styling with multi-theme support
-└── styles-modern.css  # Modern glassmorphism UI design system (v1.7.1)
+├── main.js                  # Electron main process, menu system, IPC handlers
+├── preload.js               # Secure IPC bridge for context isolation (v2.2.0)
+├── renderer.js              # TabManager class, multi-file editing, event handling
+├── index.html               # Application layout with tabbed interface
+├── ascii-generator.html     # Separate window for ASCII Art Generator (v3.0.0)
+├── table-generator.html     # Separate window for Table Generator (v3.0.0)
+├── styles.css               # Base styling with multi-theme support
+├── styles-modern.css        # Modern glassmorphism UI design system (v1.7.1)
+├── styles-concreteinfo.css  # ConcreteInfo brand theme (v3.0.0)
+└── wordTemplateExporter.js  # Word template-based export (v1.7.9)
 
 assets/
-└── icon.png       # Application icon
+├── icon.png           # Application icon (512x512)
+├── logo.png           # ConcreteInfo logo
+├── NewIcon.jpg        # Source image for icon generation
+└── icons/             # Generated icons (16x16 to 1024x1024)
 
-package.json       # Dependencies and build configuration
-CLAUDE.md          # Development documentation for AI assistants
+scripts/
+└── generate-icons.js  # Icon generation script
+
+package.json           # Dependencies and build configuration
+CLAUDE.md              # Development documentation for AI assistants
 ```
 
 ## Development Commands
@@ -113,311 +124,111 @@ gh release create v1.2.1 --title "Title" --notes "Release notes" \
 
 ## Feature Implementation Guide
 
-### v2.1.0 UI Enhancements & Comprehensive Format Support (Latest)
+### v3.0.0 Major UI Overhaul & Media Converters (Latest)
 
-#### 🎨 Subtle & Small Preview Popout Button
-**Minimalist Design for Preview Popout Button** (`src/styles.css:195-211`)
+#### Rebranding & UI Improvements
+**Renamed to MarkdownConverter with ConcreteInfo Branding** (`src/index.html`, `package.json`)
 
-**Problem Solved:**
-- Previous design was too prominent and visually distracting
-- Border and larger size drew unnecessary attention
-- Didn't match the modern, minimalist aesthetic of the app
+**Changes:**
+- Renamed application from "PanConverter" to "MarkdownConverter"
+- Added ConcreteInfo logo in app header
+- Removed preview popout button (per user feedback)
+- Version updated to 3.0.0
 
-**Solution Implemented:**
-1. **Reduced Size** - Font size from 14px to 11px, padding from 4px×8px to 2px×6px
-2. **Removed Border** - Changed from `1px solid #d0d7de` to `border: none`
-3. **Opacity Transition** - Added 50% opacity when idle, 100% on hover
-4. **Subtle Hover Effect** - Light background `rgba(0, 0, 0, 0.05)` instead of `#f3f4f6` with border
+#### ConcreteInfo Theme System
+**New Theme Based on Logo Palette** (`src/styles-concreteinfo.css`)
 
-**Key CSS Changes:**
-```css
-.preview-popout-btn {
-    background: transparent;
-    border: none;              /* Previously: 1px solid #d0d7de */
-    border-radius: 3px;        /* Previously: 4px */
-    padding: 2px 6px;          /* Previously: 4px 8px */
-    font-size: 11px;           /* Previously: 14px */
-    opacity: 0.5;              /* New: makes it subtle */
-    transition: all 0.2s;
-}
+**Color Palette:**
+- Dark Gray: #464646
+- Medium Gray: #9a9696
+- Accent (Red): #e5461f
+- Light Gray: #e3e3e3
+- Black: #0d0b09
 
-.preview-popout-btn:hover {
-    background: rgba(0, 0, 0, 0.05);  /* Previously: #f3f4f6 */
-    opacity: 1;                        /* New: full opacity on hover */
-}
-```
+**Theme Variants:**
+- Concrete Dark - Dark mode with red accents
+- Concrete Light - Clean light mode
+- Concrete Warm - Warm tones with gray toolbar
 
----
+#### Separate Generator Windows
+**ASCII Art & Table Generators in Dedicated Windows** (`src/ascii-generator.html`, `src/table-generator.html`, `src/main.js`)
 
-#### 🎨 Simplified Table Headers
-**Clean Light Gray Table Headers** (`src/styles-modern.css:445-449`)
+**ASCII Art Generator Features:**
+- Text Banner mode with 5 font styles (Standard, Banner, Block, Bubble, Digital)
+- Box/Frame mode with 5 styles (Single, Double, Rounded, Bold, ASCII)
+- 16 professional templates (arrows, flowcharts, diagrams, decorative)
+- Real-time preview with terminal-style display
+- One-click insert to editor
 
-**Problem Solved:**
-- Gradient backgrounds in table headers looked too busy
-- Purple gradient (`var(--primary-gradient)`) didn't match professional document style
-- White text on gradient reduced readability in some contexts
+**Table Generator Features:**
+- Adjustable rows and columns (1-50 rows, 1-20 columns)
+- Quick templates (2-column, 3-column, 4x4 grid, etc.)
+- Left/Center/Right alignment
+- Optional header row
+- Fill sample data option
+- Live Markdown preview
+- Copy or insert to editor
 
-**Solution Implemented:**
-1. **Simple Background** - Changed from gradient to solid light gray (#f0f0f0)
-2. **Dark Text** - Changed text color from white to dark (#333333)
-3. **Consistent Styling** - Matches standard theme table headers
-4. **Professional Appearance** - Clean, readable, print-friendly
+**Access:**
+- Tools → ASCII Art Generator (Ctrl+Shift+A)
+- Tools → Table Generator (Ctrl+Shift+T)
 
-**Before:**
-```css
-.preview-content table th {
-  background: var(--primary-gradient);  /* Purple gradient */
-  color: white;
-}
-```
+#### Media Converter Menus
+**Separate Menus for Image, Audio, and Video Conversion** (`src/main.js`)
 
-**After:**
-```css
-.preview-content table th {
-  background: #f0f0f0;  /* Simple light gray */
-  color: #333333;       /* Dark text for readability */
-}
-```
+**Image Menu:**
+- Convert Image... (single file)
+- Batch Convert Images...
+- Resize Image...
+- Compress Image...
+- Rotate Image...
 
----
+**Audio Menu:**
+- Convert Audio...
+- Batch Convert Audio...
+- Extract Audio from Video...
+- Trim Audio...
+- Merge Audio Files...
 
-#### 📥 Comprehensive Format-to-Markdown Conversion
-**30+ Format Support for Import Feature** (`src/main.js:1933-1994`)
+**Video Menu:**
+- Convert Video...
+- Batch Convert Videos...
+- Compress Video...
+- Trim Video...
+- Extract Frames...
+- Convert to GIF...
 
-**Enhanced Import Capabilities:**
-The "Import Document" feature now supports comprehensive format conversion to Markdown:
+**Batch Menu:**
+- Convert Markdown Folder...
+- Batch Image Conversion...
+- Batch Audio Conversion...
+- Batch Video Conversion...
+- Batch PDF Conversion...
 
-**Supported Format Categories:**
-1. **Documents**: DOCX, ODT, RTF, HTML, HTM, TEX, EPUB, PDF, TXT
-2. **Presentations**: PPTX, ODP
-3. **Markup Languages**: RST, Textile, MediaWiki, Org-mode, AsciiDoc, TWiki, OPML
-4. **E-book Formats**: EPUB, FB2
-5. **LaTeX Formats**: TEX, LATEX, LTX
-6. **Web Formats**: HTML, HTM, XHTML
-7. **Wiki Formats**: MediaWiki, DokuWiki, TikiWiki, TWiki
-8. **Data Formats**: CSV, TSV, JSON
+#### Enhanced PDF Editor
+**Open PDF Files Directly** (`src/main.js`)
 
-**Format-Specific Conversion Options:**
-```javascript
-// PDF text extraction
-if (ext === 'pdf') {
-  additionalOptions = '--pdf-engine=xelatex';
-}
+- New "Open PDF File..." option in PDF Editor menu
+- View and edit PDFs within the application
+- All PDF operations available (merge, split, compress, rotate, etc.)
 
-// CSV/TSV table conversion
-if (ext === 'csv' || ext === 'tsv') {
-  additionalOptions = '--from=csv -t markdown';
-}
+#### About Menu & Dependencies
+**Updated Help Menu** (`src/main.js`)
 
-// JSON structure handling
-if (ext === 'json') {
-  additionalOptions = '--from=json -t markdown';
-}
-```
+- "About MarkdownConverter" shows app info with ConcreteInfo logo
+- "Dependencies & Requirements" lists all required tools with download links:
+  - Pandoc (required)
+  - FFmpeg (optional, for media conversion)
+  - ImageMagick (optional, for image processing)
+  - LibreOffice (optional, for document conversion)
+  - MiKTeX/TeX Live (optional, for PDF via LaTeX)
 
-**User Experience Improvements:**
-- Comprehensive file filter dialog with format categories
-- Format-specific error messages with helpful hints
-- Success dialog shows original and converted format
-- All conversions use Pandoc's native format detection
+#### Security Enhancements (v2.2.0 continued)
+**Secure Preload Script** (`src/preload.js`)
 
-**Access**: File → Import Document (Ctrl+I)
-
----
-
-#### 🎨 Exhaustive ASCII Art Generator
-**5 Text Banner Styles & 19 Professional Templates** (`src/renderer.js:3397-3671`, `src/index.html:427-466`)
-
-**Enhanced Text Banner Styles:**
-
-Complete alphabet (A-Z) and numbers (0-9) support for all styles:
-
-1. **Standard** (5-line height)
-   - Classic ASCII art using slashes, underscores, and pipes
-   - Readable and compatible with all systems
-   - Example: `/ \`, `\___/`, `|   |`
-
-2. **Banner** (7-line height)
-   - Large format using # characters
-   - Professional presentation style
-   - Complete character set including punctuation
-   - Example: ` ##### `, ` ##   ## `, ` ####### `
-
-3. **Block** (6-line height)
-   - Modern Unicode block characters
-   - Uses █ ╔ ╗ ╚ ╝ ═ ║
-   - High visual impact
-   - Example: `█████╗`, `██╔══██╗`, `███████║`
-
-4. **Bubble** (5-line height)
-   - Circular bubble letters
-   - Playful and friendly appearance
-   - Uses Ⓐ Ⓑ Ⓒ and ⒜ ⒝ ⒞
-   - Example: `  Ⓐ  `, ` ⒜ ⒜ `, `⒜⒜⒜⒜⒜`
-
-5. **Digital** (7-line height)
-   - Digital display style
-   - Uses ▄ ▀ ▐ ▌ for segments
-   - Retro calculator/LED aesthetic
-   - Example: ` ▄▀▀▀▄ `, `▐    ▌`, `▐▄▄▄▄▌`
-
-**19 Professional ASCII Templates:**
-
-**Arrows & Flow (4 templates):**
-- Arrow Right - Horizontal process flow
-- Arrow Down - Vertical process flow
-- Decision - Binary decision with Yes/No branches
-- Process Flow - Multi-step process with parallel paths
-
-**Diagrams & Charts (6 templates):**
-- Flowchart - Complex flowchart with decisions and loops
-- Sequence - User-System-Database interaction diagram
-- Network - Server-client network topology
-- Hierarchy - Organizational tree structure
-- Timeline - Milestone visualization with dates
-- Table Simple - Professional table template
-
-**Boxes & Containers (4 templates):**
-- Header - Section header with borders
-- Note Box - Important notes (┏━━┓ style)
-- Warning Box - Warning messages (╔═══╗ style)
-- Info Box - Information boxes (╭───╮ style)
-
-**Decorative Elements (6 templates):**
-- Divider - Horizontal separator (═══)
-- Separator Fancy - Elegant rounded divider
-- Brackets - Japanese-style brackets 【 】
-- Banner Stars - Star-bordered banners
-- Checklist - Task lists with ✓
-- Progress Bar - Visual progress indicators
-
-**Template Examples:**
-
-```
-Sequence Diagram:
- User      System     Database
-   │           │           │
-   │  Request  │           │
-   ├──────────►│           │
-   │           │  Query    │
-   │           ├──────────►│
-   │           │           │
-   │           │  Result   │
-   │           │◄──────────┤
-   │  Response │           │
-   │◄──────────┤           │
-   │           │           │
-```
-
-```
-Note Box:
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃  NOTE:                         ┃
-┃  This is an important note     ┃
-┃  that requires attention!      ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-```
-
-**Integration Features:**
-- Automatic code block wrapping for proper rendering
-- Preserved formatting in all export formats
-- Categorized template selection UI
-- Real-time preview generation
-- One-click insertion into editor
-
-**Access**: Tools → ASCII Art Generator
-
-**Key Improvements in v2.1.0:**
-1. ✅ Minimalist preview popout button design
-2. ✅ Professional light gray table headers
-3. ✅ Support for 30+ import formats
-4. ✅ 5 complete ASCII text banner font styles
-5. ✅ 19 professional ASCII art templates
-6. ✅ Organized template categories
-7. ✅ Enhanced user experience across all features
-
----
-
-### v1.9.3 Configurable Page Sizes & Orientation
-
-#### 📏 Universal Page Size Configuration
-**Comprehensive Page Size Support Across All Export Formats** (`src/main.js`, `src/index.html`, `src/renderer.js`, `src/wordTemplateExporter.js`)
-
-**Feature Overview:**
-- Added configurable page sizes for all export formats (PDF, DOCX, DOCX Enhanced, ODT, PowerPoint)
-- Support for standard paper sizes: A3, A4, A5, B4, B5, Letter, Legal, Tabloid
-- Custom page size support with user-defined dimensions
-- Portrait and landscape orientation options
-- Persistent page size preferences across sessions
-- Batch conversion support for all page sizes
-
-**Implementation Details:**
-
-1. **Page Size Constants** (`src/main.js:81-139`)
-   - Defined PAGE_SIZES with Pandoc identifiers and Word XML dimensions
-   - Word dimensions in twentieths of a point (e.g., A4: 11906×16838)
-   - Pandoc identifiers for LaTeX geometry package
-
-2. **Export Dialog UI** (`src/index.html:246-275`)
-   - Page size dropdown with 8 standard sizes plus custom option
-   - Orientation selector (Portrait/Landscape)
-   - Custom dimension inputs for width and height
-   - Always visible in basic export options
-
-3. **PDF Export** (`src/main.js:2475-2488`)
-   - Uses `-V geometry:papersize=a4` Pandoc parameter
-   - Custom dimensions via `-V geometry:paperwidth` and `paperheight`
-   - Landscape orientation via `-V geometry:landscape`
-
-4. **DOCX/ODT Export** (`src/main.js:858-916`, `src/main.js:1568-1603`)
-   - `setDocxPageSize()` function modifies `<w:pgSz>` XML elements
-   - Updates all section properties in document.xml
-   - Swaps dimensions for landscape orientation
-   - Applied to both standard and enhanced DOCX exports
-
-5. **Word Template Exporter** (`src/wordTemplateExporter.js:13-104`)
-   - Added `pageSettings` parameter to constructor
-   - `setPageSize()` method updates template page dimensions
-   - Integrated into all WordTemplateExporter instances
-   - Supports batch conversion with page settings
-
-6. **Renderer Integration** (`src/renderer.js:1340-1433`)
-   - Collects page size and orientation from export dialog
-   - Sends settings to main process via IPC
-   - Loads saved settings on startup
-   - Shows/hides custom size inputs based on selection
-
-7. **Persistent Storage** (`src/main.js:2659-2663`)
-   - Page settings loaded from user data on app startup
-   - Automatically saved when changed
-   - Default: A4 portrait
-
-**Page Size Dimensions:**
-| Size | Pandoc ID | Word Dimensions (twips) | Metric/Imperial |
-|------|-----------|-------------------------|-----------------|
-| A3 | a3 | 16838×23811 | 297×420mm |
-| A4 | a4 | 11906×16838 | 210×297mm |
-| A5 | a5 | 8391×11906 | 148×210mm |
-| B4 | b4 | 14170×20015 | 250×353mm |
-| B5 | b5 | 9979×14170 | 176×250mm |
-| Letter | letter | 12240×15840 | 8.5×11in |
-| Legal | legal | 12240×20160 | 8.5×14in |
-| Tabloid | tabloid | 15840×24480 | 11×17in |
-
-**ASCII Art Scaling:**
-- Code blocks and ASCII art automatically scale with page size
-- Monospace font (Consolas) maintains alignment across all sizes
-- Smaller pages may require font size adjustments for complex diagrams
-- Landscape orientation recommended for wide ASCII diagrams
-
-**Key Improvements in v1.9.3:**
-1. ✅ Configurable page sizes for PDF, DOCX, ODT, PowerPoint exports
-2. ✅ Portrait and landscape orientation support
-3. ✅ Custom page dimensions for specialized requirements
-4. ✅ Persistent settings with automatic loading
-5. ✅ Batch conversion respects page size preferences
-6. ✅ Word template exporter integration
-7. ✅ Comprehensive UI with always-visible controls
+- New IPC channels for media converters
+- Secure generator window communication
+- Insert content from generator windows
 
 ---
 
@@ -1487,33 +1298,28 @@ if (!gotTheLock) {
 
 ## Pending Tasks & Future Enhancements
 
-No pending tasks at this time. All planned v1.9.3 features have been completed.
+No pending tasks at this time. All planned v1.9.1 features have been completed.
 
 ### Potential Future Enhancements
 - Image embedding in headers/footers (partially implemented - logo upload UI ready)
 - Advanced page numbering formats (Roman numerals, custom prefixes)
 - First-page-different header/footer support
 - Per-section headers/footers within documents
-- Automatic font size scaling for different page sizes
-- Page size templates/presets for common document types
 
 ---
 
-**Last Updated**: December 13, 2025
-**Claude Assistant**: Development completed for v1.9.3 with Configurable Page Sizes & Orientation!
+**Last Updated**: December 12, 2025
+**Claude Assistant**: Development completed for v1.9.1 with ASCII Art Preservation!
 
-### v1.9.3 - Latest Release Summary
-- **Configurable Page Sizes**: Support for A3, A4, A5, B4, B5, Letter, Legal, Tabloid, and custom sizes
-- **Orientation Support**: Portrait and landscape options for all export formats
-- **Universal Export Support**: Page size configuration for PDF, DOCX (standard & enhanced), ODT, and PowerPoint
-- **Persistent Settings**: Page preferences saved and restored automatically
-- **Batch Conversion**: All page size settings apply to batch operations
-- **ASCII Art Scaling**: Code blocks and diagrams automatically adapt to different page sizes
-- **User-Friendly UI**: Always-visible page size controls in export dialog
+### v1.9.1 - Latest Release Summary
+- **ASCII Art Preservation**: Code blocks, flowcharts, tables, and ASCII art now export exactly as shown in preview
+- **Enhanced Code Block Rendering**: Each line rendered separately to preserve exact spacing and alignment
+- **Monospace Font Support**: Consolas font used consistently across all export formats
+- **Improved ASCII Detection**: Extended Unicode box-drawing and arrow character support
+- **PDF Export Enhancement**: Added monofont and highlight-style options for better code rendering
+- **HTML/Electron PDF Fix**: Enhanced CSS to prevent text wrapping in code blocks
 
 ### Previous Releases
-- v1.9.2: Full-width background for code blocks
-- v1.9.1: ASCII Art & Code Block Preservation
 - v1.9.0: Custom Headers & Footers for PDF, DOCX, ODT, PowerPoint exports
 - v1.8.3: Streamlined PDF Editor UI & Configurable Template Settings
 - v1.8.2: Enhanced PDF Export & Print Fix
