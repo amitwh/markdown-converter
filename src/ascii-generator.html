@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Art Generator - MarkdownConverter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ci-dark-gray: #464646;
+            --ci-medium-gray: #9a9696;
+            --ci-accent: #e5461f;
+            --ci-light-gray: #e3e3e3;
+            --ci-black: #0d0b09;
+            --ci-white: #ffffff;
+            --ci-bg: #f5f5f5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--ci-bg);
+            color: var(--ci-dark-gray);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--ci-dark-gray) 0%, var(--ci-black) 100%);
+            padding: 16px 24px;
+            border-bottom: 3px solid var(--ci-accent);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            color: var(--ci-white);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .container {
+            padding: 24px;
+            max-width: 100%;
+        }
+
+        .section {
+            background: var(--ci-white);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--ci-dark-gray);
+            font-size: 0.95rem;
+        }
+
+        .mode-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .mode-tab {
+            padding: 10px 20px;
+            border: 2px solid var(--ci-light-gray);
+            background: var(--ci-white);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-tab:hover {
+            border-color: var(--ci-accent);
+        }
+
+        .mode-tab.active {
+            background: var(--ci-accent);
+            border-color: var(--ci-accent);
+            color: var(--ci-white);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--ci-dark-gray);
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--ci-light-gray);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--ci-accent);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .preview-container {
+            background: var(--ci-black);
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 200px;
+            max-height: 350px;
+            overflow: auto;
+        }
+
+        .preview-content {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.3;
+            color: #00ff00;
+            white-space: pre;
+        }
+
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .template-btn {
+            padding: 8px 12px;
+            border: 2px solid var(--ci-light-gray);
+            background: var(--ci-white);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .template-btn:hover {
+            border-color: var(--ci-accent);
+            background: rgba(229, 70, 31, 0.05);
+        }
+
+        .template-btn.active {
+            border-color: var(--ci-accent);
+            background: rgba(229, 70, 31, 0.1);
+        }
+
+        .footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            background: var(--ci-white);
+            border-top: 1px solid var(--ci-light-gray);
+            position: sticky;
+            bottom: 0;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--ci-accent);
+            color: var(--ci-white);
+        }
+
+        .btn-primary:hover {
+            background: #c93a18;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--ci-light-gray);
+            color: var(--ci-dark-gray);
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .mode-section {
+            display: none;
+        }
+
+        .mode-section.active {
+            display: block;
+        }
+
+        .template-category {
+            margin-bottom: 16px;
+        }
+
+        .template-category-title {
+            font-size: 0.8rem;
+            color: var(--ci-medium-gray);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ASCII Art Generator</h1>
+    </div>
+
+    <div class="container">
+        <div class="section">
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="text">Text Banner</button>
+                <button class="mode-tab" data-mode="box">Box/Frame</button>
+                <button class="mode-tab" data-mode="templates">Templates</button>
+            </div>
+
+            <!-- Text Banner Mode -->
+            <div id="text-mode" class="mode-section active">
+                <div class="form-group">
+                    <label class="form-label">Text to Convert</label>
+                    <input type="text" id="text-input" class="form-input" placeholder="Enter your text..." maxlength="30">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Style</label>
+                    <select id="font-style" class="form-select">
+                        <option value="standard">Standard</option>
+                        <option value="banner">Banner</option>
+                        <option value="block">Block</option>
+                        <option value="bubble">Bubble</option>
+                        <option value="digital">Digital</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Box/Frame Mode -->
+            <div id="box-mode" class="mode-section">
+                <div class="form-group">
+                    <label class="form-label">Text Content</label>
+                    <textarea id="box-text" class="form-textarea" placeholder="Enter text for the box..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Box Style</label>
+                    <select id="box-style" class="form-select">
+                        <option value="single">Single Line</option>
+                        <option value="double">Double Line</option>
+                        <option value="rounded">Rounded</option>
+                        <option value="bold">Bold</option>
+                        <option value="ascii">ASCII (+|-)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Padding</label>
+                    <input type="number" id="box-padding" class="form-input" min="0" max="10" value="2" style="width: 100px;">
+                </div>
+            </div>
+
+            <!-- Templates Mode -->
+            <div id="templates-mode" class="mode-section">
+                <div class="template-category">
+                    <div class="template-category-title">Arrows & Flow</div>
+                    <div class="template-grid">
+                        <button class="template-btn" data-template="arrow-right">Arrow Right</button>
+                        <button class="template-btn" data-template="arrow-down">Arrow Down</button>
+                        <button class="template-btn" data-template="decision">Decision</button>
+                        <button class="template-btn" data-template="process">Process Flow</button>
+                    </div>
+                </div>
+                <div class="template-category">
+                    <div class="template-category-title">Diagrams</div>
+                    <div class="template-grid">
+                        <button class="template-btn" data-template="flowchart">Flowchart</button>
+                        <button class="template-btn" data-template="sequence">Sequence</button>
+                        <button class="template-btn" data-template="network">Network</button>
+                        <button class="template-btn" data-template="hierarchy">Hierarchy</button>
+                    </div>
+                </div>
+                <div class="template-category">
+                    <div class="template-category-title">Boxes & Containers</div>
+                    <div class="template-grid">
+                        <button class="template-btn" data-template="header">Header</button>
+                        <button class="template-btn" data-template="note">Note Box</button>
+                        <button class="template-btn" data-template="warning">Warning</button>
+                        <button class="template-btn" data-template="info">Info Box</button>
+                    </div>
+                </div>
+                <div class="template-category">
+                    <div class="template-category-title">Decorative</div>
+                    <div class="template-grid">
+                        <button class="template-btn" data-template="divider">Divider</button>
+                        <button class="template-btn" data-template="separator">Separator</button>
+                        <button class="template-btn" data-template="banner">Banner</button>
+                        <button class="template-btn" data-template="checklist">Checklist</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Preview</div>
+            <div class="preview-container">
+                <div id="preview" class="preview-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <button class="btn btn-secondary" id="btn-generate">Generate Preview</button>
+        <button class="btn btn-primary" id="btn-insert">Insert to Editor</button>
+    </div>
+
+    <script>
+        // ASCII Art Generator Logic
+        const FONTS = {
+            standard: {
+                height: 5,
+                chars: {
+                    'A': ['  /\\  ', ' /  \\ ', '/----\\', '|    |', '|    |'],
+                    'B': ['|----\\', '|    |', '|----/', '|    \\', '|----/'],
+                    'C': ['/----\\', '|     ', '|     ', '|     ', '\\----/'],
+                    'D': ['|----\\', '|    |', '|    |', '|    |', '|----/'],
+                    'E': ['|----', '|    ', '|--- ', '|    ', '|----'],
+                    'F': ['|----', '|    ', '|--- ', '|    ', '|    '],
+                    'G': ['/----\\', '|     ', '| |--\\', '|    |', '\\----/'],
+                    'H': ['|    |', '|    |', '|----/', '|    |', '|    |'],
+                    'I': ['|---|', '  |  ', '  |  ', '  |  ', '|---|'],
+                    'J': ['    |', '    |', '    |', '|   |', '\\---/'],
+                    'K': ['|   /', '|  / ', '|--  ', '|  \\ ', '|   \\'],
+                    'L': ['|    ', '|    ', '|    ', '|    ', '|----'],
+                    'M': ['|\\  /|', '| \\/ |', '|    |', '|    |', '|    |'],
+                    'N': ['|\\   |', '| \\  |', '|  \\ |', '|   \\|', '|    |'],
+                    'O': ['/----\\', '|    |', '|    |', '|    |', '\\----/'],
+                    'P': ['|----\\', '|    |', '|----/', '|     ', '|     '],
+                    'Q': ['/----\\', '|    |', '|  \\ |', '|   \\|', '\\----\\'],
+                    'R': ['|----\\', '|    |', '|----/', '|  \\  ', '|   \\ '],
+                    'S': ['/----\\', '|     ', '\\----\\', '     |', '\\----/'],
+                    'T': ['-----', '  |  ', '  |  ', '  |  ', '  |  '],
+                    'U': ['|    |', '|    |', '|    |', '|    |', '\\----/'],
+                    'V': ['|    |', '|    |', ' \\  / ', '  \\/  ', '      '],
+                    'W': ['|    |', '|    |', '|    |', '| /\\ |', '|/  \\|'],
+                    'X': ['\\    /', ' \\  / ', '  \\/  ', '  /\\  ', ' /  \\ '],
+                    'Y': ['\\   /', ' \\ / ', '  |  ', '  |  ', '  |  '],
+                    'Z': ['-----', '   / ', '  /  ', ' /   ', '-----'],
+                    ' ': ['     ', '     ', '     ', '     ', '     '],
+                    '0': ['/---\\', '|   |', '| / |', '|/  |', '\\---/'],
+                    '1': ['  /| ', ' / | ', '   | ', '   | ', ' ----'],
+                    '2': ['/---\\', '    |', ' ---/', '/    ', '-----'],
+                    '3': ['----\\', '    |', ' ---/', '    |', '----/'],
+                    '4': ['|   |', '|   |', '-----', '    |', '    |'],
+                    '5': ['-----', '|    ', '----\\', '    |', '----/'],
+                    '6': ['/----', '|    ', '|---\\', '|   |', '\\---/'],
+                    '7': ['-----', '   / ', '  /  ', ' /   ', '/    '],
+                    '8': ['/---\\', '|   |', ' --- ', '|   |', '\\---/'],
+                    '9': ['/---\\', '|   |', '\\----', '    |', '----/']
+                }
+            },
+            banner: {
+                height: 7,
+                chars: {
+                    'A': [' ##### ', ' ##   ##', '##     ##', '#########', '##     ##', '##     ##', '##     ##'],
+                    'B': ['######## ', '##     ##', '##     ##', '######## ', '##     ##', '##     ##', '######## '],
+                    'C': [' ###### ', '##    ##', '##      ', '##      ', '##      ', '##    ##', ' ###### '],
+                    'D': ['######## ', '##     ##', '##     ##', '##     ##', '##     ##', '##     ##', '######## '],
+                    'E': ['########', '##      ', '##      ', '###### ', '##      ', '##      ', '########'],
+                    'F': ['########', '##      ', '##      ', '###### ', '##      ', '##      ', '##      '],
+                    'G': [' ###### ', '##    ##', '##      ', '##  ####', '##    ##', '##    ##', ' ###### '],
+                    'H': ['##     ##', '##     ##', '##     ##', '#########', '##     ##', '##     ##', '##     ##'],
+                    'I': ['####', ' ## ', ' ## ', ' ## ', ' ## ', ' ## ', '####'],
+                    'J': ['      ##', '      ##', '      ##', '      ##', '##    ##', '##    ##', ' ###### '],
+                    'K': ['##    ##', '##   ## ', '##  ##  ', '#####   ', '##  ##  ', '##   ## ', '##    ##'],
+                    'L': ['##      ', '##      ', '##      ', '##      ', '##      ', '##      ', '########'],
+                    'M': ['##     ##', '###   ###', '#### ####', '## ### ##', '##     ##', '##     ##', '##     ##'],
+                    'N': ['##    ##', '###   ##', '####  ##', '## ## ##', '##  ####', '##   ###', '##    ##'],
+                    'O': [' ####### ', '##     ##', '##     ##', '##     ##', '##     ##', '##     ##', ' ####### '],
+                    'P': ['######## ', '##     ##', '##     ##', '######## ', '##       ', '##       ', '##       '],
+                    'Q': [' ####### ', '##     ##', '##     ##', '##     ##', '##  ## ##', '##    ## ', ' ##### ##'],
+                    'R': ['######## ', '##     ##', '##     ##', '######## ', '##   ##  ', '##    ## ', '##     ##'],
+                    'S': [' ###### ', '##    ##', '##      ', ' ###### ', '      ##', '##    ##', ' ###### '],
+                    'T': ['########', '   ##   ', '   ##   ', '   ##   ', '   ##   ', '   ##   ', '   ##   '],
+                    'U': ['##     ##', '##     ##', '##     ##', '##     ##', '##     ##', '##     ##', ' ####### '],
+                    'V': ['##     ##', '##     ##', '##     ##', '##     ##', ' ##   ## ', '  ## ##  ', '   ###   '],
+                    'W': ['##      ##', '##  ##  ##', '##  ##  ##', '##  ##  ##', '##  ##  ##', '##  ##  ##', ' ###  ### '],
+                    'X': ['##     ##', ' ##   ## ', '  ## ##  ', '   ###   ', '  ## ##  ', ' ##   ## ', '##     ##'],
+                    'Y': ['##    ##', ' ##  ## ', '  ####  ', '   ##   ', '   ##   ', '   ##   ', '   ##   '],
+                    'Z': ['########', '     ## ', '    ##  ', '   ##   ', '  ##    ', ' ##     ', '########'],
+                    ' ': ['       ', '       ', '       ', '       ', '       ', '       ', '       '],
+                    '0': [' ###### ', '##    ##', '##    ##', '##    ##', '##    ##', '##    ##', ' ###### '],
+                    '1': ['   ##   ', ' ####   ', '   ##   ', '   ##   ', '   ##   ', '   ##   ', ' ###### '],
+                    '2': [' ###### ', '##    ##', '     ## ', '   ##   ', '  ##    ', ' ##     ', '########'],
+                    '3': [' ###### ', '##    ##', '     ## ', '  ####  ', '     ## ', '##    ##', ' ###### '],
+                    '4': ['    ##  ', '   ###  ', '  # ##  ', ' #  ##  ', '########', '    ##  ', '    ##  '],
+                    '5': ['########', '##      ', '####### ', '      ##', '      ##', '##    ##', ' ###### '],
+                    '6': [' ###### ', '##      ', '####### ', '##    ##', '##    ##', '##    ##', ' ###### '],
+                    '7': ['########', '##   ## ', '    ##  ', '   ##   ', '  ##    ', '  ##    ', '  ##    '],
+                    '8': [' ###### ', '##    ##', '##    ##', ' ###### ', '##    ##', '##    ##', ' ###### '],
+                    '9': [' ###### ', '##    ##', '##    ##', ' #######', '      ##', '##    ##', ' ###### ']
+                }
+            },
+            block: {
+                height: 6,
+                chars: {
+                    'A': ['█████╗ ', '██╔══██╗', '███████║', '██╔══██║', '██║  ██║', '╚═╝  ╚═╝'],
+                    'B': ['██████╗ ', '██╔══██╗', '██████╔╝', '██╔══██╗', '██████╔╝', '╚═════╝ '],
+                    'C': ['█████╗ ', '██╔══██╗', '██║     ', '██║     ', '╚█████╔╝', ' ╚════╝ '],
+                    'D': ['██████╗ ', '██╔══██╗', '██║  ██║', '██║  ██║', '██████╔╝', '╚═════╝ '],
+                    'E': ['███████╗', '██╔════╝', '█████╗  ', '██╔══╝  ', '███████╗', '╚══════╝'],
+                    'F': ['███████╗', '██╔════╝', '█████╗  ', '██╔══╝  ', '██║     ', '╚═╝     '],
+                    'G': ['█████╗ ', '██╔══██╗', '██║  ███', '██║   ██', '╚█████╔╝', ' ╚════╝ '],
+                    'H': ['██╗  ██╗', '██║  ██║', '███████║', '██╔══██║', '██║  ██║', '╚═╝  ╚═╝'],
+                    'I': ['██╗', '██║', '██║', '██║', '██║', '╚═╝'],
+                    'J': ['    ██╗', '    ██║', '    ██║', '██  ██║', '╚████╔╝', ' ╚═══╝ '],
+                    'K': ['██╗  ██╗', '██║ ██╔╝', '█████╔╝ ', '██╔═██╗ ', '██║  ██╗', '╚═╝  ╚═╝'],
+                    'L': ['██╗     ', '██║     ', '██║     ', '██║     ', '███████╗', '╚══════╝'],
+                    'M': ['███╗   ███╗', '████╗ ████║', '██╔████╔██║', '██║╚██╔╝██║', '██║ ╚═╝ ██║', '╚═╝     ╚═╝'],
+                    'N': ['███╗   ██╗', '████╗  ██║', '██╔██╗ ██║', '██║╚██╗██║', '██║ ╚████║', '╚═╝  ╚═══╝'],
+                    'O': ['█████╗ ', '██╔══██╗', '██║  ██║', '██║  ██║', '╚█████╔╝', ' ╚════╝ '],
+                    'P': ['██████╗ ', '██╔══██╗', '██████╔╝', '██╔═══╝ ', '██║     ', '╚═╝     '],
+                    'Q': ['█████╗ ', '██╔══██╗', '██║  ██║', '██║  ██║', '╚██████╗', ' ╚═══██╝'],
+                    'R': ['██████╗ ', '██╔══██╗', '██████╔╝', '██╔══██╗', '██║  ██║', '╚═╝  ╚═╝'],
+                    'S': ['█████╗ ', '██╔══╝ ', '█████╗ ', '╚══██║ ', '█████║ ', '╚════╝ '],
+                    'T': ['████████╗', '╚══██╔══╝', '   ██║   ', '   ██║   ', '   ██║   ', '   ╚═╝   '],
+                    'U': ['██╗  ██╗', '██║  ██║', '██║  ██║', '██║  ██║', '╚█████╔╝', ' ╚════╝ '],
+                    'V': ['██╗   ██╗', '██║   ██║', '██║   ██║', '╚██╗ ██╔╝', ' ╚████╔╝ ', '  ╚═══╝  '],
+                    'W': ['██╗    ██╗', '██║    ██║', '██║ █╗ ██║', '██║███╗██║', '╚███╔███╔╝', ' ╚══╝╚══╝ '],
+                    'X': ['██╗  ██╗', '╚██╗██╔╝', ' ╚███╔╝ ', ' ██╔██╗ ', '██╔╝ ██╗', '╚═╝  ╚═╝'],
+                    'Y': ['██╗   ██╗', '╚██╗ ██╔╝', ' ╚████╔╝ ', '  ╚██╔╝  ', '   ██║   ', '   ╚═╝   '],
+                    'Z': ['███████╗', '╚════██║', '  ███╔═╝', ' ██╔══╝ ', '███████╗', '╚══════╝'],
+                    ' ': ['   ', '   ', '   ', '   ', '   ', '   ']
+                }
+            }
+        };
+
+        const TEMPLATES = {
+            'arrow-right': '    ┌─────────────────────┐\n──▶│  Process or Action  │──▶\n    └─────────────────────┘',
+            'arrow-down': '        │\n        ▼\n┌───────────────┐\n│   Process     │\n└───────────────┘\n        │\n        ▼',
+            'decision': '       ╱╲\n      ╱  ╲\n     ╱ ?  ╲\n    ╱      ╲\n   ╱────────╲\n  ╱          ╲\n YES        NO\n  │          │\n  ▼          ▼',
+            'process': '┌─────┐   ┌─────┐   ┌─────┐\n│  1  │──▶│  2  │──▶│  3  │\n└─────┘   └─────┘   └─────┘',
+            'flowchart': '┌─────────────┐\n│   START    │\n└──────┬──────┘\n       │\n       ▼\n┌─────────────┐\n│  Process A  │\n└──────┬──────┘\n       │\n       ▼\n   ╱────────╲\n  ╱ Decision ╲\n  ╲    ?    ╱\n   ╲────────╱\n    │      │\n   YES    NO\n    │      │\n    ▼      ▼\n┌──────┐ ┌──────┐\n│  B   │ │  C   │\n└──────┘ └──────┘',
+            'sequence': ' User      System     Database\n   │           │           │\n   │  Request  │           │\n   ├──────────►│           │\n   │           │  Query    │\n   │           ├──────────►│\n   │           │           │\n   │           │  Result   │\n   │           │◄──────────┤\n   │  Response │           │\n   │◄──────────┤           │\n   │           │           │',
+            'network': '          ┌─────────┐\n          │ Server  │\n          └────┬────┘\n               │\n     ┌─────────┼─────────┐\n     │         │         │\n┌────┴────┐ ┌──┴──┐ ┌────┴────┐\n│ Client1 │ │ DB  │ │ Client2 │\n└─────────┘ └─────┘ └─────────┘',
+            'hierarchy': '            ┌─────────┐\n            │   CEO   │\n            └────┬────┘\n       ┌─────────┼─────────┐\n       │         │         │\n   ┌───┴───┐ ┌───┴───┐ ┌───┴───┐\n   │  VP1  │ │  VP2  │ │  VP3  │\n   └───┬───┘ └───┬───┘ └───┬───┘\n       │         │         │\n   ┌───┴───┐ ┌───┴───┐ ┌───┴───┐\n   │ Team1 │ │ Team2 │ │ Team3 │\n   └───────┘ └───────┘ └───────┘',
+            'header': '╔════════════════════════════════════╗\n║            SECTION TITLE           ║\n╚════════════════════════════════════╝',
+            'note': '┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n┃  NOTE:                         ┃\n┃  This is an important note     ┃\n┃  that requires attention!      ┃\n┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛',
+            'warning': '╔════════════════════════════════════╗\n║  ⚠️  WARNING                       ║\n║                                    ║\n║  Critical information here!        ║\n╚════════════════════════════════════╝',
+            'info': '╭────────────────────────────────────╮\n│  ℹ️  INFO                          │\n│                                    │\n│  Helpful information here.         │\n╰────────────────────────────────────╯',
+            'divider': '════════════════════════════════════════',
+            'separator': '╭──────────────────────────────────────╮\n│                                      │\n╰──────────────────────────────────────╯',
+            'banner': '★══════════════════════════════════════★\n║          YOUR TITLE HERE            ║\n★══════════════════════════════════════★',
+            'checklist': '☐ Task 1 - Not completed\n☑ Task 2 - Completed  \n☐ Task 3 - Not completed\n☐ Task 4 - Not completed'
+        };
+
+        const BOX_STYLES = {
+            single: { tl: '┌', tr: '┐', bl: '└', br: '┘', h: '─', v: '│' },
+            double: { tl: '╔', tr: '╗', bl: '╚', br: '╝', h: '═', v: '║' },
+            rounded: { tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│' },
+            bold: { tl: '┏', tr: '┓', bl: '┗', br: '┛', h: '━', v: '┃' },
+            ascii: { tl: '+', tr: '+', bl: '+', br: '+', h: '-', v: '|' }
+        };
+
+        let currentMode = 'text';
+        let currentTemplate = null;
+
+        // Mode switching
+        document.querySelectorAll('.mode-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentMode = tab.dataset.mode;
+
+                document.querySelectorAll('.mode-section').forEach(s => s.classList.remove('active'));
+                document.getElementById(currentMode + '-mode').classList.add('active');
+
+                generatePreview();
+            });
+        });
+
+        // Template selection
+        document.querySelectorAll('.template-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTemplate = btn.dataset.template;
+                generatePreview();
+            });
+        });
+
+        // Generate text banner
+        function generateTextBanner(text, style) {
+            const font = FONTS[style] || FONTS.standard;
+            const lines = Array(font.height).fill('');
+
+            for (const char of text.toUpperCase()) {
+                const charArt = font.chars[char] || font.chars[' '];
+                if (charArt) {
+                    for (let i = 0; i < font.height; i++) {
+                        lines[i] += charArt[i] + ' ';
+                    }
+                }
+            }
+
+            return lines.join('\n');
+        }
+
+        // Generate box
+        function generateBox(text, style, padding) {
+            const box = BOX_STYLES[style] || BOX_STYLES.single;
+            const lines = text.split('\n');
+            const maxLen = Math.max(...lines.map(l => l.length)) + padding * 2;
+
+            let result = box.tl + box.h.repeat(maxLen + 2) + box.tr + '\n';
+
+            // Add padding lines at top
+            for (let i = 0; i < Math.floor(padding / 2); i++) {
+                result += box.v + ' '.repeat(maxLen + 2) + box.v + '\n';
+            }
+
+            // Add text lines
+            for (const line of lines) {
+                const paddedLine = ' '.repeat(padding) + line.padEnd(maxLen - padding) + ' ';
+                result += box.v + ' ' + paddedLine + box.v + '\n';
+            }
+
+            // Add padding lines at bottom
+            for (let i = 0; i < Math.floor(padding / 2); i++) {
+                result += box.v + ' '.repeat(maxLen + 2) + box.v + '\n';
+            }
+
+            result += box.bl + box.h.repeat(maxLen + 2) + box.br;
+            return result;
+        }
+
+        // Generate preview
+        function generatePreview() {
+            let result = '';
+
+            if (currentMode === 'text') {
+                const text = document.getElementById('text-input').value || 'HELLO';
+                const style = document.getElementById('font-style').value;
+                result = generateTextBanner(text, style);
+            } else if (currentMode === 'box') {
+                const text = document.getElementById('box-text').value || 'Your text here';
+                const style = document.getElementById('box-style').value;
+                const padding = parseInt(document.getElementById('box-padding').value) || 2;
+                result = generateBox(text, style, padding);
+            } else if (currentMode === 'templates') {
+                result = currentTemplate ? TEMPLATES[currentTemplate] : 'Select a template...';
+            }
+
+            document.getElementById('preview').textContent = result;
+        }
+
+        // Event listeners for live preview
+        document.getElementById('text-input').addEventListener('input', generatePreview);
+        document.getElementById('font-style').addEventListener('change', generatePreview);
+        document.getElementById('box-text').addEventListener('input', generatePreview);
+        document.getElementById('box-style').addEventListener('change', generatePreview);
+        document.getElementById('box-padding').addEventListener('input', generatePreview);
+
+        document.getElementById('btn-generate').addEventListener('click', generatePreview);
+
+        document.getElementById('btn-insert').addEventListener('click', () => {
+            const content = document.getElementById('preview').textContent;
+            if (content && window.electronAPI) {
+                // Wrap in code block for markdown
+                const wrapped = '```\n' + content + '\n```';
+                window.electronAPI.send('insert-generated-content', wrapped);
+                window.close();
+            }
+        });
+
+        // Initial preview
+        generatePreview();
+    </script>
+</body>
+</html>

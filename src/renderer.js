@@ -1,3 +1,8 @@
+/**
+ * MarkdownConverter Renderer Process
+ * @version 3.0.0
+ */
+
 const { ipcRenderer } = require('electron');
 const marked = require('marked');
 const DOMPurify = require('dompurify');
@@ -10,7 +15,6 @@ marked.setOptions({
             try {
                 return hljs.highlight(code, { language: lang }).value;
             } catch (err) {
-                // Fallback to auto highlighting if language-specific highlighting fails
                 console.warn('Syntax highlighting failed for language:', lang, err.message);
             }
         }
@@ -308,6 +312,11 @@ class TabManager {
         if (!tab || !preview) return;
 
         try {
+            // Check if libraries are available
+            if (!marked || !DOMPurify) {
+                preview.innerHTML = '<p style="color: red; padding: 20px;">Error: Required libraries (marked/DOMPurify) not loaded. Check internet connection.</p>';
+                return;
+            }
             const html = marked.parse(tab.content);
             const sanitizedHtml = DOMPurify.sanitize(html);
             preview.innerHTML = sanitizedHtml;
@@ -1043,7 +1052,6 @@ class TabManager {
         this.updateTabBar();
 
         // Notify main process about current file for exports
-        const { ipcRenderer } = require('electron');
         ipcRenderer.send('set-current-file', filePath);
 
         console.log('File opened successfully');
@@ -2308,12 +2316,12 @@ ipcRenderer.on('show-table-generator', () => {
 });
 
 // Show PDF Editor Dialog
-ipcRenderer.on('show-pdf-editor-dialog', (event, operation) => {
+ipcRenderer.on('show-pdf-editor-dialog', (event, operation, openedFilePath) => {
     currentPDFOperation = operation;
-    showPDFEditorDialog(operation);
+    showPDFEditorDialog(operation, openedFilePath);
 });
 
-function showPDFEditorDialog(operation) {
+function showPDFEditorDialog(operation, openedFilePath = null) {
     const dialog = document.getElementById('pdf-editor-dialog');
     const title = document.getElementById('pdf-editor-title');
 
@@ -2329,43 +2337,82 @@ function showPDFEditorDialog(operation) {
             sectionId = 'pdf-merge-section';
             titleText = 'Merge PDFs';
             mergeFilePaths = [];
+            // If we have an opened file, add it as the first file to merge
+            if (openedFilePath) {
+                mergeFilePaths.push(openedFilePath);
+            }
             updateMergeFilesList();
             break;
         case 'split':
             sectionId = 'pdf-split-section';
             titleText = 'Split PDF';
+            // Pre-fill input path if we have an opened file
+            if (openedFilePath) {
+                document.getElementById('split-input-path').value = openedFilePath;
+            }
             break;
         case 'compress':
             sectionId = 'pdf-compress-section';
             titleText = 'Compress PDF';
+            if (openedFilePath) {
+                document.getElementById('compress-input-path').value = openedFilePath;
+            }
             break;
         case 'rotate':
             sectionId = 'pdf-rotate-section';
             titleText = 'Rotate Pages';
+            if (openedFilePath) {
+                const rotateInput = document.getElementById('rotate-input-path');
+                if (rotateInput) rotateInput.value = openedFilePath;
+            }
             break;
         case 'delete':
             sectionId = 'pdf-delete-section';
             titleText = 'Delete Pages';
+            if (openedFilePath) {
+                const deleteInput = document.getElementById('delete-input-path');
+                if (deleteInput) deleteInput.value = openedFilePath;
+            }
             break;
         case 'reorder':
             sectionId = 'pdf-reorder-section';
             titleText = 'Reorder Pages';
+            if (openedFilePath) {
+                const reorderInput = document.getElementById('reorder-input-path');
+                if (reorderInput) reorderInput.value = openedFilePath;
+            }
             break;
         case 'watermark':
             sectionId = 'pdf-watermark-section';
             titleText = 'Add Watermark';
+            if (openedFilePath) {
+                const watermarkInput = document.getElementById('watermark-input-path');
+                if (watermarkInput) watermarkInput.value = openedFilePath;
+            }
             break;
         case 'encrypt':
             sectionId = 'pdf-encrypt-section';
             titleText = 'Password Protection';
+            if (openedFilePath) {
+                const encryptInput = document.getElementById('encrypt-input-path');
+                if (encryptInput) encryptInput.value = openedFilePath;
+            }
             break;
         case 'decrypt':
             sectionId = 'pdf-decrypt-section';
             titleText = 'Remove Password';
+            if (openedFilePath) {
+                const decryptInput = document.getElementById('decrypt-input-path');
+                if (decryptInput) decryptInput.value = openedFilePath;
+            }
             break;
         case 'permissions':
             sectionId = 'pdf-permissions-section';
             titleText = 'Set Permissions';
+            if (openedFilePath) {
+                const permInput = document.getElementById('permissions-input-path');
+                if (permInput) permInput.value = openedFilePath;
+            }
             break;
     }
 
@@ -2545,6 +2592,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Overwrite checkbox handlers - toggle Save As section visibility
+    const overwriteCheckboxes = [
+        { checkbox: 'compress-overwrite', section: 'compress-saveas-section' },
+        { checkbox: 'rotate-overwrite', section: 'rotate-saveas-section' },
+        { checkbox: 'delete-overwrite', section: 'delete-saveas-section' },
+        { checkbox: 'reorder-overwrite', section: 'reorder-saveas-section' },
+        { checkbox: 'watermark-overwrite', section: 'watermark-saveas-section' },
+        { checkbox: 'encrypt-overwrite', section: 'encrypt-saveas-section' },
+        { checkbox: 'decrypt-overwrite', section: 'decrypt-saveas-section' },
+        { checkbox: 'permissions-overwrite', section: 'permissions-saveas-section' }
+    ];
+
+    overwriteCheckboxes.forEach(item => {
+        const checkbox = document.getElementById(item.checkbox);
+        const section = document.getElementById(item.section);
+        if (checkbox && section) {
+            checkbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    section.classList.add('hidden');
+                } else {
+                    section.classList.remove('hidden');
+                }
+            });
+        }
+    });
+
     // Load current page order button
     const loadCurrentOrder = document.getElementById('load-current-order');
     if (loadCurrentOrder) {
@@ -2619,33 +2692,36 @@ function processPDFOperation() {
 
             case 'compress':
                 operationData.inputPath = document.getElementById('compress-input-path').value.trim();
-                operationData.outputPath = document.getElementById('compress-output-path').value.trim();
+                operationData.overwrite = document.getElementById('compress-overwrite').checked;
+                operationData.outputPath = operationData.overwrite ? operationData.inputPath : document.getElementById('compress-output-path').value.trim();
                 operationData.compressionLevel = document.getElementById('compress-level').value;
                 operationData.compressImages = document.getElementById('compress-images').checked;
                 operationData.removeDuplicates = document.getElementById('compress-remove-duplicates').checked;
                 operationData.optimizeFonts = document.getElementById('compress-optimize-fonts').checked;
 
                 if (!operationData.inputPath || !operationData.outputPath) {
-                    alert('Please select input and output file paths');
+                    alert('Please select input file' + (operationData.overwrite ? '' : ' and output file paths'));
                     return;
                 }
                 break;
 
             case 'rotate':
                 operationData.inputPath = document.getElementById('rotate-input-path').value.trim();
-                operationData.outputPath = document.getElementById('rotate-output-path').value.trim();
+                operationData.overwrite = document.getElementById('rotate-overwrite').checked;
+                operationData.outputPath = operationData.overwrite ? operationData.inputPath : document.getElementById('rotate-output-path').value.trim();
                 operationData.pages = document.getElementById('rotate-pages').value.trim();
                 operationData.angle = parseInt(document.getElementById('rotate-angle').value);
 
                 if (!operationData.inputPath || !operationData.outputPath) {
-                    alert('Please select input and output file paths');
+                    alert('Please select input file' + (operationData.overwrite ? '' : ' and output file'));
                     return;
                 }
                 break;
 
             case 'delete':
                 operationData.inputPath = document.getElementById('delete-input-path').value.trim();
-                operationData.outputPath = document.getElementById('delete-output-path').value.trim();
+                operationData.overwrite = document.getElementById('delete-overwrite').checked;
+                operationData.outputPath = operationData.overwrite ? operationData.inputPath : document.getElementById('delete-output-path').value.trim();
                 operationData.pages = document.getElementById('delete-pages').value.trim();
 
                 if (!operationData.inputPath || !operationData.outputPath || !operationData.pages) {
@@ -2656,7 +2732,8 @@ function processPDFOperation() {
 
             case 'reorder':
                 operationData.inputPath = document.getElementById('reorder-input-path').value.trim();
-                operationData.outputPath = document.getElementById('reorder-output-path').value.trim();
+                operationData.overwrite = document.getElementById('reorder-overwrite').checked;
+                operationData.outputPath = operationData.overwrite ? operationData.inputPath : document.getElementById('reorder-output-path').value.trim();
                 operationData.newOrder = document.getElementById('reorder-pages').value.trim();
 
                 if (!operationData.inputPath || !operationData.outputPath || !operationData.newOrder) {
@@ -2667,7 +2744,8 @@ function processPDFOperation() {
 
             case 'watermark':
                 operationData.inputPath = document.getElementById('watermark-input-path').value.trim();
-                operationData.outputPath = document.getElementById('watermark-output-path').value.trim();
+                operationData.overwrite = document.getElementById('watermark-overwrite').checked;
+                operationData.outputPath = operationData.overwrite ? operationData.inputPath : document.getElementById('watermark-output-path').value.trim();
                 operationData.text = document.getElementById('watermark-text').value.trim();
                 operationData.fontSize = parseInt(document.getElementById('watermark-font-size').value);
                 operationData.opacity = parseInt(document.getElementById('watermark-opacity').value) / 100;
@@ -2687,7 +2765,8 @@ function processPDFOperation() {
 
             case 'encrypt':
                 operationData.inputPath = document.getElementById('encrypt-input-path').value.trim();
-                operationData.outputPath = document.getElementById('encrypt-output-path').value.trim();
+                operationData.overwrite = document.getElementById('encrypt-overwrite').checked;
+                operationData.outputPath = operationData.overwrite ? operationData.inputPath : document.getElementById('encrypt-output-path').value.trim();
                 operationData.userPassword = document.getElementById('encrypt-user-password').value;
                 operationData.ownerPassword = document.getElementById('encrypt-owner-password').value;
                 operationData.encryptionLevel = parseInt(document.getElementById('encrypt-level').value);
@@ -2704,14 +2783,15 @@ function processPDFOperation() {
                 };
 
                 if (!operationData.inputPath || !operationData.outputPath || !operationData.userPassword) {
-                    alert('Please select files and enter a user password');
+                    alert('Please select file and enter a user password');
                     return;
                 }
                 break;
 
             case 'decrypt':
                 operationData.inputPath = document.getElementById('decrypt-input-path').value.trim();
-                operationData.outputPath = document.getElementById('decrypt-output-path').value.trim();
+                operationData.overwrite = document.getElementById('decrypt-overwrite').checked;
+                operationData.outputPath = operationData.overwrite ? operationData.inputPath : document.getElementById('decrypt-output-path').value.trim();
                 operationData.password = document.getElementById('decrypt-password').value;
 
                 if (!operationData.inputPath || !operationData.outputPath || !operationData.password) {
@@ -2722,7 +2802,8 @@ function processPDFOperation() {
 
             case 'permissions':
                 operationData.inputPath = document.getElementById('permissions-input-path').value.trim();
-                operationData.outputPath = document.getElementById('permissions-output-path').value.trim();
+                operationData.overwrite = document.getElementById('permissions-overwrite').checked;
+                operationData.outputPath = operationData.overwrite ? operationData.inputPath : document.getElementById('permissions-output-path').value.trim();
                 operationData.currentPassword = document.getElementById('permissions-current-password').value;
                 operationData.ownerPassword = document.getElementById('permissions-owner-password').value;
 
@@ -4055,5 +4136,379 @@ document.addEventListener('click', (e) => {
         const tabId = e.target.id.replace('preview-popout-', '');
         popoutPreview(tabId);
     }
+});
+
+// ============================================
+// Insert Content from Generator Windows
+// ============================================
+ipcRenderer.on('insert-content', (event, content) => {
+    if (tabManager) {
+        const activeTabId = tabManager.activeTabId;
+        const editor = document.getElementById(`editor-${activeTabId}`);
+        if (editor) {
+            const cursorPos = editor.selectionStart;
+            const textBefore = editor.value.substring(0, cursorPos);
+            const textAfter = editor.value.substring(cursorPos);
+
+            editor.value = textBefore + content + textAfter;
+            editor.focus();
+
+            const newPos = cursorPos + content.length;
+            editor.setSelectionRange(newPos, newPos);
+
+            // Update state and preview
+            tabManager.tabs.get(activeTabId).content = editor.value;
+            tabManager.tabs.get(activeTabId).modified = true;
+            tabManager.updatePreview(activeTabId);
+            tabManager.updateTabTitle(activeTabId);
+        }
+    }
+});
+
+// ============================================
+// PDF VIEWER FUNCTIONALITY
+// ============================================
+
+let pdfDoc = null;
+let pdfCurrentPage = 1;
+let pdfZoomLevel = 1.0;
+let pdfRotation = 0;
+let pdfFilePath = null;
+let isPdfViewerActive = false; // Track if PDF viewer is currently shown
+
+// Initialize PDF.js
+const pdfjsLib = require('pdfjs-dist');
+pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/build/pdf.worker.js');
+
+// Open PDF file
+async function openPdfFile(filePath) {
+    // Prevent multiple simultaneous PDF loads
+    if (isPdfViewerActive && pdfFilePath === filePath) {
+        console.log('PDF already open:', filePath);
+        return;
+    }
+
+    // Close any existing PDF first
+    if (pdfDoc) {
+        try {
+            await pdfDoc.destroy();
+        } catch (e) {
+            console.warn('Error destroying previous PDF:', e);
+        }
+        pdfDoc = null;
+    }
+
+    try {
+        // Show loading state
+        document.getElementById('status-text').textContent = 'Loading PDF...';
+
+        const loadingTask = pdfjsLib.getDocument(filePath);
+        pdfDoc = await loadingTask.promise;
+        pdfFilePath = filePath;
+        pdfCurrentPage = 1;
+        pdfZoomLevel = 1.0;
+        pdfRotation = 0;
+        isPdfViewerActive = true;
+
+        // Update UI
+        document.getElementById('pdf-total-pages').textContent = pdfDoc.numPages;
+        document.getElementById('pdf-page-input').value = 1;
+        document.getElementById('pdf-page-input').max = pdfDoc.numPages;
+        document.getElementById('pdf-filename').textContent = require('path').basename(filePath);
+        document.getElementById('pdf-zoom-level').textContent = '100%';
+
+        // Hide markdown toolbar, tabs, show PDF viewer
+        document.querySelector('.toolbar').classList.add('hidden');
+        document.getElementById('tab-bar').classList.add('hidden');
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+        document.getElementById('pdf-viewer-container').classList.remove('hidden');
+
+        // Render first page
+        await renderPdfPage(pdfCurrentPage);
+
+        // Update status
+        document.getElementById('status-text').textContent = `PDF: ${require('path').basename(filePath)} (${pdfDoc.numPages} pages)`;
+    } catch (error) {
+        console.error('Error loading PDF:', error);
+        isPdfViewerActive = false;
+        pdfDoc = null;
+        pdfFilePath = null;
+        document.getElementById('status-text').textContent = 'Error loading PDF';
+        alert('Error loading PDF: ' + error.message);
+    }
+}
+
+// Render PDF page
+async function renderPdfPage(pageNum) {
+    if (!pdfDoc) return;
+
+    try {
+        const page = await pdfDoc.getPage(pageNum);
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Calculate viewport with zoom and rotation
+        const viewport = page.getViewport({ scale: pdfZoomLevel, rotation: pdfRotation });
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        const renderContext = {
+            canvasContext: ctx,
+            viewport: viewport
+        };
+
+        await page.render(renderContext).promise;
+
+        // Update page input
+        document.getElementById('pdf-page-input').value = pageNum;
+    } catch (error) {
+        console.error('Error rendering PDF page:', error);
+    }
+}
+
+// PDF navigation handlers
+document.getElementById('pdf-prev-page')?.addEventListener('click', async () => {
+    if (pdfCurrentPage > 1) {
+        pdfCurrentPage--;
+        await renderPdfPage(pdfCurrentPage);
+    }
+});
+
+document.getElementById('pdf-next-page')?.addEventListener('click', async () => {
+    if (pdfDoc && pdfCurrentPage < pdfDoc.numPages) {
+        pdfCurrentPage++;
+        await renderPdfPage(pdfCurrentPage);
+    }
+});
+
+document.getElementById('pdf-page-input')?.addEventListener('change', async (e) => {
+    const pageNum = parseInt(e.target.value);
+    if (pdfDoc && pageNum >= 1 && pageNum <= pdfDoc.numPages) {
+        pdfCurrentPage = pageNum;
+        await renderPdfPage(pdfCurrentPage);
+    }
+});
+
+// PDF zoom handlers
+document.getElementById('pdf-zoom-out')?.addEventListener('click', async () => {
+    if (pdfZoomLevel > 0.25) {
+        pdfZoomLevel -= 0.25;
+        document.getElementById('pdf-zoom-level').textContent = Math.round(pdfZoomLevel * 100) + '%';
+        await renderPdfPage(pdfCurrentPage);
+    }
+});
+
+document.getElementById('pdf-zoom-in')?.addEventListener('click', async () => {
+    if (pdfZoomLevel < 4.0) {
+        pdfZoomLevel += 0.25;
+        document.getElementById('pdf-zoom-level').textContent = Math.round(pdfZoomLevel * 100) + '%';
+        await renderPdfPage(pdfCurrentPage);
+    }
+});
+
+document.getElementById('pdf-fit-width')?.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+    const page = await pdfDoc.getPage(pdfCurrentPage);
+    const viewport = page.getViewport({ scale: 1, rotation: pdfRotation });
+    const containerWidth = document.getElementById('pdf-viewer').clientWidth - 40;
+    pdfZoomLevel = containerWidth / viewport.width;
+    document.getElementById('pdf-zoom-level').textContent = Math.round(pdfZoomLevel * 100) + '%';
+    await renderPdfPage(pdfCurrentPage);
+});
+
+document.getElementById('pdf-fit-page')?.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+    const page = await pdfDoc.getPage(pdfCurrentPage);
+    const viewport = page.getViewport({ scale: 1, rotation: pdfRotation });
+    const container = document.getElementById('pdf-viewer');
+    const containerWidth = container.clientWidth - 40;
+    const containerHeight = container.clientHeight - 40;
+    const scaleX = containerWidth / viewport.width;
+    const scaleY = containerHeight / viewport.height;
+    pdfZoomLevel = Math.min(scaleX, scaleY);
+    document.getElementById('pdf-zoom-level').textContent = Math.round(pdfZoomLevel * 100) + '%';
+    await renderPdfPage(pdfCurrentPage);
+});
+
+// PDF rotation handlers
+document.getElementById('pdf-rotate-left')?.addEventListener('click', async () => {
+    pdfRotation = (pdfRotation - 90 + 360) % 360;
+    await renderPdfPage(pdfCurrentPage);
+});
+
+document.getElementById('pdf-rotate-right')?.addEventListener('click', async () => {
+    pdfRotation = (pdfRotation + 90) % 360;
+    await renderPdfPage(pdfCurrentPage);
+});
+
+// Close PDF viewer
+document.getElementById('pdf-close')?.addEventListener('click', () => {
+    closePdfViewer();
+});
+
+async function closePdfViewer() {
+    // Destroy PDF document to free memory
+    if (pdfDoc) {
+        try {
+            await pdfDoc.destroy();
+        } catch (e) {
+            console.warn('Error destroying PDF:', e);
+        }
+    }
+
+    pdfDoc = null;
+    pdfFilePath = null;
+    isPdfViewerActive = false;
+
+    // Hide PDF viewer
+    document.getElementById('pdf-viewer-container').classList.add('hidden');
+
+    // Show markdown tabs, tab bar, and toolbar
+    document.getElementById('tab-bar').classList.remove('hidden');
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('hidden'));
+    document.querySelector('.toolbar').classList.remove('hidden');
+
+    // Activate the correct markdown tab
+    if (tabManager) {
+        const activeTab = document.querySelector(`.tab-content[data-tab-id="${tabManager.activeTabId}"]`);
+        if (activeTab) activeTab.classList.add('active');
+        // Refresh the active tab
+        tabManager.updatePreview(tabManager.activeTabId);
+    }
+
+    document.getElementById('status-text').textContent = 'Ready';
+}
+
+// Handle PDF file open from main process
+ipcRenderer.on('open-pdf-file', (event, filePath) => {
+    openPdfFile(filePath);
+});
+
+// ============================================
+// PDF EDITOR TOOLBAR BUTTONS
+// ============================================
+
+// Helper function to trigger PDF editor dialog
+function openPdfEditorDialog(operation) {
+    // Use the opened PDF file if available, otherwise prompt
+    if (pdfFilePath) {
+        ipcRenderer.send('show-pdf-editor-from-toolbar', { operation, filePath: pdfFilePath });
+    } else {
+        ipcRenderer.send('show-pdf-editor-from-toolbar', { operation, filePath: null });
+    }
+}
+
+// PDF Editor toolbar button handlers
+document.getElementById('pdf-tb-merge')?.addEventListener('click', () => {
+    openPdfEditorDialog('merge');
+});
+
+document.getElementById('pdf-tb-split')?.addEventListener('click', () => {
+    openPdfEditorDialog('split');
+});
+
+document.getElementById('pdf-tb-compress')?.addEventListener('click', () => {
+    openPdfEditorDialog('compress');
+});
+
+document.getElementById('pdf-tb-rotate')?.addEventListener('click', () => {
+    openPdfEditorDialog('rotate');
+});
+
+document.getElementById('pdf-tb-delete')?.addEventListener('click', () => {
+    openPdfEditorDialog('delete');
+});
+
+document.getElementById('pdf-tb-reorder')?.addEventListener('click', () => {
+    openPdfEditorDialog('reorder');
+});
+
+document.getElementById('pdf-tb-watermark')?.addEventListener('click', () => {
+    openPdfEditorDialog('watermark');
+});
+
+document.getElementById('pdf-tb-encrypt')?.addEventListener('click', () => {
+    openPdfEditorDialog('encrypt');
+});
+
+document.getElementById('pdf-tb-decrypt')?.addEventListener('click', () => {
+    openPdfEditorDialog('decrypt');
+});
+
+// ============================================
+// DYNAMIC PANE RESIZER
+// ============================================
+
+function initPaneResizer(tabId) {
+    const resizer = document.getElementById(`pane-resizer-${tabId}`);
+    const editorPane = document.getElementById(`editor-pane-${tabId}`);
+    const previewPane = document.getElementById(`preview-pane-${tabId}`);
+    const tabContent = document.getElementById(`tab-content-${tabId}`);
+
+    if (!resizer || !editorPane || !previewPane) return;
+
+    let isResizing = false;
+    let startX = 0;
+    let startEditorWidth = 0;
+
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        startX = e.clientX;
+        startEditorWidth = editorPane.offsetWidth;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+
+        const containerWidth = tabContent.offsetWidth;
+        const deltaX = e.clientX - startX;
+        let newEditorWidth = startEditorWidth + deltaX;
+
+        // Minimum widths
+        const minWidth = 150;
+        const maxWidth = containerWidth - minWidth - 6; // 6px for resizer
+
+        newEditorWidth = Math.max(minWidth, Math.min(maxWidth, newEditorWidth));
+
+        const editorPercent = (newEditorWidth / containerWidth) * 100;
+        const previewPercent = 100 - editorPercent - 1; // 1% for resizer
+
+        editorPane.style.flex = `0 0 ${editorPercent}%`;
+        previewPane.style.flex = `0 0 ${previewPercent}%`;
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    });
+}
+
+// Initialize resizer for first tab
+document.addEventListener('DOMContentLoaded', () => {
+    initPaneResizer(1);
+});
+
+// ============================================
+// IMAGE/AUDIO/VIDEO CONVERTER HANDLERS
+// These require external tools (ImageMagick, FFmpeg)
+// ============================================
+
+ipcRenderer.on('show-image-tool', (event, tool) => {
+    alert(`Image ${tool} tool requires ImageMagick to be installed.\n\nPlease install ImageMagick from: https://imagemagick.org/\n\nThis feature will be available in a future update with built-in support.`);
+});
+
+ipcRenderer.on('show-audio-tool', (event, tool) => {
+    alert(`Audio ${tool} tool requires FFmpeg to be installed.\n\nPlease install FFmpeg from: https://ffmpeg.org/\n\nThis feature will be available in a future update with built-in support.`);
+});
+
+ipcRenderer.on('show-video-tool', (event, tool) => {
+    alert(`Video ${tool} tool requires FFmpeg to be installed.\n\nPlease install FFmpeg from: https://ffmpeg.org/\n\nThis feature will be available in a future update with built-in support.`);
 });
 

@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { exec } = require('child_process');
+const { exec, execFile, spawn } = require('child_process');
 const { PDFDocument, rgb, degrees, StandardFonts } = require('pdf-lib');
 const WordTemplateExporter = require('./wordTemplateExporter');
 
@@ -25,10 +25,93 @@ function getPandocPath() {
 function checkPandocAvailable() {
   return new Promise((resolve) => {
     const pandocPath = getPandocPath();
-    exec(`${pandocPath} --version`, (error) => {
+    execFile(pandocPath, ['--version'], (error) => {
       resolve(!error);
     });
   });
+}
+
+/**
+ * Safe command execution using execFile (no shell injection risk)
+ * @param {string} command - The command to execute
+ * @param {string[]} args - Array of arguments
+ * @param {object} options - Options for execFile
+ * @returns {Promise<{stdout: string, stderr: string}>}
+ */
+function safeExecFile(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    execFile(command, args, { maxBuffer: 10 * 1024 * 1024, ...options }, (error, stdout, stderr) => {
+      if (error) {
+        reject({ error, stdout, stderr });
+      } else {
+        resolve({ stdout, stderr });
+      }
+    });
+  });
+}
+
+/**
+ * Run Pandoc command safely with execFile
+ * @param {string[]} args - Pandoc arguments array
+ * @param {Function} callback - Callback function (error, stdout, stderr)
+ */
+function runPandoc(args, callback) {
+  const pandocPath = getPandocPath();
+  execFile(pandocPath, args, { maxBuffer: 10 * 1024 * 1024 }, callback);
+}
+
+/**
+ * Run a Pandoc command string safely using execFile
+ * Parses the command string and uses execFile to prevent shell injection
+ * @param {string} cmdString - Full Pandoc command string (e.g., 'pandoc "input.md" -o "output.pdf"')
+ * @param {Function} callback - Callback function (error, stdout, stderr)
+ */
+function runPandocCmd(cmdString, callback) {
+  const parsed = parseCommand(cmdString);
+  // Skip 'pandoc' if it's the first element (command itself)
+  const args = parsed.command === 'pandoc' ? parsed.args : [parsed.command, ...parsed.args];
+  const pandocPath = getPandocPath();
+  execFile(pandocPath, args, { maxBuffer: 10 * 1024 * 1024 }, callback);
+}
+
+/**
+ * Parse a command string into command and arguments array
+ * This helps transition from exec() to execFile() safely
+ * @param {string} cmdString - Full command string
+ * @returns {{command: string, args: string[]}}
+ */
+function parseCommand(cmdString) {
+  // Handle quoted strings properly
+  const parts = [];
+  let current = '';
+  let inQuotes = false;
+  let quoteChar = '';
+
+  for (let i = 0; i < cmdString.length; i++) {
+    const char = cmdString[i];
+    if ((char === '"' || char === "'") && !inQuotes) {
+      inQuotes = true;
+      quoteChar = char;
+    } else if (char === quoteChar && inQuotes) {
+      inQuotes = false;
+      quoteChar = '';
+    } else if (char === ' ' && !inQuotes) {
+      if (current) {
+        parts.push(current);
+        current = '';
+      }
+    } else {
+      current += char;
+    }
+  }
+  if (current) {
+    parts.push(current);
+  }
+
+  return {
+    command: parts[0],
+    args: parts.slice(1)
+  };
 }
 
 // Simple storage implementation to replace electron-store
@@ -180,15 +263,15 @@ if (!gotTheLock) {
   });
 }
 
-// Check if pandoc is available
+// Check if pandoc is available (using execFile for consistency)
 function checkPandocAvailability() {
   return new Promise((resolve) => {
     if (pandocAvailable !== null) {
       resolve(pandocAvailable);
       return;
     }
-    
-    exec('pandoc --version', (error, stdout, stderr) => {
+
+    execFile('pandoc', ['--version'], (error, stdout, stderr) => {
       pandocAvailable = !error;
       resolve(pandocAvailable);
     });
@@ -283,6 +366,11 @@ function createMenu() {
           label: 'Open',
           accelerator: 'CmdOrCtrl+O',
           click: openFile
+        },
+        {
+          label: 'Open PDF',
+          accelerator: 'CmdOrCtrl+Shift+O',
+          click: openPdfFile
         },
         {
           label: 'Save',
@@ -401,29 +489,33 @@ function createMenu() {
         {
           label: 'Theme',
           submenu: [
+            // Light Themes (grouped first)
+            { label: 'Atom One Light (Default)', click: () => setTheme('atomonelight') },
+            { label: 'GitHub Light', click: () => setTheme('github') },
             { label: 'Light', click: () => setTheme('light') },
-            { label: 'Dark', click: () => setTheme('dark') },
-            { label: 'Solarized', click: () => setTheme('solarized') },
-            { label: 'Monokai', click: () => setTheme('monokai') },
-            { label: 'GitHub', click: () => setTheme('github') },
+            { label: 'Solarized Light', click: () => setTheme('solarized') },
+            { label: 'Gruvbox Light', click: () => setTheme('gruvbox-light') },
+            { label: 'Ayu Light', click: () => setTheme('ayu-light') },
+            { label: 'Sepia', click: () => setTheme('sepia') },
+            { label: 'Paper', click: () => setTheme('paper') },
+            { label: 'Rose Pine Dawn', click: () => setTheme('rosepine-dawn') },
+            { label: 'Concrete Light', click: () => setTheme('concrete-light') },
             { type: 'separator' },
+            // Dark Themes
+            { label: 'Dark', click: () => setTheme('dark') },
+            { label: 'One Dark', click: () => setTheme('onedark') },
             { label: 'Dracula', click: () => setTheme('dracula') },
             { label: 'Nord', click: () => setTheme('nord') },
-            { label: 'One Dark', click: () => setTheme('onedark') },
-            { label: 'Atom One Light', click: () => setTheme('atomonelight') },
+            { label: 'Monokai', click: () => setTheme('monokai') },
             { label: 'Material', click: () => setTheme('material') },
             { label: 'Gruvbox Dark', click: () => setTheme('gruvbox-dark') },
-            { label: 'Gruvbox Light', click: () => setTheme('gruvbox-light') },
             { label: 'Tokyo Night', click: () => setTheme('tokyonight') },
             { label: 'Palenight', click: () => setTheme('palenight') },
             { label: 'Ayu Dark', click: () => setTheme('ayu-dark') },
-            { label: 'Ayu Light', click: () => setTheme('ayu-light') },
             { label: 'Ayu Mirage', click: () => setTheme('ayu-mirage') },
             { label: 'Oceanic Next', click: () => setTheme('oceanic-next') },
             { label: 'Cobalt2', click: () => setTheme('cobalt2') },
-            { type: 'separator' },
             { label: 'Concrete Dark', click: () => setTheme('concrete-dark') },
-            { label: 'Concrete Light', click: () => setTheme('concrete-light') },
             { label: 'Concrete Warm', click: () => setTheme('concrete-warm') }
           ]
         },
@@ -461,8 +553,25 @@ function createMenu() {
       label: 'Batch',
       submenu: [
         {
-          label: 'Convert Folder...',
+          label: 'Convert Markdown Folder...',
           click: () => showBatchConversionDialog()
+        },
+        { type: 'separator' },
+        {
+          label: 'Batch Image Conversion...',
+          click: () => mainWindow.webContents.send('show-batch-converter', 'image')
+        },
+        {
+          label: 'Batch Audio Conversion...',
+          click: () => mainWindow.webContents.send('show-batch-converter', 'audio')
+        },
+        {
+          label: 'Batch Video Conversion...',
+          click: () => mainWindow.webContents.send('show-batch-converter', 'video')
+        },
+        {
+          label: 'Batch PDF Conversion...',
+          click: () => mainWindow.webContents.send('show-batch-converter', 'pdf')
         }
       ]
     },
@@ -473,27 +582,18 @@ function createMenu() {
           label: 'Universal File Converter...',
           accelerator: 'CmdOrCtrl+Shift+C',
           click: () => showUniversalConverterDialog()
-        },
-        {
-          type: 'separator'
-        },
-        {
-          label: 'About Converter',
-          click: () => {
-            dialog.showMessageBox(mainWindow, {
-              type: 'info',
-              title: 'About Universal Converter',
-              message: 'Open-Source File Converter',
-              detail: 'PanConverter includes a powerful open-source file conversion system.\n\nSupported Converters:\n• LibreOffice - Document conversions (DOCX, PDF, ODT, etc.)\n• ImageMagick - Image format conversions\n• FFmpeg - Media file conversions\n• Pandoc - Document markup conversions\n\nFeatures:\n• 100% open-source and free\n• No API keys required\n• Runs completely offline\n• Supports 100+ file formats\n• High-quality professional conversions',
-              buttons: ['OK']
-            });
-          }
         }
       ]
     },
     {
       label: 'PDF Editor',
       submenu: [
+        {
+          label: 'Open PDF File...',
+          accelerator: 'CmdOrCtrl+Shift+O',
+          click: () => openPDFFile()
+        },
+        { type: 'separator' },
         {
           label: 'Merge PDFs...',
           click: () => showPDFEditorDialog('merge')
@@ -570,12 +670,15 @@ function createMenu() {
       submenu: [
         {
           label: 'Table Generator',
-          click: () => mainWindow.webContents.send('show-table-generator')
+          accelerator: 'CmdOrCtrl+Shift+T',
+          click: () => openTableGenerator()
         },
         {
           label: 'ASCII Art Generator',
-          click: () => mainWindow.webContents.send('show-ascii-generator')
+          accelerator: 'CmdOrCtrl+Shift+A',
+          click: () => openAsciiGenerator()
         },
+        { type: 'separator' },
         {
           label: 'Document Compare',
           click: () => mainWindow.webContents.send('show-document-compare')
@@ -586,20 +689,26 @@ function createMenu() {
       label: 'Help',
       submenu: [
         {
-          label: 'About',
-          click: () => {
-            dialog.showMessageBox(mainWindow, {
-              type: 'info',
-              title: 'About PanConverter',
-              message: 'PanConverter',
-              detail: 'A cross-platform Markdown editor and converter using Pandoc.\n\nVersion: 2.1.0\nAuthor: Amit Haridas\nEmail: amit.wh@gmail.com\nLicense: MIT\n\n✨ New in v2.1.0:\n• Subtle & Small Preview Popout Button - Cleaner, minimalist design\n• Simplified Table Headers - Light gray background with better readability\n• Comprehensive Format-to-Markdown Conversion - Support for 30+ formats (RST, Textile, MediaWiki, Org-mode, AsciiDoc, CSV, JSON, and more)\n• Exhaustive ASCII Art Generator - 5 text banner styles (Standard, Banner, Block, Bubble, Digital) and 19 professional templates\n• Enhanced Templates - Flowcharts, sequence diagrams, network diagrams, hierarchy trees, timelines, note boxes, warning boxes, and decorative elements\n\n✨ Features from v2.0.0:\n• Export Profiles - Save and load export configurations\n• Mermaid.js diagram support - Render flowcharts, sequence diagrams, and more\n• Command Palette (Ctrl+Shift+P) - Quick access to all commands\n• GitHub Light/Dark preview themes - Beautiful code preview styling\n• Table Generator - Interactive table creation tool\n• Resizable Preview Pane - Drag divider to adjust editor/preview sizes\n• Pop-out Preview Window - Open preview in separate window with live sync\n\nCore Features:\n• Configurable page sizes (A3, A4, A5, B4, B5, Letter, Legal, Tabloid, Custom) with orientation support\n• Page size support for all export formats (PDF, DOCX, ODT, PowerPoint) and batch conversion\n• Preserved ASCII art, charts, tables, flowcharts in exports with full-width background\n• Custom Headers & Footers for PDF, DOCX, ODT, and PowerPoint exports\n• Dynamic field support: $PAGE$, $TOTAL$, $DATE$, $TIME$, $TITLE$, $AUTHOR$, $FILENAME$\n• Logo/image embedding in headers and footers\n• Modern glassmorphism UI with gradient backgrounds\n• Enhanced PDF export via Word template with configurable start page\n• Streamlined PDF Editor UI (merge, split, compress, rotate, watermark, encrypt)\n• Universal File Converter (LibreOffice, ImageMagick, FFmpeg, Pandoc)\n• Windows Explorer context menu integration\n• Tabbed interface for multiple files\n• Advanced markdown editing with live preview\n• Real-time preview updates while typing\n• Full toolbar markdown editing functions\n• Enhanced PDF export with built-in Electron fallback\n• Enhanced Word export with template support (single file & batch)\n• File association support for .md files\n• Command-line interface for batch conversion\n• Advanced export options with templates and metadata\n• Batch file conversion with progress tracking\n• Adjustable font sizes via menu (Ctrl+Shift+Plus/Minus)\n• 22 beautiful themes (including Dracula, Nord, Tokyo Night, Gruvbox, Ayu, Concrete, and more)\n• Find & replace with match highlighting\n• Line numbers and auto-indentation\n• Undo/redo functionality\n• Live word count and statistics',
-              buttons: ['OK']
-            });
-          }
+          label: 'About MarkdownConverter',
+          click: () => showAboutDialog()
         },
+        { type: 'separator' },
+        {
+          label: 'Dependencies & Requirements',
+          click: () => showDependenciesDialog()
+        },
+        { type: 'separator' },
         {
           label: 'Documentation',
-          click: () => shell.openExternal('https://github.com/amitwh/pan-converter')
+          click: () => shell.openExternal('https://github.com/amitwh/markdown-converter')
+        },
+        {
+          label: 'Report Issue',
+          click: () => shell.openExternal('https://github.com/amitwh/markdown-converter/issues')
+        },
+        {
+          label: 'Check for Updates',
+          click: () => shell.openExternal('https://github.com/amitwh/markdown-converter/releases')
         }
       ]
     }
@@ -607,6 +716,237 @@ function createMenu() {
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
+}
+
+// Show About Dialog with logo
+function showAboutDialog() {
+  const aboutWindow = new BrowserWindow({
+    width: 500,
+    height: 600,
+    parent: mainWindow,
+    modal: true,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    },
+    icon: path.join(__dirname, '../assets/icon.png')
+  });
+
+  // Convert images to base64 for data URL compatibility
+  let logoBase64 = '';
+  let iconBase64 = '';
+  try {
+    const logoPath = path.join(__dirname, '../assets/logo.png');
+    const iconPath = path.join(__dirname, '../assets/icon.png');
+    if (fs.existsSync(logoPath)) {
+      logoBase64 = 'data:image/png;base64,' + fs.readFileSync(logoPath).toString('base64');
+    }
+    if (fs.existsSync(iconPath)) {
+      iconBase64 = 'data:image/png;base64,' + fs.readFileSync(iconPath).toString('base64');
+    }
+  } catch (e) {
+    console.error('Error loading about dialog images:', e);
+  }
+
+  const aboutHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>About MarkdownConverter</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #464646 0%, #0d0b09 100%);
+      color: #e3e3e3;
+      padding: 30px;
+      text-align: center;
+    }
+    .logo { width: 120px; margin-bottom: 20px; border-radius: 20px; }
+    h1 { font-size: 24px; margin-bottom: 5px; color: #fff; }
+    .version { color: #e5461f; font-size: 14px; margin-bottom: 20px; }
+    .company { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
+    .company-logo { height: 24px; }
+    .section { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin: 15px 0; text-align: left; }
+    .section h3 { color: #e5461f; font-size: 14px; margin-bottom: 10px; }
+    .section p, .section li { font-size: 12px; line-height: 1.6; }
+    ul { padding-left: 20px; }
+    .footer { margin-top: 20px; font-size: 11px; color: #9a9696; }
+    a { color: #e5461f; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <img src="${iconBase64}" class="logo" alt="MarkdownConverter">
+  <h1>MarkdownConverter</h1>
+  <div class="version">Version 3.0.0</div>
+
+  <div class="company">
+    <span>by</span>
+    <img src="${logoBase64}" class="company-logo" alt="ConcreteInfo">
+  </div>
+
+  <div class="section">
+    <h3>Features</h3>
+    <ul>
+      <li>Professional Markdown editing with syntax highlighting</li>
+      <li>Universal file converter (Image, Audio, Video, PDF)</li>
+      <li>Batch conversion for all media types</li>
+      <li>Advanced PDF Editor (merge, split, watermark, encrypt)</li>
+      <li>Export to PDF, DOCX, HTML, LaTeX, EPUB & more</li>
+      <li>23+ beautiful themes including ConcreteInfo theme</li>
+      <li>ASCII Art & Table generators</li>
+      <li>Code file syntax highlighting</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>Contact</h3>
+    <p>Email: <a href="mailto:amit.wh@gmail.com">amit.wh@gmail.com</a></p>
+    <p>Website: <a href="https://github.com/amitwh/markdown-converter">GitHub Repository</a></p>
+  </div>
+
+  <div class="footer">
+    <p>License: MIT</p>
+    <p>© 2024-2025 ConcreteInfo. All rights reserved.</p>
+  </div>
+</body>
+</html>`;
+
+  aboutWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(aboutHTML));
+  aboutWindow.setMenuBarVisibility(false);
+}
+
+// Show Dependencies Dialog
+function showDependenciesDialog() {
+  const depsWindow = new BrowserWindow({
+    width: 600,
+    height: 700,
+    parent: mainWindow,
+    modal: true,
+    resizable: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    },
+    icon: path.join(__dirname, '../assets/icon.png')
+  });
+
+  const depsHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dependencies & Requirements</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f5f5f5;
+      color: #464646;
+      padding: 30px;
+    }
+    h1 { color: #e5461f; font-size: 20px; margin-bottom: 20px; border-bottom: 2px solid #e5461f; padding-bottom: 10px; }
+    h2 { color: #464646; font-size: 16px; margin: 20px 0 10px; }
+    .dep-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .dep-name { font-weight: bold; color: #0d0b09; }
+    .dep-desc { font-size: 13px; color: #666; margin: 5px 0; }
+    .dep-link { color: #e5461f; font-size: 12px; text-decoration: none; }
+    .dep-link:hover { text-decoration: underline; }
+    .required { background: #fff3cd; border-left: 4px solid #ffc107; }
+    .optional { background: #d4edda; border-left: 4px solid #28a745; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 10px; }
+    .tag-required { background: #ffc107; color: #000; }
+    .tag-optional { background: #28a745; color: #fff; }
+  </style>
+</head>
+<body>
+  <h1>Dependencies & Requirements</h1>
+
+  <h2>Required Dependencies</h2>
+
+  <div class="dep-card required">
+    <div class="dep-name">Pandoc <span class="tag tag-required">Required</span></div>
+    <div class="dep-desc">Universal document converter. Required for most export formats (PDF, DOCX, LaTeX, EPUB).</div>
+    <a class="dep-link" href="https://pandoc.org/installing.html" target="_blank">https://pandoc.org/installing.html</a>
+  </div>
+
+  <h2>Optional Dependencies (for extended features)</h2>
+
+  <div class="dep-card optional">
+    <div class="dep-name">FFmpeg <span class="tag tag-optional">Optional</span></div>
+    <div class="dep-desc">Required for audio/video conversion and processing.</div>
+    <a class="dep-link" href="https://ffmpeg.org/download.html" target="_blank">https://ffmpeg.org/download.html</a>
+  </div>
+
+  <div class="dep-card optional">
+    <div class="dep-name">ImageMagick <span class="tag tag-optional">Optional</span></div>
+    <div class="dep-desc">Required for image format conversion and processing.</div>
+    <a class="dep-link" href="https://imagemagick.org/script/download.php" target="_blank">https://imagemagick.org/script/download.php</a>
+  </div>
+
+  <div class="dep-card optional">
+    <div class="dep-name">LibreOffice <span class="tag tag-optional">Optional</span></div>
+    <div class="dep-desc">Required for enhanced document conversion (Office formats).</div>
+    <a class="dep-link" href="https://www.libreoffice.org/download/download/" target="_blank">https://www.libreoffice.org/download/download/</a>
+  </div>
+
+  <div class="dep-card optional">
+    <div class="dep-name">MiKTeX / TeX Live <span class="tag tag-optional">Optional</span></div>
+    <div class="dep-desc">Required for PDF export via LaTeX (higher quality PDFs).</div>
+    <a class="dep-link" href="https://miktex.org/download" target="_blank">https://miktex.org/download</a>
+  </div>
+
+  <h2>Bundled Libraries</h2>
+
+  <div class="dep-card">
+    <div class="dep-name">pdf-lib</div>
+    <div class="dep-desc">PDF manipulation library for merge, split, watermark, and encryption features.</div>
+  </div>
+
+  <div class="dep-card">
+    <div class="dep-name">marked</div>
+    <div class="dep-desc">Markdown parser for preview rendering.</div>
+  </div>
+
+  <div class="dep-card">
+    <div class="dep-name">highlight.js</div>
+    <div class="dep-desc">Syntax highlighting for code blocks.</div>
+  </div>
+
+  <div class="dep-card">
+    <div class="dep-name">DOMPurify</div>
+    <div class="dep-desc">HTML sanitization for security.</div>
+  </div>
+</body>
+</html>`;
+
+  depsWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(depsHTML));
+  depsWindow.setMenuBarVisibility(false);
+}
+
+// Open PDF File for viewing/editing
+function openPDFFile() {
+  const files = dialog.showOpenDialogSync(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'PDF Files', extensions: ['pdf'] }
+    ]
+  });
+
+  if (files && files[0]) {
+    mainWindow.webContents.send('open-pdf-viewer', files[0]);
+  }
 }
 
 function openFile() {
@@ -622,6 +962,20 @@ function openFile() {
     currentFile = files[0];
     const content = fs.readFileSync(currentFile, 'utf-8');
     mainWindow.webContents.send('file-opened', { path: currentFile, content });
+  }
+}
+
+function openPdfFile() {
+  const files = dialog.showOpenDialogSync(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'PDF Files', extensions: ['pdf'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+
+  if (files && files[0]) {
+    mainWindow.webContents.send('open-pdf-file', files[0]);
   }
 }
 
@@ -1133,15 +1487,15 @@ async function exportPDFViaWordTemplate() {
     const exporter = new WordTemplateExporter(wordTemplatePath, templateStartPage);
     await exporter.convert(content, tempDocxPath);
 
-    // Step 2: Convert DOCX to PDF using LibreOffice
+    // Step 2: Convert DOCX to PDF using LibreOffice (using execFile for safety)
     const soffice = process.platform === 'win32'
-      ? '"C:\\Program Files\\LibreOffice\\program\\soffice.exe"'
+      ? 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
       : 'soffice';
 
     const outputDir = path.dirname(result.filePath);
-    const convertCmd = `${soffice} --headless --convert-to pdf --outdir "${outputDir}" "${tempDocxPath}"`;
+    const sofficeArgs = ['--headless', '--convert-to', 'pdf', '--outdir', outputDir, tempDocxPath];
 
-    exec(convertCmd, (error, stdout, stderr) => {
+    execFile(soffice, sofficeArgs, (error, stdout, stderr) => {
       // Clean up temporary DOCX file
       try {
         fs.unlinkSync(tempDocxPath);
@@ -1190,26 +1544,34 @@ function showPDFEditorDialog(operation) {
   mainWindow.webContents.send('show-pdf-editor-dialog', operation);
 }
 
-// Check if conversion tool is available
+// Handle PDF editor from toolbar (with optional file path)
+ipcMain.on('show-pdf-editor-from-toolbar', (event, { operation, filePath }) => {
+  mainWindow.webContents.send('show-pdf-editor-dialog', operation, filePath);
+});
+
+// Check if conversion tool is available (using execFile for safety)
 function checkConverterAvailable(tool) {
   return new Promise((resolve) => {
-    let command;
+    const isWin = process.platform === 'win32';
+    const locateCmd = isWin ? 'where' : 'which';
+    let toolName;
+
     switch (tool) {
       case 'libreoffice':
-        command = process.platform === 'win32' ? 'where soffice' : 'which soffice';
+        toolName = 'soffice';
         break;
       case 'imagemagick':
-        command = process.platform === 'win32' ? 'where magick' : 'which convert';
+        toolName = isWin ? 'magick' : 'convert';
         break;
       case 'ffmpeg':
-        command = process.platform === 'win32' ? 'where ffmpeg' : 'which ffmpeg';
+        toolName = 'ffmpeg';
         break;
       default:
         resolve(false);
         return;
     }
 
-    exec(command, (error) => {
+    execFile(locateCmd, [toolName], (error) => {
       resolve(!error);
     });
   });
@@ -1230,26 +1592,27 @@ ipcMain.on('universal-convert', async (event, { tool, fromFormat, toFormat, file
     mainWindow.webContents.send('conversion-status', 'Converting file...');
 
     const outputPath = filePath.replace(/\.[^/.]+$/, `.${toFormat}`);
-    let conversionCmd;
+    let conversionInfo;
 
     switch (tool) {
       case 'libreoffice':
-        conversionCmd = convertWithLibreOffice(filePath, toFormat, outputPath);
+        conversionInfo = convertWithLibreOffice(filePath, toFormat, outputPath);
         break;
       case 'imagemagick':
-        conversionCmd = convertWithImageMagick(filePath, outputPath);
+        conversionInfo = convertWithImageMagick(filePath, outputPath);
         break;
       case 'ffmpeg':
-        conversionCmd = convertWithFFmpeg(filePath, outputPath);
+        conversionInfo = convertWithFFmpeg(filePath, outputPath);
         break;
       case 'pandoc':
-        conversionCmd = `pandoc "${filePath}" -o "${outputPath}"`;
+        conversionInfo = convertWithPandoc(filePath, outputPath);
         break;
       default:
         throw new Error(`Unknown conversion tool: ${tool}`);
     }
 
-    exec(conversionCmd, (error, stdout, stderr) => {
+    // Use execFile for safety (prevents command injection)
+    execFile(conversionInfo.command, conversionInfo.args, (error, stdout, stderr) => {
       if (error) {
         mainWindow.webContents.send('conversion-complete', {
           success: false,
@@ -1294,11 +1657,11 @@ ipcMain.on('universal-convert', async (event, { tool, fromFormat, toFormat, file
   }
 });
 
-// LibreOffice conversion command builder
+// LibreOffice conversion - returns {command, args} for execFile (safer than exec)
 function convertWithLibreOffice(inputFile, outputFormat, outputPath) {
   const outputDir = path.dirname(outputPath);
   const soffice = process.platform === 'win32'
-    ? '"C:\\Program Files\\LibreOffice\\program\\soffice.exe"'
+    ? 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
     : 'soffice';
 
   // LibreOffice conversion format mapping
@@ -1321,19 +1684,36 @@ function convertWithLibreOffice(inputFile, outputFormat, outputPath) {
 
   const format = formatMap[outputFormat] || outputFormat;
 
-  // Use headless mode for conversion
-  return `${soffice} --headless --convert-to ${format} --outdir "${outputDir}" "${inputFile}"`;
+  // Return command and args for execFile
+  return {
+    command: soffice,
+    args: ['--headless', '--convert-to', format, '--outdir', outputDir, inputFile]
+  };
 }
 
-// ImageMagick conversion command builder
+// ImageMagick conversion - returns {command, args} for execFile
 function convertWithImageMagick(inputFile, outputPath) {
   const magick = process.platform === 'win32' ? 'magick' : 'convert';
-  return `${magick} "${inputFile}" "${outputPath}"`;
+  return {
+    command: magick,
+    args: [inputFile, outputPath]
+  };
 }
 
-// FFmpeg conversion command builder
+// FFmpeg conversion - returns {command, args} for execFile
 function convertWithFFmpeg(inputFile, outputPath) {
-  return `ffmpeg -i "${inputFile}" "${outputPath}" -y`;
+  return {
+    command: 'ffmpeg',
+    args: ['-i', inputFile, outputPath, '-y']
+  };
+}
+
+// Pandoc conversion - returns {command, args} for execFile
+function convertWithPandoc(inputFile, outputPath) {
+  return {
+    command: 'pandoc',
+    args: [inputFile, '-o', outputPath]
+  };
 }
 
 function performExportWithOptions(format, options) {
@@ -1449,8 +1829,8 @@ function performExportWithOptions(format, options) {
         pandocCmd += ' --variable header-includes="\\\\usepackage{lastpage}"';
       }
 
-      // Try with specified PDF engine
-      exec(pandocCmd, (error) => {
+      // Try with specified PDF engine (using runPandocCmd for safety)
+      runPandocCmd(pandocCmd, (error) => {
         if (error) {
           // Try fallback engines if the specified one fails
           const fallbackEngines = ['pdflatex', 'lualatex'];
@@ -1544,7 +1924,8 @@ function tryPdfFallback(inputFile, outputFile, engines, index, options, lastErro
     }
   }
 
-  exec(pandocCmd, (error) => {
+  // Use runPandocCmd for safety (prevents command injection)
+  runPandocCmd(pandocCmd, (error) => {
     if (error) {
       tryPdfFallback(inputFile, outputFile, engines, index + 1, options, error);
     } else {
@@ -1562,11 +1943,11 @@ function showExportSuccess(outputFile) {
   });
 }
 
-// Helper function to export with pandoc (general)
+// Helper function to export with pandoc (general) - uses runPandocCmd for safety
 function exportWithPandoc(pandocCmd, outputFile, format) {
   console.log(`Executing Pandoc command: ${pandocCmd}`);
 
-  exec(pandocCmd, async (error, stdout, stderr) => {
+  runPandocCmd(pandocCmd, async (error, stdout, stderr) => {
     if (error) {
       console.error(`Pandoc error for ${format}:`, error);
       console.error(`Pandoc stderr:`, stderr);
@@ -1642,14 +2023,14 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
   });
 }
 
-// Helper function to export PDF with pandoc (with fallbacks)
+// Helper function to export PDF with pandoc (with fallbacks) - uses runPandocCmd for safety
 function exportWithPandocPDF(pandocCmd, outputFile) {
-  exec(pandocCmd, (error, stdout, stderr) => {
+  runPandocCmd(pandocCmd, (error, stdout, stderr) => {
     if (error) {
       console.log('XeLaTeX failed, trying PDFLaTeX...');
       // Fallback to pdflatex
       const fallbackCmd = pandocCmd.replace('--pdf-engine=xelatex', '--pdf-engine=pdflatex');
-      exec(fallbackCmd, (fallbackError, fallbackStdout, fallbackStderr) => {
+      runPandocCmd(fallbackCmd, (fallbackError, fallbackStdout, fallbackStderr) => {
         if (fallbackError) {
           console.log('PDFLaTeX failed, trying Electron PDF...');
           // Final fallback to Electron PDF
@@ -1970,10 +2351,10 @@ function importDocument() {
       additionalOptions = '--from=json -t markdown';
     }
 
-    // Convert to markdown using pandoc
+    // Convert to markdown using pandoc (using runPandocCmd for safety)
     const pandocCmd = `${getPandocPath()} "${inputFile}" -t markdown ${additionalOptions} -o "${outputFile}"`;
 
-    exec(pandocCmd, (error, stdout, stderr) => {
+    runPandocCmd(pandocCmd, (error, stdout, stderr) => {
       if (error) {
         dialog.showErrorBox('Import Error', `Failed to import: ${error.message}\n\nMake sure Pandoc is installed.\n\nSupported formats: DOCX, ODT, RTF, HTML, LaTeX, EPUB, PDF, PPTX, ODP, RST, Textile, MediaWiki, Org-mode, AsciiDoc, CSV, and more.`);
       } else {
@@ -2014,7 +2395,7 @@ ipcMain.on('save-current-file', (event, content) => {
 });
 
 ipcMain.on('get-theme', (event) => {
-  const theme = store.get('theme', 'github');
+  const theme = store.get('theme', 'atomonelight');
   event.reply('theme-changed', theme);
 });
 
@@ -2288,15 +2669,15 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
         const exporter = new WordTemplateExporter(wordTemplatePath, templateStartPage);
         await exporter.convert(content, tempDocxPath);
 
-        // Step 2: Convert DOCX to PDF using LibreOffice
+        // Step 2: Convert DOCX to PDF using LibreOffice (using execFile for safety)
         const soffice = process.platform === 'win32'
-          ? '"C:\\Program Files\\LibreOffice\\program\\soffice.exe"'
+          ? 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
           : 'soffice';
 
         const outputDir = path.dirname(outputFile);
-        const convertCmd = `${soffice} --headless --convert-to pdf --outdir "${outputDir}" "${tempDocxPath}"`;
+        const sofficeArgs = ['--headless', '--convert-to', 'pdf', '--outdir', outputDir, tempDocxPath];
 
-        exec(convertCmd, (error, stdout, stderr) => {
+        execFile(soffice, sofficeArgs, (error, stdout, stderr) => {
           // Clean up temporary DOCX file
           try {
             fs.unlinkSync(tempDocxPath);
@@ -2447,8 +2828,8 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
       pandocCmd += ` --variable footer="${footerText}"`;
     }
 
-    // Execute conversion
-    exec(pandocCmd, async (error, stdout, stderr) => {
+    // Execute conversion (using runPandocCmd for safety)
+    runPandocCmd(pandocCmd, async (error, stdout, stderr) => {
       if (!error) {
         // Add headers/footers to DOCX if enabled
         if (format === 'docx' && headerFooterSettings.enabled) {
@@ -2563,24 +2944,25 @@ function performCLIConversion(inputPath, format) {
     
     console.log(`Converting "${path.basename(inputPath)}" to ${format.toUpperCase()}...`);
     
-    // Use existing export functions but with CLI output
+    // Use existing export functions but with CLI output (using runPandocCmd for safety)
     const pandocCommand = buildPandocCommand(content, format, outputPath);
-    
-    exec(pandocCommand, (error, stdout, stderr) => {
+
+    runPandocCmd(pandocCommand, (error, stdout, stderr) => {
       if (error) {
         console.error(`Conversion failed: ${error.message}`);
         if (stderr) console.error(`Details: ${stderr}`);
         app.quit();
         return;
       }
-      
+
       console.log(`Successfully converted to: ${outputPath}`);
-      
-      // Show Windows notification
+
+      // Show Windows notification (using exec for PowerShell is acceptable here - hardcoded command)
       if (process.platform === 'win32') {
-        exec(`powershell -Command "New-BurntToastNotification -Text 'PanConverter', 'File converted to ${format.toUpperCase()}' -AppLogo '${path.join(__dirname, '../assets/icon.png')}'"`, () => {});
+        const iconPath = path.join(__dirname, '../assets/icon.png');
+        execFile('powershell', ['-Command', `New-BurntToastNotification -Text 'PanConverter', 'File converted to ${format.toUpperCase()}' -AppLogo '${iconPath}'`], () => {});
       }
-      
+
       app.quit();
     });
   } catch (error) {
@@ -3328,5 +3710,86 @@ ipcMain.on('select-pdf-folder', (event, inputId) => {
 
   if (folder && folder[0]) {
     event.reply('pdf-folder-selected', { inputId, path: folder[0] });
+  }
+});
+
+// ============================================
+// ASCII Art Generator Window
+// ============================================
+let asciiGeneratorWindow = null;
+
+function openAsciiGenerator() {
+  if (asciiGeneratorWindow) {
+    asciiGeneratorWindow.focus();
+    return;
+  }
+
+  asciiGeneratorWindow = new BrowserWindow({
+    width: 800,
+    height: 700,
+    parent: mainWindow,
+    modal: false,
+    title: 'ASCII Art Generator',
+    icon: path.join(__dirname, '../assets/icon.png'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
+    }
+  });
+
+  asciiGeneratorWindow.loadFile(path.join(__dirname, 'ascii-generator.html'));
+  asciiGeneratorWindow.setMenuBarVisibility(false);
+
+  asciiGeneratorWindow.on('closed', () => {
+    asciiGeneratorWindow = null;
+  });
+}
+
+ipcMain.on('open-ascii-generator', () => {
+  openAsciiGenerator();
+});
+
+// ============================================
+// Table Generator Window
+// ============================================
+let tableGeneratorWindow = null;
+
+function openTableGenerator() {
+  if (tableGeneratorWindow) {
+    tableGeneratorWindow.focus();
+    return;
+  }
+
+  tableGeneratorWindow = new BrowserWindow({
+    width: 900,
+    height: 700,
+    parent: mainWindow,
+    modal: false,
+    title: 'Table Generator',
+    icon: path.join(__dirname, '../assets/icon.png'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
+    }
+  });
+
+  tableGeneratorWindow.loadFile(path.join(__dirname, 'table-generator.html'));
+  tableGeneratorWindow.setMenuBarVisibility(false);
+
+  tableGeneratorWindow.on('closed', () => {
+    tableGeneratorWindow = null;
+  });
+}
+
+ipcMain.on('open-table-generator', () => {
+  openTableGenerator();
+});
+
+// IPC Handler to receive generated content from generator windows
+ipcMain.on('insert-generated-content', (event, content) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('insert-content', content);
   }
 });

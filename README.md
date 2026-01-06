@@ -1,162 +1,141 @@
 # PanConverter
 
-A cross-platform Markdown editor and converter powered by Pandoc.
-
-![PanConverter](assets/icon.png)
+A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron.
 
 ## Features
 
-### ✨ Advanced Markdown Editor
-- 🗂️ **Tabbed Interface** - Work with multiple files simultaneously in separate tabs
-- 📝 **Rich Text Editor** - Full-featured editor with syntax highlighting and comprehensive toolbar
-- 🔍 **Find & Replace** - Powerful search and replace with match highlighting and navigation
-- 🔢 **Line Numbers** - Toggle line numbers for easier code editing and navigation
-- ↩️ **Smart Auto-Indentation** - Automatic list continuation and intelligent indentation
-- ⏪ **Undo/Redo** - Full undo/redo support with keyboard shortcuts
-- ⌨️ **Advanced Shortcuts** - Tab indentation, line selection, and smart text formatting
-- 📂 **File Association Support** - Open markdown files directly from file manager
+### Markdown Editor
+- **Multi-tab editing** - Work on multiple files simultaneously
+- **Live preview** - Real-time markdown rendering with syntax highlighting
+- **Dynamic splitter** - Drag to resize editor and preview panes
+- **25+ themes** - Light and dark themes including Atom One Light, Dracula, Nord, Sepia, and more
+- **Find & Replace** - Search and replace with regex support
+- **Line numbers** - Toggle line numbers in the editor
+- **Auto-save** - Automatic saving every 30 seconds
+- **Math support** - KaTeX integration for mathematical expressions
 
-### 🎨 Themes & Interface
-- 👁️ **Live Preview** - See your markdown rendered in real-time with synchronized scrolling
-- 🎨 **Multiple Themes** - Choose from Light, Dark, Solarized, Monokai, or GitHub themes
-- 💾 **Auto-Save** - Never lose your work with automatic saving every 30 seconds
-- 📊 **Enhanced Statistics** - Detailed document statistics including word count, character count, lines, paragraphs, sentences, and estimated reading time
-- 🕒 **Recent Files** - Quick access to recently opened files via File menu
-- 🧮 **Math Support** - Render mathematical expressions using KaTeX (supports $$, $, \\[\\], \\(\\) delimiters)
+### PDF Viewer & Editor
+- **Built-in PDF viewer** - Open and view PDF files directly in the app
+- **Page navigation** - Navigate pages with keyboard or buttons
+- **Zoom controls** - Zoom in/out, fit to width, fit to page
+- **Rotation** - Rotate pages left or right
+- **PDF Editor tools**:
+  - Merge multiple PDFs
+  - Split PDFs by page range
+  - Compress PDFs
+  - Rotate pages
+  - Delete pages
+  - Reorder pages
+  - Add watermarks
+  - Password protection
+  - Remove passwords
+  - Set permissions
 
-### 📤 Export & Conversion
-- 📄 **Enhanced PDF Export** - Robust PDF generation with multiple LaTeX engine fallbacks (XeLaTeX, PDFLaTeX, wkhtmltopdf)
-- 📄 **Document Export** - Convert to HTML, DOCX, LaTeX, RTF, ODT, EPUB, PowerPoint (PPTX), and OpenDocument Presentation (ODP)
-- 📊 **Spreadsheet Export** - Export markdown tables to CSV format for compatibility with any spreadsheet application
-- 📥 **Document Import** - Import DOCX, ODT, RTF, HTML, PDF, and presentation files to markdown
-- 📋 **Table Creation Helper** - Built-in table generator for easy markdown table creation
+### Export Options
+- **PDF** - Export to PDF with customizable page sizes and orientation
+- **DOCX** - Standard and Enhanced (template-based) Word export
+- **ODT** - OpenDocument format
+- **HTML** - Web-ready HTML export
+- **PowerPoint** - PPTX presentation export
+- **EPUB** - E-book format
+- **LaTeX** - Academic document format
+- **RTF** - Rich Text Format
 
-### 🖥️ Platform Support
-- **Cross-Platform** - Works seamlessly on Windows, macOS, and Linux
+### Advanced Features
+- **Custom headers & footers** - Add headers/footers to exports with dynamic fields
+- **Page size configuration** - A3, A4, A5, B4, B5, Letter, Legal, Tabloid, or custom sizes
+- **Batch conversion** - Convert entire folders of markdown files
+- **ASCII Art Generator** - Create text banners and diagrams
+- **Word templates** - Use custom Word templates for enhanced exports
+- **Import documents** - Import from 30+ formats (DOCX, PDF, HTML, etc.)
 
 ## Installation
 
 ### Prerequisites
-- [Pandoc](https://pandoc.org/installing.html) must be installed for export functionality
-  - **Ubuntu/Debian**: `sudo apt-get install pandoc`
-  - **macOS**: `brew install pandoc`
-  - **Windows**: Download installer from Pandoc website
+- [Node.js](https://nodejs.org/) (v16 or later)
+- [Pandoc](https://pandoc.org/installing.html) (required for export functionality)
 
-### PDF Export Requirements
-For optimal PDF export, install a LaTeX engine (recommended):
-- **Ubuntu/Debian**: `sudo apt-get install texlive-xetex texlive-latex-base`
-- **macOS**: `brew install --cask mactex`
-- **Windows**: Install MiKTeX or TeX Live
-- **Alternative**: `sudo apt-get install wkhtmltopdf` (fallback option)
-
-### Download
-Download the latest release for your platform from the [Releases](https://github.com/amitwh/pan-converter/releases) page.
-
-#### Linux
-- **AppImage**: `PanConverter-1.5.0.AppImage` (universal, may require `--no-sandbox` flag)
-- **Debian Package**: `pan-converter_1.5.6_amd64.deb`
-- **Snap Package**: `pan-converter_1.5.6_amd64.snap`
-
-### Install from Source
+### Install Dependencies
 ```bash
-git clone https://github.com/amitwh/pan-converter.git
-cd pan-converter
 npm install
+```
+
+### Run the Application
+```bash
 npm start
 ```
 
-## Usage
+### Build for Distribution
+```bash
+# Windows
+npm run build:win
 
-### Basic Workflow
-1. **Write** - Use the editor to write your Markdown content
-2. **Preview** - Toggle the preview pane to see rendered output
-3. **Theme** - Choose your preferred theme from the View menu
-4. **Export** - Export your document to various formats
+# macOS
+npm run build:mac
 
-### Export Options
-- **Documents**: HTML, PDF, DOCX, LaTeX, RTF, ODT, EPUB
-- **Presentations**: PowerPoint (PPTX), OpenDocument Presentation (ODP)
-- **Spreadsheets**: CSV format for tables (compatible with Excel, LibreOffice, Google Sheets)
-- **Advanced Export Options**: Optional template support, metadata insertion, table of contents, section numbering, and PDF-specific settings
-- **Batch Conversion**: Convert entire folders of markdown files with progress tracking
-
-### Import & Conversion
-- **Import Documents**: Convert DOCX, ODT, RTF, HTML, PDF, and presentation files to Markdown
-- **Cross-Format Conversion**: Convert current file between multiple formats
-- **Smart Presentation Handling**: Automatic slide-level formatting for PPTX/ODP exports
-
-### Table Creation
-- Click the table button in the toolbar
-- Specify number of rows and columns
-- Automatically generates properly formatted Markdown tables
+# Linux
+npm run build:linux
+```
 
 ## Keyboard Shortcuts
 
-### File Operations
-- `Ctrl/Cmd + N` - New file/tab
-- `Ctrl/Cmd + T` - New tab
-- `Ctrl/Cmd + W` - Close current tab
-- `Ctrl/Cmd + Tab` - Switch to next tab
-- `Ctrl/Cmd + O` - Open file
-- `Ctrl/Cmd + S` - Save file
-- `Ctrl/Cmd + Shift + S` - Save as
-- `Ctrl/Cmd + I` - Import document
+| Action | Shortcut |
+|--------|----------|
+| New File | Ctrl+N |
+| Open File | Ctrl+O |
+| Open PDF | Ctrl+Shift+O |
+| Save | Ctrl+S |
+| Save As | Ctrl+Shift+S |
+| Export | Ctrl+E |
+| Print | Ctrl+P |
+| Find | Ctrl+F |
+| Undo | Ctrl+Z |
+| Redo | Ctrl+Shift+Z |
+| New Tab | Ctrl+T |
+| Close Tab | Ctrl+W |
+| Toggle Preview | Ctrl+Shift+P |
+| Zoom In | Ctrl+Shift++ |
+| Zoom Out | Ctrl+Shift+- |
 
-### Editor Features
-- `Ctrl/Cmd + F` - Find & Replace
-- `Ctrl/Cmd + Z` - Undo
-- `Ctrl/Cmd + Shift + Z` - Redo
-- `Tab` - Indent lines or insert 4 spaces
-- `Shift + Tab` - Outdent selected lines
-- `Enter` - Auto-continue lists with proper indentation
+## Themes
 
-### View & Navigation
-- `Ctrl/Cmd + P` - Toggle preview
-- `Ctrl/Cmd + Enter` - Toggle preview (alternative)
-- `Escape` - Close find dialog
+### Light Themes
+- Atom One Light (Default)
+- GitHub Light
+- Light
+- Solarized Light
+- Gruvbox Light
+- Ayu Light
+- Sepia
+- Paper
+- Rose Pine Dawn
+- Concrete Light
 
-## Building
+### Dark Themes
+- Dark
+- One Dark
+- Dracula
+- Nord
+- Monokai
+- Material
+- Gruvbox Dark
+- Tokyo Night
+- Palenight
+- Ayu Dark
+- Ayu Mirage
+- Oceanic Next
+- Cobalt2
+- Concrete Dark
+- Concrete Warm
 
-```bash
-# Install dependencies
-npm install
+## PDF Viewer
 
-# Generate icons
-npm run generate-icons
-
-# Build for current platform
-npm run build
-
-# Build for specific platform
-npm run build:win    # Windows
-npm run build:mac    # macOS  
-npm run build:linux  # Linux (generates .deb, .AppImage, and .snap)
-
-# Build for all platforms
-npm run dist:all
-```
-
-## Version History
-
-- **v1.8.0** - Added enhanced Word export with template support to batch converter
-- **v1.7.9** - Enhanced Word Export with Template Support: Template-based DOCX generation with custom templates, table styling, ASCII art support, and red-colored flowchart arrows
-- **v1.5.6** - (Your release notes here)
-- **v1.5.5** - Refactored PDF export, simplified Pandoc pathing, and removed XLSX dependency.
-- **v1.3.1** - Bug fixes: Fixed file associations for double-clicking .md files, corrected 50/50 layout alignment for editor/preview panes
-- **v1.3.0** - Major update: Tabbed interface for multiple files, enhanced PDF export with LaTeX engines, fixed file associations, removed redundant converter menu, improved UI architecture
-- **v1.2.1** - Comprehensive editor enhancements: Find & Replace, Line Numbers, Undo/Redo, Auto-indentation, PowerPoint export, document conversion menu, table creation helper, spreadsheet export
-- **v1.1.0** - Added Excel/ODS spreadsheet export, updated author information, renamed to PanConverter
-- **v1.0.0** - Initial release with basic markdown editing, themes, and Pandoc export
-
-## Known Issues
-
-- AppImage may require `--no-sandbox` flag on some Linux systems
-- Windows/Mac builds require platform-specific build environments
-- Large files may cause performance issues
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request to the [GitHub repository](https://github.com/amitwh/pan-converter).
+Open PDF files directly in PanConverter:
+- **File > Open PDF** or **Ctrl+Shift+O**
+- Navigate pages with arrow buttons or page input
+- Zoom controls: +/- buttons, Fit Width, Fit Page
+- Rotate pages left or right
+- Close PDF to return to editor
 
 ## License
 
@@ -164,13 +143,8 @@ MIT License - see LICENSE file for details.
 
 ## Author
 
-**Amit Haridas** - [amit.wh@gmail.com](mailto:amit.wh@gmail.com)
+Amit Haridas (amit.wh@gmail.com)
 
-## Acknowledgments
+## Version
 
-- Built with [Electron](https://www.electronjs.org/)
-- Markdown parsing by [marked](https://marked.js.org/)
-- Export functionality powered by [Pandoc](https://pandoc.org/)
-- Syntax highlighting by [highlight.js](https://highlightjs.org/)
-- Spreadsheet export by [XLSX](https://www.npmjs.com/package/xlsx)
-- HTML sanitization by [DOMPurify](https://www.npmjs.com/package/dompurify)
+v3.0.0

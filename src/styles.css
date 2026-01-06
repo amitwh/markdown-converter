@@ -1031,52 +1031,82 @@ body.theme-github .status-bar {
 
 .export-dialog-content {
     background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    width: 90%;
-    max-width: 600px;
-    max-height: 90vh;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    width: 85%;
+    max-width: 450px;
+    max-height: 80vh;
     overflow-y: auto;
     position: relative;
+    font-size: 12px;
 }
 
 .export-dialog-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid #eee;
 }
 
 .export-dialog-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
 }
 
 .export-dialog-body {
-    padding: 20px;
+    padding: 14px 16px;
 }
 
 .export-section {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 }
 
 .export-section label {
     display: block;
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-weight: 500;
+    margin-bottom: 4px;
     color: #333;
+    font-size: 12px;
+}
+
+.export-section label.checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-weight: 400;
+}
+
+.export-section label.checkbox-inline input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+/* PDF Editor buttons */
+#add-merge-file {
+    padding: 5px 10px;
+    font-size: 12px;
+    background: #4a90d9;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#add-merge-file:hover {
+    background: #357abd;
 }
 
 .export-section select,
 .export-section input[type="text"],
 .export-section input[type="number"] {
     width: 100%;
-    padding: 8px 12px;
+    padding: 5px 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .export-section select:focus,
@@ -1280,9 +1310,10 @@ body.theme-dark #add-metadata-field {
 
 /* PDF Editor Specific Styles */
 .pdf-editor-content {
-    max-width: 600px !important;
-    max-height: 85vh;
+    max-width: 450px !important;
+    max-height: 75vh;
     overflow-y: auto;
+    font-size: 12px;
 }
 
 .pdf-editor-body {
@@ -1418,12 +1449,13 @@ body.theme-dark #export-dialog-close:hover {
 
 .batch-dialog-content {
     background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    width: 90%;
-    max-width: 500px;
-    max-height: 80vh;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    width: 85%;
+    max-width: 450px;
+    max-height: 75vh;
     overflow-y: auto;
+    font-size: 12px;
 }
 
 .batch-dialog-header {
@@ -3150,6 +3182,250 @@ body.theme-concrete-warm .status-bar {
     background: #3a3836;
     border-top-color: #9a9696;
     color: #e3e3e3;
+}
+
+/* ========================================
+   Sepia Theme - Warm reading theme
+   ======================================== */
+body.theme-sepia {
+    background: #f4ecd8;
+    color: #5b4636;
+}
+
+body.theme-sepia .tab-bar {
+    background: #e8dcc8;
+    border-bottom-color: #d4c4a8;
+}
+
+body.theme-sepia .tab {
+    background: #e8dcc8;
+    border-color: #d4c4a8;
+    color: #5b4636;
+}
+
+body.theme-sepia .tab.active {
+    background: #f4ecd8;
+    border-bottom-color: #8b7355;
+}
+
+body.theme-sepia .toolbar {
+    background: #e8dcc8;
+    border-bottom-color: #d4c4a8;
+}
+
+body.theme-sepia .toolbar button {
+    color: #5b4636;
+}
+
+body.theme-sepia .toolbar button:hover {
+    background: #d4c4a8;
+}
+
+body.theme-sepia .editor-textarea {
+    background: #f4ecd8;
+    color: #5b4636;
+}
+
+body.theme-sepia .pane:last-child {
+    background: #f4ecd8;
+}
+
+body.theme-sepia .preview-content {
+    color: #5b4636;
+}
+
+body.theme-sepia .preview-content h1,
+body.theme-sepia .preview-content h2 {
+    color: #3d2914;
+    border-bottom-color: #d4c4a8;
+}
+
+body.theme-sepia .preview-content code {
+    background: #e8dcc8;
+    color: #8b4513;
+}
+
+body.theme-sepia .preview-content pre {
+    background: #e8dcc8;
+    border-color: #d4c4a8;
+}
+
+body.theme-sepia .preview-content a {
+    color: #8b4513;
+}
+
+body.theme-sepia .preview-content blockquote {
+    border-left-color: #8b7355;
+    background: #e8dcc8;
+}
+
+body.theme-sepia .status-bar {
+    background: #e8dcc8;
+    border-top-color: #d4c4a8;
+    color: #5b4636;
+}
+
+/* ========================================
+   Paper Theme - Clean white paper
+   ======================================== */
+body.theme-paper {
+    background: #ffffff;
+    color: #1a1a1a;
+}
+
+body.theme-paper .tab-bar {
+    background: #f8f8f8;
+    border-bottom-color: #e0e0e0;
+}
+
+body.theme-paper .tab {
+    background: #f0f0f0;
+    border-color: #e0e0e0;
+    color: #333;
+}
+
+body.theme-paper .tab.active {
+    background: #ffffff;
+    border-bottom-color: #1a1a1a;
+}
+
+body.theme-paper .toolbar {
+    background: #f8f8f8;
+    border-bottom-color: #e0e0e0;
+}
+
+body.theme-paper .toolbar button {
+    color: #333;
+}
+
+body.theme-paper .toolbar button:hover {
+    background: #e8e8e8;
+}
+
+body.theme-paper .editor-textarea {
+    background: #ffffff;
+    color: #1a1a1a;
+}
+
+body.theme-paper .pane:last-child {
+    background: #ffffff;
+}
+
+body.theme-paper .preview-content {
+    color: #1a1a1a;
+}
+
+body.theme-paper .preview-content h1,
+body.theme-paper .preview-content h2 {
+    color: #000;
+    border-bottom-color: #e0e0e0;
+}
+
+body.theme-paper .preview-content code {
+    background: #f5f5f5;
+    color: #c41a16;
+}
+
+body.theme-paper .preview-content pre {
+    background: #f5f5f5;
+    border-color: #e0e0e0;
+}
+
+body.theme-paper .preview-content a {
+    color: #0366d6;
+}
+
+body.theme-paper .preview-content blockquote {
+    border-left-color: #ddd;
+    background: #f9f9f9;
+}
+
+body.theme-paper .status-bar {
+    background: #f8f8f8;
+    border-top-color: #e0e0e0;
+    color: #333;
+}
+
+/* ========================================
+   Rose Pine Dawn - Warm rose-tinted light
+   ======================================== */
+body.theme-rosepine-dawn {
+    background: #faf4ed;
+    color: #575279;
+}
+
+body.theme-rosepine-dawn .tab-bar {
+    background: #f2e9e1;
+    border-bottom-color: #dfdad9;
+}
+
+body.theme-rosepine-dawn .tab {
+    background: #f2e9e1;
+    border-color: #dfdad9;
+    color: #575279;
+}
+
+body.theme-rosepine-dawn .tab.active {
+    background: #faf4ed;
+    border-bottom-color: #907aa9;
+}
+
+body.theme-rosepine-dawn .toolbar {
+    background: #f2e9e1;
+    border-bottom-color: #dfdad9;
+}
+
+body.theme-rosepine-dawn .toolbar button {
+    color: #575279;
+}
+
+body.theme-rosepine-dawn .toolbar button:hover {
+    background: #dfdad9;
+}
+
+body.theme-rosepine-dawn .editor-textarea {
+    background: #faf4ed;
+    color: #575279;
+}
+
+body.theme-rosepine-dawn .pane:last-child {
+    background: #faf4ed;
+}
+
+body.theme-rosepine-dawn .preview-content {
+    color: #575279;
+}
+
+body.theme-rosepine-dawn .preview-content h1,
+body.theme-rosepine-dawn .preview-content h2 {
+    color: #286983;
+    border-bottom-color: #dfdad9;
+}
+
+body.theme-rosepine-dawn .preview-content code {
+    background: #f2e9e1;
+    color: #b4637a;
+}
+
+body.theme-rosepine-dawn .preview-content pre {
+    background: #f2e9e1;
+    border-color: #dfdad9;
+}
+
+body.theme-rosepine-dawn .preview-content a {
+    color: #56949f;
+}
+
+body.theme-rosepine-dawn .preview-content blockquote {
+    border-left-color: #907aa9;
+    background: #f2e9e1;
+    color: #797593;
+}
+
+body.theme-rosepine-dawn .status-bar {
+    background: #f2e9e1;
+    border-top-color: #dfdad9;
+    color: #575279;
 }
 
 /* Print Styles */

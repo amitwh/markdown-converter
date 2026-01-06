@@ -1,43 +1,82 @@
+/**
+ * Icon Generator for MarkdownConverter
+ * Generates all required icon sizes from NewIcon.jpg
+ */
+
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-const sizes = {
-    'icon.png': 512,
-    'icon@2x.png': 1024,
-    'icon.ico': 256,
-    'icon.icns': 512
-};
+// Source image
+const sourceImage = path.join(__dirname, '..', 'assets', 'NewIcon.jpg');
+const assetsDir = path.join(__dirname, '..', 'assets');
 
-const svgPath = path.join(__dirname, '..', 'assets', 'icon.svg');
-const svgBuffer = fs.readFileSync(svgPath);
+// Icon sizes needed for different platforms
+const iconSizes = [16, 24, 32, 48, 64, 128, 256, 512, 1024];
 
 async function generateIcons() {
-    for (const [filename, size] of Object.entries(sizes)) {
-        const outputPath = path.join(__dirname, '..', 'assets', filename);
-        
-        if (filename.endsWith('.png')) {
-            await sharp(svgBuffer)
-                .resize(size, size)
-                .png()
-                .toFile(outputPath);
-            console.log(`Generated ${filename}`);
-        } else if (filename.endsWith('.ico')) {
-            // For ICO, we'll just use the PNG version
-            await sharp(svgBuffer)
-                .resize(size, size)
-                .png()
-                .toFile(outputPath.replace('.ico', '.png'));
-            console.log(`Generated ${filename.replace('.ico', '.png')} (use png2ico to convert)`);
-        } else if (filename.endsWith('.icns')) {
-            // For ICNS, we'll just use the PNG version
-            await sharp(svgBuffer)
-                .resize(size, size)
-                .png()
-                .toFile(outputPath.replace('.icns', '.png'));
-            console.log(`Generated ${filename.replace('.icns', '.png')} (use png2icns to convert)`);
-        }
+  console.log('Generating icons from NewIcon.jpg...');
+
+  // Check if source exists
+  if (!fs.existsSync(sourceImage)) {
+    console.error('Source image not found:', sourceImage);
+    process.exit(1);
+  }
+
+  try {
+    // Generate main icon.png (512x512)
+    await sharp(sourceImage)
+      .resize(512, 512, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+      .png()
+      .toFile(path.join(assetsDir, 'icon.png'));
+    console.log('Generated icon.png (512x512)');
+
+    // Generate icon@2x.png (1024x1024)
+    await sharp(sourceImage)
+      .resize(1024, 1024, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+      .png()
+      .toFile(path.join(assetsDir, 'icon@2x.png'));
+    console.log('Generated icon@2x.png (1024x1024)');
+
+    // Create icons directory for multi-size icons
+    const iconsDir = path.join(assetsDir, 'icons');
+    if (!fs.existsSync(iconsDir)) {
+      fs.mkdirSync(iconsDir, { recursive: true });
     }
+
+    // Generate all sizes
+    for (const size of iconSizes) {
+      await sharp(sourceImage)
+        .resize(size, size, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+        .png()
+        .toFile(path.join(iconsDir, `${size}x${size}.png`));
+      console.log(`Generated icons/${size}x${size}.png`);
+    }
+
+    // Generate favicon
+    await sharp(sourceImage)
+      .resize(32, 32, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+      .png()
+      .toFile(path.join(assetsDir, 'favicon.png'));
+    console.log('Generated favicon.png (32x32)');
+
+    // Generate tray icon (smaller, for system tray)
+    await sharp(sourceImage)
+      .resize(24, 24, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+      .png()
+      .toFile(path.join(assetsDir, 'tray-icon.png'));
+    console.log('Generated tray-icon.png (24x24)');
+
+    console.log('\nIcon generation complete!');
+    console.log('\nFor Windows .ico file, use an online converter or:');
+    console.log('  magick convert assets/icons/*.png assets/icon.ico');
+    console.log('\nFor macOS .icns file, use:');
+    console.log('  iconutil -c icns assets/icon.iconset -o assets/icon.icns');
+
+  } catch (error) {
+    console.error('Error generating icons:', error);
+    process.exit(1);
+  }
 }
 
-generateIcons().catch(console.error);
+generateIcons();

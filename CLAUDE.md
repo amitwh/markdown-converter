@@ -1,11 +1,11 @@
-# PanConverter - Claude Development Guide
+# MarkdownConverter - Claude Development Guide
 
 ## Project Overview
 
-**PanConverter** is a cross-platform Markdown editor and converter powered by Pandoc, built with Electron. It provides professional-grade editing capabilities with comprehensive export options.
+**MarkdownConverter** (formerly PanConverter) is a cross-platform Markdown editor and universal file converter powered by Pandoc, built with Electron. It provides professional-grade editing capabilities with comprehensive export options, media conversion, and PDF editing tools.
 
-**Current Version**: v1.9.2
-**Author**: Amit Haridas (amit.wh@gmail.com)
+**Current Version**: v3.0.0
+**Author**: Amit Haridas / ConcreteInfo (amit.wh@gmail.com)
 **License**: MIT
 **Repository**: https://github.com/amitwh/pan-converter
 
@@ -25,17 +25,28 @@
 ### Application Structure
 ```
 src/
-├── main.js            # Electron main process, menu system, IPC handlers
-├── renderer.js        # TabManager class, multi-file editing, event handling
-├── index.html         # Application layout with tabbed interface
-├── styles.css         # Base styling with multi-theme support
-└── styles-modern.css  # Modern glassmorphism UI design system (v1.7.1)
+├── main.js                  # Electron main process, menu system, IPC handlers
+├── preload.js               # Secure IPC bridge for context isolation (v2.2.0)
+├── renderer.js              # TabManager class, multi-file editing, event handling
+├── index.html               # Application layout with tabbed interface
+├── ascii-generator.html     # Separate window for ASCII Art Generator (v3.0.0)
+├── table-generator.html     # Separate window for Table Generator (v3.0.0)
+├── styles.css               # Base styling with multi-theme support
+├── styles-modern.css        # Modern glassmorphism UI design system (v1.7.1)
+├── styles-concreteinfo.css  # ConcreteInfo brand theme (v3.0.0)
+└── wordTemplateExporter.js  # Word template-based export (v1.7.9)
 
 assets/
-└── icon.png       # Application icon
+├── icon.png           # Application icon (512x512)
+├── logo.png           # ConcreteInfo logo
+├── NewIcon.jpg        # Source image for icon generation
+└── icons/             # Generated icons (16x16 to 1024x1024)
 
-package.json       # Dependencies and build configuration
-CLAUDE.md          # Development documentation for AI assistants
+scripts/
+└── generate-icons.js  # Icon generation script
+
+package.json           # Dependencies and build configuration
+CLAUDE.md              # Development documentation for AI assistants
 ```
 
 ## Development Commands
@@ -113,7 +124,115 @@ gh release create v1.2.1 --title "Title" --notes "Release notes" \
 
 ## Feature Implementation Guide
 
-### v1.9.1 ASCII Art & Code Block Preservation (Latest)
+### v3.0.0 Major UI Overhaul & Media Converters (Latest)
+
+#### Rebranding & UI Improvements
+**Renamed to MarkdownConverter with ConcreteInfo Branding** (`src/index.html`, `package.json`)
+
+**Changes:**
+- Renamed application from "PanConverter" to "MarkdownConverter"
+- Added ConcreteInfo logo in app header
+- Removed preview popout button (per user feedback)
+- Version updated to 3.0.0
+
+#### ConcreteInfo Theme System
+**New Theme Based on Logo Palette** (`src/styles-concreteinfo.css`)
+
+**Color Palette:**
+- Dark Gray: #464646
+- Medium Gray: #9a9696
+- Accent (Red): #e5461f
+- Light Gray: #e3e3e3
+- Black: #0d0b09
+
+**Theme Variants:**
+- Concrete Dark - Dark mode with red accents
+- Concrete Light - Clean light mode
+- Concrete Warm - Warm tones with gray toolbar
+
+#### Separate Generator Windows
+**ASCII Art & Table Generators in Dedicated Windows** (`src/ascii-generator.html`, `src/table-generator.html`, `src/main.js`)
+
+**ASCII Art Generator Features:**
+- Text Banner mode with 5 font styles (Standard, Banner, Block, Bubble, Digital)
+- Box/Frame mode with 5 styles (Single, Double, Rounded, Bold, ASCII)
+- 16 professional templates (arrows, flowcharts, diagrams, decorative)
+- Real-time preview with terminal-style display
+- One-click insert to editor
+
+**Table Generator Features:**
+- Adjustable rows and columns (1-50 rows, 1-20 columns)
+- Quick templates (2-column, 3-column, 4x4 grid, etc.)
+- Left/Center/Right alignment
+- Optional header row
+- Fill sample data option
+- Live Markdown preview
+- Copy or insert to editor
+
+**Access:**
+- Tools → ASCII Art Generator (Ctrl+Shift+A)
+- Tools → Table Generator (Ctrl+Shift+T)
+
+#### Media Converter Menus
+**Separate Menus for Image, Audio, and Video Conversion** (`src/main.js`)
+
+**Image Menu:**
+- Convert Image... (single file)
+- Batch Convert Images...
+- Resize Image...
+- Compress Image...
+- Rotate Image...
+
+**Audio Menu:**
+- Convert Audio...
+- Batch Convert Audio...
+- Extract Audio from Video...
+- Trim Audio...
+- Merge Audio Files...
+
+**Video Menu:**
+- Convert Video...
+- Batch Convert Videos...
+- Compress Video...
+- Trim Video...
+- Extract Frames...
+- Convert to GIF...
+
+**Batch Menu:**
+- Convert Markdown Folder...
+- Batch Image Conversion...
+- Batch Audio Conversion...
+- Batch Video Conversion...
+- Batch PDF Conversion...
+
+#### Enhanced PDF Editor
+**Open PDF Files Directly** (`src/main.js`)
+
+- New "Open PDF File..." option in PDF Editor menu
+- View and edit PDFs within the application
+- All PDF operations available (merge, split, compress, rotate, etc.)
+
+#### About Menu & Dependencies
+**Updated Help Menu** (`src/main.js`)
+
+- "About MarkdownConverter" shows app info with ConcreteInfo logo
+- "Dependencies & Requirements" lists all required tools with download links:
+  - Pandoc (required)
+  - FFmpeg (optional, for media conversion)
+  - ImageMagick (optional, for image processing)
+  - LibreOffice (optional, for document conversion)
+  - MiKTeX/TeX Live (optional, for PDF via LaTeX)
+
+#### Security Enhancements (v2.2.0 continued)
+**Secure Preload Script** (`src/preload.js`)
+
+- New IPC channels for media converters
+- Secure generator window communication
+- Insert content from generator windows
+
+---
+
+### v1.9.1 ASCII Art & Code Block Preservation
 
 #### 🎨 Preserved ASCII Art in Exports
 **ASCII Art, Charts, Tables & Flowcharts Now Export Exactly as Previewed** (`src/wordTemplateExporter.js`, `src/main.js`)
