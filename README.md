@@ -1,6 +1,7 @@
 # MarkdownConverter
 
 A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron. 100% open-source with no proprietary dependencies.
+<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/5f53ba94-7663-47c3-b12b-b7b8bd2645aa" />
 
 ## Features
 
@@ -15,6 +16,8 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 - **Math support** - KaTeX integration for mathematical expressions
 
 ### PDF Viewer & Editor
+<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/f10f62be-af3d-496e-81df-37ab4f91abfd" />
+
 - **Built-in PDF viewer** - Open and view PDF files directly in the app
 - **Page navigation** - Navigate pages with keyboard or buttons
 - **Zoom controls** - Zoom in/out, fit to width, fit to page
