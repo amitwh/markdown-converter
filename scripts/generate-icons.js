@@ -8,14 +8,14 @@ const fs = require('fs');
 const path = require('path');
 
 // Source image
-const sourceImage = path.join(__dirname, '..', 'assets', 'NewIcon.jpg');
+const sourceImage = path.join(__dirname, '..', 'assets', 'docico1.png');
 const assetsDir = path.join(__dirname, '..', 'assets');
 
 // Icon sizes needed for different platforms
 const iconSizes = [16, 24, 32, 48, 64, 128, 256, 512, 1024];
 
 async function generateIcons() {
-  console.log('Generating icons from NewIcon.jpg...');
+  console.log('Generating icons from docico1.png...');
 
   // Check if source exists
   if (!fs.existsSync(sourceImage)) {

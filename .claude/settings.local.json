@@ -27,7 +27,14 @@
       "Bash(npm run generate-icons:*)",
       "Bash(node --check:*)",
       "Bash(timeout /t 3)",
-      "Bash(timeout /t 8)"
+      "Bash(timeout /t 8)",
+      "Bash(git merge:*)",
+      "Bash(git stash:*)",
+      "Bash(copy /Y \"assets\\\\docico1.png\" \"assets\\\\icon.png\")",
+      "Bash(cmd /c \"del /q Screen.png dark.png light.png pdf.png uvmodal.png 2>nul\")",
+      "Bash(cmd /c \"del /q \"\"pdf modal.png\"\" 2>nul\")",
+      "Bash(cmd /c \"del /q assets\\\\NewIcon.jpg assets\\\\logopallete.png 2>nul\")",
+      "Bash(gh release create:*)"
     ],
     "deny": [],
     "ask": []
