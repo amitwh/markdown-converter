@@ -1,11 +1,11 @@
 # MarkdownConverter
 
 A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron. 100% open-source with no proprietary dependencies.
-<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/5f53ba94-7663-47c3-b12b-b7b8bd2645aa" />
 
 ## Features
 
 ### Markdown Editor
+<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/5f53ba94-7663-47c3-b12b-b7b8bd2645aa" />
 - **Multi-tab editing** - Work on multiple files simultaneously
 - **Live preview** - Real-time markdown rendering with syntax highlighting
 - **Dynamic splitter** - Drag to resize editor and preview panes
