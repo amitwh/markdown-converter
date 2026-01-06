@@ -1,6 +1,6 @@
-# PanConverter
+# MarkdownConverter
 
-A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron.
+A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron. 100% open-source with no proprietary dependencies.
 
 ## Features
 
@@ -130,12 +130,24 @@ npm run build:linux
 
 ## PDF Viewer
 
-Open PDF files directly in PanConverter:
+Open PDF files directly in MarkdownConverter:
 - **File > Open PDF** or **Ctrl+Shift+O**
 - Navigate pages with arrow buttons or page input
 - Zoom controls: +/- buttons, Fit Width, Fit Page
 - Rotate pages left or right
 - Close PDF to return to editor
+
+## Open Source
+
+MarkdownConverter is 100% open-source. All dependencies are permissively licensed:
+- **Electron** - MIT License
+- **pdf-lib** - MIT License
+- **pdfjs-dist** - Apache 2.0 License
+- **marked** - MIT License
+- **highlight.js** - BSD 3-Clause License
+- **dompurify** - Apache 2.0/MIT License
+- **docx** - MIT License
+- **xlsx** - Apache 2.0 License (SheetJS Community Edition)
 
 ## License
 
