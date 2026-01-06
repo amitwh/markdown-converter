@@ -16,3 +16,16 @@ out/
 .npm/
 .electron/
 package-lock.json
+
+# Screenshots and temp files
+*.png.bak
+Screen.png
+dark.png
+light.png
+pdf.png
+uvmodal.png
+nul
+*.tmp
+
+# Development screenshots
+pdf\ modal.png
