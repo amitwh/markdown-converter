@@ -154,8 +154,7 @@
       "target": [
         "deb",
         "AppImage",
-        "snap",
-        "rpm"
+        "snap"
       ],
       "category": "Utility",
       "maintainer": "ConcreteInfo <amit.wh@gmail.com>"
