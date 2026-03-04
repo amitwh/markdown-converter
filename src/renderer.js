@@ -67,6 +67,14 @@ marked.use({
     }]
 });
 
+// PlantUML hex encoding for server rendering
+function plantumlEncode(text) {
+    const hex = Array.from(new TextEncoder().encode(text))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    return '~h' + hex;
+}
+
 // Tab Management
 class TabManager {
     constructor() {
@@ -460,6 +468,26 @@ class TabManager {
                     console.warn('Mermaid rendering error:', mermaidError);
                 }
             }
+
+            // Render PlantUML diagrams
+            const plantumlBlocks = preview.querySelectorAll('pre code.language-plantuml');
+            plantumlBlocks.forEach((block) => {
+                const code = block.textContent;
+                const pre = block.parentElement;
+
+                // Encode for PlantUML server using hex encoding
+                const encoded = plantumlEncode(code);
+
+                const img = document.createElement('img');
+                img.src = `https://www.plantuml.com/plantuml/svg/${encoded}`;
+                img.alt = 'PlantUML diagram';
+                img.style.maxWidth = '100%';
+                img.onerror = () => {
+                    img.replaceWith(pre); // Fallback to code block on error
+                };
+
+                pre.parentElement.replaceChild(img, pre);
+            });
         } catch (error) {
             console.error('Error rendering preview:', error);
             preview.innerHTML = '<p class="error">Error rendering preview. Please check your markdown syntax.</p>';
