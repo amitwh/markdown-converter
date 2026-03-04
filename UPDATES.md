@@ -1,5 +1,56 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.0.0 (2026-03-04)
+
+### Major Changes
+- **CodeMirror 6 Editor** — Replaced textarea with CodeMirror 6 featuring syntax highlighting, code folding, bracket matching, multiple cursors, and auto-indent
+- **Sidebar Panel System** — Collapsible sidebar with File Explorer, Git, Snippets, and Templates panels
+- **Command Palette** — Ctrl+Shift+P to search and execute all app actions
+- **Code Execution (REPL)** — Run JavaScript, Python, and Bash code blocks directly from the preview
+
+### New Features
+- Print Preview dialog with paper size, orientation, margins, scale, and page range controls
+- Image paste from clipboard and drag-drop support with auto-save to assets folder
+- Document templates library (10 templates: blog post, meeting notes, tech spec, changelog, README, project plan, API docs, tutorial, release notes, comparison)
+- Markdown extensions: footnotes, admonitions (note/warning/tip/danger/info), and [[toc]] table of contents
+- PlantUML diagram rendering alongside Mermaid
+- Welcome tab with onboarding and "What's New" feature showcase
+- System spell checking with context menu suggestions and dictionary support
+- Enhanced status bar with word count, character count, line/column, encoding, and language mode
+- Grouped toolbar with visual section separators
+- Breadcrumb bar showing current file path
+
+### New Export/Import Formats
+- Reveal.js slides (.html)
+- Beamer slides (.pdf)
+- Confluence/Jira wiki markup (.txt)
+- MOBI e-books (via Calibre)
+- Developer formats: JSON, YAML, XML, TOML
+
+### Security
+- Content Security Policy (CSP) meta tag
+- File size validation (50MB limit)
+- Error message sanitization (stripped file paths)
+- Conversion rate limiting (2-second debounce)
+
+### Dependencies Updated
+- marked: 16.x to 17.x (with marked-highlight extension)
+- pdfjs-dist: 3.x to 5.x (new worker model)
+- html2pdf.js: 0.10 to 0.14
+- pdfkit: 0.14 to 0.17
+- dompurify, docx, and others updated to latest
+
+### Testing
+- 80 tests across 7 test suites
+- New tests for sidebar manager, command palette, print preview, markdown extensions, and utility functions
+
+### Breaking Changes
+- Editor is now CodeMirror 6 (replaces textarea)
+- marked API changed to use marked.use() instead of marked.setOptions()
+- pdfjs-dist upgraded to v5 with new worker model
+
+---
+
 ## Version 2.1.0 (December 14, 2025)
 
 ### 🎨 UI/UX Improvements
