@@ -75,6 +75,23 @@ function createRateLimiter(minIntervalMs = 2000) {
 }
 const conversionLimiter = createRateLimiter(2000);
 
+// Convert structured data formats to markdown code blocks
+function convertDataToMarkdown(content, format) {
+    switch (format) {
+        case 'json':
+            return '```json\n' + content + '\n```';
+        case 'yaml':
+        case 'yml':
+            return '```yaml\n' + content + '\n```';
+        case 'xml':
+            return '```xml\n' + content + '\n```';
+        case 'toml':
+            return '```toml\n' + content + '\n```';
+        default:
+            return '```\n' + content + '\n```';
+    }
+}
+
 /**
  * Run Pandoc command safely with execFile
  * @param {string[]} args - Pandoc arguments array
@@ -309,7 +326,8 @@ function createWindow() {
     height: 800,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      spellcheck: true
     },
     icon: path.join(__dirname, '../assets/icon.png')
   });
@@ -320,6 +338,38 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  // Spell check context menu
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    const { Menu, MenuItem } = require('electron');
+    const menu = new Menu();
+
+    // Add spell check suggestions
+    if (params.misspelledWord) {
+      for (const suggestion of params.dictionarySuggestions) {
+        menu.append(new MenuItem({
+          label: suggestion,
+          click: () => mainWindow.webContents.replaceMisspelling(suggestion)
+        }));
+      }
+      if (params.dictionarySuggestions.length > 0) {
+        menu.append(new MenuItem({ type: 'separator' }));
+      }
+      menu.append(new MenuItem({
+        label: 'Add to Dictionary',
+        click: () => mainWindow.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord)
+      }));
+      menu.append(new MenuItem({ type: 'separator' }));
+    }
+
+    // Standard context menu items
+    menu.append(new MenuItem({ role: 'cut' }));
+    menu.append(new MenuItem({ role: 'copy' }));
+    menu.append(new MenuItem({ role: 'paste' }));
+    menu.append(new MenuItem({ role: 'selectAll' }));
+
+    menu.popup();
   });
 
   // Wait for the page to fully load before sending file data
@@ -455,6 +505,17 @@ function createMenu() {
             { label: 'OpenDocument Presentation (ODP)', click: () => exportFile('odp') },
             { type: 'separator' },
             { label: 'CSV (Tables)', click: () => exportSpreadsheet('csv') },
+            { type: 'separator' },
+            { label: 'JSON (.json)', click: () => exportFile('json') },
+            { label: 'YAML (.yaml)', click: () => exportFile('yaml') },
+            { label: 'XML (.xml)', click: () => exportFile('xml') },
+            { label: 'TOML (.toml)', click: () => exportFile('toml') },
+            { type: 'separator' },
+            { label: 'Reveal.js Slides (.html)', click: () => exportFile('revealjs') },
+            { label: 'Beamer Slides (.pdf)', click: () => exportFile('beamer') },
+            { type: 'separator' },
+            { label: 'Confluence Wiki (.txt)', click: () => exportFile('confluence') },
+            { label: 'MOBI E-book (.mobi)', click: () => exportFile('mobi') },
           ]
         },
         { type: 'separator' },
@@ -569,6 +630,15 @@ function createMenu() {
               click: () => mainWindow.webContents.send('adjust-font-size', 'reset')
             }
           ]
+        },
+        { type: 'separator' },
+        {
+          label: 'Spell Check',
+          type: 'checkbox',
+          checked: true,
+          click: (menuItem) => {
+            mainWindow.webContents.session.setSpellCheckerEnabled(menuItem.checked);
+          }
         },
         { type: 'separator' },
         { label: 'Reload', accelerator: 'CmdOrCtrl+R', role: 'reload' },
@@ -989,6 +1059,7 @@ function openFile() {
     properties: ['openFile'],
     filters: [
       { name: 'Markdown', extensions: ['md', 'markdown'] },
+      { name: 'Developer Formats', extensions: ['json', 'yaml', 'yml', 'xml', 'toml'] },
       { name: 'All Files', extensions: ['*'] }
     ]
   });
@@ -1000,7 +1071,15 @@ function openFile() {
         return;
     }
     currentFile = files[0];
-    const content = fs.readFileSync(currentFile, 'utf-8');
+    const ext = path.extname(currentFile).toLowerCase().slice(1);
+    let content = fs.readFileSync(currentFile, 'utf-8');
+
+    // Wrap developer format files in code blocks for markdown display
+    const devFormats = ['json', 'yaml', 'yml', 'xml', 'toml'];
+    if (devFormats.includes(ext)) {
+      content = convertDataToMarkdown(content, ext);
+    }
+
     mainWindow.webContents.send('file-opened', { path: currentFile, content });
   }
 }
@@ -1766,10 +1845,19 @@ function convertWithPandoc(inputFile, outputPath) {
 }
 
 function performExportWithOptions(format, options) {
+  // Map format names to file extensions
+  const formatExtMap = {
+    revealjs: 'html',
+    beamer: 'pdf',
+    confluence: 'txt',
+    jira: 'txt',
+  };
+  const fileExt = formatExtMap[format] || format;
+
   const outputFile = dialog.showSaveDialogSync(mainWindow, {
-    defaultPath: currentFile.replace(/\.[^/.]+$/, `.${format}`),
+    defaultPath: currentFile.replace(/\.[^/.]+$/, `.${fileExt}`),
     filters: [
-      { name: format.toUpperCase(), extensions: [format] }
+      { name: format.toUpperCase(), extensions: [fileExt] }
     ]
   });
 
@@ -1900,6 +1988,52 @@ function performExportWithOptions(format, options) {
         pandocCmd += ` --variable footer="${footerText}"`;
       }
       exportWithPandoc(pandocCmd, outputFile, format);
+    } else if (format === 'json') {
+      pandocCmd = `${getPandocPath()} "${currentFile}" -t json -o "${outputFile}"`;
+      exportWithPandoc(pandocCmd, outputFile, format);
+    } else if (format === 'yaml' || format === 'xml' || format === 'toml') {
+      // For YAML/XML/TOML, save the raw markdown content with the new extension
+      try {
+        const content = fs.readFileSync(currentFile, 'utf-8');
+        fs.writeFileSync(outputFile, content, 'utf-8');
+        showExportSuccess(outputFile);
+      } catch (err) {
+        dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export: ${err.message}`));
+      }
+    } else if (format === 'revealjs') {
+      pandocCmd = `${getPandocPath()} "${currentFile}" -t revealjs -s -o "${outputFile}" --slide-level=2`;
+      exportWithPandoc(pandocCmd, outputFile, format);
+    } else if (format === 'beamer') {
+      pandocCmd = `${getPandocPath()} "${currentFile}" -t beamer -o "${outputFile}"`;
+      exportWithPandoc(pandocCmd, outputFile, format);
+    } else if (format === 'confluence' || format === 'jira') {
+      pandocCmd = `${getPandocPath()} "${currentFile}" -t jira -o "${outputFile}"`;
+      exportWithPandoc(pandocCmd, outputFile, format);
+    } else if (format === 'mobi') {
+      // First export to EPUB, then try ebook-convert if available
+      const epubFile = outputFile.replace(/\.mobi$/i, '.epub');
+      pandocCmd = `${getPandocPath()} "${currentFile}" -o "${epubFile}"`;
+      runPandocCmd(pandocCmd, (error) => {
+        if (error) {
+          dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export EPUB intermediate: ${error.message}`));
+          return;
+        }
+        // Try ebook-convert (Calibre) for MOBI
+        execFile('ebook-convert', [epubFile, outputFile], (ebookError) => {
+          if (ebookError) {
+            dialog.showMessageBox(mainWindow, {
+              type: 'warning',
+              title: 'MOBI Export - Partial',
+              message: `Calibre's ebook-convert was not found. The file has been exported as EPUB instead.\n\nEPUB saved to: ${epubFile}\n\nTo get MOBI output, install Calibre from: https://calibre-ebook.com/`,
+              buttons: ['OK']
+            });
+          } else {
+            // Clean up intermediate EPUB
+            try { fs.unlinkSync(epubFile); } catch (e) { /* ignore */ }
+            showExportSuccess(outputFile);
+          }
+        });
+      });
     } else {
       // Generic export for other formats
       exportWithPandoc(pandocCmd, outputFile, format);
@@ -2372,7 +2506,7 @@ function importDocument() {
       { name: 'Web Formats', extensions: ['html', 'htm', 'xhtml'] },
       { name: 'Wiki Formats', extensions: ['mediawiki', 'dokuwiki', 'tikiwiki', 'twiki'] },
       { name: 'CSV/TSV', extensions: ['csv', 'tsv'] },
-      { name: 'JSON', extensions: ['json'] },
+      { name: 'Developer Formats', extensions: ['json', 'yaml', 'yml', 'xml', 'toml'] },
       { name: 'All Files', extensions: ['*'] }
     ]
   });
@@ -2403,6 +2537,23 @@ function importDocument() {
     // For JSON, handle structure
     if (ext === 'json') {
       additionalOptions = '--from=json -t markdown';
+    }
+
+    // For YAML, XML, TOML - wrap content in code blocks directly
+    if (['yaml', 'yml', 'xml', 'toml'].includes(ext)) {
+      const rawContent = fs.readFileSync(inputFile, 'utf-8');
+      const mdContent = convertDataToMarkdown(rawContent, ext);
+      const mdOutputFile = inputFile.replace(/\.[^/.]+$/, '.md');
+      fs.writeFileSync(mdOutputFile, mdContent, 'utf-8');
+      currentFile = mdOutputFile;
+      mainWindow.webContents.send('file-opened', { path: mdOutputFile, content: mdContent });
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Import Complete',
+        message: `Document imported successfully as ${path.basename(mdOutputFile)}\n\nOriginal format: ${ext.toUpperCase()}\nConverted to: Markdown`,
+        buttons: ['OK']
+      });
+      return;
     }
 
     // Convert to markdown using pandoc (using runPandocCmd for safety)
@@ -3164,6 +3315,36 @@ function buildPandocCommand(content, format, outputPath) {
         const footerText = processDynamicFields(headerFooterSettings.footer.center, metadata);
         command += ` --variable footer="${footerText}"`;
       }
+      break;
+
+    case 'json':
+      command = `pandoc "${inputFile}" -t json -o "${outputPath}"`;
+      break;
+
+    case 'yaml':
+      command = `pandoc "${inputFile}" -t markdown -o "${outputPath}"`;
+      break;
+
+    case 'xml':
+      command = `pandoc "${inputFile}" -t jats -o "${outputPath}"`;
+      break;
+
+    case 'toml':
+      // TOML: save raw markdown content with .toml extension
+      command = `pandoc "${inputFile}" -t markdown -o "${outputPath}"`;
+      break;
+
+    case 'revealjs':
+      command = `pandoc "${inputFile}" -t revealjs -s -o "${outputPath}" --slide-level=2`;
+      break;
+
+    case 'beamer':
+      command = `pandoc "${inputFile}" -t beamer -o "${outputPath}"`;
+      break;
+
+    case 'confluence':
+    case 'jira':
+      command = `pandoc "${inputFile}" -t jira -o "${outputPath}"`;
       break;
   }
 
