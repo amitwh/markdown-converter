@@ -11,6 +11,7 @@ const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
 const { SidebarManager } = require('./sidebar/sidebar-manager');
+const { CommandPalette } = require('./command-palette');
 
 // Configure marked with highlight extension
 marked.use(markedHighlight({
@@ -187,6 +188,7 @@ class TabManager {
         this.restoreTabState(tabId);
         this.focusActiveEditor();
         this.updateFilePath();
+        this.updateBreadcrumb();
 
         // Update cursor position for the newly active tab
         const tabForCursor = this.tabs.get(tabId);
@@ -445,6 +447,15 @@ class TabManager {
     updateFilePath() {
         const tab = this.tabs.get(this.activeTabId);
         const el = document.getElementById('status-file-path');
+        if (el && tab) {
+            el.textContent = tab.filePath || 'Untitled';
+            el.title = tab.filePath || '';
+        }
+    }
+
+    updateBreadcrumb() {
+        const tab = this.tabs.get(this.activeTabId);
+        const el = document.getElementById('breadcrumb-path');
         if (el && tab) {
             el.textContent = tab.filePath || 'Untitled';
             el.title = tab.filePath || '';
@@ -941,6 +952,7 @@ class TabManager {
         this.addToRecentFiles(filePath);
         this.updateTabBar();
         this.updateFilePath();
+        this.updateBreadcrumb();
 
         // Notify main process about current file for exports
         ipcRenderer.send('set-current-file', filePath);
@@ -1034,6 +1046,66 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebarManager.registerPanel('templates', {
         title: 'Templates',
         render: (container) => { container.innerHTML = '<p style="color:#888;padding:8px;">Templates coming soon...</p>'; }
+    });
+
+    // Initialize command palette
+    const commandPalette = new CommandPalette();
+
+    // Register commands
+    commandPalette.register('New File', 'Ctrl+N', () => tabManager.createNewTab());
+    commandPalette.register('Open File', 'Ctrl+O', () => ipcRenderer.send('menu-open'));
+    commandPalette.register('Save', 'Ctrl+S', () => {
+        const content = tabManager.getCurrentContent();
+        const filePath = tabManager.getCurrentFilePath();
+        if (filePath) {
+            ipcRenderer.send('save-current-file', content);
+        }
+    });
+    commandPalette.register('Toggle Preview', '', () => {
+        tabManager.isPreviewVisible = !tabManager.isPreviewVisible;
+        tabManager.updatePreviewVisibility();
+    });
+    commandPalette.register('Toggle Line Numbers', '', () => {
+        tabManager.showLineNumbers = !tabManager.showLineNumbers;
+        tabManager.updateLineNumbers();
+    });
+    commandPalette.register('Bold', 'Ctrl+B', () => tabManager.wrapSelection('**', '**'));
+    commandPalette.register('Italic', 'Ctrl+I', () => tabManager.wrapSelection('*', '*'));
+    commandPalette.register('Insert Table', '', () => tabManager.insertTable());
+    commandPalette.register('Insert Code Block', '', () => tabManager.insertCodeBlock());
+    commandPalette.register('Insert Horizontal Rule', '', () => tabManager.insertHorizontalRule());
+    commandPalette.register('Find & Replace', 'Ctrl+F', () => {
+        const findDialog = document.getElementById('find-dialog');
+        if (findDialog) {
+            findDialog.classList.toggle('hidden');
+            if (!findDialog.classList.contains('hidden')) {
+                document.getElementById('find-input').focus();
+            }
+        }
+    });
+    commandPalette.register('Toggle Sidebar: Explorer', 'Ctrl+Shift+E', () => sidebarManager.togglePanel('explorer'));
+    commandPalette.register('Toggle Sidebar: Git', 'Ctrl+Shift+G', () => sidebarManager.togglePanel('git'));
+    commandPalette.register('Toggle Sidebar: Snippets', '', () => sidebarManager.togglePanel('snippets'));
+    commandPalette.register('Toggle Sidebar: Templates', '', () => sidebarManager.togglePanel('templates'));
+    commandPalette.register('Export to PDF', '', () => ipcRenderer.send('export', 'pdf'));
+    commandPalette.register('Export to DOCX', '', () => ipcRenderer.send('export', 'docx'));
+    commandPalette.register('Export to HTML', '', () => ipcRenderer.send('export', 'html'));
+    commandPalette.register('New Tab', 'Ctrl+T', () => tabManager.createNewTab());
+    commandPalette.register('Close Tab', 'Ctrl+W', () => tabManager.closeTab(tabManager.activeTabId));
+    commandPalette.register('Undo', 'Ctrl+Z', () => { const tab = tabManager.tabs.get(tabManager.activeTabId); if (tab?.editorView) undo(tab.editorView); });
+    commandPalette.register('Redo', 'Ctrl+Shift+Z', () => { const tab = tabManager.tabs.get(tabManager.activeTabId); if (tab?.editorView) redo(tab.editorView); });
+    commandPalette.register('Heading 1', '', () => tabManager.insertAtLineStart('# '));
+    commandPalette.register('Heading 2', '', () => tabManager.insertAtLineStart('## '));
+    commandPalette.register('Heading 3', '', () => tabManager.insertAtLineStart('### '));
+    commandPalette.register('Insert Link', '', () => tabManager.wrapSelection('[', '](url)'));
+    commandPalette.register('Insert Image', '', () => tabManager.wrapSelection('![', '](image.jpg)'));
+
+    // Ctrl+Shift+P keyboard shortcut for command palette
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+            e.preventDefault();
+            commandPalette.open();
+        }
     });
 
     // Initialize CodeMirror for the initial tab (tab 1)
@@ -3046,157 +3118,8 @@ window.openHeaderFooterDialog = openHeaderFooterDialog;
 ipcRenderer.on('open-header-footer-dialog', () => {
     openHeaderFooterDialog();
 });
-// Command Palette Implementation
-const commands = [
-    { name: 'New File', action: () => tabManager.createTab(), shortcut: 'Ctrl+N' },
-    { name: 'Open File', action: () => ipcRenderer.send('open-file'), shortcut: 'Ctrl+O' },
-    { name: 'Save File', action: () => ipcRenderer.send('save-file'), shortcut: 'Ctrl+S' },
-    { name: 'Save As', action: () => ipcRenderer.send('save-file-as'), shortcut: 'Ctrl+Shift+S' },
-    { name: 'Export to PDF', action: () => ipcRenderer.send('export', 'pdf'), shortcut: '' },
-    { name: 'Export to DOCX', action: () => ipcRenderer.send('export', 'docx'), shortcut: '' },
-    { name: 'Export to HTML', action: () => ipcRenderer.send('export', 'html'), shortcut: '' },
-    { name: 'Toggle Preview', action: () => tabManager.togglePreview(), shortcut: 'Ctrl+Shift+P' },
-    { name: 'Toggle Line Numbers', action: () => tabManager.toggleLineNumbers(), shortcut: '' },
-    { name: 'Find & Replace', action: () => showFindDialog(), shortcut: 'Ctrl+F' },
-    { name: 'New Tab', action: () => tabManager.createTab(), shortcut: 'Ctrl+T' },
-    { name: 'Close Tab', action: () => tabManager.closeTab(tabManager.activeTabId), shortcut: 'Ctrl+W' },
-    { name: 'Undo', action: () => { const tab = tabManager.tabs.get(tabManager.activeTabId); if (tab?.editorView) undo(tab.editorView); }, shortcut: 'Ctrl+Z' },
-    { name: 'Redo', action: () => { const tab = tabManager.tabs.get(tabManager.activeTabId); if (tab?.editorView) redo(tab.editorView); }, shortcut: 'Ctrl+Shift+Z' },
-    { name: 'Bold', action: () => insertMarkdown('**', '**'), shortcut: 'Ctrl+B' },
-    { name: 'Italic', action: () => insertMarkdown('*', '*'), shortcut: 'Ctrl+I' },
-    { name: 'Heading 1', action: () => insertMarkdown('# ', ''), shortcut: '' },
-    { name: 'Heading 2', action: () => insertMarkdown('## ', ''), shortcut: '' },
-    { name: 'Heading 3', action: () => insertMarkdown('### ', ''), shortcut: '' },
-    { name: 'Insert Link', action: () => insertMarkdown('[', '](url)'), shortcut: '' },
-    { name: 'Insert Image', action: () => insertMarkdown('![', '](image.jpg)'), shortcut: '' },
-    { name: 'Insert Code Block', action: () => insertMarkdown('```\n', '\n```'), shortcut: '' },
-    { name: 'Insert Table', action: () => insertMarkdown('\n| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |\n', ''), shortcut: '' },
-    { name: 'Table Generator', action: () => showTableGenerator(), shortcut: '' },
-    { name: 'ASCII Art Generator', action: () => showASCIIGenerator(), shortcut: '' },
-    { name: 'Increase Font Size', action: () => ipcRenderer.send('adjust-font-size', 'increase'), shortcut: 'Ctrl+Shift++' },
-    { name: 'Decrease Font Size', action: () => ipcRenderer.send('adjust-font-size', 'decrease'), shortcut: 'Ctrl+Shift+-' }
-];
-
-let commandPaletteSelectedIndex = 0;
-let filteredCommands = [...commands];
-
-function showCommandPalette() {
-    const palette = document.getElementById('command-palette');
-    const searchInput = document.getElementById('command-search');
-
-    palette.classList.remove('hidden');
-    searchInput.value = '';
-    searchInput.focus();
-
-    filteredCommands = [...commands];
-    commandPaletteSelectedIndex = 0;
-    renderCommandList();
-}
-
-function hideCommandPalette() {
-    const palette = document.getElementById('command-palette');
-    palette.classList.add('hidden');
-}
-
-function renderCommandList() {
-    const list = document.getElementById('command-list');
-    list.innerHTML = '';
-
-    filteredCommands.forEach((cmd, index) => {
-        const item = document.createElement('div');
-        item.className = 'command-item';
-        if (index === commandPaletteSelectedIndex) {
-            item.classList.add('selected');
-        }
-
-        const name = document.createElement('span');
-        name.className = 'command-name';
-        name.textContent = cmd.name;
-
-        const shortcut = document.createElement('span');
-        shortcut.className = 'command-shortcut';
-        shortcut.textContent = cmd.shortcut || '';
-
-        item.appendChild(name);
-        if (cmd.shortcut) {
-            item.appendChild(shortcut);
-        }
-
-        item.addEventListener('click', () => {
-            executeCommand(cmd);
-        });
-
-        list.appendChild(item);
-    });
-}
-
-function filterCommands(query) {
-    const lowerQuery = query.toLowerCase();
-    filteredCommands = commands.filter(cmd =>
-        cmd.name.toLowerCase().includes(lowerQuery)
-    );
-    commandPaletteSelectedIndex = 0;
-    renderCommandList();
-}
-
-function executeCommand(cmd) {
-    hideCommandPalette();
-    if (cmd && cmd.action) {
-        cmd.action();
-    }
-}
-
-function navigateCommandPalette(direction) {
-    commandPaletteSelectedIndex += direction;
-    if (commandPaletteSelectedIndex < 0) {
-        commandPaletteSelectedIndex = filteredCommands.length - 1;
-    }
-    if (commandPaletteSelectedIndex >= filteredCommands.length) {
-        commandPaletteSelectedIndex = 0;
-    }
-    renderCommandList();
-}
-
-// Command Palette Event Listeners
-document.addEventListener('keydown', (e) => {
-    // Ctrl+Shift+P to open command palette
-    if (e.ctrlKey && e.shiftKey && e.key === 'P') {
-        e.preventDefault();
-        showCommandPalette();
-        return;
-    }
-
-    // Handle command palette navigation when open
-    const palette = document.getElementById('command-palette');
-    if (!palette.classList.contains('hidden')) {
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            hideCommandPalette();
-        } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            navigateCommandPalette(1);
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            navigateCommandPalette(-1);
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            if (filteredCommands[commandPaletteSelectedIndex]) {
-                executeCommand(filteredCommands[commandPaletteSelectedIndex]);
-            }
-        }
-    }
-});
-
-document.getElementById('command-search').addEventListener('input', (e) => {
-    filterCommands(e.target.value);
-});
-
-// Close on backdrop click
-document.getElementById('command-palette').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('command-palette')) {
-        hideCommandPalette();
-    }
-});
+// Command Palette - initialized via CommandPalette class
+// (see DOMContentLoaded handler for registration of commands)
 
 // ============================================================================
 // TABLE GENERATOR

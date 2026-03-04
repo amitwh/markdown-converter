@@ -2127,3 +2127,101 @@ body.theme-rosepine-dawn .batch-dialog-footer {
   background: #f2e9e1;
   border-top-color: #dfdad9;
 }
+
+/* ========================================
+   Command Palette (Ctrl+Shift+P)
+   ======================================== */
+.command-palette-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    padding-top: 80px;
+}
+.command-palette-overlay.hidden {
+    display: none;
+}
+.command-palette {
+    width: 560px;
+    max-height: 400px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.command-palette-input {
+    width: 100%;
+    padding: 14px 18px;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    border-bottom: 1px solid #e5e7eb;
+    font-family: inherit;
+}
+.command-palette-results {
+    overflow-y: auto;
+    max-height: 340px;
+}
+.command-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.command-item:hover,
+.command-item.selected {
+    background: #f3f4f6;
+}
+.command-label strong {
+    color: #5661b3;
+}
+.command-shortcut {
+    font-size: 12px;
+    color: #9ca3af;
+    background: #f3f4f6;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Dark theme command palette */
+body[class*="dark"] .command-palette {
+    background: #1e1e1e;
+    border: 1px solid #333;
+}
+body[class*="dark"] .command-palette-input {
+    background: #1e1e1e;
+    color: #eee;
+    border-color: #333;
+}
+body[class*="dark"] .command-item:hover,
+body[class*="dark"] .command-item.selected {
+    background: #2d2d2d;
+}
+body[class*="dark"] .command-shortcut {
+    background: #333;
+    color: #888;
+}
+
+/* ========================================
+   Breadcrumb Bar
+   ======================================== */
+.breadcrumb-bar {
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--gray-500, #6b7280);
+    border-bottom: 1px solid var(--gray-200, #e5e7eb);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}

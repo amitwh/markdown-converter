@@ -146,7 +146,11 @@
                 </button>
             </div>
         </div>
-        
+
+        <div class="breadcrumb-bar" id="breadcrumb-bar">
+            <span class="breadcrumb-path" id="breadcrumb-path">Untitled</span>
+        </div>
+
         <!-- Find & Replace Dialog -->
         <div id="find-dialog" class="find-dialog hidden">
             <div class="find-controls">
@@ -327,15 +331,10 @@
         </div>
 
         <!-- Command Palette -->
-        <div id="command-palette" class="command-palette hidden">
-            <div class="command-palette-content">
-                <input type="text" id="command-search" placeholder="Type a command..." autofocus>
-                <div id="command-list" class="command-list"></div>
-                <div class="command-palette-footer">
-                    <span>↑↓ Navigate</span>
-                    <span>Enter Execute</span>
-                    <span>Esc Close</span>
-                </div>
+        <div class="command-palette-overlay hidden" id="command-palette-overlay">
+            <div class="command-palette">
+                <input type="text" class="command-palette-input" id="command-palette-input" placeholder="Type a command..." autocomplete="off">
+                <div class="command-palette-results" id="command-palette-results"></div>
             </div>
         </div>
 
