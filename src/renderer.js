@@ -1355,11 +1355,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initialize CodeMirror for the initial tab (tab 1)
-    const editorContainer = document.getElementById('editor-cm-1');
-    if (editorContainer) {
+    const initialEditorContainer = document.getElementById('editor-cm-1');
+    if (initialEditorContainer) {
         const tab = tabManager.tabs.get(1);
         const isDark = document.body.className.includes('dark');
-        tab.editorView = createEditor(editorContainer, {
+        tab.editorView = createEditor(initialEditorContainer, {
             content: tab.content,
             onChange: (newContent) => {
                 tab.content = newContent;
@@ -3218,13 +3218,13 @@ ipcRenderer.on('header-footer-settings-data', (event, settings) => {
 
     // Logo previews
     if (settings.header.logo) {
-        document.getElementById('header-logo-preview').textContent = path.basename(settings.header.logo);
+        document.getElementById('header-logo-preview').textContent = settings.header.logo.split(/[\\/]/).pop();
     } else {
         document.getElementById('header-logo-preview').textContent = '';
     }
 
     if (settings.footer.logo) {
-        document.getElementById('footer-logo-preview').textContent = path.basename(settings.footer.logo);
+        document.getElementById('footer-logo-preview').textContent = settings.footer.logo.split(/[\\/]/).pop();
     } else {
         document.getElementById('footer-logo-preview').textContent = '';
     }
