@@ -130,3 +130,34 @@ body[class*="dark"] .sidebar-panel-header {
     border-color: #333;
     color: #ccc;
 }
+
+/* Panel list items (templates, etc.) */
+.panel-list-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 4px;
+}
+.panel-list-item:hover {
+    background: var(--gray-200, #e5e7eb);
+}
+.panel-list-item-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-800, #1f2937);
+}
+.panel-list-item-desc {
+    font-size: 11px;
+    color: var(--gray-500, #6b7280);
+    margin-top: 2px;
+}
+
+body[class*="dark"] .panel-list-item:hover {
+    background: #333;
+}
+body[class*="dark"] .panel-list-item-title {
+    color: #ddd;
+}
+body[class*="dark"] .panel-list-item-desc {
+    color: #888;
+}

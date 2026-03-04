@@ -3880,6 +3880,17 @@ ipcMain.on('open-table-generator', () => {
   openTableGenerator();
 });
 
+// IPC Handler for loading document templates
+ipcMain.handle('load-template', async (event, filename) => {
+  try {
+    const templatePath = path.join(__dirname, 'templates', filename);
+    return fs.readFileSync(templatePath, 'utf-8');
+  } catch (err) {
+    console.error('Failed to load template:', err);
+    return null;
+  }
+});
+
 // IPC Handler for saving pasted/dropped images
 ipcMain.handle('save-pasted-image', async (event, { base64, ext }) => {
   try {

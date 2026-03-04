@@ -11,6 +11,7 @@ const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
 const { SidebarManager } = require('./sidebar/sidebar-manager');
+const { renderTemplatesPanel } = require('./sidebar/templates-panel');
 const { CommandPalette } = require('./command-palette');
 const { PrintPreview } = require('./print-preview');
 
@@ -1109,7 +1110,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     sidebarManager.registerPanel('templates', {
         title: 'Templates',
-        render: (container) => { container.innerHTML = '<p style="color:#888;padding:8px;">Templates coming soon...</p>'; }
+        render: (container) => renderTemplatesPanel(container, async (file) => {
+            const templateContent = await ipcRenderer.invoke('load-template', file);
+            if (templateContent) {
+                const content = templateContent.replace(/\{\{DATE\}\}/g, new Date().toISOString().split('T')[0]);
+                tabManager.createNewTab();
+                const tab = tabManager.tabs.get(tabManager.activeTabId);
+                tabManager.setEditorContent(tab.id, content);
+            }
+        })
     });
 
     // Image paste handler

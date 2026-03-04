@@ -94,7 +94,10 @@ const ALLOWED_SEND_CHANNELS = [
   'insert-generated-content',
 
   // Image paste/drop
-  'save-pasted-image'
+  'save-pasted-image',
+
+  // Templates
+  'load-template'
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [
