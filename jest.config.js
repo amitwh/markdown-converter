@@ -20,16 +20,18 @@ module.exports = {
   collectCoverageFrom: [
     'src/**/*.js',
     '!src/main.js', // Main process needs electron-mock
+    '!src/renderer.js', // Large renderer file with duplicate declarations
+    '!src/preload.js', // Electron preload requires contextBridge
     '!**/node_modules/**'
   ],
 
-  // Coverage thresholds (start low, increase over time)
+  // Coverage thresholds (raised with expanded test suite)
   coverageThreshold: {
     global: {
       branches: 10,
-      functions: 10,
-      lines: 10,
-      statements: 10
+      functions: 15,
+      lines: 15,
+      statements: 15
     }
   },
 
