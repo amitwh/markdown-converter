@@ -2224,4 +2224,11 @@ body[class*="dark"] .command-shortcut {
     overflow: hidden;
     text-overflow: ellipsis;
     flex-shrink: 0;
+    background: var(--gray-50, #f9fafb);
+    font-family: 'JetBrains Mono', monospace;
+}
+body[class*="dark"] .breadcrumb-bar {
+    background: #1a1a1a;
+    color: #888;
+    border-color: #333;
 }
