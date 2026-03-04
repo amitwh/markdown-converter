@@ -18,6 +18,7 @@ const { renderSnippetsPanel } = require('./sidebar/snippets-panel');
 const { ReplPanel } = require('./repl/repl-panel');
 const { CommandPalette } = require('./command-palette');
 const { PrintPreview } = require('./print-preview');
+const { createWelcomeContent } = require('./welcome');
 
 // Configure marked with highlight extension
 marked.use(markedHighlight({
@@ -1191,6 +1192,52 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         })
     });
+
+    // Welcome tab on startup
+    const hasLaunched = localStorage.getItem('hasLaunchedBefore');
+    const showWelcome = localStorage.getItem('showWelcomeOnStartup') !== 'false';
+
+    if (!hasLaunched || showWelcome) {
+        localStorage.setItem('hasLaunchedBefore', 'true');
+
+        // Set welcome content in the first tab's preview
+        const recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
+        const welcomeHtml = createWelcomeContent(recentFiles);
+
+        const tab = tabManager.tabs.get(tabManager.activeTabId);
+        if (tab) {
+            tab.title = 'Welcome';
+            tab.content = '';
+            const preview = document.getElementById(`preview-${tab.id}`);
+            if (preview) {
+                preview.innerHTML = welcomeHtml;
+                // Wire up card actions
+                preview.querySelectorAll('.welcome-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const action = card.dataset.action;
+                        if (action === 'new-file') tabManager.createNewTab();
+                        else if (action === 'open-file') ipcRenderer.send('menu-open');
+                        else if (action === 'open-template') sidebarManager.togglePanel('templates');
+                        else if (action === 'command-palette') {
+                            if (typeof commandPalette !== 'undefined') commandPalette.open();
+                        }
+                    });
+                });
+                // Wire up recent files
+                preview.querySelectorAll('.welcome-recent-item').forEach(item => {
+                    item.addEventListener('click', () => ipcRenderer.send('open-file-path', item.dataset.path));
+                });
+                // Wire up show-on-startup checkbox
+                const checkbox = document.getElementById('show-welcome-startup');
+                if (checkbox) {
+                    checkbox.addEventListener('change', () => {
+                        localStorage.setItem('showWelcomeOnStartup', checkbox.checked);
+                    });
+                }
+            }
+            tabManager.updateTabBar();
+        }
+    }
 
     // Image paste handler
     document.addEventListener('paste', async (e) => {
