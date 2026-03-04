@@ -853,13 +853,22 @@ class TabManager {
         const findText = document.getElementById('find-input').value;
         const replaceText = document.getElementById('replace-input').value;
 
-        if (!tab || !tab.editorView || !findText) return;
+        if (!tab || !tab.editorView || !findText || tab.findMatches.length === 0) return;
 
-        const content = this.getEditorContent();
-        const newContent = content.split(findText).join(replaceText);
+        const view = tab.editorView;
         const replacedCount = tab.findMatches.length;
 
-        this.setEditorContent(this.activeTabId, newContent);
+        // Build all changes as a single transaction for proper undo support.
+        // Changes must be provided in document order; findMatches is already sorted.
+        const changes = tab.findMatches.map(pos => ({
+            from: pos,
+            to: pos + findText.length,
+            insert: replaceText,
+        }));
+
+        view.dispatch({ changes });
+
+        tab.content = view.state.doc.toString();
         tab.isDirty = true;
 
         this.updatePreview(this.activeTabId);
