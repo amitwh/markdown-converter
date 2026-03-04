@@ -290,6 +290,20 @@ body {
   /* Color controlled by theme */
 }
 
+/* CodeMirror container */
+.codemirror-container {
+  height: 100%;
+  overflow: auto;
+}
+.codemirror-container .cm-editor {
+  height: 100%;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 14px;
+}
+.codemirror-container .cm-scroller {
+  overflow: auto;
+}
+
 .pane:last-child {
   padding: 0;
   /* Background controlled by theme */

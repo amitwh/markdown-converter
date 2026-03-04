@@ -8,6 +8,7 @@ const marked = require('marked');
 const { markedHighlight } = require('marked-highlight');
 const DOMPurify = require('dompurify');
 const hljs = require('highlight.js');
+const { createEditor } = require('./editor/codemirror-setup');
 
 // Configure marked with highlight extension
 marked.use(markedHighlight({
@@ -47,8 +48,7 @@ class TabManager {
             content: '',
             filePath: null,
             isDirty: false,
-            undoStack: [],
-            redoStack: [],
+            editorView: null,
             findMatches: [],
             currentMatchIndex: -1
         });
@@ -114,8 +114,7 @@ class TabManager {
             content: '',
             filePath: null,
             isDirty: false,
-            undoStack: [],
-            redoStack: [],
+            editorView: null,
             findMatches: [],
             currentMatchIndex: -1
         };
@@ -137,8 +136,7 @@ class TabManager {
         tabContent.innerHTML = `
             <div id="editor-pane-${tab.id}" class="pane">
                 <div class="editor-wrapper">
-                    <div id="line-numbers-${tab.id}" class="line-numbers hidden"></div>
-                    <textarea id="editor-${tab.id}" class="editor-textarea"></textarea>
+                    <div id="editor-cm-${tab.id}" class="codemirror-container"></div>
                 </div>
             </div>
             <div class="pane-resizer" id="pane-resizer-${tab.id}" title="Drag to resize"></div>
@@ -152,21 +150,21 @@ class TabManager {
 
         document.querySelector('.editor-container').appendChild(tabContent);
 
-        // Directly attach input listener to the new editor
-        const editor = document.getElementById(`editor-${tab.id}`);
-        if (editor) {
-            editor.addEventListener('input', () => {
-                this.handleEditorInput(tab.id);
-            });
-
-            // Add scroll listener for line number sync
-            editor.addEventListener('scroll', () => {
-                if (this.showLineNumbers && this.activeTabId === tab.id) {
-                    const lineNumbers = document.getElementById(`line-numbers-${tab.id}`);
-                    if (lineNumbers) {
-                        lineNumbers.scrollTop = editor.scrollTop;
-                    }
-                }
+        // Initialize CodeMirror editor
+        const editorContainer = document.getElementById(`editor-cm-${tab.id}`);
+        if (editorContainer) {
+            const isDark = document.body.className.includes('dark');
+            tab.editorView = createEditor(editorContainer, {
+                content: tab.content,
+                onChange: (newContent) => {
+                    tab.content = newContent;
+                    tab.isDirty = true;
+                    this.updatePreview(tab.id);
+                    this.updateWordCount();
+                    this.updateTabBar();
+                },
+                isDark,
+                showLineNumbers: this.showLineNumbers,
             });
         }
     }
@@ -200,25 +198,30 @@ class TabManager {
     
     closeTab(tabId) {
         if (this.tabs.size === 1) return; // Don't close the last tab
-        
+
         const tab = this.tabs.get(tabId);
         if (tab.isDirty) {
             // Show confirmation dialog for unsaved changes
             const result = confirm('You have unsaved changes. Do you want to close this tab without saving?');
             if (!result) return;
         }
-        
+
+        // Destroy CodeMirror view
+        if (tab?.editorView) {
+            tab.editorView.destroy();
+        }
+
         // Remove tab elements
         const tabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
         const tabContent = document.getElementById(`tab-content-${tabId}`);
-        
+
         if (tabElement?.classList.contains('tab')) {
             tabElement.remove();
         }
         if (tabContent) {
             tabContent.remove();
         }
-        
+
         this.tabs.delete(tabId);
         
         // Switch to another tab if this was active
@@ -281,10 +284,9 @@ class TabManager {
     saveCurrentTabState() {
         const tab = this.tabs.get(this.activeTabId);
         if (!tab) return;
-        
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
-        if (editor) {
-            tab.content = editor.value;
+
+        if (tab.editorView) {
+            tab.content = tab.editorView.state.doc.toString();
             tab.isDirty = tab.content !== (tab.originalContent || '');
         }
     }
@@ -293,19 +295,17 @@ class TabManager {
         const tab = this.tabs.get(tabId);
         if (!tab) return;
 
-        const editor = document.getElementById(`editor-${tabId}`);
-
-        if (editor) {
-            editor.value = tab.content;
+        if (tab.editorView) {
+            this.setEditorContent(tabId, tab.content);
             this.updatePreview(tabId);
             this.updateWordCount();
         }
     }
     
     focusActiveEditor() {
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
-        if (editor) {
-            editor.focus();
+        const tab = this.tabs.get(this.activeTabId);
+        if (tab?.editorView) {
+            tab.editorView.focus();
         }
     }
     
@@ -403,23 +403,9 @@ class TabManager {
     }
     
     updateLineNumbers() {
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
-        const lineNumbers = document.getElementById(`line-numbers-${this.activeTabId}`);
-
-        if (!editor || !lineNumbers) return;
-
-        if (this.showLineNumbers) {
-            const lines = editor.value.split('\n');
-            lineNumbers.innerHTML = lines.map((_, i) =>
-                `<div class="line-number">${i + 1}</div>`
-            ).join('');
-            lineNumbers.classList.remove('hidden');
-
-            // Sync scroll position
-            lineNumbers.scrollTop = editor.scrollTop;
-        } else {
-            lineNumbers.classList.add('hidden');
-        }
+        // CodeMirror handles line numbers natively — this is now a no-op.
+        // Line number visibility is controlled via the showLineNumbers option
+        // passed to createEditor().
     }
     
     updateWordCount() {
@@ -455,82 +441,45 @@ class TabManager {
     }
     
     setupEditorEvents() {
-        // Set up editor events using event delegation on the container
-        const editorContainer = document.querySelector('.editor-container');
-        if (editorContainer) {
-            editorContainer.addEventListener('input', (e) => {
-                if (e.target.classList.contains('editor-textarea')) {
-                    const tabId = parseInt(e.target.id.split('-')[1]);
-                    this.handleEditorInput(tabId);
-                }
-            });
-
-            editorContainer.addEventListener('scroll', (e) => {
-                if (e.target.classList.contains('editor-textarea')) {
-                    this.updateLineNumbers();
-                }
-            }, true);
-        }
+        // CodeMirror handles editor events via the onChange callback
+        // passed to createEditor(). No additional event delegation needed.
     }
     
     handleEditorInput(tabId) {
+        // CodeMirror's onChange callback handles content syncing.
+        // This method is kept for any remaining callers but is largely a no-op now.
         const tab = this.tabs.get(tabId);
         if (!tab) return;
 
-        const editor = document.getElementById(`editor-${tabId}`);
-        if (!editor) return;
-
-        tab.content = editor.value;
+        if (tab.editorView) {
+            tab.content = tab.editorView.state.doc.toString();
+        }
         tab.isDirty = true;
 
         this.updatePreview(tabId);
         this.updateWordCount();
-        this.updateLineNumbers();
         this.updateTabBar();
-
-        // Add to undo stack
-        this.pushUndoState(tabId);
     }
     
     pushUndoState(tabId) {
-        const tab = this.tabs.get(tabId);
-        if (!tab) return;
-        
-        tab.undoStack.push(tab.content);
-        if (tab.undoStack.length > 50) {
-            tab.undoStack.shift();
-        }
-        tab.redoStack = [];
+        // CodeMirror has built-in history — this is now a no-op.
+        // Kept as a stub for any remaining callers.
     }
-    
+
     undo() {
+        // CodeMirror handles undo via its built-in history extension.
+        // This stub is kept for the IPC handler; Task 9 will wire it properly.
         const tab = this.tabs.get(this.activeTabId);
-        if (!tab || tab.undoStack.length === 0) return;
-        
-        tab.redoStack.push(tab.content);
-        tab.content = tab.undoStack.pop();
-        
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
-        if (editor) {
-            editor.value = tab.content;
-            this.updatePreview();
-            this.updateWordCount();
-        }
+        if (!tab?.editorView) return;
+        // CodeMirror's Ctrl+Z keybinding handles undo automatically.
     }
-    
+
     redo() {
+        // CodeMirror handles redo via its built-in history extension.
+        // This stub is kept for the IPC handler; Task 9 will wire it properly.
         const tab = this.tabs.get(this.activeTabId);
-        if (!tab || tab.redoStack.length === 0) return;
-        
-        tab.undoStack.push(tab.content);
-        tab.content = tab.redoStack.pop();
-        
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
-        if (editor) {
-            editor.value = tab.content;
-            this.updatePreview();
-            this.updateWordCount();
-        }
+        if (!tab?.editorView) return;
+        // CodeMirror's Ctrl+Shift+Z / Ctrl+Y keybinding handles redo automatically.
     }
 
     // Auto-save functionality
@@ -681,103 +630,64 @@ class TabManager {
 
     // Helper function to wrap selected text
     wrapSelection(before, after) {
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
-        if (!editor) return;
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab?.editorView) return;
 
-        const start = editor.selectionStart;
-        const end = editor.selectionEnd;
-        const selectedText = editor.value.substring(start, end);
+        const view = tab.editorView;
+        const { from, to } = view.state.selection.main;
+        const selectedText = view.state.sliceDoc(from, to);
         const replacement = before + (selectedText || 'text') + after;
 
-        editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end);
-
-        // Update cursor position
-        const newCursorPos = selectedText ? start + replacement.length : start + before.length;
-        editor.selectionStart = editor.selectionEnd = newCursorPos;
-        editor.focus();
-
-        // Trigger update
-        this.handleEditorInput(this.activeTabId);
+        view.dispatch({
+            changes: { from, to, insert: replacement }
+        });
+        view.focus();
     }
 
     // Helper function to insert text at the start of current line
     insertAtLineStart(prefix) {
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
-        if (!editor) return;
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab?.editorView) return;
 
-        const start = editor.selectionStart;
-        const text = editor.value;
+        const view = tab.editorView;
+        const pos = view.state.selection.main.head;
+        const line = view.state.doc.lineAt(pos);
 
-        // Find the start of the current line
-        let lineStart = text.lastIndexOf('\n', start - 1) + 1;
-
-        // Insert the prefix
-        editor.value = text.substring(0, lineStart) + prefix + text.substring(lineStart);
-
-        // Update cursor position
-        editor.selectionStart = editor.selectionEnd = start + prefix.length;
-        editor.focus();
-
-        // Trigger update
-        this.handleEditorInput(this.activeTabId);
+        view.dispatch({
+            changes: { from: line.from, insert: prefix }
+        });
+        view.focus();
     }
 
     // Insert a markdown table
     insertTable() {
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
-        if (!editor) return;
-
         const table = '\n| Column 1 | Column 2 | Column 3 |\n' +
                      '|----------|----------|----------|\n' +
                      '| Cell 1   | Cell 2   | Cell 3   |\n' +
                      '| Cell 4   | Cell 5   | Cell 6   |\n';
 
-        const start = editor.selectionStart;
-        editor.value = editor.value.substring(0, start) + table + editor.value.substring(start);
-
-        // Update cursor position
-        editor.selectionStart = editor.selectionEnd = start + table.length;
-        editor.focus();
-
-        // Trigger update
-        this.handleEditorInput(this.activeTabId);
+        this.insertAtCursor(table);
     }
 
     // Insert a code block
     insertCodeBlock() {
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
-        if (!editor) return;
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab?.editorView) return;
 
-        const selectedText = editor.value.substring(editor.selectionStart, editor.selectionEnd);
+        const view = tab.editorView;
+        const { from, to } = view.state.selection.main;
+        const selectedText = view.state.sliceDoc(from, to);
         const codeBlock = '\n```\n' + (selectedText || 'code here') + '\n```\n';
 
-        const start = editor.selectionStart;
-        editor.value = editor.value.substring(0, start) + codeBlock + editor.value.substring(editor.selectionEnd);
-
-        // Update cursor position
-        editor.selectionStart = editor.selectionEnd = start + codeBlock.length;
-        editor.focus();
-
-        // Trigger update
-        this.handleEditorInput(this.activeTabId);
+        view.dispatch({
+            changes: { from, to, insert: codeBlock }
+        });
+        view.focus();
     }
 
     // Insert a horizontal rule
     insertHorizontalRule() {
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
-        if (!editor) return;
-
-        const hr = '\n\n---\n\n';
-        const start = editor.selectionStart;
-
-        editor.value = editor.value.substring(0, start) + hr + editor.value.substring(start);
-
-        // Update cursor position
-        editor.selectionStart = editor.selectionEnd = start + hr.length;
-        editor.focus();
-
-        // Trigger update
-        this.handleEditorInput(this.activeTabId);
+        this.insertAtCursor('\n\n---\n\n');
     }
     
     setupFindEvents() {
@@ -848,9 +758,8 @@ class TabManager {
     performFind() {
         const findText = document.getElementById('find-input').value;
         const tab = this.tabs.get(this.activeTabId);
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
 
-        if (!findText || !tab || !editor) {
+        if (!findText || !tab) {
             this.clearFindHighlights();
             const findCount = document.getElementById('find-count');
             if (findCount) {
@@ -859,7 +768,7 @@ class TabManager {
             return;
         }
 
-        const content = editor.value;
+        const content = this.getEditorContent();
         const matches = [];
         let index = 0;
 
@@ -905,39 +814,27 @@ class TabManager {
 
     highlightMatch(matchIndex) {
         const tab = this.tabs.get(this.activeTabId);
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
         const findText = document.getElementById('find-input').value;
 
-        if (!tab || !editor || matchIndex < 0 || matchIndex >= tab.findMatches.length) return;
+        if (!tab || !tab.editorView || matchIndex < 0 || matchIndex >= tab.findMatches.length) return;
 
         const position = tab.findMatches[matchIndex];
+        const view = tab.editorView;
 
-        // Select the match WITHOUT focusing (to keep focus on find input)
-        editor.setSelectionRange(position, position + findText.length);
+        // Select the match in CodeMirror
+        view.dispatch({
+            selection: { anchor: position, head: position + findText.length },
+            scrollIntoView: true,
+        });
 
-        // Make the selection visible by briefly focusing and then restoring focus
+        // Restore focus to find input
         const findInput = document.getElementById('find-input');
-        const hadFocus = document.activeElement === findInput;
-
-        // Temporarily focus editor to make selection visible
-        editor.focus();
-
-        // Restore focus to find input if it had focus
-        if (hadFocus) {
+        if (findInput) {
             setTimeout(() => {
                 findInput.focus();
-                // Restore cursor position in find input
                 findInput.setSelectionRange(findInput.value.length, findInput.value.length);
             }, 10);
         }
-
-        // Scroll into view
-        const lineHeight = 20; // Approximate line height
-        const charPosition = position;
-        const numLines = editor.value.substring(0, charPosition).split('\n').length;
-        const scrollPosition = (numLines - 5) * lineHeight; // Show match 5 lines from top
-
-        editor.scrollTop = Math.max(0, scrollPosition);
 
         // Update match counter
         const findCount = document.getElementById('find-count');
@@ -948,18 +845,19 @@ class TabManager {
 
     replaceOne() {
         const tab = this.tabs.get(this.activeTabId);
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
         const findText = document.getElementById('find-input').value;
         const replaceText = document.getElementById('replace-input').value;
 
-        if (!tab || !editor || tab.findMatches.length === 0 || tab.currentMatchIndex < 0) return;
+        if (!tab || !tab.editorView || tab.findMatches.length === 0 || tab.currentMatchIndex < 0) return;
 
         const position = tab.findMatches[tab.currentMatchIndex];
-        const before = editor.value.substring(0, position);
-        const after = editor.value.substring(position + findText.length);
+        const view = tab.editorView;
 
-        editor.value = before + replaceText + after;
-        tab.content = editor.value;
+        view.dispatch({
+            changes: { from: position, to: position + findText.length, insert: replaceText }
+        });
+
+        tab.content = view.state.doc.toString();
         tab.isDirty = true;
 
         this.updatePreview(this.activeTabId);
@@ -972,18 +870,16 @@ class TabManager {
 
     replaceAll() {
         const tab = this.tabs.get(this.activeTabId);
-        const editor = document.getElementById(`editor-${this.activeTabId}`);
         const findText = document.getElementById('find-input').value;
         const replaceText = document.getElementById('replace-input').value;
 
-        if (!tab || !editor || !findText) return;
+        if (!tab || !tab.editorView || !findText) return;
 
-        // Simple replace all
-        const newContent = editor.value.split(findText).join(replaceText);
+        const content = this.getEditorContent();
+        const newContent = content.split(findText).join(replaceText);
         const replacedCount = tab.findMatches.length;
 
-        editor.value = newContent;
-        tab.content = newContent;
+        this.setEditorContent(this.activeTabId, newContent);
         tab.isDirty = true;
 
         this.updatePreview(this.activeTabId);
@@ -1023,13 +919,9 @@ class TabManager {
             tab.isDirty = false;
 
             // Update the editor and preview
-            const editor = document.getElementById(`editor-${this.activeTabId}`);
-            if (editor) {
-                editor.value = content;
-                // Update preview after editor is updated
-                this.updatePreview(this.activeTabId);
-                this.updateWordCount();
-            }
+            this.setEditorContent(this.activeTabId, content);
+            this.updatePreview(this.activeTabId);
+            this.updateWordCount();
         } else {
             // Create new tab for the file
             console.log('Creating new tab for file');
@@ -1041,15 +933,10 @@ class TabManager {
             tab.originalContent = content;
             tab.isDirty = false;
 
-            // Wait a moment for the DOM to update, then set content
-            setTimeout(() => {
-                const editor = document.getElementById(`editor-${this.activeTabId}`);
-                if (editor) {
-                    editor.value = content;
-                    this.updatePreview(this.activeTabId);
-                    this.updateWordCount();
-                }
-            }, 50);
+            // Set content in the CodeMirror editor
+            this.setEditorContent(this.activeTabId, content);
+            this.updatePreview(this.activeTabId);
+            this.updateWordCount();
         }
         this.startAutoSave();
         this.addToRecentFiles(filePath);
@@ -1061,6 +948,58 @@ class TabManager {
         console.log('File opened successfully');
     }
     
+    // Get content from active editor
+    getEditorContent(tabId = this.activeTabId) {
+        const tab = this.tabs.get(tabId);
+        if (tab?.editorView) {
+            return tab.editorView.state.doc.toString();
+        }
+        return tab?.content || '';
+    }
+
+    // Set content in editor
+    setEditorContent(tabId, content) {
+        const tab = this.tabs.get(tabId);
+        if (tab?.editorView) {
+            tab.editorView.dispatch({
+                changes: { from: 0, to: tab.editorView.state.doc.length, insert: content }
+            });
+        }
+        tab.content = content;
+    }
+
+    // Insert text at cursor position
+    insertAtCursor(text) {
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab?.editorView) return;
+        const view = tab.editorView;
+        const pos = view.state.selection.main.head;
+        view.dispatch({
+            changes: { from: pos, insert: text }
+        });
+        view.focus();
+    }
+
+    // Get selected text
+    getSelection() {
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab?.editorView) return '';
+        const state = tab.editorView.state;
+        return state.sliceDoc(state.selection.main.from, state.selection.main.to);
+    }
+
+    // Replace selection
+    replaceSelection(text) {
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab?.editorView) return;
+        const view = tab.editorView;
+        const { from, to } = view.state.selection.main;
+        view.dispatch({
+            changes: { from, to, insert: text }
+        });
+        view.focus();
+    }
+
     getCurrentContent() {
         const tab = this.tabs.get(this.activeTabId);
         return tab ? tab.content : '';
@@ -1078,21 +1017,22 @@ let tabManager;
 document.addEventListener('DOMContentLoaded', () => {
     tabManager = new TabManager();
 
-    // Attach input listener to the initial editor (tab 1)
-    const initialEditor = document.getElementById('editor-1');
-    if (initialEditor) {
-        initialEditor.addEventListener('input', () => {
-            tabManager.handleEditorInput(1);
-        });
-
-        // Add scroll listener for line number sync
-        initialEditor.addEventListener('scroll', () => {
-            if (tabManager.showLineNumbers && tabManager.activeTabId === 1) {
-                const lineNumbers = document.getElementById('line-numbers-1');
-                if (lineNumbers) {
-                    lineNumbers.scrollTop = initialEditor.scrollTop;
-                }
-            }
+    // Initialize CodeMirror for the initial tab (tab 1)
+    const editorContainer = document.getElementById('editor-cm-1');
+    if (editorContainer) {
+        const tab = tabManager.tabs.get(1);
+        const isDark = document.body.className.includes('dark');
+        tab.editorView = createEditor(editorContainer, {
+            content: tab.content,
+            onChange: (newContent) => {
+                tab.content = newContent;
+                tab.isDirty = true;
+                tabManager.updatePreview(tab.id);
+                tabManager.updateWordCount();
+                tabManager.updateTabBar();
+            },
+            isDark,
+            showLineNumbers: tabManager.showLineNumbers,
         });
     }
 
@@ -1193,17 +1133,17 @@ ipcRenderer.on('redo', () => {
 let currentFontSize = parseInt(localStorage.getItem('fontSize')) || 15;
 
 function updateFontSizes(size) {
-    const editors = document.querySelectorAll('#editor, .editor-textarea');
+    const editors = document.querySelectorAll('.cm-editor');
     const previews = document.querySelectorAll('#preview, .preview-content');
-    
+
     editors.forEach(editor => {
         editor.style.fontSize = `${size}px`;
     });
-    
+
     previews.forEach(preview => {
         preview.style.fontSize = `${size}px`;
     });
-    
+
     localStorage.setItem('fontSize', size);
 }
 
@@ -3341,31 +3281,19 @@ function insertGeneratedTable() {
         return;
     }
 
-    // Get active editor
-    const activeTabId = tabManager ? tabManager.activeTabId : 1;
-    const editor = document.getElementById(`editor-${activeTabId}`);
-
-    if (!editor) {
+    // Insert table using CodeMirror
+    if (!tabManager) {
         alert('No active editor found');
         return;
     }
 
-    // Insert table at cursor position
-    const start = editor.selectionStart;
-    const before = editor.value.substring(0, start);
-    const after = editor.value.substring(editor.selectionEnd);
-
     // Add newlines for spacing
     const tableWithSpacing = '\n' + table + '\n';
-    editor.value = before + tableWithSpacing + after;
-
-    // Update cursor position
-    editor.selectionStart = editor.selectionEnd = start + tableWithSpacing.length;
-    editor.focus();
+    tabManager.insertAtCursor(tableWithSpacing);
 
     // Trigger update
     if (tabManager) {
-        tabManager.handleEditorInput(activeTabId);
+        tabManager.handleEditorInput(tabManager.activeTabId);
     }
 
     // Close dialog
@@ -3836,30 +3764,19 @@ function insertASCIIArt() {
         return;
     }
 
-    // Get active editor
-    const activeTabId = tabManager ? tabManager.activeTabId : 1;
-    const editor = document.getElementById(`editor-${activeTabId}`);
-
-    if (!editor) {
+    // Insert using CodeMirror
+    if (!tabManager) {
         alert('No active editor found');
         return;
     }
 
     // Insert in code block for proper rendering
-    const start = editor.selectionStart;
-    const before = editor.value.substring(0, start);
-    const after = editor.value.substring(editor.selectionEnd);
-
     const codeBlock = '\n```\n' + asciiArt + '\n```\n';
-    editor.value = before + codeBlock + after;
-
-    // Update cursor position
-    editor.selectionStart = editor.selectionEnd = start + codeBlock.length;
-    editor.focus();
+    tabManager.insertAtCursor(codeBlock);
 
     // Trigger update
     if (tabManager) {
-        tabManager.handleEditorInput(activeTabId);
+        tabManager.handleEditorInput(tabManager.activeTabId);
     }
 
     // Close dialog
@@ -4147,24 +4064,14 @@ document.addEventListener('click', (e) => {
 // ============================================
 ipcRenderer.on('insert-content', (event, content) => {
     if (tabManager) {
+        tabManager.insertAtCursor(content);
+
         const activeTabId = tabManager.activeTabId;
-        const editor = document.getElementById(`editor-${activeTabId}`);
-        if (editor) {
-            const cursorPos = editor.selectionStart;
-            const textBefore = editor.value.substring(0, cursorPos);
-            const textAfter = editor.value.substring(cursorPos);
-
-            editor.value = textBefore + content + textAfter;
-            editor.focus();
-
-            const newPos = cursorPos + content.length;
-            editor.setSelectionRange(newPos, newPos);
-
-            // Update state and preview
-            tabManager.tabs.get(activeTabId).content = editor.value;
-            tabManager.tabs.get(activeTabId).modified = true;
+        const tab = tabManager.tabs.get(activeTabId);
+        if (tab) {
+            tab.isDirty = true;
             tabManager.updatePreview(activeTabId);
-            tabManager.updateTabTitle(activeTabId);
+            tabManager.updateTabBar();
         }
     }
 });
