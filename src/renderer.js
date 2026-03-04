@@ -12,6 +12,7 @@ const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
 const { SidebarManager } = require('./sidebar/sidebar-manager');
 const { CommandPalette } = require('./command-palette');
+const { PrintPreview } = require('./print-preview');
 
 // Configure marked with highlight extension
 marked.use(markedHighlight({
@@ -1051,6 +1052,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize command palette
     const commandPalette = new CommandPalette();
 
+    // Initialize print preview
+    const printPreview = new PrintPreview();
+
     // Register commands
     commandPalette.register('New File', 'Ctrl+N', () => tabManager.createNewTab());
     commandPalette.register('Open File', 'Ctrl+O', () => ipcRenderer.send('menu-open'));
@@ -1087,6 +1091,11 @@ document.addEventListener('DOMContentLoaded', () => {
     commandPalette.register('Toggle Sidebar: Git', 'Ctrl+Shift+G', () => sidebarManager.togglePanel('git'));
     commandPalette.register('Toggle Sidebar: Snippets', '', () => sidebarManager.togglePanel('snippets'));
     commandPalette.register('Toggle Sidebar: Templates', '', () => sidebarManager.togglePanel('templates'));
+    commandPalette.register('Print Preview', 'Ctrl+P', () => {
+        const tab = tabManager.tabs.get(tabManager.activeTabId);
+        const preview = document.getElementById(`preview-${tab.id}`);
+        printPreview.open(preview?.innerHTML || '');
+    });
     commandPalette.register('Export to PDF', '', () => ipcRenderer.send('export', 'pdf'));
     commandPalette.register('Export to DOCX', '', () => ipcRenderer.send('export', 'docx'));
     commandPalette.register('Export to HTML', '', () => ipcRenderer.send('export', 'html'));
@@ -1261,18 +1270,18 @@ ipcRenderer.on('adjust-font-size', (event, action) => {
     updateFontSizes(currentFontSize);
 });
 
-// Print preview request handlers - handle printing directly
+// Print preview request handlers - open print preview dialog
 ipcRenderer.on('print-preview', () => {
     console.log('[RENDERER] print-preview received');
-    handlePrintPreview(false);
+    openPrintPreviewDialog();
 });
 
 ipcRenderer.on('print-preview-styled', () => {
     console.log('[RENDERER] print-preview-styled received');
-    handlePrintPreview(true);
+    openPrintPreviewDialog();
 });
 
-function handlePrintPreview(withStyles) {
+function openPrintPreviewDialog() {
     const activeTabId = tabManager ? tabManager.activeTabId : 1;
     const previewContent = document.getElementById(`preview-${activeTabId}`);
 
@@ -1281,26 +1290,8 @@ function handlePrintPreview(withStyles) {
         return;
     }
 
-    console.log('[RENDERER] Starting print with withStyles:', withStyles);
-    console.log('[RENDERER] Preview content length:', previewContent.innerHTML.length);
-
-    // Add body classes for print mode - let CSS handle everything
-    document.body.classList.add('printing');
-    if (!withStyles) {
-        document.body.classList.add('printing-no-styles');
-    }
-
-    // Wait for CSS to apply then print
-    setTimeout(() => {
-        console.log('[RENDERER] Sending do-print to main process');
-        ipcRenderer.send('do-print', { withStyles });
-
-        // Restore classes after print dialog opens
-        setTimeout(() => {
-            document.body.classList.remove('printing', 'printing-no-styles');
-            console.log('[RENDERER] Print classes removed');
-        }, 1000);
-    }, 100);
+    const printPreviewInstance = new PrintPreview();
+    printPreviewInstance.open(previewContent.innerHTML);
 }
 
 // Export Dialog functionality

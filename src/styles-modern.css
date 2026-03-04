@@ -2232,3 +2232,104 @@ body[class*="dark"] .breadcrumb-bar {
     color: #888;
     border-color: #333;
 }
+
+/* Print Preview Dialog */
+.print-preview-dialog {
+    width: 90vw;
+    max-width: 1200px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+.print-preview-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+.print-preview-sidebar {
+    width: 260px;
+    padding: 16px;
+    border-right: 1px solid var(--gray-200, #e5e7eb);
+    overflow-y: auto;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.print-preview-content {
+    flex: 1;
+    padding: 16px;
+    background: #e5e7eb;
+    display: flex;
+    justify-content: center;
+    overflow: auto;
+}
+.print-preview-content iframe {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border-radius: 4px;
+}
+.print-option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.print-option-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600, #4b5563);
+}
+.print-option-group select,
+.print-option-group input[type="text"] {
+    padding: 8px 10px;
+    border: 1px solid var(--gray-300, #d1d5db);
+    border-radius: 8px;
+    font-size: 13px;
+    background: white;
+}
+.scale-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.scale-control input[type="range"] {
+    flex: 1;
+}
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+.print-range-input {
+    margin-top: 6px;
+}
+.print-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 16px;
+}
+.btn-primary {
+    flex: 1;
+    padding: 10px;
+    background: var(--primary-dark, #5661b3);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.btn-primary:hover {
+    opacity: 0.9;
+}
+.btn-secondary {
+    flex: 1;
+    padding: 10px;
+    background: var(--gray-100, #f3f4f6);
+    color: var(--gray-700, #374151);
+    border: 1px solid var(--gray-300, #d1d5db);
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}

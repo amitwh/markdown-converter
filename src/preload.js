@@ -29,6 +29,7 @@ const ALLOWED_SEND_CHANNELS = [
 
   // Print
   'do-print',
+  'do-print-with-options',
 
   // Export
   'export-with-options',

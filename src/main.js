@@ -2472,6 +2472,32 @@ ipcMain.on('do-print', (event, { withStyles }) => {
   }
 });
 
+// Handle printing with custom options from print preview dialog
+ipcMain.on('do-print-with-options', (event, options) => {
+  if (!mainWindow) return;
+
+  const marginsMap = {
+    'default': { marginType: 'default' },
+    'narrow': { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 },
+    'wide': { top: 1.0, bottom: 1.0, left: 1.0, right: 1.0 },
+    'none': { top: 0, bottom: 0, left: 0, right: 0 },
+  };
+
+  const printOptions = {
+    silent: false,
+    printBackground: options.background,
+    landscape: options.orientation === 'landscape',
+    scaleFactor: options.scale / 100,
+    pageSize: options.paperSize,
+  };
+
+  if (options.margins && options.margins !== 'default') {
+    printOptions.margins = marginsMap[options.margins];
+  }
+
+  mainWindow.webContents.print(printOptions);
+});
+
 // Handle renderer ready for file association
 ipcMain.on('renderer-ready', (event) => {
   console.log('[MAIN] renderer-ready received, rendererReady was:', rendererReady);
