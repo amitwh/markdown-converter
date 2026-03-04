@@ -213,7 +213,13 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'pdf-operation-progress',
 
   // Insert content from generator windows
-  'insert-content'
+  'insert-content',
+
+  // v4 menu-triggered events
+  'load-template-menu',
+  'toggle-command-palette',
+  'toggle-sidebar-panel',
+  'toggle-bottom-panel'
 ];
 
 /**

@@ -115,7 +115,11 @@ describe('Preload Security', () => {
       'show-ascii-generator',
       'show-table-generator-window',
       'open-header-footer-dialog',
-      'insert-content'
+      'insert-content',
+      'load-template-menu',
+      'toggle-command-palette',
+      'toggle-sidebar-panel',
+      'toggle-bottom-panel'
     ];
 
     test('should define all expected send channels', () => {

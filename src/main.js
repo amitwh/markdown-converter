@@ -484,6 +484,22 @@ function createMenu() {
         },
         { type: 'separator' },
         {
+          label: 'New from Template',
+          submenu: [
+            { label: 'Blog Post', click: () => mainWindow.webContents.send('load-template-menu', 'blog-post.md') },
+            { label: 'Meeting Notes', click: () => mainWindow.webContents.send('load-template-menu', 'meeting-notes.md') },
+            { label: 'Technical Spec', click: () => mainWindow.webContents.send('load-template-menu', 'technical-spec.md') },
+            { label: 'Changelog', click: () => mainWindow.webContents.send('load-template-menu', 'changelog.md') },
+            { label: 'README', click: () => mainWindow.webContents.send('load-template-menu', 'readme.md') },
+            { label: 'Project Plan', click: () => mainWindow.webContents.send('load-template-menu', 'project-plan.md') },
+            { label: 'API Documentation', click: () => mainWindow.webContents.send('load-template-menu', 'api-docs.md') },
+            { label: 'Tutorial', click: () => mainWindow.webContents.send('load-template-menu', 'tutorial.md') },
+            { label: 'Release Notes', click: () => mainWindow.webContents.send('load-template-menu', 'release-notes.md') },
+            { label: 'Comparison', click: () => mainWindow.webContents.send('load-template-menu', 'comparison.md') }
+          ]
+        },
+        { type: 'separator' },
+        {
           label: 'Import Document...',
           accelerator: 'CmdOrCtrl+I',
           click: importDocument
@@ -574,9 +590,29 @@ function createMenu() {
       submenu: [
         {
           label: 'Toggle Preview',
-          accelerator: 'CmdOrCtrl+Shift+P',
+          accelerator: 'CmdOrCtrl+Shift+V',
           click: () => mainWindow.webContents.send('toggle-preview')
         },
+        {
+          label: 'Command Palette',
+          accelerator: 'CmdOrCtrl+Shift+P',
+          click: () => mainWindow.webContents.send('toggle-command-palette')
+        },
+        { type: 'separator' },
+        {
+          label: 'Sidebar',
+          submenu: [
+            { label: 'File Explorer', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'explorer') },
+            { label: 'Git', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'git') },
+            { label: 'Snippets', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'snippets') },
+            { label: 'Templates', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'templates') }
+          ]
+        },
+        {
+          label: 'Bottom Panel (REPL)',
+          click: () => mainWindow.webContents.send('toggle-bottom-panel')
+        },
+        { type: 'separator' },
         {
           label: 'Theme',
           submenu: [
@@ -883,7 +919,7 @@ function showAboutDialog() {
 <body>
   <img src="${iconBase64}" class="logo" alt="MarkdownConverter">
   <h1>MarkdownConverter</h1>
-  <div class="version">Version 3.0.0</div>
+  <div class="version">Version 4.0.0</div>
 
   <div class="company">
     <span>by</span>
@@ -912,7 +948,7 @@ function showAboutDialog() {
 
   <div class="footer">
     <p>License: MIT</p>
-    <p>© 2024-2025 ConcreteInfo. All rights reserved.</p>
+    <p>© 2024-2026 ConcreteInfo. All rights reserved.</p>
   </div>
 </body>
 </html>`;
