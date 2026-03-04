@@ -33,4 +33,4 @@ pdf\ modal.png
 # Claude/AI development files
 .claude/
 CLAUDE.md
-agents.md
+agents.mdcoverage/

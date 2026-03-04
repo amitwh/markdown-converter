@@ -10,11 +10,8 @@ const {
 } = require('@codemirror/view');
 const { EditorState } = require('@codemirror/state');
 const { markdown, markdownLanguage } = require('@codemirror/lang-markdown');
-const { javascript } = require('@codemirror/lang-javascript');
-const { html } = require('@codemirror/lang-html');
-const { css } = require('@codemirror/lang-css');
-const { json } = require('@codemirror/lang-json');
-const { python } = require('@codemirror/lang-python');
+// Language extensions loaded lazily on first use
+let _javascript, _html, _css, _json, _python;
 const {
   defaultKeymap,
   history,
@@ -108,19 +105,19 @@ function createEditor(parentElement, options = {}) {
  * @returns {Extension} CodeMirror language extension
  */
 function getLanguageExtension(lang) {
-  const languages = {
-    javascript,
-    js: javascript,
-    html,
-    css,
-    json,
-    python,
-    py: python,
+  const loaders = {
+    javascript: () => { if (!_javascript) _javascript = require('@codemirror/lang-javascript').javascript; return _javascript(); },
+    html: () => { if (!_html) _html = require('@codemirror/lang-html').html; return _html(); },
+    css: () => { if (!_css) _css = require('@codemirror/lang-css').css; return _css(); },
+    json: () => { if (!_json) _json = require('@codemirror/lang-json').json; return _json(); },
+    python: () => { if (!_python) _python = require('@codemirror/lang-python').python; return _python(); },
     markdown: () => markdown({ base: markdownLanguage }),
   };
+  loaders.js = loaders.javascript;
+  loaders.py = loaders.python;
 
-  const factory = languages[lang];
-  return factory ? factory() : markdown({ base: markdownLanguage });
+  const loader = loaders[lang];
+  return loader ? loader() : markdown({ base: markdownLanguage });
 }
 
 module.exports = { createEditor, getLanguageExtension };

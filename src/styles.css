@@ -188,34 +188,6 @@ body {
     background: #666;
 }
 
-/* Preview Header */
-.preview-header {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    padding: 4px 8px;
-    background: #f6f8fa;
-    border-bottom: 1px solid #dfe2e5;
-    min-height: 32px;
-}
-
-.preview-popout-btn {
-    background: transparent;
-    border: none;
-    border-radius: 3px;
-    padding: 2px 6px;
-    cursor: pointer;
-    font-size: 11px;
-    color: #8c959f;
-    opacity: 0.5;
-    transition: all 0.2s;
-}
-
-.preview-popout-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
-    opacity: 1;
-    color: #24292f;
-}
 
 .editor-textarea {
     width: 100%;

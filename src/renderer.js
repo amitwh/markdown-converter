@@ -10,15 +10,19 @@ const DOMPurify = require('dompurify');
 const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
-const { SidebarManager } = require('./sidebar/sidebar-manager');
-const { renderTemplatesPanel } = require('./sidebar/templates-panel');
-const { renderExplorerPanel } = require('./sidebar/explorer-panel');
-const { renderGitPanel } = require('./sidebar/git-panel');
-const { renderSnippetsPanel } = require('./sidebar/snippets-panel');
-const { ReplPanel } = require('./repl/repl-panel');
-const { CommandPalette } = require('./command-palette');
-const { PrintPreview } = require('./print-preview');
-const { createWelcomeContent } = require('./welcome');
+// Lazy-loaded modules — defer heavy imports until first use
+let _SidebarManager, _renderTemplatesPanel, _renderExplorerPanel, _renderGitPanel, _renderSnippetsPanel;
+let _ReplPanel, _CommandPalette, _PrintPreview, _createWelcomeContent;
+
+function getSidebarManager() { if (!_SidebarManager) _SidebarManager = require('./sidebar/sidebar-manager').SidebarManager; return _SidebarManager; }
+function getRenderTemplatesPanel() { if (!_renderTemplatesPanel) _renderTemplatesPanel = require('./sidebar/templates-panel').renderTemplatesPanel; return _renderTemplatesPanel; }
+function getRenderExplorerPanel() { if (!_renderExplorerPanel) _renderExplorerPanel = require('./sidebar/explorer-panel').renderExplorerPanel; return _renderExplorerPanel; }
+function getRenderGitPanel() { if (!_renderGitPanel) _renderGitPanel = require('./sidebar/git-panel').renderGitPanel; return _renderGitPanel; }
+function getRenderSnippetsPanel() { if (!_renderSnippetsPanel) _renderSnippetsPanel = require('./sidebar/snippets-panel').renderSnippetsPanel; return _renderSnippetsPanel; }
+function getReplPanel() { if (!_ReplPanel) _ReplPanel = require('./repl/repl-panel').ReplPanel; return _ReplPanel; }
+function getCommandPalette() { if (!_CommandPalette) _CommandPalette = require('./command-palette').CommandPalette; return _CommandPalette; }
+function getPrintPreview() { if (!_PrintPreview) _PrintPreview = require('./print-preview').PrintPreview; return _PrintPreview; }
+function getCreateWelcomeContent() { if (!_createWelcomeContent) _createWelcomeContent = require('./welcome').createWelcomeContent; return _createWelcomeContent; }
 
 // Configure marked with highlight extension
 marked.use(markedHighlight({
@@ -192,9 +196,6 @@ class TabManager {
             </div>
             <div class="pane-resizer" id="pane-resizer-${tab.id}" title="Drag to resize"></div>
             <div id="preview-pane-${tab.id}" class="pane">
-                <div class="preview-header">
-                    <button class="preview-popout-btn" id="preview-popout-${tab.id}" title="Pop out preview in new window">⬜</button>
-                </div>
                 <div id="preview-${tab.id}" class="preview-content"></div>
             </div>
         `;
@@ -433,38 +434,29 @@ class TabManager {
                 }
             }
 
-            // Render Mermaid diagrams if Mermaid is available
-            if (window.mermaid) {
+            // Render Mermaid diagrams — lazy-load mermaid only when needed
+            const mermaidBlocks = preview.querySelectorAll('pre code.language-mermaid');
+            if (mermaidBlocks.length > 0) {
                 try {
-                    // Find all code blocks with language-mermaid class
-                    const mermaidBlocks = preview.querySelectorAll('pre code.language-mermaid');
-                    mermaidBlocks.forEach((block, index) => {
+                    // Lazy-load mermaid on first use
+                    if (!window.mermaid) {
+                        const mermaidModule = require('mermaid');
+                        window.mermaid = mermaidModule.default || mermaidModule;
+                    }
+
+                    mermaidBlocks.forEach((block) => {
                         const code = block.textContent;
                         const pre = block.parentElement;
-
-                        // Create a div for mermaid rendering
                         const mermaidDiv = document.createElement('div');
                         mermaidDiv.className = 'mermaid';
                         mermaidDiv.setAttribute('data-processed', 'true');
                         mermaidDiv.textContent = code;
-
-                        // Replace the pre element with the mermaid div
                         pre.parentElement.replaceChild(mermaidDiv, pre);
                     });
 
-                    // Initialize Mermaid with dark theme support
                     const theme = document.body.className.includes('theme-dark') ? 'dark' : 'default';
-                    mermaid.initialize({
-                        startOnLoad: false,
-                        theme: theme,
-                        securityLevel: 'loose'
-                    });
-
-                    // Render all mermaid diagrams
-                    mermaid.run({
-                        querySelector: '.mermaid:not([data-rendered])'
-                    }).then(() => {
-                        // Mark as rendered
+                    window.mermaid.initialize({ startOnLoad: false, theme, securityLevel: 'loose' });
+                    window.mermaid.run({ querySelector: '.mermaid:not([data-rendered])' }).then(() => {
                         preview.querySelectorAll('.mermaid').forEach(el => {
                             el.setAttribute('data-rendered', 'true');
                         });
@@ -1147,15 +1139,17 @@ let replPanel;
 
 document.addEventListener('DOMContentLoaded', () => {
     tabManager = new TabManager();
+    const ReplPanel = getReplPanel();
     replPanel = new ReplPanel();
 
     // Initialize sidebar
+    const SidebarManager = getSidebarManager();
     const sidebarManager = new SidebarManager();
     let explorerCurrentDir = null;
 
     sidebarManager.registerPanel('explorer', {
         title: 'Explorer',
-        render: (container) => renderExplorerPanel(container, {
+        render: (container) => getRenderExplorerPanel()(container, {
             listDirectory: (dir) => ipcRenderer.invoke('list-directory', dir),
             onFileOpen: (filePath) => ipcRenderer.send('open-file-path', filePath),
             currentDir: explorerCurrentDir,
@@ -1163,7 +1157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     sidebarManager.registerPanel('git', {
         title: 'Git',
-        render: (container) => renderGitPanel(container, {
+        render: (container) => getRenderGitPanel()(container, {
             gitStatus: () => ipcRenderer.invoke('git-status'),
             gitDiff: (file) => ipcRenderer.invoke('git-diff', { file }),
             gitStage: (files) => ipcRenderer.invoke('git-stage', { files }),
@@ -1173,7 +1167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     sidebarManager.registerPanel('snippets', {
         title: 'Snippets',
-        render: (container) => renderSnippetsPanel(container, {
+        render: (container) => getRenderSnippetsPanel()(container, {
             getSnippets: () => ipcRenderer.invoke('get-snippets'),
             saveSnippet: (s) => ipcRenderer.invoke('save-snippet', s),
             deleteSnippet: (id) => ipcRenderer.invoke('delete-snippet', id),
@@ -1182,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     sidebarManager.registerPanel('templates', {
         title: 'Templates',
-        render: (container) => renderTemplatesPanel(container, async (file) => {
+        render: (container) => getRenderTemplatesPanel()(container, async (file) => {
             const templateContent = await ipcRenderer.invoke('load-template', file);
             if (templateContent) {
                 const content = templateContent.replace(/\{\{DATE\}\}/g, new Date().toISOString().split('T')[0]);
@@ -1202,7 +1196,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Set welcome content in the first tab's preview
         const recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
-        const welcomeHtml = createWelcomeContent(recentFiles);
+        const welcomeHtml = getCreateWelcomeContent()(recentFiles);
 
         const tab = tabManager.tabs.get(tabManager.activeTabId);
         if (tab) {
@@ -1287,9 +1281,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initialize command palette
+    const CommandPalette = getCommandPalette();
     const commandPalette = new CommandPalette();
 
     // Initialize print preview
+    const PrintPreview = getPrintPreview();
     const printPreview = new PrintPreview();
 
     // Register commands
@@ -1297,10 +1293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     commandPalette.register('Open File', 'Ctrl+O', () => ipcRenderer.send('menu-open'));
     commandPalette.register('Save', 'Ctrl+S', () => {
         const content = tabManager.getCurrentContent();
-        const filePath = tabManager.getCurrentFilePath();
-        if (filePath) {
-            ipcRenderer.send('save-current-file', content);
-        }
+        ipcRenderer.send('save-current-file', content);
     });
     commandPalette.register('Toggle Preview', '', () => {
         tabManager.isPreviewVisible = !tabManager.isPreviewVisible;
@@ -1414,14 +1407,24 @@ ipcRenderer.on('file-opened', (event, data) => {
 ipcRenderer.on('file-save', () => {
     const currentContent = tabManager.getCurrentContent();
     const currentFilePath = tabManager.getCurrentFilePath();
-    if (currentFilePath) {
-        ipcRenderer.send('save-current-file', currentContent);
-    }
+    // send to main process which will save or trigger save-as dialog
+    ipcRenderer.send('save-current-file', currentContent);
 });
 
 ipcRenderer.on('get-content-for-save', (event, filePath) => {
     const currentContent = tabManager.getCurrentContent();
     ipcRenderer.send('save-file', { path: filePath, content: currentContent });
+    // Update the active tab's file path and title after save-as
+    const tab = tabManager.tabs.get(tabManager.activeTabId);
+    if (tab) {
+        tab.filePath = filePath;
+        tab.originalContent = currentContent;
+        tab.isDirty = false;
+        tab.title = filePath.split(/[/\\]/).pop();
+        tabManager.updateTabBar();
+        tabManager.updateFilePath();
+        tabManager.updateBreadcrumb();
+    }
 });
 
 ipcRenderer.on('get-content-for-spreadsheet', (event, format) => {
@@ -1527,7 +1530,8 @@ function openPrintPreviewDialog() {
         return;
     }
 
-    const printPreviewInstance = new PrintPreview();
+    const PrintPreviewClass = getPrintPreview();
+    const printPreviewInstance = new PrintPreviewClass();
     printPreviewInstance.open(previewContent.innerHTML);
 }
 
@@ -1999,6 +2003,25 @@ ipcRenderer.on('show-batch-dialog', () => {
 // Universal Converter dialog handlers
 ipcRenderer.on('show-universal-converter-dialog', () => {
     showUniversalConverterDialog();
+});
+
+// Batch converter menu items - open universal converter with batch mode and correct tool
+ipcRenderer.on('show-batch-converter', (event, type) => {
+    showUniversalConverterDialog();
+    // Map batch type to the appropriate tool
+    const toolMap = { image: 'imagemagick', audio: 'ffmpeg', video: 'ffmpeg', pdf: 'libreoffice' };
+    const tool = toolMap[type] || 'libreoffice';
+    const toolSelect = document.getElementById('converter-tool');
+    if (toolSelect) {
+        toolSelect.value = tool;
+        updateConverterFormats(tool);
+    }
+    // Enable batch mode
+    const batchToggle = document.getElementById('converter-batch-mode');
+    if (batchToggle) {
+        batchToggle.checked = true;
+        batchToggle.dispatchEvent(new Event('change'));
+    }
 });
 
 ipcRenderer.on('conversion-status', (event, status) => {
@@ -4048,195 +4071,6 @@ document.addEventListener('mouseup', () => {
     }
 });
 
-// ============================================================================
-// PREVIEW POP-OUT
-// ============================================================================
-
-let popoutWindow = null;
-
-function popoutPreview(tabId) {
-    const previewContent = document.getElementById(`preview-${tabId}`);
-
-    if (!previewContent) {
-        alert('No preview content to pop out');
-        return;
-    }
-
-    // Close existing popout if open
-    if (popoutWindow && !popoutWindow.closed) {
-        popoutWindow.close();
-    }
-
-    // Create new window
-    popoutWindow = window.open('', 'Preview Window', 'width=800,height=600,menubar=no,toolbar=no,location=no,status=no');
-
-    if (!popoutWindow) {
-        alert('Pop-up blocked! Please allow pop-ups for this application.');
-        return;
-    }
-
-    // Write content to popout window
-    const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Preview - PanConverter</title>
-            <style>
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                    padding: 20px;
-                    background: #ffffff;
-                    color: #24292f;
-                    line-height: 1.6;
-                }
-                ${getPreviewStyles()}
-            </style>
-        </head>
-        <body>
-            <div id="preview-content">
-                ${previewContent.innerHTML}
-            </div>
-            <script>
-                // Update content when parent window updates
-                window.addEventListener('message', (event) => {
-                    if (event.data.type === 'preview-update') {
-                        document.getElementById('preview-content').innerHTML = event.data.content;
-                    }
-                });
-            </script>
-        </body>
-        </html>
-    `;
-
-    popoutWindow.document.write(htmlContent);
-    popoutWindow.document.close();
-
-    // Setup auto-update
-    setupPopoutAutoUpdate(tabId);
-}
-
-function getPreviewStyles() {
-    // Extract relevant preview styles
-    return `
-        h1, h2, h3, h4, h5, h6 {
-            margin-top: 24px;
-            margin-bottom: 16px;
-            font-weight: 600;
-            line-height: 1.25;
-        }
-        h1 {
-            font-size: 2em;
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 0.3em;
-        }
-        h2 {
-            font-size: 1.5em;
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 0.3em;
-        }
-        p {
-            margin-bottom: 16px;
-        }
-        code {
-            padding: 0.2em 0.4em;
-            margin: 0;
-            font-size: 85%;
-            background-color: #f6f8fa;
-            border: 1px solid #d0d7de;
-            border-radius: 6px;
-            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
-        }
-        pre {
-            padding: 16px;
-            overflow: auto;
-            font-size: 85%;
-            line-height: 1.45;
-            background-color: #f6f8fa;
-            border: 1px solid #d0d7de;
-            border-radius: 6px;
-            margin-bottom: 16px;
-        }
-        pre code {
-            background: transparent;
-            border: none;
-            padding: 0;
-        }
-        table {
-            border-collapse: collapse;
-            margin-bottom: 16px;
-            width: 100%;
-        }
-        table th, table td {
-            padding: 6px 13px;
-            border: 1px solid #dfe2e5;
-        }
-        table th {
-            font-weight: 600;
-            background-color: #f6f8fa;
-        }
-        a {
-            color: #0366d6;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        blockquote {
-            padding: 0 1em;
-            color: #6a737d;
-            border-left: 0.25em solid #dfe2e5;
-            margin-bottom: 16px;
-        }
-        img {
-            max-width: 100%;
-            height: auto;
-        }
-        ul, ol {
-            padding-left: 2em;
-            margin-bottom: 16px;
-        }
-        li {
-            margin-bottom: 4px;
-        }
-    `;
-}
-
-function setupPopoutAutoUpdate(tabId) {
-    // Monitor for preview changes and update popout
-    const observer = new MutationObserver(() => {
-        if (popoutWindow && !popoutWindow.closed) {
-            const previewContent = document.getElementById(`preview-${tabId}`);
-            popoutWindow.postMessage({
-                type: 'preview-update',
-                content: previewContent.innerHTML
-            }, '*');
-        } else {
-            observer.disconnect();
-        }
-    });
-
-    const previewElement = document.getElementById(`preview-${tabId}`);
-    if (previewElement) {
-        observer.observe(previewElement, {
-            childList: true,
-            subtree: true,
-            characterData: true
-        });
-    }
-}
-
-// Pop-out button event listener
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('preview-popout-btn')) {
-        const tabId = e.target.id.replace('preview-popout-', '');
-        popoutPreview(tabId);
-    }
-});
 
 // ============================================
 // Insert Content from Generator Windows
@@ -4267,8 +4101,15 @@ let pdfFilePath = null;
 let isPdfViewerActive = false; // Track if PDF viewer is currently shown
 
 // Initialize PDF.js
-const pdfjsLib = require('pdfjs-dist');
-pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/build/pdf.worker.mjs');
+// Lazy-load pdfjs-dist only when PDF viewer is needed
+let _pdfjsLib;
+function getPdfjsLib() {
+    if (!_pdfjsLib) {
+        _pdfjsLib = require('pdfjs-dist');
+        _pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/build/pdf.worker.mjs');
+    }
+    return _pdfjsLib;
+}
 
 // Open PDF file
 async function openPdfFile(filePath) {
@@ -4292,7 +4133,7 @@ async function openPdfFile(filePath) {
         // Show loading state
         document.getElementById('status-text').textContent = 'Loading PDF...';
 
-        const loadingTask = pdfjsLib.getDocument(filePath);
+        const loadingTask = getPdfjsLib().getDocument(filePath);
         pdfDoc = await loadingTask.promise;
         pdfFilePath = filePath;
         pdfCurrentPage = 1;

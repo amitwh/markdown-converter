@@ -215,6 +215,9 @@ const ALLOWED_RECEIVE_CHANNELS = [
   // Insert content from generator windows
   'insert-content',
 
+  // Batch converter
+  'show-batch-converter',
+
   // v4 menu-triggered events
   'load-template-menu',
   'toggle-command-palette',

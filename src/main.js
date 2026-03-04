@@ -324,6 +324,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    show: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -333,6 +334,11 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
+
+  // Show window only after content is ready — avoids blank flash
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
 
   createMenu();
 
@@ -1815,6 +1821,91 @@ ipcMain.on('universal-convert', async (event, { tool, fromFormat, toFormat, file
       type: 'error',
       title: 'Conversion Failed',
       message: 'Universal conversion failed',
+      detail: error.message,
+      buttons: ['OK']
+    });
+  }
+});
+
+// Handle universal batch file conversion
+ipcMain.on('universal-convert-batch', async (event, { tool, fromFormat, toFormat, inputFolder, outputFolder, includeSubfolders, advancedOptions }) => {
+  if (!conversionLimiter()) {
+    mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
+    return;
+  }
+  try {
+    const toolAvailable = await checkConverterAvailable(tool);
+    if (!toolAvailable) {
+      throw new Error(`${tool} is not installed or not found in PATH. Please install it first.`);
+    }
+
+    // Collect matching files
+    const files = [];
+    function collectFiles(dir) {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory() && includeSubfolders) {
+          collectFiles(fullPath);
+        } else if (entry.isFile() && entry.name.toLowerCase().endsWith(`.${fromFormat}`)) {
+          files.push(fullPath);
+        }
+      }
+    }
+    collectFiles(inputFolder);
+
+    if (files.length === 0) {
+      mainWindow.webContents.send('conversion-complete', { success: false, error: `No .${fromFormat} files found in the selected folder.` });
+      return;
+    }
+
+    let completed = 0;
+    let failed = 0;
+
+    for (const filePath of files) {
+      const relativePath = path.relative(inputFolder, filePath);
+      const outputPath = path.join(outputFolder, relativePath.replace(/\.[^/.]+$/, `.${toFormat}`));
+
+      // Ensure output subdirectory exists
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+
+      mainWindow.webContents.send('conversion-status', `Converting ${completed + 1}/${files.length}: ${path.basename(filePath)}`);
+
+      let conversionInfo;
+      switch (tool) {
+        case 'libreoffice': conversionInfo = convertWithLibreOffice(filePath, toFormat, outputPath); break;
+        case 'imagemagick': conversionInfo = convertWithImageMagick(filePath, outputPath); break;
+        case 'ffmpeg': conversionInfo = convertWithFFmpeg(filePath, outputPath); break;
+        case 'pandoc': conversionInfo = convertWithPandoc(filePath, outputPath); break;
+        default: throw new Error(`Unknown conversion tool: ${tool}`);
+      }
+
+      await new Promise((resolve) => {
+        execFile(conversionInfo.command, conversionInfo.args, (error) => {
+          if (error) { failed++; } else { completed++; }
+          resolve();
+        });
+      });
+    }
+
+    mainWindow.webContents.send('conversion-complete', {
+      success: true,
+      outputPath: outputFolder
+    });
+
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'Batch Conversion Complete',
+      message: `Batch conversion finished!`,
+      detail: `Converted: ${completed}/${files.length} files${failed > 0 ? ` (${failed} failed)` : ''}\nOutput: ${outputFolder}`,
+      buttons: ['OK']
+    });
+  } catch (error) {
+    mainWindow.webContents.send('conversion-complete', { success: false, error: error.message });
+    dialog.showMessageBox(mainWindow, {
+      type: 'error',
+      title: 'Batch Conversion Failed',
+      message: 'Batch conversion failed',
       detail: error.message,
       buttons: ['OK']
     });
