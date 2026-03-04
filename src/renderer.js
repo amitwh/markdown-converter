@@ -12,6 +12,10 @@ const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
 const { SidebarManager } = require('./sidebar/sidebar-manager');
 const { renderTemplatesPanel } = require('./sidebar/templates-panel');
+const { renderExplorerPanel } = require('./sidebar/explorer-panel');
+const { renderGitPanel } = require('./sidebar/git-panel');
+const { renderSnippetsPanel } = require('./sidebar/snippets-panel');
+const { ReplPanel } = require('./repl/repl-panel');
 const { CommandPalette } = require('./command-palette');
 const { PrintPreview } = require('./print-preview');
 
@@ -487,6 +491,26 @@ class TabManager {
                 };
 
                 pre.parentElement.replaceChild(img, pre);
+            });
+
+            // Add Run buttons to executable code blocks (REPL)
+            const codeBlocks = preview.querySelectorAll('pre code[class*="language-"]');
+            codeBlocks.forEach(block => {
+                const lang = block.className.match(/language-(\w+)/)?.[1];
+                if (['javascript', 'js', 'python', 'py', 'bash', 'sh'].includes(lang)) {
+                    const runBtn = document.createElement('button');
+                    runBtn.className = 'code-run-btn';
+                    runBtn.textContent = '\u25B6 Run';
+                    runBtn.addEventListener('click', async () => {
+                        if (replPanel) {
+                            replPanel.show();
+                            const result = await ipcRenderer.invoke('execute-code', { code: block.textContent, language: lang });
+                            replPanel.appendOutput(`[${lang}]`, result);
+                        }
+                    });
+                    block.parentElement.style.position = 'relative';
+                    block.parentElement.appendChild(runBtn);
+                }
             });
         } catch (error) {
             console.error('Error rendering preview:', error);
@@ -1118,23 +1142,42 @@ class TabManager {
 
 // Initialize tab manager
 let tabManager;
+let replPanel;
 
 document.addEventListener('DOMContentLoaded', () => {
     tabManager = new TabManager();
+    replPanel = new ReplPanel();
 
     // Initialize sidebar
     const sidebarManager = new SidebarManager();
+    let explorerCurrentDir = null;
+
     sidebarManager.registerPanel('explorer', {
         title: 'Explorer',
-        render: (container) => { container.innerHTML = '<p style="color:#888;padding:8px;">File explorer coming soon...</p>'; }
+        render: (container) => renderExplorerPanel(container, {
+            listDirectory: (dir) => ipcRenderer.invoke('list-directory', dir),
+            onFileOpen: (filePath) => ipcRenderer.send('open-file-path', filePath),
+            currentDir: explorerCurrentDir,
+        })
     });
     sidebarManager.registerPanel('git', {
         title: 'Git',
-        render: (container) => { container.innerHTML = '<p style="color:#888;padding:8px;">Git panel coming soon...</p>'; }
+        render: (container) => renderGitPanel(container, {
+            gitStatus: () => ipcRenderer.invoke('git-status'),
+            gitDiff: (file) => ipcRenderer.invoke('git-diff', { file }),
+            gitStage: (files) => ipcRenderer.invoke('git-stage', { files }),
+            gitCommit: (message) => ipcRenderer.invoke('git-commit', { message }),
+            gitLog: () => ipcRenderer.invoke('git-log'),
+        })
     });
     sidebarManager.registerPanel('snippets', {
         title: 'Snippets',
-        render: (container) => { container.innerHTML = '<p style="color:#888;padding:8px;">Snippets coming soon...</p>'; }
+        render: (container) => renderSnippetsPanel(container, {
+            getSnippets: () => ipcRenderer.invoke('get-snippets'),
+            saveSnippet: (s) => ipcRenderer.invoke('save-snippet', s),
+            deleteSnippet: (id) => ipcRenderer.invoke('delete-snippet', id),
+            onInsert: (code) => tabManager.insertAtCursor(code),
+        })
     });
     sidebarManager.registerPanel('templates', {
         title: 'Templates',

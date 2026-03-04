@@ -97,7 +97,27 @@ const ALLOWED_SEND_CHANNELS = [
   'save-pasted-image',
 
   // Templates
-  'load-template'
+  'load-template',
+
+  // File Explorer
+  'list-directory',
+
+  // Git
+  'git-status',
+  'git-stage',
+  'git-commit',
+  'git-log',
+
+  // Snippets
+  'get-snippets',
+  'save-snippet',
+  'delete-snippet',
+
+  // Code execution (REPL)
+  'execute-code',
+
+  // File open by path
+  'open-file-path'
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [

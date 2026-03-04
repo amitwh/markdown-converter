@@ -3926,3 +3926,163 @@ ipcMain.on('insert-generated-content', (event, content) => {
     mainWindow.webContents.send('insert-content', content);
   }
 });
+
+// ============================================
+// File Explorer IPC Handlers
+// ============================================
+ipcMain.handle('list-directory', async (event, dirPath) => {
+  try {
+    if (!dirPath) {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory']
+      });
+      if (result.canceled || !result.filePaths[0]) return null;
+      dirPath = result.filePaths[0];
+    }
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+      .filter(e => !e.name.startsWith('.'))
+      .sort((a, b) => {
+        if (a.isDirectory() && !b.isDirectory()) return -1;
+        if (!a.isDirectory() && b.isDirectory()) return 1;
+        return a.name.localeCompare(b.name);
+      })
+      .map(e => ({
+        name: e.name,
+        isDirectory: e.isDirectory(),
+        path: path.join(dirPath, e.name)
+      }));
+    return { path: dirPath, entries };
+  } catch (err) {
+    console.error('list-directory error:', err);
+    return null;
+  }
+});
+
+// Open a file by path (from explorer panel)
+ipcMain.on('open-file-path', (event, filePath) => {
+  try {
+    if (!fs.existsSync(filePath)) return;
+    const stat = fs.statSync(filePath);
+    if (stat.size > MAX_FILE_SIZE) return;
+    currentFile = filePath;
+    const content = fs.readFileSync(filePath, 'utf-8');
+    mainWindow.webContents.send('file-opened', { path: filePath, content });
+  } catch (err) {
+    console.error('open-file-path error:', err);
+  }
+});
+
+// ============================================
+// Git IPC Handlers
+// ============================================
+const simpleGit = require('simple-git');
+
+function getGitRepo() {
+  // Use the directory of the current file, or the app's working directory
+  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
+  return simpleGit(dir);
+}
+
+ipcMain.handle('git-status', async () => {
+  try {
+    const git = getGitRepo();
+    return await git.status();
+  } catch (err) {
+    return { error: 'Not a git repository' };
+  }
+});
+
+ipcMain.handle('git-stage', async (event, { files }) => {
+  try {
+    const git = getGitRepo();
+    await git.add(files);
+    return await git.status();
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('git-commit', async (event, { message }) => {
+  try {
+    const git = getGitRepo();
+    return await git.commit(message);
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('git-log', async () => {
+  try {
+    const git = getGitRepo();
+    return await git.log({ maxCount: 20 });
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// ============================================
+// Snippets IPC Handlers
+// ============================================
+const snippetsPath = path.join(app.getPath('userData'), 'snippets.json');
+
+function loadSnippets() {
+  try {
+    if (fs.existsSync(snippetsPath)) {
+      return JSON.parse(fs.readFileSync(snippetsPath, 'utf-8'));
+    }
+  } catch (err) { console.error('Failed to load snippets:', err); }
+  return [];
+}
+
+function saveSnippetsFile(snippets) {
+  fs.writeFileSync(snippetsPath, JSON.stringify(snippets, null, 2));
+}
+
+ipcMain.handle('get-snippets', async () => loadSnippets());
+
+ipcMain.handle('save-snippet', async (event, snippet) => {
+  const snippets = loadSnippets();
+  const existing = snippets.findIndex(s => s.id === snippet.id);
+  if (existing >= 0) snippets[existing] = snippet;
+  else snippets.push(snippet);
+  saveSnippetsFile(snippets);
+  return snippets;
+});
+
+ipcMain.handle('delete-snippet', async (event, id) => {
+  const snippets = loadSnippets().filter(s => s.id !== id);
+  saveSnippetsFile(snippets);
+  return snippets;
+});
+
+// ============================================
+// Code Execution (REPL) IPC Handler
+// ============================================
+ipcMain.handle('execute-code', async (event, { code, language }) => {
+  const timeout = 10000;
+
+  return new Promise((resolve) => {
+    let cmd, args;
+    if (language === 'javascript' || language === 'js') {
+      cmd = 'node';
+      args = ['-e', code];
+    } else if (language === 'python' || language === 'py') {
+      cmd = process.platform === 'win32' ? 'python' : 'python3';
+      args = ['-c', code];
+    } else if (language === 'bash' || language === 'sh') {
+      cmd = process.platform === 'win32' ? 'cmd' : 'bash';
+      args = process.platform === 'win32' ? ['/c', code] : ['-c', code];
+    } else {
+      resolve({ error: `Unsupported language: ${language}` });
+      return;
+    }
+
+    execFile(cmd, args, { timeout, maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
+      resolve({
+        stdout: stdout || '',
+        stderr: stderr || '',
+        error: err?.killed ? 'Execution timed out (10s limit)' : (err?.message || null)
+      });
+    });
+  });
+});
