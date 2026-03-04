@@ -59,7 +59,7 @@ global.window.electronAPI = {
 // Mock marked library
 global.window.marked = {
   parse: jest.fn((text) => `<p>${text}</p>`),
-  setOptions: jest.fn()
+  use: jest.fn()
 };
 
 // Mock DOMPurify

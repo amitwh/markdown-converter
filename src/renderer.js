@@ -5,11 +5,12 @@
 
 const { ipcRenderer } = require('electron');
 const marked = require('marked');
+const { markedHighlight } = require('marked-highlight');
 const DOMPurify = require('dompurify');
 const hljs = require('highlight.js');
 
-// Configure marked
-marked.setOptions({
+// Configure marked with highlight extension
+marked.use(markedHighlight({
     highlight: function(code, lang) {
         if (lang && hljs.getLanguage(lang)) {
             try {
@@ -19,7 +20,10 @@ marked.setOptions({
             }
         }
         return hljs.highlightAuto(code).value;
-    },
+    }
+}));
+
+marked.use({
     breaks: true,
     gfm: true
 });
