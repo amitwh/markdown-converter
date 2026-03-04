@@ -165,6 +165,9 @@ class TabManager {
                     this.updateWordCount();
                     this.updateTabBar();
                 },
+                onUpdate: (view) => {
+                    this.updateCursorPosition(view);
+                },
                 isDark,
                 showLineNumbers: this.showLineNumbers,
             });
@@ -183,7 +186,14 @@ class TabManager {
         this.updateUI();
         this.restoreTabState(tabId);
         this.focusActiveEditor();
-        
+        this.updateFilePath();
+
+        // Update cursor position for the newly active tab
+        const tabForCursor = this.tabs.get(tabId);
+        if (tabForCursor?.editorView) {
+            this.updateCursorPosition(tabForCursor.editorView);
+        }
+
         // Notify main process about current file for exports
         const tab = this.tabs.get(tabId);
         if (tab?.filePath) {
@@ -417,29 +427,28 @@ class TabManager {
         const content = tab.content;
         const words = content.trim() ? content.trim().split(/\s+/).filter(word => word.length > 0).length : 0;
         const chars = content.length;
-        const charsNoSpaces = content.replace(/\s/g, '').length;
 
-        // Enhanced statistics
-        const lines = content.split('\n').length;
-        const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim()).length;
-        const readingTime = Math.ceil(words / 200); // Average reading speed: 200 words/minute
-        const sentences = content.split(/[.!?]+/).filter(s => s.trim()).length;
+        const wordEl = document.getElementById('word-count');
+        const charEl = document.getElementById('char-count');
+        if (wordEl) wordEl.textContent = `Words: ${words}`;
+        if (charEl) charEl.textContent = `Chars: ${chars}`;
+    }
 
-        // Update the word count display with enhanced stats
-        const basicStats = `Words: ${words} | Characters: ${chars} (${charsNoSpaces} no spaces)`;
-        const enhancedStats = `Lines: ${lines} | Paragraphs: ${paragraphs} | Sentences: ${sentences} | Reading time: ${readingTime} min`;
+    updateCursorPosition(view) {
+        if (!view) return;
+        const pos = view.state.selection.main.head;
+        const line = view.state.doc.lineAt(pos);
+        const lineCol = document.getElementById('line-col');
+        if (lineCol) lineCol.textContent = `Ln ${line.number}, Col ${pos - line.from + 1}`;
+    }
 
-        document.getElementById('word-count').textContent = basicStats;
-
-        // Add enhanced stats to a separate element
-        let enhancedEl = document.getElementById('enhanced-stats');
-        if (!enhancedEl) {
-            enhancedEl = document.createElement('div');
-            enhancedEl.id = 'enhanced-stats';
-            enhancedEl.className = 'enhanced-stats';
-            document.querySelector('.status-bar').appendChild(enhancedEl);
+    updateFilePath() {
+        const tab = this.tabs.get(this.activeTabId);
+        const el = document.getElementById('status-file-path');
+        if (el && tab) {
+            el.textContent = tab.filePath || 'Untitled';
+            el.title = tab.filePath || '';
         }
-        enhancedEl.textContent = enhancedStats;
     }
     
     setupEditorEvents() {
@@ -931,6 +940,7 @@ class TabManager {
         this.startAutoSave();
         this.addToRecentFiles(filePath);
         this.updateTabBar();
+        this.updateFilePath();
 
         // Notify main process about current file for exports
         ipcRenderer.send('set-current-file', filePath);
@@ -1039,6 +1049,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 tabManager.updatePreview(tab.id);
                 tabManager.updateWordCount();
                 tabManager.updateTabBar();
+            },
+            onUpdate: (view) => {
+                tabManager.updateCursorPosition(view);
             },
             isDark,
             showLineNumbers: tabManager.showLineNumbers,

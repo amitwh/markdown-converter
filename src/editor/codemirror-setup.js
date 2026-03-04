@@ -43,6 +43,7 @@ const { oneDark } = require('@codemirror/theme-one-dark');
  * @param {Object}  options
  * @param {string}  options.content          - initial document content (default '')
  * @param {Function} options.onChange        - called with new content string on every doc change
+ * @param {Function} options.onUpdate       - called with the EditorView on every update (selection, doc change, etc.)
  * @param {boolean} options.isDark           - apply oneDark theme when true (default false)
  * @param {boolean} options.showLineNumbers  - show line-number gutter (default true)
  * @returns {EditorView} the created editor view
@@ -51,6 +52,7 @@ function createEditor(parentElement, options = {}) {
   const {
     content = '',
     onChange = () => {},
+    onUpdate = null,
     isDark = false,
     showLineNumbers = true,
   } = options;
@@ -75,6 +77,9 @@ function createEditor(parentElement, options = {}) {
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         onChange(update.state.doc.toString());
+      }
+      if (onUpdate && (update.docChanged || update.selectionSet)) {
+        onUpdate(update.view);
       }
     }),
     EditorView.lineWrapping,
