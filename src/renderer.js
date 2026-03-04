@@ -33,6 +33,39 @@ marked.use({
     gfm: true
 });
 
+// Footnotes support
+const markedFootnote = require('marked-footnote');
+marked.use(markedFootnote());
+
+// Admonitions support (:::note, :::warning, :::tip, :::danger, :::info)
+marked.use({
+    extensions: [{
+        name: 'admonition',
+        level: 'block',
+        start(src) { return src.match(/^:::(note|warning|tip|danger|info)/m)?.index; },
+        tokenizer(src) {
+            const match = src.match(/^:::(note|warning|tip|danger|info)\s*\n([\s\S]*?)^:::\s*$/m);
+            if (match) {
+                return {
+                    type: 'admonition',
+                    raw: match[0],
+                    admonitionType: match[1],
+                    text: match[2].trim()
+                };
+            }
+        },
+        renderer(token) {
+            const icons = { note: '\u2139', warning: '\u26A0', tip: '\uD83D\uDCA1', danger: '\uD83D\uDD34', info: '\u2139' };
+            const icon = icons[token.admonitionType] || '\u2139';
+            const inner = this.parser.parse(token.text);
+            return `<div class="admonition admonition-${token.admonitionType}">
+                <div class="admonition-title">${icon} ${token.admonitionType.charAt(0).toUpperCase() + token.admonitionType.slice(1)}</div>
+                <div class="admonition-content">${inner}</div>
+            </div>`;
+        }
+    }]
+});
+
 // Tab Management
 class TabManager {
     constructor() {
@@ -337,7 +370,37 @@ class TabManager {
                 return;
             }
             const html = marked.parse(tab.content);
-            const sanitizedHtml = DOMPurify.sanitize(html);
+            let sanitizedHtml = DOMPurify.sanitize(html);
+
+            // TOC generation
+            if (sanitizedHtml.includes('[[toc]]') || sanitizedHtml.includes('[TOC]')) {
+                const headingRegex = /<h([1-6])[^>]*>(.*?)<\/h[1-6]>/gi;
+                let tocMatch;
+                const toc = [];
+                const tempHtml = sanitizedHtml;
+                while ((tocMatch = headingRegex.exec(tempHtml)) !== null) {
+                    const level = parseInt(tocMatch[1]);
+                    const text = tocMatch[2].replace(/<[^>]+>/g, '');
+                    const id = text.toLowerCase().replace(/[^\w]+/g, '-');
+                    toc.push({ level, text, id });
+                }
+
+                if (toc.length > 0) {
+                    const tocHtml = '<nav class="toc"><h2>Table of Contents</h2><ul>' +
+                        toc.map(h => `<li class="toc-h${h.level}"><a href="#${h.id}">${h.text}</a></li>`).join('') +
+                        '</ul></nav>';
+                    sanitizedHtml = sanitizedHtml.replace(/\[\[toc\]\]|\[TOC\]/gi, tocHtml);
+
+                    // Add IDs to headings for anchor links
+                    toc.forEach(h => {
+                        sanitizedHtml = sanitizedHtml.replace(
+                            new RegExp(`(<h${h.level}[^>]*)>`, 'i'),
+                            `$1 id="${h.id}">`
+                        );
+                    });
+                }
+            }
+
             preview.innerHTML = sanitizedHtml;
 
             // Render math expressions if KaTeX is available

@@ -4009,5 +4009,43 @@ body.theme-github .mermaid {
     border-color: #e1e4e8;
 }
 
+/* Task List Styles */
+.preview-content input[type="checkbox"] {
+    margin-right: 6px;
+    pointer-events: none;
+}
+.preview-content li.task-list-item {
+    list-style: none;
+    margin-left: -20px;
+}
+
+/* Admonition Styles */
+.admonition {
+    border-left: 4px solid;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 16px 0;
+}
+.admonition-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+.admonition-note, .admonition-info { border-color: #3b82f6; background: #eff6ff; }
+.admonition-warning { border-color: #f59e0b; background: #fffbeb; }
+.admonition-tip { border-color: #10b981; background: #ecfdf5; }
+.admonition-danger { border-color: #ef4444; background: #fef2f2; }
+
+/* TOC Styles */
+.toc { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0; }
+.toc h2 { font-size: 14px; margin-bottom: 8px; }
+.toc ul { list-style: none; padding: 0; }
+.toc li { padding: 2px 0; }
+.toc .toc-h1 { padding-left: 0; }
+.toc .toc-h2 { padding-left: 16px; }
+.toc .toc-h3 { padding-left: 32px; }
+.toc .toc-h4 { padding-left: 48px; }
+.toc a { color: #5661b3; text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+
 /* Command Palette Styles */
 /* Command Palette styles moved to styles-modern.css */
