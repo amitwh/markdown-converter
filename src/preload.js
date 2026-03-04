@@ -9,7 +9,7 @@
  * - All IPC channels are explicitly whitelisted
  * - Prevents XSS from escalating to full system access
  *
- * @version 2.2.0
+ * @version 4.0.0
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
@@ -117,7 +117,17 @@ const ALLOWED_SEND_CHANNELS = [
   'execute-code',
 
   // File open by path
-  'open-file-path'
+  'open-file-path',
+
+  // PDF editor from toolbar
+  'show-pdf-editor-from-toolbar',
+
+  // Menu triggers
+  'menu-open',
+  'export',
+
+  // Git diff
+  'git-diff'
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [
