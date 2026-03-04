@@ -10,6 +10,7 @@ const DOMPurify = require('dompurify');
 const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
+const { SidebarManager } = require('./sidebar/sidebar-manager');
 
 // Configure marked with highlight extension
 marked.use(markedHighlight({
@@ -1005,6 +1006,25 @@ let tabManager;
 
 document.addEventListener('DOMContentLoaded', () => {
     tabManager = new TabManager();
+
+    // Initialize sidebar
+    const sidebarManager = new SidebarManager();
+    sidebarManager.registerPanel('explorer', {
+        title: 'Explorer',
+        render: (container) => { container.innerHTML = '<p style="color:#888;padding:8px;">File explorer coming soon...</p>'; }
+    });
+    sidebarManager.registerPanel('git', {
+        title: 'Git',
+        render: (container) => { container.innerHTML = '<p style="color:#888;padding:8px;">Git panel coming soon...</p>'; }
+    });
+    sidebarManager.registerPanel('snippets', {
+        title: 'Snippets',
+        render: (container) => { container.innerHTML = '<p style="color:#888;padding:8px;">Snippets coming soon...</p>'; }
+    });
+    sidebarManager.registerPanel('templates', {
+        title: 'Templates',
+        render: (container) => { container.innerHTML = '<p style="color:#888;padding:8px;">Templates coming soon...</p>'; }
+    });
 
     // Initialize CodeMirror for the initial tab (tab 1)
     const editorContainer = document.getElementById('editor-cm-1');
