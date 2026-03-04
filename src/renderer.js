@@ -4182,7 +4182,7 @@ let isPdfViewerActive = false; // Track if PDF viewer is currently shown
 
 // Initialize PDF.js
 const pdfjsLib = require('pdfjs-dist');
-pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/build/pdf.worker.js');
+pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/build/pdf.worker.mjs');
 
 // Open PDF file
 async function openPdfFile(filePath) {
