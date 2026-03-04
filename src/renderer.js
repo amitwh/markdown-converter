@@ -9,6 +9,7 @@ const { markedHighlight } = require('marked-highlight');
 const DOMPurify = require('dompurify');
 const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
+const { undo, redo } = require('@codemirror/commands');
 
 // Configure marked with highlight extension
 marked.use(markedHighlight({
@@ -461,27 +462,6 @@ class TabManager {
         this.updateTabBar();
     }
     
-    pushUndoState(tabId) {
-        // CodeMirror has built-in history — this is now a no-op.
-        // Kept as a stub for any remaining callers.
-    }
-
-    undo() {
-        // CodeMirror handles undo via its built-in history extension.
-        // This stub is kept for the IPC handler; Task 9 will wire it properly.
-        const tab = this.tabs.get(this.activeTabId);
-        if (!tab?.editorView) return;
-        // CodeMirror's Ctrl+Z keybinding handles undo automatically.
-    }
-
-    redo() {
-        // CodeMirror handles redo via its built-in history extension.
-        // This stub is kept for the IPC handler; Task 9 will wire it properly.
-        const tab = this.tabs.get(this.activeTabId);
-        if (!tab?.editorView) return;
-        // CodeMirror's Ctrl+Shift+Z / Ctrl+Y keybinding handles redo automatically.
-    }
-
     // Auto-save functionality
     startAutoSave() {
         if (this.autoSaveInterval) {
@@ -1116,16 +1096,22 @@ ipcRenderer.on('theme-changed', (event, theme) => {
     });
 });
 
-// Undo/Redo handlers
+// Undo/Redo handlers — delegate to CodeMirror's built-in history
 ipcRenderer.on('undo', () => {
     if (tabManager) {
-        tabManager.undo();
+        const tab = tabManager.tabs.get(tabManager.activeTabId);
+        if (tab?.editorView) {
+            undo(tab.editorView);
+        }
     }
 });
 
 ipcRenderer.on('redo', () => {
     if (tabManager) {
-        tabManager.redo();
+        const tab = tabManager.tabs.get(tabManager.activeTabId);
+        if (tab?.editorView) {
+            redo(tab.editorView);
+        }
     }
 });
 
@@ -3032,8 +3018,8 @@ const commands = [
     { name: 'Find & Replace', action: () => showFindDialog(), shortcut: 'Ctrl+F' },
     { name: 'New Tab', action: () => tabManager.createTab(), shortcut: 'Ctrl+T' },
     { name: 'Close Tab', action: () => tabManager.closeTab(tabManager.activeTabId), shortcut: 'Ctrl+W' },
-    { name: 'Undo', action: () => tabManager.undo(), shortcut: 'Ctrl+Z' },
-    { name: 'Redo', action: () => tabManager.redo(), shortcut: 'Ctrl+Shift+Z' },
+    { name: 'Undo', action: () => { const tab = tabManager.tabs.get(tabManager.activeTabId); if (tab?.editorView) undo(tab.editorView); }, shortcut: 'Ctrl+Z' },
+    { name: 'Redo', action: () => { const tab = tabManager.tabs.get(tabManager.activeTabId); if (tab?.editorView) redo(tab.editorView); }, shortcut: 'Ctrl+Shift+Z' },
     { name: 'Bold', action: () => insertMarkdown('**', '**'), shortcut: 'Ctrl+B' },
     { name: 'Italic', action: () => insertMarkdown('*', '*'), shortcut: 'Ctrl+I' },
     { name: 'Heading 1', action: () => insertMarkdown('# ', ''), shortcut: '' },
