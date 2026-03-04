@@ -50,6 +50,31 @@ function safeExecFile(command, args, options = {}) {
   });
 }
 
+// File size validation
+const MAX_FILE_SIZE_MB = 50;
+const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+// Sanitize error messages to strip absolute file paths
+function sanitizeErrorMessage(message) {
+    if (typeof message !== 'string') return String(message);
+    // Strip absolute Windows paths, keeping only filename
+    return message
+        .replace(/[A-Z]:\\[^\s"']+\\([^\s"'\\]+)/gi, '$1')
+        .replace(/\/[^\s"']+\/([^\s"'/]+)/g, '$1');
+}
+
+// Rate limiter for conversions
+function createRateLimiter(minIntervalMs = 2000) {
+    let lastCall = 0;
+    return function canProceed() {
+        const now = Date.now();
+        if (now - lastCall < minIntervalMs) return false;
+        lastCall = now;
+        return true;
+    };
+}
+const conversionLimiter = createRateLimiter(2000);
+
 /**
  * Run Pandoc command safely with execFile
  * @param {string[]} args - Pandoc arguments array
@@ -321,11 +346,16 @@ function buildRecentFilesMenu() {
     label: filePath.split(/[\\/]/).pop(), // Get filename only
     click: () => {
       if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        if (stats.size > MAX_FILE_SIZE) {
+            dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+            return;
+        }
         currentFile = filePath;
         const content = fs.readFileSync(filePath, 'utf-8');
         mainWindow.webContents.send('file-opened', { path: filePath, content });
       } else {
-        dialog.showErrorBox('File Not Found', `The file "${filePath}" could not be found.`);
+        dialog.showErrorBox('File Not Found', sanitizeErrorMessage(`The file "${filePath}" could not be found.`));
       }
     },
     toolTip: filePath // Show full path in tooltip
@@ -945,6 +975,11 @@ function openPDFFile() {
   });
 
   if (files && files[0]) {
+    const stats = fs.statSync(files[0]);
+    if (stats.size > MAX_FILE_SIZE) {
+        dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+        return;
+    }
     mainWindow.webContents.send('open-pdf-viewer', files[0]);
   }
 }
@@ -959,6 +994,11 @@ function openFile() {
   });
 
   if (files && files[0]) {
+    const stats = fs.statSync(files[0]);
+    if (stats.size > MAX_FILE_SIZE) {
+        dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+        return;
+    }
     currentFile = files[0];
     const content = fs.readFileSync(currentFile, 'utf-8');
     mainWindow.webContents.send('file-opened', { path: currentFile, content });
@@ -975,6 +1015,11 @@ function openPdfFile() {
   });
 
   if (files && files[0]) {
+    const stats = fs.statSync(files[0]);
+    if (stats.size > MAX_FILE_SIZE) {
+        dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+        return;
+    }
     mainWindow.webContents.send('open-pdf-file', files[0]);
   }
 }
@@ -1158,7 +1203,7 @@ ipcMain.on('browse-header-footer-logo', async (event, position) => {
     }
   } catch (error) {
     console.error('Logo browse error:', error);
-    dialog.showErrorBox('Logo Error', `Failed to select logo: ${error.message}`);
+    dialog.showErrorBox('Logo Error', sanitizeErrorMessage(`Failed to select logo: ${error.message}`));
   }
 });
 
@@ -1180,7 +1225,7 @@ ipcMain.on('save-header-footer-logo', async (event, { position, filePath }) => {
 
     // Verify source file exists
     if (!fs.existsSync(filePath)) {
-      dialog.showErrorBox('Logo Error', `Source file not found: ${filePath}`);
+      dialog.showErrorBox('Logo Error', sanitizeErrorMessage(`Source file not found: ${filePath}`));
       return;
     }
 
@@ -1202,7 +1247,7 @@ ipcMain.on('save-header-footer-logo', async (event, { position, filePath }) => {
     event.reply('header-footer-logo-saved', { position, path: destPath });
   } catch (error) {
     console.error('Logo save error:', error);
-    dialog.showErrorBox('Logo Error', `Failed to save logo: ${error.message}`);
+    dialog.showErrorBox('Logo Error', sanitizeErrorMessage(`Failed to save logo: ${error.message}`));
   }
 });
 
@@ -1457,7 +1502,7 @@ async function exportWordWithTemplate() {
     });
 
   } catch (error) {
-    dialog.showErrorBox('Export Error', `Failed to export document: ${error.message}`);
+    dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export document: ${error.message}`));
   }
 }
 
@@ -1505,7 +1550,7 @@ async function exportPDFViaWordTemplate() {
 
       if (error) {
         dialog.showErrorBox('PDF Conversion Error',
-          `Failed to convert to PDF. Please ensure LibreOffice is installed.\n\nError: ${error.message}`);
+          sanitizeErrorMessage(`Failed to convert to PDF. Please ensure LibreOffice is installed.\n\nError: ${error.message}`));
         return;
       }
 
@@ -1530,7 +1575,7 @@ async function exportPDFViaWordTemplate() {
     });
 
   } catch (error) {
-    dialog.showErrorBox('Export Error', `Failed to export PDF: ${error.message}`);
+    dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export PDF: ${error.message}`));
   }
 }
 
@@ -1579,6 +1624,10 @@ function checkConverterAvailable(tool) {
 
 // Handle universal file conversion
 ipcMain.on('universal-convert', async (event, { tool, fromFormat, toFormat, filePath }) => {
+  if (!conversionLimiter()) {
+    mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
+    return;
+  }
   try {
     mainWindow.webContents.send('conversion-status', 'Checking converter availability...');
 
@@ -1857,7 +1906,7 @@ function performExportWithOptions(format, options) {
     }
   }).catch((error) => {
     console.error('Error checking pandoc availability:', error);
-    dialog.showErrorBox('Export Error', `Error checking system requirements: ${error.message}`);
+    dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Error checking system requirements: ${error.message}`));
   });
 }
 
@@ -1967,7 +2016,7 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
 
       errorMessage += `\n\nCommand used: ${pandocCmd}`;
 
-      dialog.showErrorBox('Export Error', errorMessage);
+      dialog.showErrorBox('Export Error', sanitizeErrorMessage(errorMessage));
     } else {
       console.log(`Successfully exported to ${format}:`, outputFile);
       console.log(`Pandoc stdout:`, stdout);
@@ -2159,7 +2208,7 @@ function exportToHTML(outputFile) {
     showExportSuccess(outputFile);
   } catch (error) {
     console.error('HTML export error:', error);
-    dialog.showErrorBox('HTML Export Error', `Failed to export HTML: ${error.message}`);
+    dialog.showErrorBox('HTML Export Error', sanitizeErrorMessage(`Failed to export HTML: ${error.message}`));
   }
 }
 
@@ -2290,14 +2339,14 @@ function exportToPDFElectron(outputFile) {
     }).catch((error) => {
       pdfWindow.close();
       console.error('Electron PDF export error:', error);
-      dialog.showErrorBox('PDF Export Error', 
-        `Failed to export PDF using built-in engine: ${error.message}\n\n` +
-        `For better PDF export, please install Pandoc with LaTeX support.`
+      dialog.showErrorBox('PDF Export Error',
+        sanitizeErrorMessage(`Failed to export PDF using built-in engine: ${error.message}\n\n` +
+        `For better PDF export, please install Pandoc with LaTeX support.`)
       );
     });
   } catch (error) {
     console.error('PDF export setup error:', error);
-    dialog.showErrorBox('PDF Export Error', `Failed to setup PDF export: ${error.message}`);
+    dialog.showErrorBox('PDF Export Error', sanitizeErrorMessage(`Failed to setup PDF export: ${error.message}`));
   }
 }
 
@@ -2330,6 +2379,11 @@ function importDocument() {
 
   if (files && files[0]) {
     const inputFile = files[0];
+    const stats = fs.statSync(inputFile);
+    if (stats.size > MAX_FILE_SIZE) {
+        dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+        return;
+    }
     const ext = path.extname(inputFile).toLowerCase().slice(1);
     const outputFile = inputFile.replace(/\.[^/.]+$/, '.md');
 
@@ -2356,7 +2410,7 @@ function importDocument() {
 
     runPandocCmd(pandocCmd, (error, stdout, stderr) => {
       if (error) {
-        dialog.showErrorBox('Import Error', `Failed to import: ${error.message}\n\nMake sure Pandoc is installed.\n\nSupported formats: DOCX, ODT, RTF, HTML, LaTeX, EPUB, PDF, PPTX, ODP, RST, Textile, MediaWiki, Org-mode, AsciiDoc, CSV, and more.`);
+        dialog.showErrorBox('Import Error', sanitizeErrorMessage(`Failed to import: ${error.message}\n\nMake sure Pandoc is installed.\n\nSupported formats: DOCX, ODT, RTF, HTML, LaTeX, EPUB, PDF, PPTX, ODP, RST, Textile, MediaWiki, Org-mode, AsciiDoc, CSV, and more.`));
       } else {
         // Open the converted markdown file
         currentFile = outputFile;
@@ -2441,11 +2495,19 @@ ipcMain.on('renderer-ready', (event) => {
 
 // Handle export with options
 ipcMain.on('export-with-options', (event, { format, options }) => {
+  if (!conversionLimiter()) {
+    mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
+    return;
+  }
   performExportWithOptions(format, options);
 });
 
 // Handle batch conversion
 ipcMain.on('batch-convert', (event, { inputFolder, outputFolder, format, options }) => {
+  if (!conversionLimiter()) {
+    mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
+    return;
+  }
   performBatchConversion(inputFolder, outputFolder, format, options);
 });
 
@@ -2506,7 +2568,7 @@ ipcMain.on('export-spreadsheet', (event, { content, format }) => {
         buttons: ['OK']
       });
     } catch (error) {
-      dialog.showErrorBox('Export Error', `Failed to export: ${error.message}`);
+      dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export: ${error.message}`));
     }
   }
 });
@@ -2564,7 +2626,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
     try {
       fs.mkdirSync(outputFolder, { recursive: true });
     } catch (error) {
-      dialog.showErrorBox('Error', `Failed to create output folder: ${error.message}`);
+      dialog.showErrorBox('Error', sanitizeErrorMessage(`Failed to create output folder: ${error.message}`));
       return;
     }
   }
@@ -3192,6 +3254,11 @@ function openFileFromPath(filePath) {
   console.log('[MAIN] openFileFromPath called with:', filePath);
   console.log('[MAIN] rendererReady:', rendererReady, 'mainWindow exists:', !!mainWindow);
   if (fs.existsSync(filePath)) {
+    const stats = fs.statSync(filePath);
+    if (stats.size > MAX_FILE_SIZE) {
+        dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+        return;
+    }
     currentFile = filePath;
     const content = fs.readFileSync(filePath, 'utf-8');
     console.log('[MAIN] File read successfully, content length:', content.length);
