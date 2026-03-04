@@ -3880,6 +3880,35 @@ ipcMain.on('open-table-generator', () => {
   openTableGenerator();
 });
 
+// IPC Handler for saving pasted/dropped images
+ipcMain.handle('save-pasted-image', async (event, { base64, ext }) => {
+  try {
+    let saveDir;
+
+    if (currentFile) {
+      // Save relative to current file
+      saveDir = path.join(path.dirname(currentFile), 'assets');
+    } else {
+      // Use temp directory
+      saveDir = path.join(app.getPath('temp'), 'markdown-converter-images');
+    }
+
+    if (!fs.existsSync(saveDir)) {
+      fs.mkdirSync(saveDir, { recursive: true });
+    }
+
+    const filename = `image-${Date.now()}.${ext}`;
+    const filePath = path.join(saveDir, filename);
+    const buffer = Buffer.from(base64, 'base64');
+    fs.writeFileSync(filePath, buffer);
+
+    return { relativePath: `assets/${filename}`, absolutePath: filePath };
+  } catch (error) {
+    console.error('Failed to save pasted image:', error);
+    return null;
+  }
+});
+
 // IPC Handler to receive generated content from generator windows
 ipcMain.on('insert-generated-content', (event, content) => {
   if (mainWindow && !mainWindow.isDestroyed()) {

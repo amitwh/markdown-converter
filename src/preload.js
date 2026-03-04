@@ -91,7 +91,10 @@ const ALLOWED_SEND_CHANNELS = [
   'open-table-generator',
 
   // Insert generated content
-  'insert-generated-content'
+  'insert-generated-content',
+
+  // Image paste/drop
+  'save-pasted-image'
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [

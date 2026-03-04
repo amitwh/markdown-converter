@@ -1112,6 +1112,53 @@ document.addEventListener('DOMContentLoaded', () => {
         render: (container) => { container.innerHTML = '<p style="color:#888;padding:8px;">Templates coming soon...</p>'; }
     });
 
+    // Image paste handler
+    document.addEventListener('paste', async (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                e.preventDefault();
+                const blob = item.getAsFile();
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    const base64 = reader.result.split(',')[1];
+                    const ext = item.type.split('/')[1] === 'png' ? 'png' : 'jpg';
+                    const result = await ipcRenderer.invoke('save-pasted-image', { base64, ext });
+                    if (result?.relativePath) {
+                        tabManager.insertAtCursor(`![image](${result.relativePath})\n`);
+                    }
+                };
+                reader.readAsDataURL(blob);
+                break;
+            }
+        }
+    });
+
+    // Drag and drop images
+    const editorContainer = document.querySelector('.editor-container');
+    editorContainer?.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    });
+    editorContainer?.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+        for (const file of files) {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const base64 = reader.result.split(',')[1];
+                const ext = file.name.split('.').pop() || 'png';
+                const result = await ipcRenderer.invoke('save-pasted-image', { base64, ext });
+                if (result?.relativePath) {
+                    tabManager.insertAtCursor(`![${file.name}](${result.relativePath})\n`);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
     // Initialize command palette
     const commandPalette = new CommandPalette();
 
