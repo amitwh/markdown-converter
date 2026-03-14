@@ -103,6 +103,11 @@
     color: var(--gray-600, #4b5563);
 }
 
+.sidebar-panel-close:focus-visible {
+    outline: 2px solid var(--primary-dark, #5661b3);
+    outline-offset: 2px;
+}
+
 .sidebar-panel-content {
     flex: 1;
     overflow-y: auto;
