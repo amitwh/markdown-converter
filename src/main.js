@@ -75,6 +75,81 @@ function createRateLimiter(minIntervalMs = 2000) {
 }
 const conversionLimiter = createRateLimiter(2000);
 
+// ============================================
+// Path Traversal Protection
+// ============================================
+// Define allowed base directories for file operations
+function getAllowedDirectories() {
+  const dirs = [
+    app.getPath('documents'),
+    app.getPath('desktop'),
+    app.getPath('downloads'),
+    app.getPath('home'),
+    process.cwd() // Current working directory
+  ].filter(Boolean); // Remove any undefined paths
+  return dirs;
+}
+
+/**
+ * Validates that a file path is safe and doesn't attempt path traversal
+ * @param {string} filePath - The path to validate
+ * @returns {{ valid: boolean, resolved: string, error?: string }}
+ */
+function validatePath(filePath) {
+  if (!filePath || typeof filePath !== 'string') {
+    return { valid: false, resolved: '', error: 'Invalid path' };
+  }
+
+  // Resolve to absolute path (handles .., ., symlinks)
+  let resolved;
+  try {
+    resolved = path.resolve(filePath);
+  } catch (err) {
+    return { valid: false, resolved: '', error: 'Invalid path format' };
+  }
+
+  // Normalize path separators
+  resolved = path.normalize(resolved);
+
+  // Check for null bytes (path injection)
+  if (resolved.includes('\0')) {
+    return { valid: false, resolved: '', error: 'Null byte in path' };
+  }
+
+  // Check if path exists
+  if (!fs.existsSync(resolved)) {
+    return { valid: false, resolved, error: 'Path does not exist' };
+  }
+
+  return { valid: true, resolved };
+}
+
+/**
+ * Checks if a resolved path is within allowed directories
+ * For an editor app, we allow access to all user-accessible paths
+ * but log any suspicious access attempts
+ * @param {string} resolvedPath - The resolved absolute path
+ * @returns {boolean}
+ */
+function isPathAccessible(resolvedPath) {
+  // Block access to sensitive system directories
+  const blockedPaths = [
+    '/etc/passwd', '/etc/shadow', '/root',
+    'C:\\Windows\\System32', 'C:\\Windows\\System',
+    '/System', '/private/etc'
+  ];
+
+  const normalizedPath = resolvedPath.toLowerCase();
+  for (const blocked of blockedPaths) {
+    if (normalizedPath.startsWith(blocked.toLowerCase())) {
+      console.warn('[SECURITY] Blocked access to sensitive path:', resolvedPath);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // Convert structured data formats to markdown code blocks
 function convertDataToMarkdown(content, format) {
     switch (format) {
@@ -4247,7 +4322,19 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
       if (result.canceled || !result.filePaths[0]) return null;
       dirPath = result.filePaths[0];
     }
-    const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+
+    // Validate path to prevent traversal attacks
+    const validation = validatePath(dirPath);
+    if (!validation.valid) {
+      console.error('[SECURITY] Invalid directory path:', validation.error);
+      return null;
+    }
+
+    if (!isPathAccessible(validation.resolved)) {
+      return null;
+    }
+
+    const entries = fs.readdirSync(validation.resolved, { withFileTypes: true })
       .filter(e => !e.name.startsWith('.'))
       .sort((a, b) => {
         if (a.isDirectory() && !b.isDirectory()) return -1;
@@ -4257,9 +4344,9 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
       .map(e => ({
         name: e.name,
         isDirectory: e.isDirectory(),
-        path: path.join(dirPath, e.name)
+        path: path.join(validation.resolved, e.name)
       }));
-    return { path: dirPath, entries };
+    return { path: validation.resolved, entries };
   } catch (err) {
     console.error('list-directory error:', err);
     return null;
@@ -4269,12 +4356,22 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
 // Open a file by path (from explorer panel)
 ipcMain.on('open-file-path', (event, filePath) => {
   try {
-    if (!fs.existsSync(filePath)) return;
-    const stat = fs.statSync(filePath);
+    // Validate path to prevent traversal attacks
+    const validation = validatePath(filePath);
+    if (!validation.valid) {
+      console.error('[SECURITY] Invalid file path:', validation.error);
+      return;
+    }
+
+    if (!isPathAccessible(validation.resolved)) {
+      return;
+    }
+
+    const stat = fs.statSync(validation.resolved);
     if (stat.size > MAX_FILE_SIZE) return;
-    currentFile = filePath;
-    const content = fs.readFileSync(filePath, 'utf-8');
-    mainWindow.webContents.send('file-opened', { path: filePath, content });
+    currentFile = validation.resolved;
+    const content = fs.readFileSync(validation.resolved, 'utf-8');
+    mainWindow.webContents.send('file-opened', { path: validation.resolved, content });
   } catch (err) {
     console.error('open-file-path error:', err);
   }

@@ -67,18 +67,24 @@ body {
     cursor: pointer;
     padding: 0;
     margin-left: 8px;
-    width: 16px;
-    height: 16px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 3px;
+    border-radius: 4px;
     color: #666;
+    transition: background 0.15s, color 0.15s;
 }
 
 .tab-close:hover {
     background: #ddd;
     color: #000;
+}
+
+.tab-close:focus-visible {
+    outline: 2px solid #5661b3;
+    outline-offset: 2px;
 }
 
 .new-tab-button {
@@ -94,6 +100,11 @@ body {
 
 .new-tab-button:hover {
     background: #e8e8e8;
+}
+
+.new-tab-button:focus-visible {
+    outline: 2px solid #5661b3;
+    outline-offset: 2px;
 }
 
 /* Tab Content */
@@ -137,6 +148,11 @@ body {
 
 .toolbar button:active {
     background: #d0d0d0;
+}
+
+.toolbar button:focus-visible {
+    outline: 2px solid #5661b3;
+    outline-offset: 2px;
 }
 
 .toolbar-group {
@@ -225,7 +241,6 @@ body {
     margin: 0;
     padding: 20px 24px 24px 24px;
     line-height: 1.6;
-    font-size: 15px;
     font-size: 14px;
 }
 
