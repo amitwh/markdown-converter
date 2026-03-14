@@ -24,8 +24,8 @@ body {
 .tab-bar {
     display: flex;
     align-items: center;
-    background: #f0f0f0;
-    border-bottom: 1px solid #ddd;
+    background: var(--bg-tertiary, #f0f0f0);
+    border-bottom: 1px solid var(--border-color, #ddd);
     padding: 0 8px;
     min-height: 36px;
 }
@@ -34,8 +34,8 @@ body {
     display: flex;
     align-items: center;
     padding: 6px 12px;
-    background: #e8e8e8;
-    border: 1px solid #ccc;
+    background: var(--gray-200, #e8e8e8);
+    border: 1px solid var(--border-color-strong, #ccc);
     border-bottom: none;
     border-radius: 6px 6px 0 0;
     margin-right: 2px;
@@ -46,8 +46,8 @@ body {
 }
 
 .tab.active {
-    background: #fff;
-    border-color: #999;
+    background: var(--bg-primary, #fff);
+    border-color: var(--gray-500, #999);
     z-index: 1;
 }
 
@@ -163,7 +163,7 @@ body {
 .toolbar-separator {
     width: 1px;
     height: 20px;
-    background: rgba(0, 0, 0, 0.12);
+    background: var(--border-color, rgba(0, 0, 0, 0.12));
     margin: 0 6px;
     align-self: center;
     flex-shrink: 0;
@@ -189,7 +189,7 @@ body {
 /* Pane Resizer */
 .pane-resizer {
     width: 6px;
-    background: #e0e0e0;
+    background: var(--gray-200, #e0e0e0);
     cursor: col-resize;
     position: relative;
     flex-shrink: 0;
@@ -197,11 +197,11 @@ body {
 }
 
 .pane-resizer:hover {
-    background: #999;
+    background: var(--gray-500, #999);
 }
 
 .pane-resizer:active {
-    background: #666;
+    background: var(--gray-600, #666);
 }
 
 
@@ -479,10 +479,10 @@ body[class*="dark"] .bottom-panel-title { color: #ccc; }
     justify-content: space-between;
     align-items: center;
     padding: 2px 12px;
-    background: #f5f5f5;
-    border-top: 1px solid #ddd;
+    background: var(--bg-tertiary, #f5f5f5);
+    border-top: 1px solid var(--border-color, #ddd);
     font-size: 12px;
-    color: #666;
+    color: var(--text-secondary, #666);
     min-height: 24px;
     flex-shrink: 0;
 }
@@ -567,123 +567,123 @@ body[class*="dark"] .bottom-panel-title { color: #ccc; }
     margin-bottom: 16px;
 }
 
-/* GitHub Dark Theme for Preview */
-body.theme-dark #preview,
-body.theme-dark [id^="preview-"],
-body.theme-dark .preview-content {
+/* GitHub Dark Theme for Preview (matches all dark themes) */
+body[class*="dark"] #preview,
+body[class*="dark"] [id^="preview-"],
+body[class*="dark"] .preview-content {
     background: #0d1117;
     color: #c9d1d9;
 }
 
-body.theme-dark #preview h1,
-body.theme-dark [id^="preview-"] h1,
-body.theme-dark .preview-content h1 {
+body[class*="dark"] #preview h1,
+body[class*="dark"] [id^="preview-"] h1,
+body[class*="dark"] .preview-content h1 {
     color: #c9d1d9;
     border-bottom-color: #21262d;
 }
 
-body.theme-dark #preview h2,
-body.theme-dark [id^="preview-"] h2,
-body.theme-dark .preview-content h2 {
+body[class*="dark"] #preview h2,
+body[class*="dark"] [id^="preview-"] h2,
+body[class*="dark"] .preview-content h2 {
     color: #c9d1d9;
     border-bottom-color: #21262d;
 }
 
-body.theme-dark #preview h3,
-body.theme-dark #preview h4,
-body.theme-dark #preview h5,
-body.theme-dark #preview h6,
-body.theme-dark [id^="preview-"] h3,
-body.theme-dark [id^="preview-"] h4,
-body.theme-dark [id^="preview-"] h5,
-body.theme-dark [id^="preview-"] h6,
-body.theme-dark .preview-content h3,
-body.theme-dark .preview-content h4,
-body.theme-dark .preview-content h5,
-body.theme-dark .preview-content h6 {
+body[class*="dark"] #preview h3,
+body[class*="dark"] #preview h4,
+body[class*="dark"] #preview h5,
+body[class*="dark"] #preview h6,
+body[class*="dark"] [id^="preview-"] h3,
+body[class*="dark"] [id^="preview-"] h4,
+body[class*="dark"] [id^="preview-"] h5,
+body[class*="dark"] [id^="preview-"] h6,
+body[class*="dark"] .preview-content h3,
+body[class*="dark"] .preview-content h4,
+body[class*="dark"] .preview-content h5,
+body[class*="dark"] .preview-content h6 {
     color: #c9d1d9;
 }
 
-body.theme-dark #preview p,
-body.theme-dark [id^="preview-"] p,
-body.theme-dark .preview-content p {
+body[class*="dark"] #preview p,
+body[class*="dark"] [id^="preview-"] p,
+body[class*="dark"] .preview-content p {
     color: #c9d1d9;
 }
 
-body.theme-dark #preview code,
-body.theme-dark [id^="preview-"] code,
-body.theme-dark .preview-content code {
+body[class*="dark"] #preview code,
+body[class*="dark"] [id^="preview-"] code,
+body[class*="dark"] .preview-content code {
     background-color: #161b22;
     border-color: #30363d;
     color: #c9d1d9;
 }
 
-body.theme-dark #preview pre,
-body.theme-dark [id^="preview-"] pre,
-body.theme-dark .preview-content pre {
+body[class*="dark"] #preview pre,
+body[class*="dark"] [id^="preview-"] pre,
+body[class*="dark"] .preview-content pre {
     background-color: #161b22;
     border-color: #30363d;
 }
 
-body.theme-dark #preview blockquote,
-body.theme-dark [id^="preview-"] blockquote,
-body.theme-dark .preview-content blockquote {
+body[class*="dark"] #preview blockquote,
+body[class*="dark"] [id^="preview-"] blockquote,
+body[class*="dark"] .preview-content blockquote {
     color: #8b949e;
     border-left-color: #3b434b;
 }
 
-body.theme-dark #preview a,
-body.theme-dark [id^="preview-"] a,
-body.theme-dark .preview-content a {
+body[class*="dark"] #preview a,
+body[class*="dark"] [id^="preview-"] a,
+body[class*="dark"] .preview-content a {
     color: #58a6ff;
 }
 
-body.theme-dark #preview a:hover,
-body.theme-dark [id^="preview-"] a:hover,
-body.theme-dark .preview-content a:hover {
+body[class*="dark"] #preview a:hover,
+body[class*="dark"] [id^="preview-"] a:hover,
+body[class*="dark"] .preview-content a:hover {
     color: #79c0ff;
 }
 
-body.theme-dark #preview table,
-body.theme-dark [id^="preview-"] table,
-body.theme-dark .preview-content table {
+body[class*="dark"] #preview table,
+body[class*="dark"] [id^="preview-"] table,
+body[class*="dark"] .preview-content table {
     border-color: #30363d;
 }
 
-body.theme-dark #preview table th,
-body.theme-dark [id^="preview-"] table th,
-body.theme-dark .preview-content table th {
+body[class*="dark"] #preview table th,
+body[class*="dark"] [id^="preview-"] table th,
+body[class*="dark"] .preview-content table th {
     background-color: #161b22;
     color: #c9d1d9;
     border-color: #30363d;
 }
 
-body.theme-dark #preview table td,
-body.theme-dark [id^="preview-"] table td,
-body.theme-dark .preview-content table td {
+body[class*="dark"] #preview table td,
+body[class*="dark"] [id^="preview-"] table td,
+body[class*="dark"] .preview-content table td {
     border-color: #30363d;
     color: #c9d1d9;
 }
 
-body.theme-dark #preview hr,
-body.theme-dark [id^="preview-"] hr,
-body.theme-dark .preview-content hr {
+body[class*="dark"] #preview hr,
+body[class*="dark"] [id^="preview-"] hr,
+body[class*="dark"] .preview-content hr {
     background-color: #21262d;
     border-color: #21262d;
 }
 
-body.theme-dark #preview ul,
-body.theme-dark #preview ol,
-body.theme-dark [id^="preview-"] ul,
-body.theme-dark [id^="preview-"] ol,
-body.theme-dark .preview-content ul,
-body.theme-dark .preview-content ol {
+body[class*="dark"] #preview ul,
+body[class*="dark"] #preview ol,
+body[class*="dark"] [id^="preview-"] ul,
+body[class*="dark"] [id^="preview-"] ol,
+body[class*="dark"] .preview-content ul,
+body[class*="dark"] .preview-content ol {
     color: #c9d1d9;
 }
 
-body.theme-dark #preview li,
-body.theme-dark [id^="preview-"] li,
-body.theme-dark .preview-content li {
+body[class*="dark"] #preview li,
+body[class*="dark"] [id^="preview-"] li,
+body[class*="dark"] .preview-content li {
     color: #c9d1d9;
 }
 
@@ -732,127 +732,127 @@ body.theme-dark .preview-content li {
 }
 
 /* Theme: Dark */
-body.theme-dark {
+body[class*="dark"] {
     background: #1e1e1e;
     color: #d4d4d4;
 }
 
-body.theme-dark .tab-bar {
+body[class*="dark"] .tab-bar {
     background: #2d2d30;
     border-bottom-color: #3e3e42;
 }
 
-body.theme-dark .tab {
+body[class*="dark"] .tab {
     background: #3c3c3c;
     border-color: #555;
     color: #d4d4d4;
 }
 
-body.theme-dark .tab.active {
+body[class*="dark"] .tab.active {
     background: #1e1e1e;
     border-color: #666;
 }
 
-body.theme-dark .tab-close {
+body[class*="dark"] .tab-close {
     color: #ccc;
 }
 
-body.theme-dark .tab-close:hover {
+body[class*="dark"] .tab-close:hover {
     background: #555;
     color: #fff;
 }
 
-body.theme-dark .new-tab-button {
+body[class*="dark"] .new-tab-button {
     border-color: #555;
     color: #ccc;
 }
 
-body.theme-dark .new-tab-button:hover {
+body[class*="dark"] .new-tab-button:hover {
     background: #3c3c3c;
 }
 
-body.theme-dark .toolbar {
+body[class*="dark"] .toolbar {
     background: #2d2d30;
     border-bottom-color: #3e3e42;
 }
 
-body.theme-dark .toolbar button {
+body[class*="dark"] .toolbar button {
     color: #cccccc;
 }
 
-body.theme-dark .toolbar button:hover {
+body[class*="dark"] .toolbar button:hover {
     background: #3e3e42;
     border-color: #464647;
 }
 
-body.theme-dark .toolbar-separator {
+body[class*="dark"] .toolbar-separator {
     background: #3e3e42;
 }
 
-body.theme-dark .pane:first-child {
+body[class*="dark"] .pane:first-child {
     border-right-color: #3e3e42;
 }
 
-body.theme-dark .editor-textarea {
+body[class*="dark"] .editor-textarea {
     background: #1e1e1e;
     color: #d4d4d4;
 }
 
-body.theme-dark .pane:last-child {
+body[class*="dark"] .pane:last-child {
     background: #1e1e1e;
 }
 
 /* Legacy support */
-body.theme-dark #editor-pane {
+body[class*="dark"] #editor-pane {
     border-right-color: #3e3e42;
 }
 
-body.theme-dark #editor {
+body[class*="dark"] #editor {
     background: #1e1e1e;
     color: #d4d4d4;
 }
 
-body.theme-dark #preview-pane {
+body[class*="dark"] #preview-pane {
     background: #252526;
 }
 
-body.theme-dark #preview, body.theme-dark .preview-content {
+body[class*="dark"] #preview, body[class*="dark"] .preview-content {
     color: #d4d4d4;
 }
 
-body.theme-dark #preview h1, body.theme-dark #preview h2,
-body.theme-dark .preview-content h1, body.theme-dark .preview-content h2 {
+body[class*="dark"] #preview h1, body[class*="dark"] #preview h2,
+body[class*="dark"] .preview-content h1, body[class*="dark"] .preview-content h2 {
     border-bottom-color: #3e3e42;
 }
 
-body.theme-dark #preview code, body.theme-dark .preview-content code {
+body[class*="dark"] #preview code, body[class*="dark"] .preview-content code {
     background-color: rgba(255,255,255,0.1);
 }
 
-body.theme-dark #preview pre, body.theme-dark .preview-content pre {
+body[class*="dark"] #preview pre, body[class*="dark"] .preview-content pre {
     background-color: #2d2d30;
 }
 
-body.theme-dark #preview blockquote, body.theme-dark .preview-content blockquote {
+body[class*="dark"] #preview blockquote, body[class*="dark"] .preview-content blockquote {
     color: #808080;
     border-left-color: #3e3e42;
 }
 
-body.theme-dark #preview a, body.theme-dark .preview-content a {
+body[class*="dark"] #preview a, body[class*="dark"] .preview-content a {
     color: #569cd6;
 }
 
-body.theme-dark #preview table th, body.theme-dark #preview table td,
-body.theme-dark .preview-content table th, body.theme-dark .preview-content table td {
+body[class*="dark"] #preview table th, body[class*="dark"] #preview table td,
+body[class*="dark"] .preview-content table th, body[class*="dark"] .preview-content table td {
     border-color: #3e3e42;
 }
 
 
-body.theme-dark #preview table tr:nth-child(2n), body.theme-dark .preview-content table tr:nth-child(2n) {
+body[class*="dark"] #preview table tr:nth-child(2n), body[class*="dark"] .preview-content table tr:nth-child(2n) {
     background-color: #2d2d30;
 }
 
-body.theme-dark .status-bar {
+body[class*="dark"] .status-bar {
     background: #2d2d30;
     border-top-color: #3e3e42;
     color: #969696;
@@ -1490,38 +1490,38 @@ body.theme-github .status-bar {
 }
 
 /* Theme support for export dialog */
-body.theme-dark .export-dialog-content {
+body[class*="dark"] .export-dialog-content {
     background: #2d2d2d;
     color: #f0f0f0;
 }
 
-body.theme-dark .export-dialog-header {
+body[class*="dark"] .export-dialog-header {
     border-color: #444;
 }
 
-body.theme-dark .export-dialog-footer {
+body[class*="dark"] .export-dialog-footer {
     background: #333;
     border-color: #444;
 }
 
-body.theme-dark .export-section label {
+body[class*="dark"] .export-section label {
     color: #f0f0f0;
 }
 
-body.theme-dark .export-section select,
-body.theme-dark .export-section input {
+body[class*="dark"] .export-section select,
+body[class*="dark"] .export-section input {
     background: #1a1a1a;
     border-color: #555;
     color: #f0f0f0;
 }
 
-body.theme-dark .metadata-container {
+body[class*="dark"] .metadata-container {
     border-color: #444;
     background: #1a1a1a;
 }
 
-body.theme-dark .form-row button,
-body.theme-dark #add-metadata-field {
+body[class*="dark"] .form-row button,
+body[class*="dark"] #add-metadata-field {
     background: #1a1a1a;
     border-color: #555;
     color: #f0f0f0;
@@ -1620,31 +1620,31 @@ body.theme-dark #add-metadata-field {
 }
 
 /* Theme support for PDF Editor */
-body.theme-dark .file-list {
+body[class*="dark"] .file-list {
     background: #1a1a1a;
     border-color: #555;
 }
 
-body.theme-dark .file-entry {
+body[class*="dark"] .file-entry {
     background: #2d2d2d;
     border-color: #444;
     color: #f0f0f0;
 }
 
-body.theme-dark .pdf-editor-content {
+body[class*="dark"] .pdf-editor-content {
     background: #2d2d2d;
 }
 
-body.theme-dark .pdf-editor-body {
+body[class*="dark"] .pdf-editor-body {
     background: #2d2d2d;
 }
 
-body.theme-dark .form-row button:hover,
-body.theme-dark #add-metadata-field:hover {
+body[class*="dark"] .form-row button:hover,
+body[class*="dark"] #add-metadata-field:hover {
     background: #333;
 }
 
-body.theme-dark #export-dialog-close:hover {
+body[class*="dark"] #export-dialog-close:hover {
     background: #444;
 }
 
@@ -1849,80 +1849,80 @@ body.theme-dark #export-dialog-close:hover {
 }
 
 /* Theme support for batch dialog */
-body.theme-dark .batch-dialog-content {
+body[class*="dark"] .batch-dialog-content {
     background: #2d2d2d;
     color: #f0f0f0;
 }
 
-body.theme-dark .batch-dialog-header {
+body[class*="dark"] .batch-dialog-header {
     border-color: #444;
 }
 
-body.theme-dark .batch-dialog-footer {
+body[class*="dark"] .batch-dialog-footer {
     background: #333;
     border-color: #444;
 }
 
-body.theme-dark .batch-section label {
+body[class*="dark"] .batch-section label {
     color: #f0f0f0;
 }
 
-body.theme-dark .batch-section select,
-body.theme-dark .batch-section input {
+body[class*="dark"] .batch-section select,
+body[class*="dark"] .batch-section input {
     background: #1a1a1a;
     border-color: #555;
     color: #f0f0f0;
 }
 
-body.theme-dark .folder-input-group button,
-body.theme-dark #batch-show-options {
+body[class*="dark"] .folder-input-group button,
+body[class*="dark"] #batch-show-options {
     background: #1a1a1a;
     border-color: #555;
     color: #f0f0f0;
 }
 
-body.theme-dark .folder-input-group button:hover,
-body.theme-dark #batch-show-options:hover {
+body[class*="dark"] .folder-input-group button:hover,
+body[class*="dark"] #batch-show-options:hover {
     background: #333;
 }
 
-body.theme-dark .batch-progress {
+body[class*="dark"] .batch-progress {
     background: #1a1a1a;
     border-color: #444;
 }
 
-body.theme-dark .progress-text {
+body[class*="dark"] .progress-text {
     color: #ccc;
 }
 
-body.theme-dark #batch-dialog-close:hover {
+body[class*="dark"] #batch-dialog-close:hover {
     background: #444;
 }
 
 /* Theme support for find dialog */
-body.theme-dark .find-dialog {
+body[class*="dark"] .find-dialog {
     background: #2d2d2d;
     border-color: #555;
     color: #f0f0f0;
 }
 
-body.theme-dark .find-controls input {
+body[class*="dark"] .find-controls input {
     background: #333;
     border-color: #555;
     color: #f0f0f0;
 }
 
-body.theme-dark .find-controls button {
+body[class*="dark"] .find-controls button {
     background: #404040;
     border-color: #555;
     color: #f0f0f0;
 }
 
-body.theme-dark .find-controls button:hover {
+body[class*="dark"] .find-controls button:hover {
     background: #4a4a4a;
 }
 
-body.theme-dark .line-numbers {
+body[class*="dark"] .line-numbers {
     background: #2a2a2a;
     border-right-color: #555;
     color: #888;
@@ -2035,20 +2035,20 @@ body.theme-github .line-numbers {
 }
 
 /* Theme support for advanced export toggle */
-body.theme-dark .export-mode-toggle {
+body[class*="dark"] .export-mode-toggle {
     border-color: #444;
 }
 
-body.theme-dark .export-help {
+body[class*="dark"] .export-help {
     color: #999;
 }
 
-body.theme-dark .basic-options {
+body[class*="dark"] .basic-options {
     background: #1a1a1a;
     border-color: #444;
 }
 
-body.theme-dark .checkbox-label {
+body[class*="dark"] .checkbox-label {
     color: #f0f0f0;
 }
 
@@ -2102,7 +2102,7 @@ body.theme-github .basic-options {
 }
 
 /* Theme support for enhanced stats */
-body.theme-dark .enhanced-stats {
+body[class*="dark"] .enhanced-stats {
     color: #999;
     border-color: #444;
 }
@@ -4172,7 +4172,7 @@ body[data-theme="dark"] .field-option:hover {
     height: auto;
 }
 
-body.theme-dark .mermaid {
+body[class*="dark"] .mermaid {
     background: #2d2d2d;
     border-color: #444;
 }
