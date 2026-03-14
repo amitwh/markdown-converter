@@ -381,7 +381,7 @@ class TabManager {
         try {
             // Check if libraries are available
             if (!marked || !DOMPurify) {
-                preview.innerHTML = '<p style="color: red; padding: 20px;">Error: Required libraries (marked/DOMPurify) not loaded. Check internet connection.</p>';
+                preview.innerHTML = '<div class="preview-error"><div class="preview-error-icon">⚠️</div><div class="preview-error-title">Libraries Not Loaded</div><div class="preview-error-message">Required libraries (marked/DOMPurify) could not be loaded. Please check your installation.</div></div>';
                 return;
             }
             const html = marked.parse(tab.content);

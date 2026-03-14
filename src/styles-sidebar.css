@@ -57,6 +57,11 @@
     box-shadow: inset 3px 0 0 var(--primary-dark, #5661b3);
 }
 
+.sidebar-icon:focus-visible {
+    outline: 2px solid var(--primary-dark, #5661b3);
+    outline-offset: 2px;
+}
+
 .sidebar-panel {
     width: 280px;
     background: var(--gray-50, #f9fafb);
