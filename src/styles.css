@@ -209,7 +209,7 @@ body {
     width: 100%;
     height: 100%;
     padding: 20px;
-    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Courier New', monospace;
     font-size: 15px;
     line-height: 1.6;
     border: none;
@@ -253,7 +253,7 @@ body {
     width: 100%;
     height: 100%;
     padding: 20px;
-    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Courier New', monospace;
     font-size: 15px;
     line-height: 1.6;
     border: none;
@@ -533,7 +533,7 @@ body[class*="dark"] .bottom-panel-title { color: #ccc; }
     background-color: #f6f8fa;
     border: 1px solid #d0d7de;
     border-radius: 6px;
-    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
     color: #24292f;
 }
 

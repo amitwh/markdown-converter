@@ -33,6 +33,19 @@ const {
 } = require('@codemirror/language');
 const { oneDark } = require('@codemirror/theme-one-dark');
 
+// Custom theme for JetBrains Mono font
+const jetBrainsMonoTheme = EditorView.theme({
+  '&': {
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Courier New', monospace"
+  },
+  '.cm-content': {
+    fontFamily: 'inherit'
+  },
+  '.cm-scroller': {
+    fontFamily: 'inherit'
+  }
+});
+
 /**
  * Create a CodeMirror 6 editor instance.
  *
@@ -64,6 +77,7 @@ function createEditor(parentElement, options = {}) {
     highlightSelectionMatches(),
     autocompletion(),
     foldGutter(),
+    jetBrainsMonoTheme,
     keymap.of([
       ...defaultKeymap,
       ...historyKeymap,
