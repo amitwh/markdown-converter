@@ -95,6 +95,8 @@ class TabManager {
         this.autoSaveInterval = null;
         this.autoSaveDelay = 30000; // 30 seconds
         this.recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
+        this.previewDebounceTimers = new Map(); // Debounce timers per tab
+        this.previewDebounceDelay = 300; // 300ms debounce
 
         // Initialize first tab
         this.tabs.set(1, {
@@ -589,7 +591,7 @@ class TabManager {
 
         if (tab.editorView) {
             this.setEditorContent(tabId, tab.content);
-            this.updatePreview(tabId);
+            this.updatePreview(tabId, true); // immediate=true for tab switches
             this.updateWordCount();
         }
     }
@@ -601,7 +603,29 @@ class TabManager {
         }
     }
     
-    updatePreview(tabId = this.activeTabId) {
+    updatePreview(tabId = this.activeTabId, immediate = false) {
+        const tab = this.tabs.get(tabId);
+        if (!tab || tab.type === 'pdf') return;
+
+        // Clear existing debounce timer for this tab
+        if (this.previewDebounceTimers.has(tabId)) {
+            clearTimeout(this.previewDebounceTimers.get(tabId));
+        }
+
+        // If immediate, render right away (for tab switches, file loads)
+        if (immediate) {
+            this._renderPreview(tabId);
+            return;
+        }
+
+        // Debounce preview rendering for typing performance
+        this.previewDebounceTimers.set(tabId, setTimeout(() => {
+            this._renderPreview(tabId);
+            this.previewDebounceTimers.delete(tabId);
+        }, this.previewDebounceDelay));
+    }
+
+    _renderPreview(tabId) {
         const tab = this.tabs.get(tabId);
         const preview = document.getElementById(`preview-${tabId}`);
 
