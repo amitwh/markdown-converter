@@ -159,29 +159,38 @@
         </div>
 
         <!-- Find & Replace Dialog -->
-        <div id="find-dialog" class="find-dialog hidden">
-            <div class="find-controls">
-                <input type="text" id="find-input" placeholder="Find...">
-                <input type="text" id="replace-input" placeholder="Replace...">
-                <button id="btn-find-prev" title="Previous">↑</button>
-                <button id="btn-find-next" title="Next">↓</button>
-                <button id="btn-replace" title="Replace">Replace</button>
-                <button id="btn-replace-all" title="Replace All">All</button>
-                <button id="btn-find-close" title="Close">×</button>
-            </div>
-            <div class="find-info">
-                <span id="find-count">0 matches</span>
+        <div id="find-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="find-dialog-title">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-content small">
+                <div class="modal-header">
+                    <h3 id="find-dialog-title">Find & Replace</h3>
+                    <button class="modal-close" id="btn-find-close" aria-label="Close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="find-controls">
+                        <input type="text" id="find-input" placeholder="Find...">
+                        <input type="text" id="replace-input" placeholder="Replace...">
+                        <button id="btn-find-prev" title="Previous">↑</button>
+                        <button id="btn-find-next" title="Next">↓</button>
+                        <button id="btn-replace" title="Replace">Replace</button>
+                        <button id="btn-replace-all" title="Replace All">All</button>
+                    </div>
+                    <div class="find-info">
+                        <span id="find-count">0 matches</span>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Export Options Dialog -->
-        <div id="export-dialog" class="export-dialog hidden">
-            <div class="export-dialog-content">
-                <div class="export-dialog-header">
+        <div id="export-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="export-dialog-title">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-content large">
+                <div class="modal-header">
                     <h3 id="export-dialog-title">Export Options</h3>
-                    <button id="export-dialog-close" title="Close">×</button>
+                    <button class="modal-close" id="export-dialog-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="export-dialog-body">
+                <div class="modal-body">
                     <!-- Simple/Advanced Export Toggle -->
                     <!-- Export Profiles -->
                     <div class="export-section export-profiles">
@@ -330,21 +339,23 @@
                         </div>
                     </div>
                 </div>
-                <div class="export-dialog-footer">
-                    <button id="export-cancel">Cancel</button>
-                    <button id="export-confirm" class="primary">Export</button>
+                <div class="modal-footer">
+                    <button id="export-cancel" class="btn btn-secondary" data-close>Cancel</button>
+                    <button id="export-confirm" class="btn btn-primary">Export</button>
                 </div>
             </div>
         </div>
 
         <!-- Print Preview Dialog -->
-        <div class="export-dialog hidden" id="print-preview-overlay">
-            <div class="export-dialog-content print-preview-dialog">
-                <div class="export-dialog-header">
-                    <h3>Print Preview</h3>
-                    <button id="print-preview-close" title="Close" style="background:none;border:none;color:white;font-size:24px;cursor:pointer;">&times;</button>
+        <div id="print-preview-overlay" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="print-preview-title">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-content full">
+                <div class="modal-header">
+                    <h3 id="print-preview-title">Print Preview</h3>
+                    <button class="modal-close" id="print-preview-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="print-preview-body">
+                <div class="modal-body">
+                    <div class="print-preview-body">
                     <div class="print-preview-sidebar">
                         <div class="print-option-group">
                             <label>Paper Size</label>
@@ -409,6 +420,7 @@
                         <iframe id="print-preview-frame" style="width:100%;height:100%;border:none;background:white;"></iframe>
                     </div>
                 </div>
+                </div>
             </div>
         </div>
 
@@ -421,13 +433,14 @@
         </div>
 
         <!-- Table Generator Dialog -->
-        <div id="table-generator-dialog" class="export-dialog hidden">
-            <div class="export-dialog-content" style="max-width: 500px;">
-                <div class="export-dialog-header">
-                    <h3>📊 Table Generator</h3>
-                    <button id="table-dialog-close" title="Close">×</button>
+        <div id="table-generator-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="table-generator-title">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="table-generator-title">📊 Table Generator</h3>
+                    <button class="modal-close" id="table-dialog-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="export-dialog-body">
+                <div class="modal-body">
                     <div class="export-section">
                         <label for="table-rows">Number of Rows:</label>
                         <input type="number" id="table-rows" min="1" max="50" value="3" style="width: 100px;">
@@ -462,22 +475,23 @@
                         <pre id="table-preview" style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 12px; max-height: 300px; overflow: auto;"></pre>
                     </div>
                 </div>
-                <div class="export-dialog-footer">
-                    <button id="table-generate-preview" class="btn-secondary">Update Preview</button>
-                    <button id="table-insert" class="btn-primary">Insert Table</button>
-                    <button id="table-cancel" class="btn-secondary">Cancel</button>
+                <div class="modal-footer">
+                    <button id="table-generate-preview" class="btn btn-secondary">Update Preview</button>
+                    <button id="table-insert" class="btn btn-primary">Insert Table</button>
+                    <button id="table-cancel" class="btn btn-secondary" data-close>Cancel</button>
                 </div>
             </div>
         </div>
 
         <!-- ASCII Art Generator Dialog -->
-        <div id="ascii-art-dialog" class="export-dialog hidden">
-            <div class="export-dialog-content" style="max-width: 700px;">
-                <div class="export-dialog-header">
-                    <h3>🎨 ASCII Art Generator</h3>
-                    <button id="ascii-dialog-close" title="Close">×</button>
+        <div id="ascii-art-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="ascii-art-title">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h3 id="ascii-art-title">🎨 ASCII Art Generator</h3>
+                    <button class="modal-close" id="ascii-dialog-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="export-dialog-body">
+                <div class="modal-body">
                     <div class="export-section">
                         <label>Mode:</label>
                         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
@@ -573,22 +587,23 @@
                         <pre id="ascii-preview" style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-size: 12px; max-height: 400px; overflow: auto; font-family: 'Courier New', monospace; line-height: 1.2;"></pre>
                     </div>
                 </div>
-                <div class="export-dialog-footer">
-                    <button id="ascii-generate" class="btn-secondary">Generate Preview</button>
-                    <button id="ascii-insert" class="btn-primary">Insert ASCII Art</button>
-                    <button id="ascii-cancel" class="btn-secondary">Cancel</button>
+                <div class="modal-footer">
+                    <button id="ascii-generate" class="btn btn-secondary">Generate Preview</button>
+                    <button id="ascii-insert" class="btn btn-primary">Insert ASCII Art</button>
+                    <button id="ascii-cancel" class="btn btn-secondary" data-close>Cancel</button>
                 </div>
             </div>
         </div>
 
         <!-- Universal File Converter Dialog -->
-        <div id="universal-converter-dialog" class="export-dialog hidden">
-            <div class="export-dialog-content">
-                <div class="export-dialog-header">
-                    <h3>Universal File Converter</h3>
-                    <button id="converter-dialog-close" title="Close">×</button>
+        <div id="universal-converter-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="universal-converter-title">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h3 id="universal-converter-title">Universal File Converter</h3>
+                    <button class="modal-close" id="converter-dialog-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="export-dialog-body">
+                <div class="modal-body">
                     <div class="export-section">
                         <label>Select File to Convert:</label>
                         <div class="folder-input-group">
@@ -802,21 +817,22 @@
                         <small>• Pandoc: Download from <a href="https://pandoc.org/installing.html" target="_blank">pandoc.org</a></small>
                     </div>
                 </div>
-                <div class="export-dialog-footer">
-                    <button id="converter-cancel">Cancel</button>
-                    <button id="converter-convert" class="primary">Convert</button>
+                <div class="modal-footer">
+                    <button id="converter-cancel" class="btn btn-secondary" data-close>Cancel</button>
+                    <button id="converter-convert" class="btn btn-primary">Convert</button>
                 </div>
             </div>
         </div>
 
         <!-- Batch Conversion Dialog -->
-        <div id="batch-dialog" class="batch-dialog hidden">
-            <div class="batch-dialog-content">
-                <div class="batch-dialog-header">
-                    <h3>Batch File Conversion</h3>
-                    <button id="batch-dialog-close" title="Close">×</button>
+        <div id="batch-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="batch-dialog-title">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h3 id="batch-dialog-title">Batch File Conversion</h3>
+                    <button class="modal-close" id="batch-dialog-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="batch-dialog-body">
+                <div class="modal-body">
                     <div class="batch-section">
                         <label>Input Folder:</label>
                         <div class="folder-input-group">
@@ -871,21 +887,22 @@
                         </div>
                     </div>
                 </div>
-                <div class="batch-dialog-footer">
-                    <button id="batch-cancel">Cancel</button>
-                    <button id="batch-start" class="primary" disabled>Start Conversion</button>
+                <div class="modal-footer">
+                    <button id="batch-cancel" class="btn btn-secondary" data-close>Cancel</button>
+                    <button id="batch-start" class="btn btn-primary" disabled>Start Conversion</button>
                 </div>
             </div>
         </div>
 
         <!-- PDF Editor Dialog -->
-        <div id="pdf-editor-dialog" class="export-dialog hidden">
-            <div class="export-dialog-content pdf-editor-content">
-                <div class="export-dialog-header">
+        <div id="pdf-editor-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pdf-editor-title">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-content full">
+                <div class="modal-header">
                     <h3 id="pdf-editor-title">PDF Editor</h3>
-                    <button id="pdf-editor-dialog-close" title="Close">×</button>
+                    <button class="modal-close" id="pdf-editor-dialog-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="export-dialog-body pdf-editor-body">
+                <div class="modal-body pdf-editor-body">
                     <!-- Merge PDFs Section -->
                     <div id="pdf-merge-section" class="pdf-operation-section hidden">
                         <div class="export-section">
@@ -1266,21 +1283,22 @@
                         </div>
                     </div>
                 </div>
-                <div class="export-dialog-footer">
-                    <button id="pdf-editor-cancel">Cancel</button>
-                    <button id="pdf-editor-process" class="primary">Process</button>
+                <div class="modal-footer">
+                    <button id="pdf-editor-cancel" class="btn btn-secondary" data-close>Cancel</button>
+                    <button id="pdf-editor-process" class="btn btn-primary">Process</button>
                 </div>
             </div>
         </div>
 
         <!-- Header & Footer Configuration Dialog -->
-        <div id="header-footer-dialog" class="export-dialog hidden">
-            <div class="export-dialog-content" style="max-width: 700px;">
-                <div class="export-dialog-header">
-                    <h3>Header & Footer Settings</h3>
-                    <button id="header-footer-close" class="dialog-close" title="Close">×</button>
+        <div id="header-footer-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="header-footer-title">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="header-footer-title">Header & Footer Settings</h3>
+                    <button class="modal-close" id="header-footer-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="export-dialog-body">
+                <div class="modal-body">
                     <div class="hf-enable-section">
                         <label>
                             <input type="checkbox" id="hf-enabled" checked>
@@ -1360,21 +1378,22 @@
                         </div>
                     </div>
                 </div>
-                <div class="export-dialog-footer">
-                    <button id="header-footer-cancel">Cancel</button>
-                    <button id="header-footer-save" class="primary">Save Settings</button>
+                <div class="modal-footer">
+                    <button id="header-footer-cancel" class="btn btn-secondary" data-close>Cancel</button>
+                    <button id="header-footer-save" class="btn btn-primary">Save Settings</button>
                 </div>
             </div>
         </div>
 
         <!-- Dynamic Field Picker Dialog -->
-        <div id="field-picker-dialog" class="export-dialog hidden">
-            <div class="export-dialog-content" style="max-width: 400px;">
-                <div class="export-dialog-header">
-                    <h3>Insert Dynamic Field</h3>
-                    <button id="field-picker-close" class="dialog-close" title="Close">×</button>
+        <div id="field-picker-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="field-picker-title">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-content small">
+                <div class="modal-header">
+                    <h3 id="field-picker-title">Insert Dynamic Field</h3>
+                    <button class="modal-close" id="field-picker-close" aria-label="Close">&times;</button>
                 </div>
-                <div class="export-dialog-body">
+                <div class="modal-body">
                     <div class="field-picker-list">
                         <button class="field-option" data-field="$PAGE$">Page Number</button>
                         <button class="field-option" data-field="$TOTAL$">Total Pages</button>
