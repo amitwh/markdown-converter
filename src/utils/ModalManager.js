@@ -2,7 +2,7 @@
  * ModalManager - Unified modal system with accessibility support
  * @version 4.0.0
  */
-export class ModalManager {
+class ModalManager {
     #modal;
     #backdrop;
     #options;
@@ -124,7 +124,8 @@ export class ModalManager {
         // Track open modals
         ModalManager.#openModals.push(this);
 
-        // Show modal
+        // Show modal (remove hidden, add open)
+        this.#modal.classList.remove('hidden');
         this.#modal.classList.add('open');
         this.#isOpen = true;
 
