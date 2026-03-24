@@ -216,7 +216,9 @@ class ModalManager {
 }
 
 // Export for use in renderer
-window.ModalManager = ModalManager;
+if (typeof window !== 'undefined') {
+    window.ModalManager = ModalManager;
+}
 
 // CommonJS export
 module.exports = { ModalManager };
