@@ -1,19 +1,28 @@
 class PrintPreview {
     constructor() {
         this.overlay = document.getElementById('print-preview-overlay');
+        this.modal = window.modals?.printPreviewModal;
         this._lastContent = '';
         this.setupEventListeners();
     }
 
     open(htmlContent) {
         this._lastContent = htmlContent;
-        this.overlay.classList.remove('hidden');
+        if (this.modal) {
+            this.modal.open();
+        } else {
+            this.overlay.classList.remove('hidden');
+        }
         this.updatePreview(htmlContent);
         this.updateScaleLabel();
     }
 
     close() {
-        this.overlay.classList.add('hidden');
+        if (this.modal) {
+            this.modal.close();
+        } else {
+            this.overlay.classList.add('hidden');
+        }
     }
 
     setupEventListeners() {
@@ -38,17 +47,7 @@ class PrintPreview {
             }
         });
 
-        // Close on overlay click
-        this.overlay?.addEventListener('click', (e) => {
-            if (e.target === this.overlay) this.close();
-        });
-
-        // Close on Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !this.overlay.classList.contains('hidden')) {
-                this.close();
-            }
-        });
+        // Note: Backdrop click and Escape key are now handled by ModalManager
     }
 
     updateScaleLabel() {

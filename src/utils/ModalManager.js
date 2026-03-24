@@ -216,3 +216,6 @@ export class ModalManager {
 
 // Export for use in renderer
 window.ModalManager = ModalManager;
+
+// CommonJS export
+module.exports = { ModalManager };

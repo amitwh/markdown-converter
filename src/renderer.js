@@ -10,6 +10,7 @@ const DOMPurify = require('dompurify');
 const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
+const { ModalManager } = require('./utils/ModalManager');
 // Lazy-loaded modules — defer heavy imports until first use
 let _SidebarManager, _renderTemplatesPanel, _renderExplorerPanel, _renderGitPanel, _renderSnippetsPanel;
 let _ReplPanel, _CommandPalette, _PrintPreview, _createWelcomeContent;
@@ -1070,13 +1071,13 @@ class TabManager {
 
         // Show find dialog
         btnFind.addEventListener('click', () => {
-            document.getElementById('find-dialog').classList.remove('hidden');
+            window.modals.findModal.open();
             findInput.focus();
         });
 
         // Close find dialog
         btnFindClose.addEventListener('click', () => {
-            document.getElementById('find-dialog').classList.add('hidden');
+            window.modals.findModal.close();
             this.clearFindHighlights();
         });
 
@@ -1395,6 +1396,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const ReplPanel = getReplPanel();
     replPanel = new ReplPanel();
 
+    // Initialize ModalManager for all dialogs
+    const findModal = new ModalManager('#find-dialog');
+    const exportModal = new ModalManager('#export-dialog');
+    const printPreviewModal = new ModalManager('#print-preview-overlay');
+    const tableModal = new ModalManager('#table-generator-dialog');
+    const asciiModal = new ModalManager('#ascii-art-dialog');
+    const converterModal = new ModalManager('#universal-converter-dialog');
+    const batchModal = new ModalManager('#batch-dialog');
+    const pdfEditorModal = new ModalManager('#pdf-editor-dialog');
+    const headerFooterModal = new ModalManager('#header-footer-dialog');
+    const fieldPickerModal = new ModalManager('#field-picker-dialog');
+
+    // Make modals globally accessible for functions outside this scope
+    window.modals = {
+        findModal,
+        exportModal,
+        printPreviewModal,
+        tableModal,
+        asciiModal,
+        converterModal,
+        batchModal,
+        pdfEditorModal,
+        headerFooterModal,
+        fieldPickerModal
+    };
+
     // Initialize sidebar
     const SidebarManager = getSidebarManager();
     const sidebarManager = new SidebarManager();
@@ -1691,12 +1718,11 @@ ipcRenderer.on('toggle-preview', () => {
 });
 
 ipcRenderer.on('toggle-find', () => {
-    const findDialog = document.getElementById('find-dialog');
-    if (findDialog.classList.contains('hidden')) {
-        findDialog.classList.remove('hidden');
-        document.getElementById('find-input').focus();
+    if (window.modals.findModal.isOpen()) {
+        window.modals.findModal.close();
     } else {
-        findDialog.classList.add('hidden');
+        window.modals.findModal.open();
+        document.getElementById('find-input').focus();
     }
 });
 
@@ -1809,7 +1835,7 @@ function showExportDialog(format) {
     console.log('Dialog found, showing export options for:', format);
     title.textContent = `Export as ${format.toUpperCase()}`;
     dialog.setAttribute('data-format', format);
-    dialog.classList.remove('hidden');
+    window.modals.exportModal.open();
 
     // Initialize form values
     initializeExportForm(format);
@@ -1817,8 +1843,7 @@ function showExportDialog(format) {
 }
 
 function hideExportDialog() {
-    const dialog = document.getElementById('export-dialog');
-    dialog.classList.add('hidden');
+    window.modals.exportModal.close();
     currentExportFormat = null;
 }
 
@@ -2230,20 +2255,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         hideExportDialog();
     });
-
-    // Close on backdrop click
-    document.getElementById('export-dialog').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('export-dialog')) {
-            hideExportDialog();
-        }
-    });
-
-    // Close on Escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !document.getElementById('export-dialog').classList.contains('hidden')) {
-            hideExportDialog();
-        }
-    });
 });
 
 // Batch Conversion Dialog functionality
@@ -2284,7 +2295,7 @@ ipcRenderer.on('conversion-status', (event, status) => {
 ipcRenderer.on('conversion-complete', (event, result) => {
     document.getElementById('converter-progress').classList.add('hidden');
     if (result.success) {
-        document.getElementById('universal-converter-dialog').classList.add('hidden');
+        window.modals.converterModal.close();
     }
 });
 
@@ -2307,8 +2318,7 @@ ipcRenderer.on('folder-selected', (event, { type, path }) => {
 });
 
 function showBatchDialog() {
-    const dialog = document.getElementById('batch-dialog');
-    dialog.classList.remove('hidden');
+    window.modals.batchModal.open();
 
     // Reset form
     document.getElementById('batch-input-folder').value = '';
@@ -2330,8 +2340,7 @@ function showBatchDialog() {
 }
 
 function hideBatchDialog() {
-    const dialog = document.getElementById('batch-dialog');
-    dialog.classList.add('hidden');
+    window.modals.batchModal.close();
 }
 
 function updateBatchProgress(progress) {
@@ -2411,24 +2420,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('batch-start').disabled = true;
     });
 
-    // Close on backdrop click
-    document.getElementById('batch-dialog').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('batch-dialog')) {
-            hideBatchDialog();
-        }
-    });
-
-    // Close on Escape key (modified to handle both dialogs)
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            if (!document.getElementById('export-dialog').classList.contains('hidden')) {
-                hideExportDialog();
-            } else if (!document.getElementById('batch-dialog').classList.contains('hidden')) {
-                hideBatchDialog();
-            }
-        }
-    });
-
     // Input validation
     document.getElementById('batch-input-folder').addEventListener('input', validateBatchForm);
     document.getElementById('batch-output-folder').addEventListener('input', validateBatchForm);
@@ -2439,7 +2430,7 @@ const originalExportConfirm = document.getElementById('export-confirm');
 if (originalExportConfirm) {
     originalExportConfirm.addEventListener('click', () => {
         // If batch dialog is open, save options for batch conversion
-        if (!document.getElementById('batch-dialog').classList.contains('hidden')) {
+        if (window.modals.batchModal.isOpen()) {
             currentBatchOptions = collectExportOptions();
         }
     });
@@ -2591,8 +2582,7 @@ const converterFormats = {
 };
 
 function showUniversalConverterDialog() {
-    const dialog = document.getElementById('universal-converter-dialog');
-    dialog.classList.remove('hidden');
+    window.modals.converterModal.open();
     converterFilePath = '';
     document.getElementById('converter-file-path').value = '';
     document.getElementById('converter-tool').value = 'libreoffice';
@@ -2771,7 +2761,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const converterDialogClose = document.getElementById('converter-dialog-close');
     if (converterDialogClose) {
         converterDialogClose.addEventListener('click', () => {
-            document.getElementById('universal-converter-dialog').classList.add('hidden');
+            window.modals.converterModal.close();
         });
     }
 
@@ -2779,7 +2769,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const converterCancel = document.getElementById('converter-cancel');
     if (converterCancel) {
         converterCancel.addEventListener('click', () => {
-            document.getElementById('universal-converter-dialog').classList.add('hidden');
+            window.modals.converterModal.close();
         });
     }
 
@@ -2870,7 +2860,6 @@ ipcRenderer.on('show-pdf-editor-dialog', (event, operation, openedFilePath) => {
 });
 
 function showPDFEditorDialog(operation, openedFilePath = null) {
-    const dialog = document.getElementById('pdf-editor-dialog');
     const title = document.getElementById('pdf-editor-title');
 
     // Hide all operation sections
@@ -2966,11 +2955,11 @@ function showPDFEditorDialog(operation, openedFilePath = null) {
 
     title.textContent = titleText;
     document.getElementById(sectionId).classList.remove('hidden');
-    dialog.classList.remove('hidden');
+    window.modals.pdfEditorModal.open();
 }
 
 function hidePDFEditorDialog() {
-    document.getElementById('pdf-editor-dialog').classList.add('hidden');
+    window.modals.pdfEditorModal.close();
     document.getElementById('pdf-progress').classList.add('hidden');
     currentPDFOperation = null;
 }
@@ -3450,8 +3439,7 @@ let currentFieldTarget = null; // Track which input field is being edited
 
 // Open header/footer settings dialog
 function openHeaderFooterDialog() {
-    const dialog = document.getElementById('header-footer-dialog');
-    dialog.classList.remove('hidden');
+    window.modals.headerFooterModal.open();
 
     // Request current settings from main process
     ipcRenderer.send('get-header-footer-settings');
@@ -3459,21 +3447,18 @@ function openHeaderFooterDialog() {
 
 // Close header/footer settings dialog
 function closeHeaderFooterDialog() {
-    const dialog = document.getElementById('header-footer-dialog');
-    dialog.classList.add('hidden');
+    window.modals.headerFooterModal.close();
 }
 
 // Open field picker dialog
 function openFieldPickerDialog(targetInputId) {
     currentFieldTarget = targetInputId;
-    const dialog = document.getElementById('field-picker-dialog');
-    dialog.classList.remove('hidden');
+    window.modals.fieldPickerModal.open();
 }
 
 // Close field picker dialog
 function closeFieldPickerDialog() {
-    const dialog = document.getElementById('field-picker-dialog');
-    dialog.classList.add('hidden');
+    window.modals.fieldPickerModal.close();
     currentFieldTarget = null;
 }
 
@@ -3630,8 +3615,7 @@ ipcRenderer.on('open-header-footer-dialog', () => {
 // ============================================================================
 
 function showTableGenerator() {
-    const dialog = document.getElementById('table-generator-dialog');
-    dialog.classList.remove('hidden');
+    window.modals.tableModal.open();
 
     // Generate initial preview
     generateTablePreview();
@@ -3643,8 +3627,7 @@ function showTableGenerator() {
 }
 
 function hideTableGenerator() {
-    const dialog = document.getElementById('table-generator-dialog');
-    dialog.classList.add('hidden');
+    window.modals.tableModal.close();
 }
 
 function generateTablePreview() {
@@ -3767,13 +3750,6 @@ document.getElementById('table-cols').addEventListener('input', generateTablePre
 document.getElementById('table-has-header').addEventListener('change', generateTablePreview);
 document.getElementById('table-alignment').addEventListener('change', generateTablePreview);
 
-// Close dialog on backdrop click
-document.getElementById('table-generator-dialog').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('table-generator-dialog')) {
-        hideTableGenerator();
-    }
-});
-
 // Handle Enter key in inputs
 document.getElementById('table-rows').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
@@ -3796,8 +3772,7 @@ document.getElementById('table-cols').addEventListener('keypress', (e) => {
 let currentASCIIMode = 'text';
 
 function showASCIIGenerator() {
-    const dialog = document.getElementById('ascii-art-dialog');
-    dialog.classList.remove('hidden');
+    window.modals.asciiModal.open();
 
     // Initialize with text mode
     switchASCIIMode('text');
@@ -3809,8 +3784,7 @@ function showASCIIGenerator() {
 }
 
 function hideASCIIGenerator() {
-    const dialog = document.getElementById('ascii-art-dialog');
-    dialog.classList.add('hidden');
+    window.modals.asciiModal.close();
 }
 
 function switchASCIIMode(mode) {
@@ -4264,13 +4238,6 @@ document.querySelectorAll('.ascii-template-btn').forEach(btn => {
         const template = this.getAttribute('data-template');
         loadASCIITemplate(template);
     });
-});
-
-// Close dialog on backdrop click
-document.getElementById('ascii-art-dialog').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('ascii-art-dialog')) {
-        hideASCIIGenerator();
-    }
 });
 
 // IPC listener for menu
