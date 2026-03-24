@@ -107,6 +107,105 @@ body {
     outline-offset: 2px;
 }
 
+/* PDF Tab Styles */
+.tab.pdf-tab {
+    background: #e3f2fd;
+    border-color: #90caf9;
+}
+
+.tab.pdf-tab.active {
+    background: #fff;
+    border-color: #1976d2;
+}
+
+.tab.pdf-tab .tab-title {
+    color: #1565c0;
+}
+
+/* PDF Tab Container */
+.pdf-tab-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-primary, #fff);
+}
+
+.pdf-tab-container .pdf-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+.pdf-tab-container .pdf-nav-btn,
+.pdf-tab-container .pdf-zoom-btn,
+.pdf-tab-container .pdf-rotate-btn {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    min-width: 28px;
+    text-align: center;
+}
+
+.pdf-tab-container .pdf-nav-btn:hover,
+.pdf-tab-container .pdf-zoom-btn:hover,
+.pdf-tab-container .pdf-rotate-btn:hover {
+    background: #e0e0e0;
+}
+
+.pdf-tab-container .pdf-page-input {
+    width: 50px;
+    text-align: center;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.pdf-tab-container .pdf-page-info {
+    color: #666;
+    font-size: 13px;
+}
+
+.pdf-tab-container .pdf-zoom-level {
+    min-width: 50px;
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+}
+
+.pdf-tab-container .pdf-canvas-container {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    background: #525659;
+}
+
+.pdf-tab-container .pdf-canvas-container canvas {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Dark theme PDF tab */
+body.dark .tab.pdf-tab {
+    background: #1a237e;
+    border-color: #3949ab;
+}
+
+body.dark .tab.pdf-tab .tab-title {
+    color: #90caf9;
+}
+
+body.dark .pdf-tab-container .pdf-controls {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
 /* Tab Content */
 .tab-content {
     display: flex;

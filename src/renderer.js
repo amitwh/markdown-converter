@@ -95,7 +95,7 @@ class TabManager {
         this.autoSaveInterval = null;
         this.autoSaveDelay = 30000; // 30 seconds
         this.recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
-        
+
         // Initialize first tab
         this.tabs.set(1, {
             id: 1,
@@ -105,9 +105,15 @@ class TabManager {
             isDirty: false,
             editorView: null,
             findMatches: [],
-            currentMatchIndex: -1
+            currentMatchIndex: -1,
+            type: 'markdown', // 'markdown' or 'pdf'
+            // PDF-specific state
+            pdfDoc: null,
+            pdfCurrentPage: 1,
+            pdfZoomLevel: 1.0,
+            pdfRotation: 0
         });
-        
+
         this.setupEventListeners();
         this.updateUI();
     }
@@ -161,24 +167,217 @@ class TabManager {
         });
     }
     
-    createNewTab() {
+    createNewTab(type = 'markdown') {
         const newTabId = this.nextTabId++;
         const tab = {
             id: newTabId,
-            title: 'Untitled',
+            title: type === 'pdf' ? 'PDF Document' : 'Untitled',
             content: '',
             filePath: null,
             isDirty: false,
             editorView: null,
             findMatches: [],
-            currentMatchIndex: -1
+            currentMatchIndex: -1,
+            type: type,
+            // PDF-specific state
+            pdfDoc: null,
+            pdfCurrentPage: 1,
+            pdfZoomLevel: 1.0,
+            pdfRotation: 0
         };
-        
+
         this.tabs.set(newTabId, tab);
         this.createTabElements(tab);
         this.switchToTab(newTabId);
         this.startAutoSave();
         this.updateTabBar();
+    }
+
+    createPdfTab(filePath) {
+        const newTabId = this.nextTabId++;
+        const fileName = require('path').basename(filePath);
+        const tab = {
+            id: newTabId,
+            title: fileName,
+            content: '',
+            filePath: filePath,
+            isDirty: false,
+            editorView: null,
+            findMatches: [],
+            currentMatchIndex: -1,
+            type: 'pdf',
+            // PDF-specific state
+            pdfDoc: null,
+            pdfCurrentPage: 1,
+            pdfZoomLevel: 1.0,
+            pdfRotation: 0
+        };
+
+        this.tabs.set(newTabId, tab);
+        this.createPdfTabElements(tab);
+        this.switchToTab(newTabId);
+        this.loadPdfInTab(tab.id, filePath);
+        this.updateTabBar();
+        return tab.id;
+    }
+
+    createPdfTabElements(tab) {
+        // Create PDF tab content container
+        const tabContent = document.createElement('div');
+        tabContent.className = 'tab-content';
+        tabContent.id = `tab-content-${tab.id}`;
+        tabContent.dataset.tabId = tab.id;
+        tabContent.dataset.tabType = 'pdf';
+
+        tabContent.innerHTML = `
+            <div class="pdf-tab-container" id="pdf-container-${tab.id}">
+                <div class="pdf-controls">
+                    <button class="pdf-nav-btn" data-action="prev" title="Previous Page">◀</button>
+                    <input type="number" class="pdf-page-input" id="pdf-page-${tab.id}" value="1" min="1">
+                    <span class="pdf-page-info">/ <span id="pdf-total-${tab.id}">1</span></span>
+                    <button class="pdf-nav-btn" data-action="next" title="Next Page">▶</button>
+                    <button class="pdf-zoom-btn" data-action="zoom-out" title="Zoom Out">−</button>
+                    <span class="pdf-zoom-level" id="pdf-zoom-${tab.id}">100%</span>
+                    <button class="pdf-zoom-btn" data-action="zoom-in" title="Zoom In">+</button>
+                    <button class="pdf-zoom-btn" data-action="fit-width" title="Fit Width">↔</button>
+                    <button class="pdf-rotate-btn" data-action="rotate-left" title="Rotate Left">↺</button>
+                    <button class="pdf-rotate-btn" data-action="rotate-right" title="Rotate Right">↻</button>
+                </div>
+                <div class="pdf-canvas-container">
+                    <canvas id="pdf-canvas-${tab.id}"></canvas>
+                </div>
+            </div>
+        `;
+
+        document.querySelector('.editor-container').appendChild(tabContent);
+
+        // Add event listeners for PDF controls
+        this.setupPdfTabEvents(tab.id);
+    }
+
+    setupPdfTabEvents(tabId) {
+        const container = document.getElementById(`pdf-container-${tabId}`);
+        if (!container) return;
+
+        container.addEventListener('click', async (e) => {
+            const action = e.target.dataset.action;
+            if (!action) return;
+
+            const tab = this.tabs.get(tabId);
+            if (!tab || !tab.pdfDoc) return;
+
+            switch (action) {
+                case 'prev':
+                    if (tab.pdfCurrentPage > 1) {
+                        tab.pdfCurrentPage--;
+                        await this.renderPdfPageInTab(tabId);
+                    }
+                    break;
+                case 'next':
+                    if (tab.pdfCurrentPage < tab.pdfDoc.numPages) {
+                        tab.pdfCurrentPage++;
+                        await this.renderPdfPageInTab(tabId);
+                    }
+                    break;
+                case 'zoom-out':
+                    if (tab.pdfZoomLevel > 0.25) {
+                        tab.pdfZoomLevel -= 0.25;
+                        await this.renderPdfPageInTab(tabId);
+                    }
+                    break;
+                case 'zoom-in':
+                    if (tab.pdfZoomLevel < 4.0) {
+                        tab.pdfZoomLevel += 0.25;
+                        await this.renderPdfPageInTab(tabId);
+                    }
+                    break;
+                case 'fit-width':
+                    const page = await tab.pdfDoc.getPage(tab.pdfCurrentPage);
+                    const viewport = page.getViewport({ scale: 1, rotation: tab.pdfRotation });
+                    const containerWidth = container.querySelector('.pdf-canvas-container').clientWidth - 40;
+                    tab.pdfZoomLevel = containerWidth / viewport.width;
+                    await this.renderPdfPageInTab(tabId);
+                    break;
+                case 'rotate-left':
+                    tab.pdfRotation = (tab.pdfRotation - 90 + 360) % 360;
+                    await this.renderPdfPageInTab(tabId);
+                    break;
+                case 'rotate-right':
+                    tab.pdfRotation = (tab.pdfRotation + 90) % 360;
+                    await this.renderPdfPageInTab(tabId);
+                    break;
+            }
+        });
+
+        // Page input handler
+        const pageInput = document.getElementById(`pdf-page-${tabId}`);
+        if (pageInput) {
+            pageInput.addEventListener('change', async (e) => {
+                const tab = this.tabs.get(tabId);
+                const pageNum = parseInt(e.target.value);
+                if (tab && tab.pdfDoc && pageNum >= 1 && pageNum <= tab.pdfDoc.numPages) {
+                    tab.pdfCurrentPage = pageNum;
+                    await this.renderPdfPageInTab(tabId);
+                }
+            });
+        }
+    }
+
+    async loadPdfInTab(tabId, filePath) {
+        const tab = this.tabs.get(tabId);
+        if (!tab) return;
+
+        try {
+            document.getElementById('status-text').textContent = 'Loading PDF...';
+
+            const loadingTask = getPdfjsLib().getDocument(filePath);
+            tab.pdfDoc = await loadingTask.promise;
+            tab.pdfCurrentPage = 1;
+            tab.pdfZoomLevel = 1.0;
+            tab.pdfRotation = 0;
+
+            // Update UI
+            document.getElementById(`pdf-total-${tabId}`).textContent = tab.pdfDoc.numPages;
+            document.getElementById(`pdf-page-${tabId}`).value = 1;
+            document.getElementById(`pdf-page-${tabId}`).max = tab.pdfDoc.numPages;
+            document.getElementById(`pdf-zoom-${tabId}`).textContent = '100%';
+
+            await this.renderPdfPageInTab(tabId);
+
+            document.getElementById('status-text').textContent = `PDF: ${tab.title} (${tab.pdfDoc.numPages} pages)`;
+        } catch (error) {
+            console.error('Error loading PDF:', error);
+            document.getElementById('status-text').textContent = 'Error loading PDF';
+            alert('Error loading PDF: ' + error.message);
+        }
+    }
+
+    async renderPdfPageInTab(tabId) {
+        const tab = this.tabs.get(tabId);
+        if (!tab || !tab.pdfDoc) return;
+
+        try {
+            const page = await tab.pdfDoc.getPage(tab.pdfCurrentPage);
+            const canvas = document.getElementById(`pdf-canvas-${tabId}`);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const viewport = page.getViewport({ scale: tab.pdfZoomLevel, rotation: tab.pdfRotation });
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            await page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            }).promise;
+
+            // Update UI
+            document.getElementById(`pdf-page-${tabId}`).value = tab.pdfCurrentPage;
+            document.getElementById(`pdf-zoom-${tabId}`).textContent = Math.round(tab.pdfZoomLevel * 100) + '%';
+        } catch (error) {
+            console.error('Error rendering PDF page:', error);
+        }
     }
     
     createTabElements(tab) {
@@ -263,19 +462,30 @@ class TabManager {
         if (this.tabs.size === 1) return; // Don't close the last tab
 
         const tab = this.tabs.get(tabId);
-        if (tab.isDirty) {
-            // Show confirmation dialog for unsaved changes
+        if (!tab) return;
+
+        if (tab.isDirty && tab.type === 'markdown') {
+            // Show confirmation dialog for unsaved changes (only for markdown)
             const result = confirm('You have unsaved changes. Do you want to close this tab without saving?');
             if (!result) return;
         }
 
-        // Destroy CodeMirror view
+        // Destroy CodeMirror view (for markdown tabs)
         if (tab?.editorView) {
             tab.editorView.destroy();
         }
 
+        // Destroy PDF document (for PDF tabs)
+        if (tab?.pdfDoc) {
+            try {
+                tab.pdfDoc.destroy();
+            } catch (e) {
+                console.warn('Error destroying PDF:', e);
+            }
+        }
+
         // Remove tab elements
-        const tabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
+        const tabElement = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
         const tabContent = document.getElementById(`tab-content-${tabId}`);
 
         if (tabElement?.classList.contains('tab')) {
@@ -309,38 +519,57 @@ class TabManager {
         
         sortedTabs.forEach(tab => {
             const tabElement = document.createElement('div');
-            tabElement.className = `tab ${tab.id === this.activeTabId ? 'active' : ''}`;
+            const typeClass = tab.type === 'pdf' ? 'pdf-tab' : 'markdown-tab';
+            tabElement.className = `tab ${typeClass} ${tab.id === this.activeTabId ? 'active' : ''}`;
             tabElement.dataset.tabId = tab.id;
-            
-            const title = tab.filePath ? 
-                tab.filePath.split('/').pop() : 
+            tabElement.dataset.tabType = tab.type || 'markdown';
+
+            const title = tab.filePath ?
+                tab.filePath.split('/').pop() :
                 tab.title;
-                
+
             const dirtyIndicator = tab.isDirty ? ' •' : '';
-            
+            const typeIndicator = tab.type === 'pdf' ? '📄 ' : '';
+
             tabElement.innerHTML = `
-                <span class="tab-title">${title}${dirtyIndicator}</span>
+                <span class="tab-title">${typeIndicator}${title}${dirtyIndicator}</span>
                 <button class="tab-close" title="Close tab">×</button>
             `;
-            
+
             tabBar.insertBefore(tabElement, newTabBtn);
         });
     }
-    
+
     updateUI() {
         // Show/hide tab contents
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.remove('active');
         });
-        
+
         const activeContent = document.getElementById(`tab-content-${this.activeTabId}`);
         if (activeContent) {
             activeContent.classList.add('active');
         }
-        
-        // Update preview visibility
-        this.updatePreviewVisibility();
-        this.updateLineNumbers();
+
+        // Get active tab to check type
+        const activeTab = this.tabs.get(this.activeTabId);
+
+        // Show/hide toolbar based on tab type
+        const toolbar = document.querySelector('.toolbar');
+        if (toolbar) {
+            if (activeTab?.type === 'pdf') {
+                toolbar.classList.add('hidden');
+            } else {
+                toolbar.classList.remove('hidden');
+            }
+        }
+
+        // Update preview visibility (only for markdown tabs)
+        if (activeTab?.type !== 'pdf') {
+            this.updatePreviewVisibility();
+            this.updateLineNumbers();
+        }
+
         this.updateTabBar();
     }
     
@@ -4093,12 +4322,13 @@ ipcRenderer.on('insert-content', (event, content) => {
 // PDF VIEWER FUNCTIONALITY
 // ============================================
 
+// Legacy PDF viewer globals - kept for PDF editor dialogs that still use them
 let pdfDoc = null;
 let pdfCurrentPage = 1;
 let pdfZoomLevel = 1.0;
 let pdfRotation = 0;
 let pdfFilePath = null;
-let isPdfViewerActive = false; // Track if PDF viewer is currently shown
+let isPdfViewerActive = false;
 
 // Initialize PDF.js
 // Lazy-load pdfjs-dist only when PDF viewer is needed
@@ -4111,62 +4341,19 @@ function getPdfjsLib() {
     return _pdfjsLib;
 }
 
-// Open PDF file
+// Open PDF file - now creates a tab instead of replacing the entire view
 async function openPdfFile(filePath) {
-    // Prevent multiple simultaneous PDF loads
-    if (isPdfViewerActive && pdfFilePath === filePath) {
-        console.log('PDF already open:', filePath);
-        return;
-    }
-
-    // Close any existing PDF first
-    if (pdfDoc) {
-        try {
-            await pdfDoc.destroy();
-        } catch (e) {
-            console.warn('Error destroying previous PDF:', e);
+    // Check if this PDF is already open in a tab
+    for (const [tabId, tab] of tabManager.tabs) {
+        if (tab.type === 'pdf' && tab.filePath === filePath) {
+            // Just switch to the existing tab
+            tabManager.switchToTab(tabId);
+            return;
         }
-        pdfDoc = null;
     }
 
-    try {
-        // Show loading state
-        document.getElementById('status-text').textContent = 'Loading PDF...';
-
-        const loadingTask = getPdfjsLib().getDocument(filePath);
-        pdfDoc = await loadingTask.promise;
-        pdfFilePath = filePath;
-        pdfCurrentPage = 1;
-        pdfZoomLevel = 1.0;
-        pdfRotation = 0;
-        isPdfViewerActive = true;
-
-        // Update UI
-        document.getElementById('pdf-total-pages').textContent = pdfDoc.numPages;
-        document.getElementById('pdf-page-input').value = 1;
-        document.getElementById('pdf-page-input').max = pdfDoc.numPages;
-        document.getElementById('pdf-filename').textContent = require('path').basename(filePath);
-        document.getElementById('pdf-zoom-level').textContent = '100%';
-
-        // Hide markdown toolbar, tabs, show PDF viewer
-        document.querySelector('.toolbar').classList.add('hidden');
-        document.getElementById('tab-bar').classList.add('hidden');
-        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
-        document.getElementById('pdf-viewer-container').classList.remove('hidden');
-
-        // Render first page
-        await renderPdfPage(pdfCurrentPage);
-
-        // Update status
-        document.getElementById('status-text').textContent = `PDF: ${require('path').basename(filePath)} (${pdfDoc.numPages} pages)`;
-    } catch (error) {
-        console.error('Error loading PDF:', error);
-        isPdfViewerActive = false;
-        pdfDoc = null;
-        pdfFilePath = null;
-        document.getElementById('status-text').textContent = 'Error loading PDF';
-        alert('Error loading PDF: ' + error.message);
-    }
+    // Create a new PDF tab
+    tabManager.createPdfTab(filePath);
 }
 
 // Render PDF page
@@ -4279,7 +4466,7 @@ document.getElementById('pdf-close')?.addEventListener('click', () => {
 });
 
 async function closePdfViewer() {
-    // Destroy PDF document to free memory
+    // Legacy PDF viewer close - for backward compatibility with PDF editor dialogs
     if (pdfDoc) {
         try {
             await pdfDoc.destroy();
@@ -4292,19 +4479,27 @@ async function closePdfViewer() {
     pdfFilePath = null;
     isPdfViewerActive = false;
 
-    // Hide PDF viewer
-    document.getElementById('pdf-viewer-container').classList.add('hidden');
+    // If we're using the new tab-based system, close the current PDF tab
+    if (tabManager) {
+        const activeTab = tabManager.tabs.get(tabManager.activeTabId);
+        if (activeTab && activeTab.type === 'pdf') {
+            tabManager.closeTab(tabManager.activeTabId);
+            return;
+        }
+    }
+
+    // Legacy: Hide PDF viewer container
+    document.getElementById('pdf-viewer-container')?.classList.add('hidden');
 
     // Show markdown tabs, tab bar, and toolbar
-    document.getElementById('tab-bar').classList.remove('hidden');
+    document.getElementById('tab-bar')?.classList.remove('hidden');
     document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('hidden'));
-    document.querySelector('.toolbar').classList.remove('hidden');
+    document.querySelector('.toolbar')?.classList.remove('hidden');
 
     // Activate the correct markdown tab
     if (tabManager) {
         const activeTab = document.querySelector(`.tab-content[data-tab-id="${tabManager.activeTabId}"]`);
         if (activeTab) activeTab.classList.add('active');
-        // Refresh the active tab
         tabManager.updatePreview(tabManager.activeTabId);
     }
 
