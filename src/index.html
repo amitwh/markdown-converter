@@ -7,6 +7,8 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://www.plantuml.com;">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MarkdownConverter</title>
+    <!-- Design tokens - loaded first for CSS variable availability -->
+    <link rel="stylesheet" href="styles/tokens.css">
     <link rel="stylesheet" href="fonts.css">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="styles-modern.css">
@@ -16,6 +18,8 @@
     <link rel="stylesheet" href="../node_modules/highlight.js/styles/default.css">
 </head>
 <body>
+    <!-- Skip link for keyboard navigation -->
+    <a href="#editor-container" class="skip-link">Skip to editor</a>
     <div class="container">
         <!-- App Header with ConcreteInfo Logo -->
         <div class="app-header" id="app-header">
