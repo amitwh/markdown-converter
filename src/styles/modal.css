@@ -1,0 +1,256 @@
+/**
+ * Modal System Styles
+ * Unified modal components with glassmorphism backdrop
+ * @version 4.0.0
+ */
+
+/* ============================================
+ * Modal Backdrop - Glassmorphism
+ * ============================================ */
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: var(--z-modal, 200);
+    cursor: pointer;
+}
+
+/* ============================================
+ * Modal Container
+ * ============================================ */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: calc(var(--z-modal, 200) + 1);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-normal, 200ms cubic-bezier(0.4, 0, 0.2, 1)),
+                visibility var(--transition-normal, 200ms cubic-bezier(0.4, 0, 0.2, 1));
+    padding: var(--spacing-4, 1rem);
+}
+
+.modal.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ============================================
+ * Modal Content - With Animation
+ * ============================================ */
+
+.modal-content {
+    background: hsl(var(--background, 0 0% 100%));
+    border-radius: var(--radius-lg, 0.5rem);
+    box-shadow: var(--shadow-xl, 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1));
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.95);
+    transition: transform var(--transition-normal, 200ms cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.modal.open .modal-content {
+    transform: scale(1);
+}
+
+/* ============================================
+ * Modal Header
+ * ============================================ */
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-4, 1rem) var(--spacing-6, 1.5rem);
+    border-bottom: 1px solid hsl(var(--border, 214.3 31.8% 91.4%));
+    background: hsl(var(--muted, 210 40% 96.1%));
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: var(--text-lg, 1.125rem);
+    font-weight: var(--font-semibold, 600);
+    color: hsl(var(--foreground, 222.2 84% 4.9%));
+}
+
+/* ============================================
+ * Modal Close Button
+ * ============================================ */
+
+.modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius, 0.5rem);
+    background: transparent;
+    color: hsl(var(--muted-foreground, 215.4 16.3% 46.9%));
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--transition-fast, 150ms),
+                color var(--transition-fast, 150ms);
+}
+
+.modal-close:hover {
+    background: hsl(var(--accent, 210 40% 96.1%));
+    color: hsl(var(--foreground, 222.2 84% 4.9%));
+}
+
+.modal-close:focus-visible {
+    outline: 2px solid hsl(var(--ring, 227 44% 52%));
+    outline-offset: 2px;
+}
+
+/* ============================================
+ * Modal Body
+ * ============================================ */
+
+.modal-body {
+    padding: var(--spacing-6, 1.5rem);
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* ============================================
+ * Modal Footer
+ * ============================================ */
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-3, 0.75rem);
+    padding: var(--spacing-4, 1rem) var(--spacing-6, 1.5rem);
+    border-top: 1px solid hsl(var(--border, 214.3 31.8% 91.4%));
+    background: hsl(var(--muted, 210 40% 96.1%));
+}
+
+.modal-footer .btn {
+    min-width: 80px;
+}
+
+/* ============================================
+ * Form Elements within Modal
+ * ============================================ */
+
+.modal-body .form-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3, 0.75rem);
+    margin-bottom: var(--spacing-3, 0.75rem);
+}
+
+.modal-body .form-row label {
+    min-width: 100px;
+    font-size: var(--text-sm, 0.875rem);
+    color: hsl(var(--foreground, 222.2 84% 4.9%));
+}
+
+.modal-body .form-row input,
+.modal-body .form-row select {
+    flex: 1;
+    padding: var(--spacing-2, 0.5rem) var(--spacing-3, 0.75rem);
+    border: 1px solid hsl(var(--input, 214.3 31.8% 91.4%));
+    border-radius: var(--radius, 0.5rem);
+    font-size: var(--text-sm, 0.875rem);
+    background: hsl(var(--background, 0 0% 100%));
+    color: hsl(var(--foreground, 222.2 84% 4.9%));
+}
+
+.modal-body .form-row input:focus,
+.modal-body .form-row select:focus {
+    outline: 2px solid hsl(var(--ring, 227 44% 52%));
+    outline-offset: 1px;
+}
+
+.modal-body .export-section {
+    margin-bottom: var(--spacing-4, 1rem);
+    padding-bottom: var(--spacing-4, 1rem);
+    border-bottom: 1px solid hsl(var(--border, 214.3 31.8% 91.4%));
+}
+
+.modal-body .export-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.modal-body .export-section label {
+    display: block;
+    font-weight: var(--font-medium, 500);
+    margin-bottom: var(--spacing-2, 0.5rem);
+    color: hsl(var(--foreground, 222.2 84% 4.9%));
+}
+
+.modal-body .checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2, 0.5rem);
+    margin-bottom: var(--spacing-2, 0.5rem);
+    font-weight: var(--font-normal, 400);
+    cursor: pointer;
+}
+
+/* ============================================
+ * Size Variants
+ * ============================================ */
+
+.modal-content.small {
+    max-width: 400px;
+}
+
+.modal-content.large {
+    max-width: 800px;
+}
+
+.modal-content.full {
+    max-width: 95vw;
+    max-height: 95vh;
+}
+
+/* ============================================
+ * Dark Mode Support
+ * ============================================ */
+
+.dark .modal-content,
+[data-theme="dark"] .modal-content {
+    background: hsl(var(--background));
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+}
+
+.dark .modal-header,
+.dark .modal-footer,
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+    background: hsl(var(--muted));
+}
+
+/* ============================================
+ * Accessibility - Reduced Motion
+ * ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .modal,
+    .modal-content {
+        transition: none;
+    }
+}
+
+/* ============================================
+ * Legacy Support - Hidden class
+ * ============================================ */
+
+.modal.hidden {
+    display: none;
+}
