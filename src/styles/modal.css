@@ -14,7 +14,7 @@
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    z-index: var(--z-modal, 200);
+    z-index: 0;
     cursor: pointer;
 }
 
@@ -46,6 +46,9 @@
  * ============================================ */
 
 .modal-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
     background: hsl(var(--background, 0 0% 100%));
     border-radius: var(--radius-lg, 0.5rem);
     box-shadow: var(--shadow-xl, 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1));
@@ -139,6 +142,9 @@
 
 .modal-footer .btn {
     min-width: 80px;
+    /* styles-modern.css sets flex:1 on .btn-primary/.btn-secondary globally
+     * which causes footer buttons to stretch to full width. Override here. */
+    flex: none;
 }
 
 /* ============================================
@@ -208,15 +214,18 @@
 
 .modal-content.small {
     max-width: 400px;
+    min-width: 320px;
 }
 
 .modal-content.large {
     max-width: 800px;
+    min-width: 560px;
 }
 
 .modal-content.full {
     max-width: 95vw;
     max-height: 95vh;
+    min-width: min(95vw, 700px);
 }
 
 /* ============================================

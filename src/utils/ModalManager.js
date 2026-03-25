@@ -124,8 +124,12 @@ class ModalManager {
         // Track open modals
         ModalManager.#openModals.push(this);
 
-        // Show modal (remove hidden, add open)
+        // Show modal: remove hidden first, force a reflow so the browser
+        // records opacity:0 as the start state, then add 'open' to trigger
+        // the CSS transition. Without the reflow, both class changes are
+        // batched into one style recalculation and the transition is skipped.
         this.#modal.classList.remove('hidden');
+        void this.#modal.offsetHeight; // Force reflow — do not remove
         this.#modal.classList.add('open');
         this.#isOpen = true;
 
@@ -165,9 +169,27 @@ class ModalManager {
             ModalManager.#openModals.splice(index, 1);
         }
 
-        // Hide modal
+        // Start hide transition
         this.#modal.classList.remove('open');
         this.#isOpen = false;
+
+        // Re-add 'hidden' after the CSS transition completes so the modal
+        // is fully removed from rendering (display:none), not just invisible.
+        // We use both transitionend and a setTimeout fallback because
+        // transitionend never fires when prefers-reduced-motion disables transitions.
+        let hidden = false;
+        const addHidden = () => {
+            if (hidden || this.#isOpen) return;
+            hidden = true;
+            this.#modal.removeEventListener('transitionend', onTransitionEnd);
+            this.#modal.classList.add('hidden');
+        };
+        const onTransitionEnd = (e) => {
+            if (e.target !== this.#modal) return;
+            addHidden();
+        };
+        this.#modal.addEventListener('transitionend', onTransitionEnd);
+        setTimeout(addHidden, 250); // fallback: slightly longer than 200ms transition
 
         // Restore body scroll if no modals open
         if (ModalManager.#openModals.length === 0) {
