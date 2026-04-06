@@ -295,3 +295,10 @@ body[class*="dark"] .git-file:hover {
 .outline-empty p { margin: 4px 0; }
 .outline-hint { font-family: monospace; font-size: 12px; opacity: 0.7; }
 .outline-footer { padding: 8px 12px; border-top: 1px solid var(--border-color, #e5e7eb); font-size: 11px; color: var(--text-muted, #9ca3af); }
+
+/* Outline dark mode */
+body[class*="dark"] .outline-item { color: #9ca3af; }
+body[class*="dark"] .outline-item:hover { background: #374151; color: #e5e7eb; }
+body[class*="dark"] .outline-item.active { color: #8b9aff; background: rgba(139, 154, 255, 0.1); border-left-color: #8b9aff; }
+body[class*="dark"] .outline-empty { color: #6b7280; }
+body[class*="dark"] .outline-footer { border-color: #333; color: #6b7280; }

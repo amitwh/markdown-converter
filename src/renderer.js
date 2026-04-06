@@ -456,6 +456,9 @@ class TabManager {
         if (tab?.filePath) {
             ipcRenderer.send('set-current-file', tab.filePath);
         }
+
+        // Refresh outline panel for new tab content
+        if (outlinePanelContainer?._refreshOutline) outlinePanelContainer._refreshOutline();
     }
     
     switchToNextTab() {
