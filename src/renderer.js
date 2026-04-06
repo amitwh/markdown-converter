@@ -28,6 +28,8 @@ function getPrintPreview() { if (!_PrintPreview) _PrintPreview = require('./prin
 function getCreateWelcomeContent() { if (!_createWelcomeContent) _createWelcomeContent = require('./welcome').createWelcomeContent; return _createWelcomeContent; }
 let _ZenMode;
 function getZenMode() { if (!_ZenMode) _ZenMode = require('./zen-mode').ZenMode; return _ZenMode; }
+let _showAnalyticsModal;
+function getShowAnalyticsModal() { if (!_showAnalyticsModal) _showAnalyticsModal = require('./analytics/analytics-panel').showAnalyticsModal; return _showAnalyticsModal; }
 
 // Configure marked with highlight extension
 marked.use(markedHighlight({
@@ -1663,6 +1665,7 @@ document.addEventListener('DOMContentLoaded', () => {
     commandPalette.register('Insert Link', '', () => tabManager.wrapSelection('[', '](url)'));
     commandPalette.register('Insert Image', '', () => tabManager.wrapSelection('![', '](image.jpg)'));
     commandPalette.register('Toggle Zen Mode', 'F11', () => zenMode.toggle());
+    commandPalette.register('Writing Analytics', 'Ctrl+Shift+A', () => getShowAnalyticsModal()(tabManager));
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -1675,6 +1678,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'F11') {
             e.preventDefault();
             zenMode.toggle();
+        }
+        // Ctrl+Shift+A — Writing Analytics
+        if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+            e.preventDefault();
+            getShowAnalyticsModal()(tabManager);
         }
         // Escape — Exit Zen Mode
         if (e.key === 'Escape' && zenMode.active) {
