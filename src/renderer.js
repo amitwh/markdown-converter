@@ -20,6 +20,8 @@ function getRenderTemplatesPanel() { if (!_renderTemplatesPanel) _renderTemplate
 function getRenderExplorerPanel() { if (!_renderExplorerPanel) _renderExplorerPanel = require('./sidebar/explorer-panel').renderExplorerPanel; return _renderExplorerPanel; }
 function getRenderGitPanel() { if (!_renderGitPanel) _renderGitPanel = require('./sidebar/git-panel').renderGitPanel; return _renderGitPanel; }
 function getRenderSnippetsPanel() { if (!_renderSnippetsPanel) _renderSnippetsPanel = require('./sidebar/snippets-panel').renderSnippetsPanel; return _renderSnippetsPanel; }
+let _renderOutlinePanel;
+function getRenderOutlinePanel() { if (!_renderOutlinePanel) _renderOutlinePanel = require('./sidebar/outline-panel').renderOutlinePanel; return _renderOutlinePanel; }
 function getReplPanel() { if (!_ReplPanel) _ReplPanel = require('./repl/repl-panel').ReplPanel; return _ReplPanel; }
 function getCommandPalette() { if (!_CommandPalette) _CommandPalette = require('./command-palette').CommandPalette; return _CommandPalette; }
 function getPrintPreview() { if (!_PrintPreview) _PrintPreview = require('./print-preview').PrintPreview; return _PrintPreview; }
@@ -416,9 +418,11 @@ class TabManager {
                     this.updatePreview(tab.id);
                     this.updateWordCount();
                     this.updateTabBar();
+                    if (outlinePanelContainer?._refreshOutline) outlinePanelContainer._refreshOutline();
                 },
                 onUpdate: (view) => {
                     this.updateCursorPosition(view);
+                    if (outlinePanelContainer?._setActiveHeading) outlinePanelContainer._setActiveHeading(view.state.doc.lineAt(view.state.selection.main.head).number);
                 },
                 isDark,
                 showLineNumbers: this.showLineNumbers,
@@ -1467,6 +1471,36 @@ document.addEventListener('DOMContentLoaded', () => {
         })
     });
 
+    let outlinePanelContainer = null;
+    sidebarManager.registerPanel('outline', {
+        title: 'Outline',
+        render: (container) => {
+            outlinePanelContainer = container;
+            getRenderOutlinePanel()(container, {
+                getEditorContent: () => tabManager.getEditorContent(),
+                getActiveLine: () => {
+                    const tab = tabManager.tabs.get(tabManager.activeTabId);
+                    if (tab?.editorView) {
+                        const pos = tab.editorView.state.selection.main.head;
+                        return tab.editorView.state.doc.lineAt(pos).number;
+                    }
+                    return 1;
+                },
+                onHeadingClick: (line) => {
+                    const tab = tabManager.tabs.get(tabManager.activeTabId);
+                    if (tab?.editorView) {
+                        const pos = tab.editorView.state.doc.line(line).from;
+                        tab.editorView.dispatch({
+                            selection: { anchor: pos },
+                            scrollIntoView: true
+                        });
+                        tab.editorView.focus();
+                    }
+                }
+            });
+        }
+    });
+
     // Welcome tab on startup
     const hasLaunched = localStorage.getItem('hasLaunchedBefore');
     const showWelcome = localStorage.getItem('showWelcomeOnStartup') !== 'false';
@@ -1601,6 +1635,7 @@ document.addEventListener('DOMContentLoaded', () => {
     commandPalette.register('Toggle Sidebar: Git', 'Ctrl+Shift+G', () => sidebarManager.togglePanel('git'));
     commandPalette.register('Toggle Sidebar: Snippets', '', () => sidebarManager.togglePanel('snippets'));
     commandPalette.register('Toggle Sidebar: Templates', '', () => sidebarManager.togglePanel('templates'));
+    commandPalette.register('Toggle Sidebar: Outline', 'Ctrl+Shift+O', () => sidebarManager.togglePanel('outline'));
     commandPalette.register('Print Preview', 'Ctrl+P', () => {
         const tab = tabManager.tabs.get(tabManager.activeTabId);
         const preview = document.getElementById(`preview-${tab.id}`);
@@ -1640,9 +1675,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 tabManager.updatePreview(tab.id);
                 tabManager.updateWordCount();
                 tabManager.updateTabBar();
+                if (outlinePanelContainer?._refreshOutline) outlinePanelContainer._refreshOutline();
             },
             onUpdate: (view) => {
                 tabManager.updateCursorPosition(view);
+                if (outlinePanelContainer?._setActiveHeading) outlinePanelContainer._setActiveHeading(view.state.doc.lineAt(view.state.selection.main.head).number);
             },
             isDark,
             showLineNumbers: tabManager.showLineNumbers,
