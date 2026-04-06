@@ -42,7 +42,7 @@
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
     "cross-env": "^10.0.0",
-    "electron": "^37.4.0",
+    "electron": "^41.1.1",
     "electron-builder": "^26.0.12",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
@@ -89,7 +89,9 @@
   "overrides": {
     "jszip": "^3.10.1",
     "nth-check": "^2.1.1",
-    "lodash.pick": "npm:lodash@^4.17.21"
+    "lodash.pick": "npm:lodash@^4.17.21",
+    "lodash-es": "^4.18.1",
+    "lodash": "^4.17.21"
   },
   "build": {
     "appId": "com.concreteinfo.markdownconverter",
