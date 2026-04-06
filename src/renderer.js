@@ -26,6 +26,8 @@ function getReplPanel() { if (!_ReplPanel) _ReplPanel = require('./repl/repl-pan
 function getCommandPalette() { if (!_CommandPalette) _CommandPalette = require('./command-palette').CommandPalette; return _CommandPalette; }
 function getPrintPreview() { if (!_PrintPreview) _PrintPreview = require('./print-preview').PrintPreview; return _PrintPreview; }
 function getCreateWelcomeContent() { if (!_createWelcomeContent) _createWelcomeContent = require('./welcome').createWelcomeContent; return _createWelcomeContent; }
+let _ZenMode;
+function getZenMode() { if (!_ZenMode) _ZenMode = require('./zen-mode').ZenMode; return _ZenMode; }
 
 // Configure marked with highlight extension
 marked.use(markedHighlight({
@@ -1504,6 +1506,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Initialize Zen Mode
+    const ZenModeClass = getZenMode();
+    const zenMode = new ZenModeClass(tabManager);
+
     // Welcome tab on startup
     const hasLaunched = localStorage.getItem('hasLaunchedBefore');
     const showWelcome = localStorage.getItem('showWelcomeOnStartup') !== 'false';
@@ -1656,12 +1662,23 @@ document.addEventListener('DOMContentLoaded', () => {
     commandPalette.register('Heading 3', '', () => tabManager.insertAtLineStart('### '));
     commandPalette.register('Insert Link', '', () => tabManager.wrapSelection('[', '](url)'));
     commandPalette.register('Insert Image', '', () => tabManager.wrapSelection('![', '](image.jpg)'));
+    commandPalette.register('Toggle Zen Mode', 'F11', () => zenMode.toggle());
 
-    // Ctrl+Shift+P keyboard shortcut for command palette
+    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
+        // Ctrl+Shift+P — Command Palette
         if (e.ctrlKey && e.shiftKey && e.key === 'P') {
             e.preventDefault();
             commandPalette.open();
+        }
+        // F11 — Zen Mode
+        if (e.key === 'F11') {
+            e.preventDefault();
+            zenMode.toggle();
+        }
+        // Escape — Exit Zen Mode
+        if (e.key === 'Escape' && zenMode.active) {
+            zenMode.deactivate();
         }
     });
 

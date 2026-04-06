@@ -1,0 +1,102 @@
+/* Zen Mode — Distraction-free writing styles */
+
+/* Hide chrome elements */
+body.zen-mode .app-header,
+body.zen-mode .tab-bar,
+body.zen-mode .toolbar,
+body.zen-mode .status-bar,
+body.zen-mode .sidebar,
+body.zen-mode .breadcrumb-bar {
+    display: none !important;
+}
+
+/* Main content fills viewport */
+body.zen-mode .main-content {
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Editor container takes full width */
+body.zen-mode .editor-container {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Hide preview panes */
+body.zen-mode .preview-container,
+body.zen-mode .preview-pane,
+body.zen-mode .pane-resizer {
+    display: none !important;
+}
+
+/* Center and style editor content for comfortable reading width */
+body.zen-mode .cm-content {
+    max-width: 700px;
+    margin: 0 auto;
+    font-size: 18px;
+    line-height: 1.8;
+    padding-top: 80px;
+}
+
+body.zen-mode .cm-line {
+    padding: 4px 0;
+}
+
+body.zen-mode .editor-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+/* Floating HUD pill */
+.zen-hud {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(255, 255, 255, 0.8);
+    padding: 10px 24px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    z-index: 9999;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: opacity 0.3s ease;
+}
+
+.zen-hud-stat {
+    opacity: 0.7;
+}
+
+.zen-hud-sep {
+    opacity: 0.3;
+    margin: 0 4px;
+}
+
+/* Word goal progress bar */
+.zen-progress-container {
+    width: 120px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+    display: none;
+}
+
+.zen-progress-bar {
+    height: 100%;
+    background: rgba(255, 178, 70, 0.85);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* Dark mode — HUD stays dark in both themes */
+body[class*="dark"].zen-mode .zen-hud {
+    background: rgba(0, 0, 0, 0.7);
+}
