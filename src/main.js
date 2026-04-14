@@ -283,6 +283,14 @@ const store = {
   }
 };
 
+// Plugin settings IPC handlers
+ipcMain.handle('plugin-settings:get', (_event, key) => {
+  return store.get(key);
+});
+ipcMain.handle('plugin-settings:set', (_event, { key, value }) => {
+  store.set(key, value);
+});
+
 let mainWindow;
 let currentFile = null; // This will now represent the active tab's file
 let pandocAvailable = null; // Cache pandoc availability check

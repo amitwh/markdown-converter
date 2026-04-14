@@ -36,7 +36,7 @@ class EventBus {
 
   hasHandler(event) {
     const handlers = this.listeners.get(event);
-    return handlers != null && handlers.length > 0;
+    return handlers !== undefined && handlers !== null && handlers.length > 0;
   }
 }
 

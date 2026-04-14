@@ -1545,6 +1545,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Plugin System ---
+    const { PluginLoader } = require('./plugins/plugin-loader');
+    const { PluginRegistry } = require('./plugins/plugin-registry');
+    const { EventBus } = require('./plugins/event-bus');
+    const { SettingsStore } = require('./plugins/settings-store');
+    const pluginPath = require('path');
+
+    const pluginEventBus = new EventBus();
+    const pluginSettings = new SettingsStore({
+        get: (key) => window.electronAPI.invoke('plugin-settings:get', key),
+        set: (key, value) => window.electronAPI.invoke('plugin-settings:set', { key, value })
+    });
+
+    const statusBarRight = document.querySelector('.status-bar-right');
+    const pluginRegistry = new PluginRegistry({
+        sidebar: sidebarManager,
+        commands: commandPalette,
+        statusBar: {
+            registerIndicator: (id, opts) => {
+                const el = document.createElement('span');
+                el.className = 'status-item';
+                el.id = `plugin-status-${id}`;
+                if (opts.tooltip) el.title = opts.tooltip;
+                el.textContent = opts.text || '';
+                const sep = document.createElement('span');
+                sep.className = 'status-separator';
+                sep.textContent = '|';
+                if (statusBarRight) {
+                    statusBarRight.appendChild(sep);
+                    statusBarRight.appendChild(el);
+                }
+            }
+        },
+        eventBus: pluginEventBus,
+        settings: pluginSettings,
+        editor: {
+            getContent: () => tabManager.getCurrentContent(),
+            getSelection: () => tabManager.getSelection(),
+            insertAtCursor: (text) => tabManager.insertAtCursor(text),
+            onContentChanged: (cb) => pluginEventBus.on('document:changed', cb)
+        },
+        ipc: {
+            invoke: (ch, data) => window.electronAPI.invoke(ch, data),
+            on: (ch, cb) => window.electronAPI.on(ch, cb)
+        }
+    });
+
+    const builtInDir = pluginPath.join(__dirname, 'plugins', 'built-in');
+    const loader = new PluginLoader([builtInDir]);
+    const discovered = loader.discoverPlugins();
+    discovered.forEach(p => pluginRegistry.register(p));
+
     // Initialize Zen Mode
     const ZenModeClass = getZenMode();
     const zenMode = new ZenModeClass(tabManager);

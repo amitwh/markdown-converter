@@ -135,7 +135,11 @@ const ALLOWED_SEND_CHANNELS = [
   'export',
 
   // Git diff
-  'git-diff'
+  'git-diff',
+
+  // Plugin settings
+  'plugin-settings:get',
+  'plugin-settings:set'
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [
