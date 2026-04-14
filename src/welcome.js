@@ -10,7 +10,7 @@ function createWelcomeContent(recentFiles = []) {
     <div class="welcome-container">
         <div class="welcome-hero">
             <h1 class="welcome-title">MarkdownConverter</h1>
-            <p class="welcome-version">Version 4.0.0</p>
+            <p class="welcome-version">Version 4.1.0</p>
             <p class="welcome-subtitle">Professional Markdown Editor & Universal Document Converter</p>
         </div>
 
@@ -45,7 +45,7 @@ function createWelcomeContent(recentFiles = []) {
             </div>
 
             <div class="welcome-section">
-                <h2>What's New in v4.0.0</h2>
+                <h2>What's New in v4.x</h2>
                 <ul class="welcome-features">
                     <li><strong>CodeMirror Editor</strong> — Syntax highlighting, code folding, multiple cursors</li>
                     <li><strong>Sidebar Panels</strong> — File Explorer, Git, Snippets, Templates</li>

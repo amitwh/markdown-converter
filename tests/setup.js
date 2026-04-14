@@ -17,7 +17,15 @@ global.window.electronAPI = {
     setCurrent: jest.fn(),
     saveRecent: jest.fn(),
     clearRecent: jest.fn(),
-    rendererReady: jest.fn()
+    rendererReady: jest.fn(),
+    read: jest.fn(() => Promise.resolve('')),
+    write: jest.fn(() => Promise.resolve()),
+    delete: jest.fn(() => Promise.resolve()),
+    ensureDir: jest.fn(() => Promise.resolve()),
+    exists: jest.fn(() => Promise.resolve(false)),
+    isDirectory: jest.fn(() => Promise.resolve(false)),
+    copy: jest.fn(() => Promise.resolve()),
+    move: jest.fn(() => Promise.resolve())
   },
   theme: {
     get: jest.fn()

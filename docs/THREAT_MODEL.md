@@ -1,6 +1,6 @@
 # MarkdownConverter - STRIDE Threat Model Analysis
 
-**Version:** 4.0.0
+**Version:** 4.1.0
 **Date:** 2026-03-15
 **Methodology:** STRIDE + MITRE ATT&CK Mapping
 **Analyst:** Security Assessment Team

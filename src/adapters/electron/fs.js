@@ -18,7 +18,7 @@ const electronFsAdapter = {
      * @returns {Promise<string>} File content
      */
     async readFile(path) {
-        return await window.electronAPI.readFile(path);
+        return await window.electronAPI.file.read(path);
     },
 
     /**
@@ -28,7 +28,7 @@ const electronFsAdapter = {
      * @returns {Promise<void>}
      */
     async writeFile(path, content) {
-        return await window.electronAPI.writeFile(path, content);
+        return await window.electronAPI.file.write(path, content);
     },
 
     /**
@@ -37,8 +37,7 @@ const electronFsAdapter = {
      * @returns {Promise<void>}
      */
     async deleteFile(path) {
-        // TODO: Add IPC channel for delete
-        throw new Error('deleteFile not implemented');
+        return await window.electronAPI.file.delete(path);
     },
 
     /**
@@ -47,8 +46,7 @@ const electronFsAdapter = {
      * @returns {Promise<void>}
      */
     async ensureDir(path) {
-        // TODO: Add IPC channel for ensureDir
-        throw new Error('ensureDir not implemented');
+        return await window.electronAPI.file.ensureDir(path);
     },
 
     /**
@@ -57,8 +55,18 @@ const electronFsAdapter = {
      * @returns {Promise<Array<import('../types').FileInfo>>}
      */
     async listDirectory(path) {
-        // TODO: Add IPC channel for listDirectory
-        throw new Error('listDirectory not implemented');
+        const result = await window.electronAPI.invoke('list-directory', path);
+        if (!result?.entries) {
+            return [];
+        }
+
+        return result.entries.map((entry) => ({
+            name: entry.name,
+            isDir: entry.isDirectory,
+            size: entry.size ?? 0,
+            modified: entry.modified ?? 0,
+            path: entry.path
+        }));
     },
 
     /**
@@ -67,8 +75,7 @@ const electronFsAdapter = {
      * @returns {Promise<boolean>}
      */
     async exists(path) {
-        // TODO: Add IPC channel for exists
-        throw new Error('exists not implemented');
+        return await window.electronAPI.file.exists(path);
     },
 
     /**
@@ -77,8 +84,7 @@ const electronFsAdapter = {
      * @returns {Promise<boolean>}
      */
     async isDirectory(path) {
-        // TODO: Add IPC channel for isDirectory
-        throw new Error('isDirectory not implemented');
+        return await window.electronAPI.file.isDirectory(path);
     },
 
     /**
@@ -88,8 +94,7 @@ const electronFsAdapter = {
      * @returns {Promise<void>}
      */
     async copy(source, dest) {
-        // TODO: Add IPC channel for copy
-        throw new Error('copy not implemented');
+        return await window.electronAPI.file.copy(source, dest);
     },
 
     /**
@@ -99,8 +104,7 @@ const electronFsAdapter = {
      * @returns {Promise<void>}
      */
     async move(source, dest) {
-        // TODO: Add IPC channel for move
-        throw new Error('move not implemented');
+        return await window.electronAPI.file.move(source, dest);
     }
 };
 

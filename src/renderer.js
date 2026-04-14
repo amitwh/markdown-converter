@@ -1,6 +1,6 @@
 /**
  * MarkdownConverter Renderer Process
- * @version 3.0.0
+ * @version 4.1.0
  */
 
 const { ipcRenderer } = require('electron');
@@ -30,6 +30,45 @@ let _ZenMode;
 function getZenMode() { if (!_ZenMode) _ZenMode = require('./zen-mode').ZenMode; return _ZenMode; }
 let _showAnalyticsModal;
 function getShowAnalyticsModal() { if (!_showAnalyticsModal) _showAnalyticsModal = require('./analytics/analytics-panel').showAnalyticsModal; return _showAnalyticsModal; }
+
+function ensureToastContainer() {
+    let container = document.getElementById('app-toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'app-toast-container';
+        container.className = 'app-toast-container';
+        document.body.appendChild(container);
+    }
+    return container;
+}
+
+function notifyUser(message, type = 'info', options = {}) {
+    if (!message) return;
+
+    const { duration = 3500 } = options;
+    const container = ensureToastContainer();
+    const toast = document.createElement('div');
+    toast.className = `app-toast app-toast-${type}`;
+    toast.setAttribute('role', type === 'warning' ? 'alert' : 'status');
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.classList.add('visible');
+    });
+
+    const dismiss = () => {
+        toast.classList.remove('visible');
+        setTimeout(() => toast.remove(), 180);
+    };
+
+    if (duration > 0) {
+        setTimeout(dismiss, duration);
+    }
+
+    toast.addEventListener('click', dismiss);
+    return toast;
+}
 
 // Configure marked with highlight extension
 marked.use(markedHighlight({
@@ -357,7 +396,7 @@ class TabManager {
         } catch (error) {
             console.error('Error loading PDF:', error);
             document.getElementById('status-text').textContent = 'Error loading PDF';
-            alert('Error loading PDF: ' + error.message);
+            notifyUser(`Error loading PDF: ${error.message}`, 'warning');
         }
     }
 
@@ -457,9 +496,7 @@ class TabManager {
 
         // Notify main process about current file for exports
         const tab = this.tabs.get(tabId);
-        if (tab?.filePath) {
-            ipcRenderer.send('set-current-file', tab.filePath);
-        }
+        ipcRenderer.send('set-current-file', tab?.filePath || null);
 
         // Refresh outline panel for new tab content
         if (outlinePanelContainer?._refreshOutline) outlinePanelContainer._refreshOutline();
@@ -1729,7 +1766,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Auto-save logic for all tabs
         tabManager.tabs.forEach(tab => {
             if (tab.isDirty && tab.filePath) {
-                ipcRenderer.send('save-current-file', tab.content);
+                ipcRenderer.send('save-current-file', { filePath: tab.filePath, content: tab.content });
             }
         });
     }, 30000);
@@ -1753,7 +1790,7 @@ ipcRenderer.on('file-save', () => {
     const currentContent = tabManager.getCurrentContent();
     const currentFilePath = tabManager.getCurrentFilePath();
     // send to main process which will save or trigger save-as dialog
-    ipcRenderer.send('save-current-file', currentContent);
+    ipcRenderer.send('save-current-file', { filePath: currentFilePath, content: currentContent });
 });
 
 ipcRenderer.on('get-content-for-save', (event, filePath) => {
@@ -1870,7 +1907,7 @@ function openPrintPreviewDialog() {
     const previewContent = document.getElementById(`preview-${activeTabId}`);
 
     if (!previewContent || !previewContent.innerHTML.trim()) {
-        alert('Nothing to print. Please create or open a document and ensure the preview is visible.');
+        notifyUser('Nothing to print. Create or open a document and keep the preview visible.', 'warning');
         return;
     }
 
@@ -2112,7 +2149,7 @@ function saveCurrentProfile() {
     // Select the newly created profile
     document.getElementById('export-profile-select').value = profileName;
 
-    alert(`Profile "${profileName}" saved successfully!`);
+    notifyUser(`Profile "${profileName}" saved successfully.`, 'success');
 }
 
 function loadProfile(profileName) {
@@ -2152,7 +2189,7 @@ function deleteSelectedProfile() {
     const profileName = select.value;
 
     if (!profileName) {
-        alert('Please select a profile to delete.');
+        notifyUser('Select a profile to delete.', 'warning');
         return;
     }
 
@@ -2161,7 +2198,7 @@ function deleteSelectedProfile() {
         saveExportProfiles();
         populateProfileDropdown();
         select.value = '';
-        alert(`Profile "${profileName}" deleted successfully!`);
+        notifyUser(`Profile "${profileName}" deleted successfully.`, 'success');
     }
 }
 
@@ -2855,7 +2892,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const includeSubfolders = document.getElementById('converter-batch-subfolders').checked;
 
                 if (!inputFolder || !outputFolder) {
-                    alert('Please select both input and output folders for batch conversion');
+                    document.getElementById('converter-progress').classList.remove('hidden');
+                    document.getElementById('converter-status').textContent = 'Select both input and output folders for batch conversion.';
                     return;
                 }
 
@@ -2877,7 +2915,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const filePath = converterFilePath;
 
                 if (!filePath) {
-                    alert('Please select a file to convert');
+                    document.getElementById('converter-progress').classList.remove('hidden');
+                    document.getElementById('converter-status').textContent = 'Select a file to convert.';
                     return;
                 }
 
@@ -3025,7 +3064,13 @@ function showPDFEditorDialog(operation, openedFilePath = null) {
 
 function hidePDFEditorDialog() {
     window.modals.pdfEditorModal.close();
+    clearPDFStatus();
     document.getElementById('pdf-progress').classList.add('hidden');
+    document.getElementById('pdf-progress-text').textContent = 'Processing...';
+    const progressFill = document.getElementById('pdf-progress-fill');
+    if (progressFill) {
+        progressFill.style.width = '0%';
+    }
     currentPDFOperation = null;
 }
 
@@ -3226,7 +3271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadCurrentOrder.addEventListener('click', () => {
             const inputPath = document.getElementById('reorder-input-path').value;
             if (!inputPath) {
-                alert('Please select a PDF file first');
+                showPDFValidationMessage('Select a PDF file before loading the current page order.', '#reorder-input-path');
                 return;
             }
             // Request page count from main process
@@ -3243,7 +3288,7 @@ ipcRenderer.on('pdf-folder-selected', (event, { inputId, path }) => {
 // Handle PDF page count response
 ipcRenderer.on('pdf-page-count', (event, { count, error }) => {
     if (error) {
-        alert('Error reading PDF: ' + error);
+        showPDFStatus(`Error reading PDF: ${error}`, 'warning');
         return;
     }
 
@@ -3252,6 +3297,39 @@ ipcRenderer.on('pdf-page-count', (event, { count, error }) => {
     document.getElementById('current-page-order').classList.remove('hidden');
     document.getElementById('reorder-pages').value = currentOrder;
 });
+
+function getPDFStatusElement() {
+    return document.getElementById('pdf-status-message');
+}
+
+function showPDFStatus(message, type = 'info') {
+    const status = getPDFStatusElement();
+    if (!status) return;
+
+    status.textContent = message;
+    status.classList.remove('hidden', 'info-message', 'warning-message', 'success-message');
+    status.classList.add(`${type}-message`);
+}
+
+function clearPDFStatus() {
+    const status = getPDFStatusElement();
+    if (!status) return;
+
+    status.textContent = '';
+    status.classList.remove('info-message', 'warning-message', 'success-message');
+    status.classList.add('hidden');
+}
+
+function showPDFValidationMessage(message, focusSelector = null) {
+    showPDFStatus(message, 'warning');
+
+    if (focusSelector) {
+        const field = document.querySelector(focusSelector);
+        if (field && typeof field.focus === 'function') {
+            field.focus();
+        }
+    }
+}
 
 // Process PDF Operation
 function processPDFOperation() {
@@ -3262,13 +3340,13 @@ function processPDFOperation() {
         switch (operation) {
             case 'merge':
                 if (mergeFilePaths.length < 2) {
-                    alert('Please add at least 2 PDF files to merge');
+                    showPDFValidationMessage('Add at least 2 PDF files to merge first.', '#add-merge-file');
                     return;
                 }
                 operationData.inputFiles = mergeFilePaths;
                 operationData.outputPath = document.getElementById('merge-output-path').value.trim();
                 if (!operationData.outputPath) {
-                    alert('Please select an output file path');
+                    showPDFValidationMessage('Select an output file path.', '#merge-output-path');
                     return;
                 }
                 break;
@@ -3279,7 +3357,7 @@ function processPDFOperation() {
                 operationData.splitMode = document.getElementById('split-mode').value;
 
                 if (!operationData.inputPath || !operationData.outputFolder) {
-                    alert('Please select input file and output folder');
+                    showPDFValidationMessage('Select both an input PDF and an output folder.', '#split-input-path');
                     return;
                 }
 
@@ -3302,7 +3380,10 @@ function processPDFOperation() {
                 operationData.optimizeFonts = document.getElementById('compress-optimize-fonts').checked;
 
                 if (!operationData.inputPath || !operationData.outputPath) {
-                    alert('Please select input file' + (operationData.overwrite ? '' : ' and output file paths'));
+                    showPDFValidationMessage(
+                        'Select an input PDF' + (operationData.overwrite ? '.' : ' and an output file path.'),
+                        '#compress-input-path'
+                    );
                     return;
                 }
                 break;
@@ -3315,7 +3396,10 @@ function processPDFOperation() {
                 operationData.angle = parseInt(document.getElementById('rotate-angle').value);
 
                 if (!operationData.inputPath || !operationData.outputPath) {
-                    alert('Please select input file' + (operationData.overwrite ? '' : ' and output file'));
+                    showPDFValidationMessage(
+                        'Select an input PDF' + (operationData.overwrite ? '.' : ' and an output file path.'),
+                        '#rotate-input-path'
+                    );
                     return;
                 }
                 break;
@@ -3327,7 +3411,7 @@ function processPDFOperation() {
                 operationData.pages = document.getElementById('delete-pages').value.trim();
 
                 if (!operationData.inputPath || !operationData.outputPath || !operationData.pages) {
-                    alert('Please fill in all required fields');
+                    showPDFValidationMessage('Fill in the input file, output path, and pages to delete.', '#delete-input-path');
                     return;
                 }
                 break;
@@ -3339,7 +3423,7 @@ function processPDFOperation() {
                 operationData.newOrder = document.getElementById('reorder-pages').value.trim();
 
                 if (!operationData.inputPath || !operationData.outputPath || !operationData.newOrder) {
-                    alert('Please fill in all required fields');
+                    showPDFValidationMessage('Fill in the input file, output path, and new page order.', '#reorder-input-path');
                     return;
                 }
                 break;
@@ -3360,7 +3444,7 @@ function processPDFOperation() {
                 }
 
                 if (!operationData.inputPath || !operationData.outputPath || !operationData.text) {
-                    alert('Please fill in all required fields');
+                    showPDFValidationMessage('Fill in the input file, output path, and watermark text.', '#watermark-input-path');
                     return;
                 }
                 break;
@@ -3385,7 +3469,7 @@ function processPDFOperation() {
                 };
 
                 if (!operationData.inputPath || !operationData.outputPath || !operationData.userPassword) {
-                    alert('Please select file and enter a user password');
+                    showPDFValidationMessage('Select a file, output path, and user password.', '#encrypt-input-path');
                     return;
                 }
                 break;
@@ -3397,7 +3481,7 @@ function processPDFOperation() {
                 operationData.password = document.getElementById('decrypt-password').value;
 
                 if (!operationData.inputPath || !operationData.outputPath || !operationData.password) {
-                    alert('Please fill in all required fields');
+                    showPDFValidationMessage('Fill in the input file, output path, and password.', '#decrypt-input-path');
                     return;
                 }
                 break;
@@ -3421,21 +3505,26 @@ function processPDFOperation() {
                 };
 
                 if (!operationData.inputPath || !operationData.outputPath || !operationData.ownerPassword) {
-                    alert('Please fill in all required fields');
+                    showPDFValidationMessage('Fill in the input file, output path, and owner password.', '#permissions-input-path');
                     return;
                 }
                 break;
         }
 
+        clearPDFStatus();
         // Show progress
         document.getElementById('pdf-progress').classList.remove('hidden');
         document.getElementById('pdf-progress-text').textContent = 'Processing PDF...';
+        const progressFill = document.getElementById('pdf-progress-fill');
+        if (progressFill) {
+            progressFill.style.width = '10%';
+        }
 
         // Send to main process
         ipcRenderer.send('process-pdf-operation', operationData);
 
     } catch (error) {
-        alert('Error: ' + error.message);
+        showPDFStatus(`Error: ${error.message}`, 'warning');
         console.error('PDF operation error:', error);
     }
 }
@@ -3445,10 +3534,14 @@ ipcRenderer.on('pdf-operation-complete', (event, { success, error, message }) =>
     document.getElementById('pdf-progress').classList.add('hidden');
 
     if (success) {
-        alert(message || 'PDF operation completed successfully!');
-        hidePDFEditorDialog();
+        showPDFStatus(message || 'PDF operation completed successfully.', 'success');
+        setTimeout(() => {
+            if (window.modals?.pdfEditorModal?.isOpen()) {
+                hidePDFEditorDialog();
+            }
+        }, 800);
     } else {
-        alert('Error: ' + (error || 'PDF operation failed'));
+        showPDFStatus(`Error: ${error || 'PDF operation failed'}`, 'warning');
     }
 });
 
@@ -3780,13 +3873,13 @@ function insertGeneratedTable() {
     const table = document.getElementById('table-preview').textContent;
 
     if (!table) {
-        alert('Please generate a table preview first');
+        notifyUser('Generate a table preview first.', 'warning');
         return;
     }
 
     // Insert table using CodeMirror
     if (!tabManager) {
-        alert('No active editor found');
+        notifyUser('No active editor found.', 'warning');
         return;
     }
 
@@ -4254,13 +4347,13 @@ function insertASCIIArt() {
     const asciiArt = document.getElementById('ascii-preview').textContent;
 
     if (!asciiArt || asciiArt === 'Select a template from the buttons above') {
-        alert('Please generate ASCII art first');
+        notifyUser('Generate ASCII art first.', 'warning');
         return;
     }
 
     // Insert using CodeMirror
     if (!tabManager) {
-        alert('No active editor found');
+        notifyUser('No active editor found.', 'warning');
         return;
     }
 
@@ -4683,14 +4776,25 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 
 ipcRenderer.on('show-image-tool', (event, tool) => {
-    alert(`Image ${tool} tool requires ImageMagick to be installed.\n\nPlease install ImageMagick from: https://imagemagick.org/\n\nThis feature will be available in a future update with built-in support.`);
+    notifyUser(
+        `Image ${tool} requires ImageMagick. Install it from imagemagick.org to enable this tool.`,
+        'info',
+        { duration: 5000 }
+    );
 });
 
 ipcRenderer.on('show-audio-tool', (event, tool) => {
-    alert(`Audio ${tool} tool requires FFmpeg to be installed.\n\nPlease install FFmpeg from: https://ffmpeg.org/\n\nThis feature will be available in a future update with built-in support.`);
+    notifyUser(
+        `Audio ${tool} requires FFmpeg. Install it from ffmpeg.org to enable this tool.`,
+        'info',
+        { duration: 5000 }
+    );
 });
 
 ipcRenderer.on('show-video-tool', (event, tool) => {
-    alert(`Video ${tool} tool requires FFmpeg to be installed.\n\nPlease install FFmpeg from: https://ffmpeg.org/\n\nThis feature will be available in a future update with built-in support.`);
+    notifyUser(
+        `Video ${tool} requires FFmpeg. Install it from ffmpeg.org to enable this tool.`,
+        'info',
+        { duration: 5000 }
+    );
 });
-

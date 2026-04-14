@@ -9,7 +9,7 @@
  * - All IPC channels are explicitly whitelisted
  * - Prevents XSS from escalating to full system access
  *
- * @version 4.0.0
+ * @version 4.1.0
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
@@ -101,6 +101,14 @@ const ALLOWED_SEND_CHANNELS = [
 
   // File Explorer
   'list-directory',
+  'read-file',
+  'write-file',
+  'delete-file',
+  'ensure-directory',
+  'path-exists',
+  'is-directory',
+  'copy-path',
+  'move-path',
 
   // Git
   'git-status',
@@ -321,7 +329,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setCurrent: (filePath) => ipcRenderer.send('set-current-file', filePath),
     saveRecent: (recentFiles) => ipcRenderer.send('save-recent-files', recentFiles),
     clearRecent: () => ipcRenderer.send('clear-recent-files'),
-    rendererReady: () => ipcRenderer.send('renderer-ready')
+    rendererReady: () => ipcRenderer.send('renderer-ready'),
+    read: (filePath) => ipcRenderer.invoke('read-file', filePath),
+    write: (filePath, content) => ipcRenderer.invoke('write-file', { path: filePath, content }),
+    delete: (filePath) => ipcRenderer.invoke('delete-file', filePath),
+    ensureDir: (dirPath) => ipcRenderer.invoke('ensure-directory', dirPath),
+    exists: (filePath) => ipcRenderer.invoke('path-exists', filePath),
+    isDirectory: (filePath) => ipcRenderer.invoke('is-directory', filePath),
+    copy: (source, destination) => ipcRenderer.invoke('copy-path', { source, destination }),
+    move: (source, destination) => ipcRenderer.invoke('move-path', { source, destination })
   },
 
   // Theme Operations

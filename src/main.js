@@ -125,6 +125,35 @@ function validatePath(filePath) {
 }
 
 /**
+ * Resolves a path for operations where the target may not exist yet.
+ * Validates string shape and blocks obviously sensitive locations.
+ * @param {string} filePath
+ * @returns {{ valid: boolean, resolved: string, error?: string }}
+ */
+function resolveWritablePath(filePath) {
+  if (!filePath || typeof filePath !== 'string') {
+    return { valid: false, resolved: '', error: 'Invalid path' };
+  }
+
+  let resolved;
+  try {
+    resolved = path.normalize(path.resolve(filePath));
+  } catch (err) {
+    return { valid: false, resolved: '', error: 'Invalid path format' };
+  }
+
+  if (resolved.includes('\0')) {
+    return { valid: false, resolved: '', error: 'Null byte in path' };
+  }
+
+  if (!isPathAccessible(resolved)) {
+    return { valid: false, resolved, error: 'Path is not accessible' };
+  }
+
+  return { valid: true, resolved };
+}
+
+/**
  * Checks if a resolved path is within allowed directories
  * For an editor app, we allow access to all user-accessible paths
  * but log any suspicious access attempts
@@ -1000,7 +1029,7 @@ function showAboutDialog() {
 <body>
   <img src="${iconBase64}" class="logo" alt="MarkdownConverter">
   <h1>MarkdownConverter</h1>
-  <div class="version">Version 4.0.0</div>
+  <div class="version">Version 4.1.0</div>
 
   <div class="company">
     <span>by</span>
@@ -2793,9 +2822,13 @@ ipcMain.on('save-file', (event, { path, content }) => {
   currentFile = path;
 });
 
-ipcMain.on('save-current-file', (event, content) => {
-  if (currentFile) {
-    fs.writeFileSync(currentFile, content, 'utf-8');
+ipcMain.on('save-current-file', (event, payload) => {
+  const content = typeof payload === 'string' ? payload : payload?.content;
+  const targetFile = typeof payload === 'string' ? currentFile : payload?.filePath || currentFile;
+
+  if (targetFile) {
+    fs.writeFileSync(targetFile, content, 'utf-8');
+    currentFile = targetFile;
   } else {
     saveAsFile();
   }
@@ -4344,6 +4377,8 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
       .map(e => ({
         name: e.name,
         isDirectory: e.isDirectory(),
+        size: e.isDirectory() ? 0 : fs.statSync(path.join(validation.resolved, e.name)).size,
+        modified: fs.statSync(path.join(validation.resolved, e.name)).mtimeMs,
         path: path.join(validation.resolved, e.name)
       }));
     return { path: validation.resolved, entries };
@@ -4351,6 +4386,103 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
     console.error('list-directory error:', err);
     return null;
   }
+});
+
+ipcMain.handle('read-file', async (event, filePath) => {
+  const validation = validatePath(filePath);
+  if (!validation.valid || !isPathAccessible(validation.resolved)) {
+    throw new Error(validation.error || 'Invalid file path');
+  }
+
+  return fs.readFileSync(validation.resolved, 'utf-8');
+});
+
+ipcMain.handle('write-file', async (event, payload) => {
+  const validation = resolveWritablePath(payload?.path);
+  if (!validation.valid) {
+    throw new Error(validation.error || 'Invalid file path');
+  }
+
+  fs.mkdirSync(path.dirname(validation.resolved), { recursive: true });
+  fs.writeFileSync(validation.resolved, payload?.content ?? '', 'utf-8');
+  return { path: validation.resolved };
+});
+
+ipcMain.handle('delete-file', async (event, filePath) => {
+  const validation = validatePath(filePath);
+  if (!validation.valid || !isPathAccessible(validation.resolved)) {
+    throw new Error(validation.error || 'Invalid file path');
+  }
+
+  fs.rmSync(validation.resolved, { recursive: true, force: false });
+  return true;
+});
+
+ipcMain.handle('ensure-directory', async (event, dirPath) => {
+  const validation = resolveWritablePath(dirPath);
+  if (!validation.valid) {
+    throw new Error(validation.error || 'Invalid directory path');
+  }
+
+  fs.mkdirSync(validation.resolved, { recursive: true });
+  return validation.resolved;
+});
+
+ipcMain.handle('path-exists', async (event, filePath) => {
+  const validation = resolveWritablePath(filePath);
+  return validation.valid ? fs.existsSync(validation.resolved) : false;
+});
+
+ipcMain.handle('is-directory', async (event, filePath) => {
+  const validation = validatePath(filePath);
+  if (!validation.valid || !isPathAccessible(validation.resolved)) {
+    return false;
+  }
+
+  return fs.statSync(validation.resolved).isDirectory();
+});
+
+ipcMain.handle('copy-path', async (event, payload) => {
+  const sourceValidation = validatePath(payload?.source);
+  const destinationValidation = resolveWritablePath(payload?.destination);
+
+  if (!sourceValidation.valid || !isPathAccessible(sourceValidation.resolved)) {
+    throw new Error(sourceValidation.error || 'Invalid source path');
+  }
+  if (!destinationValidation.valid) {
+    throw new Error(destinationValidation.error || 'Invalid destination path');
+  }
+
+  fs.mkdirSync(path.dirname(destinationValidation.resolved), { recursive: true });
+  fs.cpSync(sourceValidation.resolved, destinationValidation.resolved, { recursive: true });
+  return { source: sourceValidation.resolved, destination: destinationValidation.resolved };
+});
+
+ipcMain.handle('move-path', async (event, payload) => {
+  const sourceValidation = validatePath(payload?.source);
+  const destinationValidation = resolveWritablePath(payload?.destination);
+
+  if (!sourceValidation.valid || !isPathAccessible(sourceValidation.resolved)) {
+    throw new Error(sourceValidation.error || 'Invalid source path');
+  }
+  if (!destinationValidation.valid) {
+    throw new Error(destinationValidation.error || 'Invalid destination path');
+  }
+
+  fs.mkdirSync(path.dirname(destinationValidation.resolved), { recursive: true });
+
+  try {
+    fs.renameSync(sourceValidation.resolved, destinationValidation.resolved);
+  } catch (error) {
+    if (error.code !== 'EXDEV') {
+      throw error;
+    }
+
+    fs.cpSync(sourceValidation.resolved, destinationValidation.resolved, { recursive: true });
+    fs.rmSync(sourceValidation.resolved, { recursive: true, force: false });
+  }
+
+  return { source: sourceValidation.resolved, destination: destinationValidation.resolved };
 });
 
 // Open a file by path (from explorer panel)

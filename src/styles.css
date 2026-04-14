@@ -522,6 +522,54 @@ body.dark .pdf-tab-container .pdf-controls {
     flex-shrink: 0;
 }
 
+.app-toast-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: var(--z-toast, 500);
+    pointer-events: none;
+}
+
+.app-toast {
+    min-width: 260px;
+    max-width: 420px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+    color: #111827;
+    background: #ffffff;
+    border-left: 4px solid #3b82f6;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: auto;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.app-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.app-toast-info {
+    border-left-color: #2563eb;
+}
+
+.app-toast-success {
+    border-left-color: #059669;
+    background: #ecfdf5;
+}
+
+.app-toast-warning {
+    border-left-color: #d97706;
+    background: #fffbeb;
+}
+
 /* Dark theme adjustments for states */
 body[class*="dark"] .preview-error-message {
     color: #9ca3af;
