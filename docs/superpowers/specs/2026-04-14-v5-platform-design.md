@@ -126,12 +126,23 @@ Each plugin's `init()` receives:
 
 ### Event Bus Events
 
+Each event has a versioned payload schema. Breaking changes increment the version suffix.
+
 ```
-document:opened, document:saved, document:changed,
-editor:selection-changed, tab:switched, tab:closed,
-export:started, export:completed, export:failed,
-plugin:loaded, plugin:activated, plugin:deactivated,
-app:ready, app:before-quit
+document:opened        → { filePath: string, tabId: string }
+document:saved         → { filePath: string, tabId: string }
+document:changed       → { tabId: string, content: string, wordCount: number }
+editor:selection-changed → { tabId: string, text: string, from: {line,ch}, to: {line,ch} }
+tab:switched           → { tabId: string, filePath: string }
+tab:closed             → { tabId: string, filePath: string }
+export:started         → { format: string, filePath: string }
+export:completed       → { format: string, filePath: string, outputPath: string }
+export:failed          → { format: string, error: string }
+plugin:loaded          → { pluginId: string, version: string }
+plugin:activated       → { pluginId: string }
+plugin:deactivated     → { pluginId: string }
+app:ready              → {}
+app:before-quit        → {}
 ```
 
 ### Design Rules
@@ -139,8 +150,9 @@ app:ready, app:before-quit
 - Built-in plugins use the same API as future third-party plugins
 - Lazy activation — sidebar panels don't load until clicked
 - Scoped settings: `plugins.<id>.<key>` in electron-store
-- Plugin errors caught and shown as notifications, never crash the app
-- Plugin commands namespaced `<plugin-id>:<command-id>`
+- Plugin commands globally unique — registry rejects duplicate command IDs at load time
+- **Plugin sandboxing**: each plugin handler is wrapped in try/catch. For CPU-intensive operations (AI inference, diff computation), plugins must delegate to main process via IPC. Handlers that block the renderer for >5s trigger a warning notification. Memory-hungry operations (GGUF inference) run in isolated child processes.
+- **Cross-plugin graceful degradation**: plugins check `context.events.hasHandler('ai:analyze')` before emitting cross-plugin requests. If no handler (AI plugin disabled), show a "this feature requires the AI plugin" prompt instead of failing silently. All cross-plugin calls have a 30s timeout with default fallback behavior.
 
 ---
 
@@ -256,7 +268,8 @@ AI Plugin
 - "Keep model loaded" option for faster repeated requests
 - WASM fallback for sandboxed environments (CPU-only)
 - External binary path for advanced users with custom builds
-- Process management: spawn llama.cpp in server mode, clean up on app quit
+- **Process isolation**: llama.cpp runs as a spawned child process (not in main process). If it crashes, detected via exit handler, auto-restarted with notification. GPU memory freed on crash. App remains stable.
+- Process management: spawn in server mode on localhost ephemeral port, clean up on app quit or model unload
 
 **Cloud (Anthropic/OpenAI):**
 - API key stored encrypted via electron safeStorage
@@ -269,11 +282,28 @@ All provider HTTP requests go through main process:
 - No CORS issues
 - API keys never in renderer
 - Main process enforces rate limiting
-- GGUF inference in main process
+- GGUF inference in isolated child process
 
+**Request/response lifecycle:**
 ```
 Renderer → ipc.invoke('ai:complete') → Main → HTTP to provider → result → Renderer
-Renderer → ipc.invoke('ai:stream') → Main → HTTP stream → ipc.on('ai:chunk') → Renderer
+```
+
+**Streaming lifecycle with error handling:**
+```
+Renderer → ipc.invoke('ai:stream', { requestId, prompt })
+         ← Main assigns requestId, returns { requestId }
+         ← ipc.on('ai:chunk', { requestId, text }) — repeated
+         ← ipc.on('ai:done', { requestId }) — success
+         ← ipc.on('ai:error', { requestId, error }) — failure
+
+// Cancellation
+Renderer → ipc.invoke('ai:cancel', { requestId })
+         ← Main aborts HTTP request, emits 'ai:done'
+
+// Orphan cleanup: if renderer disconnects (crash/close),
+// main process detects via 'render-view-deleted' and aborts all active streams.
+// Heartbeat: if no chunk received in 30s, main emits 'ai:error' with timeout.
 ```
 
 ### Features
@@ -326,7 +356,12 @@ Inline comments stored as JSON in `.comments/` directory (git-tracked):
 {
   "id": "uuid",
   "file": "03-chapter-three.md",
-  "range": { "start": 142, "end": 189 },
+  "anchor": {
+    "contextBefore": "The hero looked at the horizon and said,",
+    "selectedText": "I will not go quietly into that dark night",
+    "contextAfter": "He turned to face the army alone."
+  },
+  "line": 142,
   "text": "This dialogue feels unnatural",
   "author": "amit",
   "timestamp": "2026-04-14T14:30:00Z",
@@ -335,6 +370,7 @@ Inline comments stored as JSON in `.comments/` directory (git-tracked):
 }
 ```
 
+- **Anchor-based positioning**: comments store `contextBefore`, `selectedText`, and `contextAfter` (not absolute byte offsets). On file change, re-anchor by searching for the context text. If context no longer matches, mark comment as "detached" and show a warning. Falls back to `line` number as rough position.
 - Highlighted text in editor with tooltip on hover
 - Comment panel in sidebar: all unresolved comments across files
 - Resolution workflow: add → address → reply → resolve
@@ -375,10 +411,11 @@ context.events.on('comment:added', (comment) => { /* AI could suggest fix */ });
 
 ## Bundle Size Impact
 
-- llama.cpp binaries: ~15MB per GPU variant, only target platform shipped
+- llama.cpp binaries: ~15MB per GPU variant. Only target platform shipped. GPU variants (CUDA/Vulkan/Metal) downloaded on demand if user enables GGUF direct loading — not bundled by default. Only CPU fallback bundled (~15MB).
 - Plugin system core: ~30KB
 - Each built-in plugin: ~50-100KB
-- Total estimated increase: ~50-70MB (primarily from llama.cpp binaries)
+- Diff library (jsdiff): ~15KB
+- Total estimated increase: ~20-30MB (core), additional ~30-50MB per GPU variant (lazy download)
 
 ## Testing Strategy
 
