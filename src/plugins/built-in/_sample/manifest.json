@@ -1,0 +1,13 @@
+{
+  "id": "_sample",
+  "name": "Sample Plugin",
+  "version": "1.0.0",
+  "description": "Demonstrates the plugin system. Safe to delete.",
+  "icon": "puzzle",
+  "extensionPoints": {
+    "commands": [
+      { "id": "hello", "label": "Sample: Hello World", "shortcut": "" }
+    ]
+  },
+  "settings": []
+}
