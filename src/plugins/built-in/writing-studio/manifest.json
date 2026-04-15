@@ -1,0 +1,31 @@
+{
+  "id": "writing-studio",
+  "name": "Writing Studio",
+  "version": "1.0.0",
+  "description": "Manuscript management, writing sprints, goal tracking, snapshots, and smart proofreading",
+  "icon": "pen-tool",
+  "extensionPoints": {
+    "sidebar": [
+      { "id": "manuscript", "title": "Manuscript", "order": 30 },
+      { "id": "goals", "title": "Goals", "order": 31 },
+      { "id": "snapshots", "title": "Snapshots", "order": 32 },
+      { "id": "proofread", "title": "Proofread", "order": 33 }
+    ],
+    "commands": [
+      { "id": "start-sprint", "label": "Studio: Start Sprint", "shortcut": "Ctrl+Alt+S" },
+      { "id": "stop-sprint", "label": "Studio: Stop Sprint", "shortcut": "Ctrl+Alt+Shift+S" },
+      { "id": "take-snapshot", "label": "Studio: Take Snapshot", "shortcut": "Ctrl+Alt+N" },
+      { "id": "restore-last-snapshot", "label": "Studio: Restore Last Snapshot", "shortcut": "Ctrl+Alt+Z" },
+      { "id": "new-project", "label": "Studio: New Project", "shortcut": "" },
+      { "id": "compile-manuscript", "label": "Studio: Compile Manuscript", "shortcut": "Ctrl+Alt+E" },
+      { "id": "proofread-document", "label": "Studio: Proofread Document", "shortcut": "Ctrl+Alt+G" }
+    ],
+    "statusBar": { "indicators": ["sprint-timer", "word-goal"] }
+  },
+  "settings": [
+    { "key": "dailyGoal", "type": "number", "default": 1000, "label": "Daily word goal" },
+    { "key": "sprintDuration", "type": "number", "default": 25, "label": "Sprint duration (min)" },
+    { "key": "autoSnapshotInterval", "type": "number", "default": 0, "label": "Auto-snapshot interval (min, 0=off)" },
+    { "key": "maxSnapshots", "type": "number", "default": 50, "label": "Max snapshots to keep" }
+  ]
+}
