@@ -1,6 +1,6 @@
 {
   "name": "markdown-converter",
-  "version": "4.2.0",
+  "version": "4.3.0",
   "description": "Professional Markdown editor and universal file converter with PDF editing, batch processing, and syntax highlighting",
   "main": "src/main.js",
   "scripts": {
@@ -14,8 +14,9 @@
     "format:check": "prettier --check src tests",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
-    "build:win-signed": "cross-env CSC_LINK=code-signing-cert.pfx CSC_KEY_PASSWORD=%CSC_KEY_PASSWORD% electron-builder --win",
+    "build:win-signed": "cross-env CSC_LINK=code-signing-cert.pfx electron-builder --win",
     "build:win-unsigned": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win",
+    "create-cert": "powershell -ExecutionPolicy Bypass -File scripts/create-selfsigned-cert.ps1",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux",
     "build:local": "electron-builder --linux --win",
@@ -96,6 +97,7 @@
   "build": {
     "appId": "com.concreteinfo.markdownconverter",
     "productName": "MarkdownConverter",
+    "copyright": "Copyright (C) 2024-2025 ConcreteInfo",
     "directories": {
       "output": "dist"
     },
@@ -157,7 +159,8 @@
       ],
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "requestedExecutionLevel": "asInvoker",
-      "signAndEditExecutable": false
+      "legalTrademarks": "Copyright (C) 2024-2025 ConcreteInfo",
+      "verifyUpdateCodeSignature": false
     },
     "nsis": {
       "oneClick": false,

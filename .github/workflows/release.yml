@@ -43,7 +43,7 @@ jobs:
           retention-days: 5
 
   build-windows:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -53,17 +53,32 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install Wine and NSIS
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install -y wine64 wine32 nsis
-
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows packages
-        run: npm run build:win
+      - name: Run tests
+        run: npm test
+
+      - name: Decode certificate (if available)
+        if: ${{ secrets.CSC_LINK_BASE64 != '' }}
+        shell: pwsh
+        run: |
+          $bytes = [Convert]::FromBase64String("${{ secrets.CSC_LINK_BASE64 }}")
+          [IO.File]::WriteAllBytes("${{ github.workspace }}\code-signing-cert.pfx", $bytes)
+          echo "CERT_AVAILABLE=true" >> $env:GITHUB_ENV
+
+      - name: Build Windows packages (signed)
+        if: ${{ env.CERT_AVAILABLE == 'true' }}
+        env:
+          CSC_LINK: code-signing-cert.pfx
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: npm run build:win-signed
+
+      - name: Build Windows packages (unsigned)
+        if: ${{ env.CERT_AVAILABLE != 'true' }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npm run build:win-unsigned
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -72,6 +87,7 @@ jobs:
           path: |
             dist/*.exe
             dist/*-win.zip
+            dist/*.zip
           retention-days: 5
 
   release:
