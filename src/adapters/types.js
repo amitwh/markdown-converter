@@ -5,7 +5,7 @@
  * Adapters abstract file system, conversion, and system operations
  * to enable easier testing and future platform migration.
  *
- * @version 4.1.0
+ * @version 4.3.0
  */
 
 /**

@@ -4,7 +4,7 @@
  * Implements file system operations for Electron using IPC.
  * This abstracts file operations to enable easier testing and migration.
  *
- * @version 4.1.0
+ * @version 4.3.0
  */
 
 /**

@@ -9,7 +9,7 @@
  * - All IPC channels are explicitly whitelisted
  * - Prevents XSS from escalating to full system access
  *
- * @version 4.1.0
+ * @version 4.3.0
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
@@ -433,7 +433,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generators: {
     openAscii: () => ipcRenderer.send('open-ascii-generator'),
     openTable: () => ipcRenderer.send('open-table-generator')
-  }
+  },
+
+  getAppVersion: () => ipcRenderer.invoke('get-app-version')
 });
 
 // Log successful preload initialization

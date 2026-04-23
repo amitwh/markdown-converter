@@ -1,4 +1,4 @@
-function createWelcomeContent(recentFiles = []) {
+function createWelcomeContent(recentFiles = [], appVersion = '') {
     const recentHtml = recentFiles.length
         ? recentFiles.map(f => {
             const name = f.split(/[/\\]/).pop();
@@ -10,7 +10,7 @@ function createWelcomeContent(recentFiles = []) {
     <div class="welcome-container">
         <div class="welcome-hero">
             <h1 class="welcome-title">MarkdownConverter</h1>
-            <p class="welcome-version">Version 4.1.0</p>
+            <p class="welcome-version">${appVersion ? `Version ${appVersion}` : ''}</p>
             <p class="welcome-subtitle">Professional Markdown Editor & Universal Document Converter</p>
         </div>
 

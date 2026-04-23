@@ -1,6 +1,6 @@
 /**
  * MarkdownConverter Renderer Process
- * @version 4.1.0
+ * @version 4.3.0
  */
 
 const { ipcRenderer } = require('electron');
@@ -1442,10 +1442,16 @@ class TabManager {
 let tabManager;
 let replPanel;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     tabManager = new TabManager();
     const ReplPanel = getReplPanel();
     replPanel = new ReplPanel();
+
+    // Populate app version from main process
+    window.electronAPI.getAppVersion().then((version) => {
+      const el = document.getElementById('app-version-display');
+      if (el) el.textContent = `v${version}`;
+    });
 
     // Initialize ModalManager for all dialogs
     const findModal = new ModalManager('#find-dialog');
@@ -1613,7 +1619,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Set welcome content in the first tab's preview
         const recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
-        const welcomeHtml = getCreateWelcomeContent()(recentFiles);
+        const appVersion = await window.electronAPI.getAppVersion().catch(() => '');
+        const welcomeHtml = getCreateWelcomeContent()(recentFiles, appVersion);
 
         const tab = tabManager.tabs.get(tabManager.activeTabId);
         if (tab) {

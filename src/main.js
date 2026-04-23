@@ -317,6 +317,7 @@ ipcMain.handle('plugin-settings:get', (_event, key) => {
 ipcMain.handle('plugin-settings:set', (_event, { key, value }) => {
   store.set(key, value);
 });
+ipcMain.handle('get-app-version', () => app.getVersion());
 
 let mainWindow;
 let currentFile = null; // This will now represent the active tab's file
@@ -1064,7 +1065,7 @@ function showAboutDialog() {
 <body>
   <img src="${iconBase64}" class="logo" alt="MarkdownConverter">
   <h1>MarkdownConverter</h1>
-  <div class="version">Version 4.1.0</div>
+  <div class="version">Version ${app.getVersion()}</div>
 
   <div class="company">
     <span>by</span>
