@@ -2,8 +2,9 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron')
 const path = require('path');
 const fs = require('fs');
 const { exec, execFile, spawn } = require('child_process');
-const { PDFDocument, rgb, degrees, StandardFonts } = require('pdf-lib');
 const WordTemplateExporter = require('./wordTemplateExporter');
+const PDFOperations = require('./main/PDFOperations');
+const GitOperations = require('./main/GitOperations');
 
 // Add MiKTeX to PATH for LaTeX support
 if (process.platform === 'win32') {
@@ -14,11 +15,37 @@ if (process.platform === 'win32') {
   }
 }
 
-// Get the system Pandoc path
+// Returns path to pandoc: bundled binary when packaged, dev bin or system fallback otherwise.
 function getPandocPath() {
-  // Pandoc is expected to be in the system's PATH.
-  // The command will be executed directly. Quoting is handled by exec.
+  if (app.isPackaged) {
+    const ext = process.platform === 'win32' ? '.exe' : '';
+    return path.join(process.resourcesPath, 'bin', `pandoc${ext}`);
+  }
+  // Development: prefer locally-downloaded binary in bin/<platform>/
+  const devBin = path.join(
+    __dirname,
+    '..',
+    'bin',
+    process.platform,
+    process.platform === 'win32' ? 'pandoc.exe' : 'pandoc',
+  );
+  if (fs.existsSync(devBin)) return devBin;
   return 'pandoc';
+}
+
+// Returns path to ffmpeg: asar-unpacked bundled binary when packaged, system fallback otherwise.
+function getFFmpegPath() {
+  try {
+    let ffmpegPath = require('ffmpeg-static');
+    if (app.isPackaged) {
+      // ffmpeg-static is in asarUnpack — rewrite the path to the unpacked location
+      ffmpegPath = ffmpegPath.replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
+    }
+    if (fs.existsSync(ffmpegPath)) return ffmpegPath;
+  } catch (_) {
+    /* ffmpeg-static not available */
+  }
+  return process.platform === 'win32' ? 'ffmpeg' : 'ffmpeg';
 }
 
 // Check if Pandoc is available
@@ -1841,9 +1868,12 @@ function checkConverterAvailable(tool) {
       case 'imagemagick':
         toolName = isWin ? 'magick' : 'convert';
         break;
-      case 'ffmpeg':
-        toolName = 'ffmpeg';
-        break;
+      case 'ffmpeg': {
+        // ffmpeg-static is always bundled — check it directly
+        const ffmpegBin = getFFmpegPath();
+        resolve(fs.existsSync(ffmpegBin) || ffmpegBin === 'ffmpeg');
+        return;
+      }
       default:
         resolve(false);
         return;
@@ -2070,8 +2100,8 @@ function convertWithImageMagick(inputFile, outputPath) {
 // FFmpeg conversion - returns {command, args} for execFile
 function convertWithFFmpeg(inputFile, outputPath) {
   return {
-    command: 'ffmpeg',
-    args: ['-i', inputFile, outputPath, '-y']
+    command: getFFmpegPath(),
+    args: ['-i', inputFile, outputPath, '-y'],
   };
 }
 
@@ -3727,433 +3757,9 @@ function openFileFromPath(filePath) {
 }
 
 // ========================================
-// PDF EDITOR OPERATIONS (using pdf-lib)
+// PDF OPERATIONS — delegates to main/PDFOperations.js
 // ========================================
 
-// Helper function to parse page ranges (e.g., "1-5, 7, 9-12")
-function parsePageRanges(rangeString, totalPages) {
-  const pages = [];
-  const ranges = rangeString.split(',').map(r => r.trim());
-
-  for (const range of ranges) {
-    if (range.includes('-')) {
-      const [start, end] = range.split('-').map(n => parseInt(n.trim()));
-      for (let i = start; i <= end && i <= totalPages; i++) {
-        if (i > 0 && !pages.includes(i - 1)) { // Convert to 0-indexed
-          pages.push(i - 1);
-        }
-      }
-    } else {
-      const page = parseInt(range);
-      if (page > 0 && page <= totalPages && !pages.includes(page - 1)) {
-        pages.push(page - 1);
-      }
-    }
-  }
-
-  return pages.sort((a, b) => a - b);
-}
-
-// Helper function to convert hex color to RGB
-function hexToRgb(hex) {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16) / 255,
-    g: parseInt(result[2], 16) / 255,
-    b: parseInt(result[3], 16) / 255
-  } : { r: 0, g: 0, b: 0 };
-}
-
-// PDF Merge Operation
-async function pdfMerge(data) {
-  try {
-    const mergedPdf = await PDFDocument.create();
-
-    for (const filePath of data.inputFiles) {
-      const pdfBytes = fs.readFileSync(filePath);
-      const pdf = await PDFDocument.load(pdfBytes);
-      const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-      copiedPages.forEach(page => mergedPdf.addPage(page));
-    }
-
-    const pdfBytes = await mergedPdf.save();
-    fs.writeFileSync(data.outputPath, pdfBytes);
-
-    return { success: true, message: `Successfully merged ${data.inputFiles.length} PDFs` };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-// PDF Split Operation
-async function pdfSplit(data) {
-  try {
-    const pdfBytes = fs.readFileSync(data.inputPath);
-    const pdf = await PDFDocument.load(pdfBytes);
-    const totalPages = pdf.getPageCount();
-
-    let splits = [];
-
-    if (data.splitMode === 'pages') {
-      // Split by page ranges
-      const ranges = data.pageRanges.split(',').map(r => r.trim());
-      for (let i = 0; i < ranges.length; i++) {
-        const range = ranges[i];
-        let pages = [];
-
-        if (range.includes('-')) {
-          const [start, end] = range.split('-').map(n => parseInt(n.trim()));
-          for (let p = start; p <= end && p <= totalPages; p++) {
-            pages.push(p - 1);
-          }
-        } else {
-          const page = parseInt(range);
-          if (page > 0 && page <= totalPages) {
-            pages.push(page - 1);
-          }
-        }
-
-        if (pages.length > 0) {
-          splits.push({ pages, name: `part_${i + 1}` });
-        }
-      }
-    } else if (data.splitMode === 'interval') {
-      // Split every N pages
-      const interval = data.interval;
-      for (let i = 0; i < totalPages; i += interval) {
-        const pages = [];
-        for (let j = i; j < i + interval && j < totalPages; j++) {
-          pages.push(j);
-        }
-        splits.push({ pages, name: `part_${Math.floor(i / interval) + 1}` });
-      }
-    } else if (data.splitMode === 'size') {
-      // Split by size (approximate - we'll split evenly)
-      // This is complex, so we'll do a simple even split for now
-      const maxSize = data.maxSize * 1024 * 1024; // Convert MB to bytes
-      // For simplicity, split into fixed page chunks
-      const chunkSize = Math.max(1, Math.floor(totalPages / 5)); // Split into ~5 parts
-      for (let i = 0; i < totalPages; i += chunkSize) {
-        const pages = [];
-        for (let j = i; j < i + chunkSize && j < totalPages; j++) {
-          pages.push(j);
-        }
-        splits.push({ pages, name: `part_${Math.floor(i / chunkSize) + 1}` });
-      }
-    }
-
-    // Create split PDFs
-    const baseName = path.basename(data.inputPath, '.pdf');
-    for (const split of splits) {
-      const newPdf = await PDFDocument.create();
-      const copiedPages = await newPdf.copyPages(pdf, split.pages);
-      copiedPages.forEach(page => newPdf.addPage(page));
-
-      const outputPath = path.join(data.outputFolder, `${baseName}_${split.name}.pdf`);
-      const newPdfBytes = await newPdf.save();
-      fs.writeFileSync(outputPath, newPdfBytes);
-    }
-
-    return { success: true, message: `Successfully split PDF into ${splits.length} files` };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-// PDF Compress Operation
-async function pdfCompress(data) {
-  try {
-    const pdfBytes = fs.readFileSync(data.inputPath);
-    const pdf = await PDFDocument.load(pdfBytes);
-
-    // pdf-lib doesn't have built-in compression, but we can save with default compression
-    // For actual compression, we would need additional libraries like Ghostscript
-    // For now, we'll save with standard options which provides some compression
-    const compressedPdfBytes = await pdf.save({
-      useObjectStreams: true,
-      addDefaultPage: false,
-      objectsPerTick: 50
-    });
-
-    fs.writeFileSync(data.outputPath, compressedPdfBytes);
-
-    const originalSize = fs.statSync(data.inputPath).size;
-    const compressedSize = fs.statSync(data.outputPath).size;
-    const savings = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
-
-    return {
-      success: true,
-      message: `PDF compressed. Size reduced by ${savings}% (${(originalSize / 1024).toFixed(1)}KB → ${(compressedSize / 1024).toFixed(1)}KB)`
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-// PDF Rotate Pages Operation
-async function pdfRotate(data) {
-  try {
-    const pdfBytes = fs.readFileSync(data.inputPath);
-    const pdf = await PDFDocument.load(pdfBytes);
-    const totalPages = pdf.getPageCount();
-
-    let pagesToRotate = [];
-    if (data.pages && data.pages.trim()) {
-      pagesToRotate = parsePageRanges(data.pages, totalPages);
-    } else {
-      // Rotate all pages
-      pagesToRotate = Array.from({ length: totalPages }, (_, i) => i);
-    }
-
-    pagesToRotate.forEach(pageIndex => {
-      const page = pdf.getPage(pageIndex);
-      page.setRotation(degrees(data.angle));
-    });
-
-    const rotatedPdfBytes = await pdf.save();
-    fs.writeFileSync(data.outputPath, rotatedPdfBytes);
-
-    return {
-      success: true,
-      message: `Successfully rotated ${pagesToRotate.length} page(s) by ${data.angle}°`
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-// PDF Delete Pages Operation
-async function pdfDeletePages(data) {
-  try {
-    const pdfBytes = fs.readFileSync(data.inputPath);
-    const pdf = await PDFDocument.load(pdfBytes);
-    const totalPages = pdf.getPageCount();
-
-    const pagesToDelete = parsePageRanges(data.pages, totalPages);
-
-    // Remove pages in reverse order to maintain indices
-    pagesToDelete.sort((a, b) => b - a).forEach(pageIndex => {
-      pdf.removePage(pageIndex);
-    });
-
-    const newPdfBytes = await pdf.save();
-    fs.writeFileSync(data.outputPath, newPdfBytes);
-
-    return {
-      success: true,
-      message: `Successfully deleted ${pagesToDelete.length} page(s). New PDF has ${totalPages - pagesToDelete.length} pages`
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-// PDF Reorder Pages Operation
-async function pdfReorder(data) {
-  try {
-    const pdfBytes = fs.readFileSync(data.inputPath);
-    const pdf = await PDFDocument.load(pdfBytes);
-    const totalPages = pdf.getPageCount();
-
-    // Parse new page order
-    const newOrder = data.newOrder.split(',').map(n => parseInt(n.trim()) - 1); // Convert to 0-indexed
-
-    // Validate new order
-    if (newOrder.length !== totalPages) {
-      return { success: false, error: `New order must include all ${totalPages} pages` };
-    }
-
-    const newPdf = await PDFDocument.create();
-    const copiedPages = await newPdf.copyPages(pdf, newOrder);
-    copiedPages.forEach(page => newPdf.addPage(page));
-
-    const reorderedPdfBytes = await newPdf.save();
-    fs.writeFileSync(data.outputPath, reorderedPdfBytes);
-
-    return { success: true, message: 'Successfully reordered PDF pages' };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-// PDF Watermark Operation
-async function pdfWatermark(data) {
-  try {
-    const pdfBytes = fs.readFileSync(data.inputPath);
-    const pdf = await PDFDocument.load(pdfBytes);
-    const totalPages = pdf.getPageCount();
-
-    // Determine which pages to watermark
-    let pagesToWatermark = [];
-    if (data.pages === 'all') {
-      pagesToWatermark = Array.from({ length: totalPages }, (_, i) => i);
-    } else if (data.pages === 'custom' && data.customPages) {
-      pagesToWatermark = parsePageRanges(data.customPages, totalPages);
-    }
-
-    const font = await pdf.embedFont(StandardFonts.Helvetica);
-    const color = hexToRgb(data.color);
-
-    for (const pageIndex of pagesToWatermark) {
-      const page = pdf.getPage(pageIndex);
-      const { width, height } = page.getSize();
-
-      let x, y, rotation = 0;
-
-      // Calculate position based on selected position
-      switch (data.position) {
-        case 'center':
-          x = width / 2;
-          y = height / 2;
-          break;
-        case 'diagonal':
-          x = width / 2;
-          y = height / 2;
-          rotation = 45;
-          break;
-        case 'top-left':
-          x = 50;
-          y = height - 50;
-          break;
-        case 'top-center':
-          x = width / 2;
-          y = height - 50;
-          break;
-        case 'top-right':
-          x = width - 50;
-          y = height - 50;
-          break;
-        case 'bottom-left':
-          x = 50;
-          y = 50;
-          break;
-        case 'bottom-center':
-          x = width / 2;
-          y = 50;
-          break;
-        case 'bottom-right':
-          x = width - 50;
-          y = 50;
-          break;
-        default:
-          x = width / 2;
-          y = height / 2;
-      }
-
-      page.drawText(data.text, {
-        x,
-        y,
-        size: data.fontSize,
-        font,
-        color: rgb(color.r, color.g, color.b),
-        opacity: data.opacity,
-        rotate: degrees(rotation)
-      });
-    }
-
-    const watermarkedPdfBytes = await pdf.save();
-    fs.writeFileSync(data.outputPath, watermarkedPdfBytes);
-
-    return {
-      success: true,
-      message: `Successfully added watermark to ${pagesToWatermark.length} page(s)`
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-// PDF Encrypt (Password Protection) Operation
-async function pdfEncrypt(data) {
-  try {
-    const pdfBytes = fs.readFileSync(data.inputPath);
-    const pdf = await PDFDocument.load(pdfBytes);
-
-    // pdf-lib has limited encryption support in v1.17.1
-    // We'll save with password (basic encryption)
-    const encryptedPdfBytes = await pdf.save({
-      userPassword: data.userPassword,
-      ownerPassword: data.ownerPassword || data.userPassword,
-      permissions: {
-        printing: data.permissions.printing ? 'highResolution' : 'lowResolution',
-        modifying: data.permissions.modifying,
-        copying: data.permissions.copying,
-        annotating: data.permissions.annotating,
-        fillingForms: data.permissions.fillingForms,
-        contentAccessibility: data.permissions.contentAccessibility,
-        documentAssembly: data.permissions.documentAssembly
-      }
-    });
-
-    fs.writeFileSync(data.outputPath, encryptedPdfBytes);
-
-    return { success: true, message: 'Successfully added password protection to PDF' };
-  } catch (error) {
-    // If pdf-lib doesn't support encryption in this version, provide a helpful error
-    if (error.message.includes('encrypt') || error.message.includes('password')) {
-      return {
-        success: false,
-        error: 'PDF encryption requires pdf-lib with encryption support. This feature may not be available in the current version.'
-      };
-    }
-    return { success: false, error: error.message };
-  }
-}
-
-// PDF Decrypt (Remove Password) Operation
-async function pdfDecrypt(data) {
-  try {
-    const pdfBytes = fs.readFileSync(data.inputPath);
-    const pdf = await PDFDocument.load(pdfBytes, { password: data.password });
-
-    // Save without password
-    const decryptedPdfBytes = await pdf.save();
-    fs.writeFileSync(data.outputPath, decryptedPdfBytes);
-
-    return { success: true, message: 'Successfully removed password protection from PDF' };
-  } catch (error) {
-    if (error.message.includes('password') || error.message.includes('encrypted')) {
-      return { success: false, error: 'Incorrect password or PDF is not encrypted' };
-    }
-    return { success: false, error: error.message };
-  }
-}
-
-// PDF Permissions Operation
-async function pdfSetPermissions(data) {
-  try {
-    const pdfBytes = fs.readFileSync(data.inputPath);
-    const loadOptions = data.currentPassword ? { password: data.currentPassword } : {};
-    const pdf = await PDFDocument.load(pdfBytes, loadOptions);
-
-    const newPdfBytes = await pdf.save({
-      ownerPassword: data.ownerPassword,
-      permissions: {
-        printing: data.permissions.printing ? 'highResolution' : 'lowResolution',
-        modifying: data.permissions.modifying,
-        copying: data.permissions.copying,
-        annotating: data.permissions.annotating,
-        fillingForms: data.permissions.fillingForms,
-        contentAccessibility: data.permissions.contentAccessibility,
-        documentAssembly: data.permissions.documentAssembly
-      }
-    });
-
-    fs.writeFileSync(data.outputPath, newPdfBytes);
-
-    return { success: true, message: 'Successfully updated PDF permissions' };
-  } catch (error) {
-    if (error.message.includes('encrypt') || error.message.includes('permission')) {
-      return {
-        success: false,
-        error: 'PDF permissions require pdf-lib with encryption support. This feature may not be available in the current version.'
-      };
-    }
-    return { success: false, error: error.message };
-  }
-}
-
-// IPC Handler for PDF Operations
 ipcMain.on('process-pdf-operation', async (event, data) => {
   try {
     mainWindow.webContents.send('pdf-operation-progress', {
@@ -4161,43 +3767,7 @@ ipcMain.on('process-pdf-operation', async (event, data) => {
       progress: 10
     });
 
-    let result;
-
-    switch (data.operation) {
-      case 'merge':
-        result = await pdfMerge(data);
-        break;
-      case 'split':
-        result = await pdfSplit(data);
-        break;
-      case 'compress':
-        result = await pdfCompress(data);
-        break;
-      case 'rotate':
-        result = await pdfRotate(data);
-        break;
-      case 'delete':
-        result = await pdfDeletePages(data);
-        break;
-      case 'reorder':
-        result = await pdfReorder(data);
-        break;
-      case 'watermark':
-        result = await pdfWatermark(data);
-        break;
-      case 'encrypt':
-        result = await pdfEncrypt(data);
-        break;
-      case 'decrypt':
-        result = await pdfDecrypt(data);
-        break;
-      case 'permissions':
-        result = await pdfSetPermissions(data);
-        break;
-      default:
-        result = { success: false, error: `Unknown operation: ${data.operation}` };
-    }
-
+    const result = await PDFOperations.executeOperation(data.operation, data);
     mainWindow.webContents.send('pdf-operation-complete', result);
   } catch (error) {
     mainWindow.webContents.send('pdf-operation-complete', {
@@ -4207,12 +3777,9 @@ ipcMain.on('process-pdf-operation', async (event, data) => {
   }
 });
 
-// IPC Handler for getting PDF page count
 ipcMain.on('get-pdf-page-count', async (event, filePath) => {
   try {
-    const pdfBytes = fs.readFileSync(filePath);
-    const pdf = await PDFDocument.load(pdfBytes);
-    const count = pdf.getPageCount();
+    const count = await PDFOperations.getPageCount(filePath);
     event.reply('pdf-page-count', { count });
   } catch (error) {
     event.reply('pdf-page-count', { error: error.message });
@@ -4520,49 +4087,24 @@ ipcMain.on('open-file-path', (event, filePath) => {
 // ============================================
 // Git IPC Handlers
 // ============================================
-const simpleGit = require('simple-git');
-
-function getGitRepo() {
-  // Use the directory of the current file, or the app's working directory
-  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
-  return simpleGit(dir);
-}
-
 ipcMain.handle('git-status', async () => {
-  try {
-    const git = getGitRepo();
-    return await git.status();
-  } catch (err) {
-    return { error: 'Not a git repository' };
-  }
+  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
+  return GitOperations.getStatus(dir);
 });
 
 ipcMain.handle('git-stage', async (event, { files }) => {
-  try {
-    const git = getGitRepo();
-    await git.add(files);
-    return await git.status();
-  } catch (err) {
-    return { error: err.message };
-  }
+  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
+  return GitOperations.stage(dir, files);
 });
 
 ipcMain.handle('git-commit', async (event, { message }) => {
-  try {
-    const git = getGitRepo();
-    return await git.commit(message);
-  } catch (err) {
-    return { error: err.message };
-  }
+  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
+  return GitOperations.commit(dir, message);
 });
 
 ipcMain.handle('git-log', async () => {
-  try {
-    const git = getGitRepo();
-    return await git.log({ maxCount: 20 });
-  } catch (err) {
-    return { error: err.message };
-  }
+  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
+  return GitOperations.log(dir);
 });
 
 // ============================================

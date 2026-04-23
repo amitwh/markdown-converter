@@ -16,7 +16,10 @@ out/
 .cache/
 .npm/
 .electron/
-package-lock.json
+# package-lock.json is intentionally tracked for reproducible CI builds
+
+# Downloaded tool binaries (fetched at build time via scripts/download-tools.js)
+bin/
 
 # Code signing certificates — never commit private keys
 *.pfx

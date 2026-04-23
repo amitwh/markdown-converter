@@ -130,6 +130,9 @@ function plantumlEncode(text) {
     return '~h' + hex;
 }
 
+// Module-level reference set by DOMContentLoaded after sidebar registration
+let outlinePanelContainer = null;
+
 // Tab Management
 class TabManager {
     constructor() {
