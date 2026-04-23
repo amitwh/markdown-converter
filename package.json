@@ -192,8 +192,7 @@
       "target": [
         "deb",
         "AppImage",
-        "snap",
-        "rpm"
+        "snap"
       ],
       "category": "Utility",
       "maintainer": "ConcreteInfo <amit.wh@gmail.com>",
@@ -203,21 +202,11 @@
     },
     "deb": {
       "depends": [
-        "pandoc",
-        "ffmpeg",
         "imagemagick",
         "libreoffice-common"
       ],
       "description": "Professional Markdown editor and universal file converter",
       "maintainer": "ConcreteInfo <amit.wh@gmail.com>"
-    },
-    "rpm": {
-      "depends": [
-        "pandoc",
-        "ffmpeg",
-        "ImageMagick",
-        "libreoffice-core"
-      ]
     }
   }
 }
