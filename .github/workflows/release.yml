@@ -29,7 +29,7 @@ jobs:
         run: npm test
 
       - name: Build Linux packages
-        run: npm run build:linux-ci
+        run: npm run build:linux-ci -- --publish=never
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -77,13 +77,13 @@ jobs:
         env:
           CSC_LINK: code-signing-cert.pfx
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        run: npm run build:win-signed
+        run: npm run build:win-signed -- --publish=never
 
       - name: Build Windows packages (unsigned)
         if: ${{ env.CERT_AVAILABLE != 'true' }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npm run build:win-unsigned
+        run: npm run build:win-unsigned -- --publish=never
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
