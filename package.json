@@ -19,6 +19,7 @@
     "create-cert": "powershell -ExecutionPolicy Bypass -File scripts/create-selfsigned-cert.ps1",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux",
+    "build:linux-ci": "electron-builder --linux deb AppImage",
     "build:local": "electron-builder --linux --win",
     "dist": "electron-builder --publish=never",
     "dist:all": "electron-builder -mwl",
