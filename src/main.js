@@ -319,6 +319,32 @@ ipcMain.handle('plugin-settings:set', (_event, { key, value }) => {
 });
 ipcMain.handle('get-app-version', () => app.getVersion());
 
+// ============================================
+// SECURITY: Permission Request Handler
+// ============================================
+// Restrict permissions to only those explicitly needed.
+// Deny: camera, microphone, geolocation, notifications, etc.
+// Allow: clipboard-read, clipboard-write (user expects these)
+app.on('web-contents-created', (event, contents) => {
+  contents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    const ALLOWED_PERMISSIONS = [
+      'clipboard-read',
+      'clipboard-write'
+    ];
+
+    if (ALLOWED_PERMISSIONS.includes(permission)) {
+      callback(true);
+    } else {
+      // Deny all other permissions (camera, microphone, geolocation, etc.)
+      console.warn(`[Security] Blocked permission request: ${permission}`);
+      callback(false);
+    }
+  });
+
+  // Disable file download dialogs for security
+  // contents.session.setDownloadPath(userDownloadsPath);
+});
+
 let mainWindow;
 let currentFile = null; // This will now represent the active tab's file
 let pandocAvailable = null; // Cache pandoc availability check
