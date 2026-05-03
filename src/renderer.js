@@ -6,7 +6,8 @@
 const { ipcRenderer } = require('electron');
 const marked = require('marked');
 const { markedHighlight } = require('marked-highlight');
-const DOMPurify = require('dompurify');
+const createDOMPurify = require('dompurify');
+const DOMPurify = createDOMPurify(window);
 const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
