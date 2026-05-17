@@ -1,5 +1,6 @@
 pub mod menu;
 pub mod tray;
+pub mod pdf_ops;
 
 pub fn run() {
     tauri::Builder::default()
