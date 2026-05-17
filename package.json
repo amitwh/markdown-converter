@@ -24,7 +24,11 @@
     "dist": "electron-builder --publish=never",
     "dist:all": "electron-builder -mwl",
     "download-tools": "node scripts/download-tools.js",
-    "generate-icons": "node scripts/generate-icons.js"
+    "generate-icons": "node scripts/generate-icons.js",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:debug": "tauri build --debug"
   },
   "keywords": [
     "markdown",
