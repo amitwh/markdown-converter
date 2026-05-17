@@ -37,11 +37,32 @@
       "../assets/icons/icon.icns",
       "../assets/icons/icon.ico"
     ],
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown"],
+        "name": "Markdown Document",
+        "description": "Markdown Document",
+        "role": "Editor",
+        "mimeType": "text/markdown"
+      },
+      {
+        "ext": ["pdf"],
+        "name": "PDF Document",
+        "description": "PDF Document",
+        "role": "Viewer",
+        "mimeType": "application/pdf"
+      }
+    ],
     "resources": {},
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
-      "timestampUrl": ""
+      "timestampUrl": "",
+      "nsis": {
+        "languages": ["English", "German", "French", "Spanish", "Portuguese", "Japanese", "Korean", "SimpChinese", "TradChinese"],
+        "displayLanguageSelector": true,
+        "installMode": "currentUser"
+      }
     }
   },
   "plugins": {
