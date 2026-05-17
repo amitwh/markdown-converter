@@ -1,6 +1,7 @@
 pub mod menu;
 pub mod tray;
 pub mod pdf_ops;
+pub mod plugin_manager;
 
 pub fn run() {
     tauri::Builder::default()
@@ -42,6 +43,8 @@ pub fn run() {
             crate::commands::dialog::open_file_dialog,
             crate::commands::dialog::save_file_dialog,
             crate::commands::dialog::select_folder_dialog,
+            crate::commands::plugins::list_plugins,
+            crate::commands::plugins::get_plugin,
         ])
         .setup(|app| {
             log::info!("MarkdownConverter starting up");

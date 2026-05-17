@@ -86,3 +86,11 @@ export const events = {
   onConversionComplete: (callback) => listen('conversion-complete', callback),
   onConversionStatus: (callback) => listen('conversion-status', callback),
 };
+
+// ============================================
+// PLUGIN OPERATIONS
+// ============================================
+export const plugins = {
+  list: () => invoke('list_plugins', {}),
+  get: (name) => invoke('get_plugin', { name }),
+};

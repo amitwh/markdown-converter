@@ -1,0 +1,7 @@
+{
+  "name": "writing-studio",
+  "version": "1.0.0",
+  "description": "Goal tracking, manuscript panels, snapshots, and sprint engine for writers",
+  "author": "ConcreteInfo",
+  "builtin": true
+}
