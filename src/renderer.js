@@ -3,7 +3,8 @@
  * @version 4.3.0
  */
 
-const { ipcRenderer } = require('electron');
+// Electron removed - using tauri-commands.js
+import { file, events, app, exportDoc, git, pdf, dialog } from './tauri-commands.js';
 const marked = require('marked');
 const { markedHighlight } = require('marked-highlight');
 const createDOMPurify = require('dompurify');
@@ -500,7 +501,7 @@ class TabManager {
 
         // Notify main process about current file for exports
         const tab = this.tabs.get(tabId);
-        ipcRenderer.send('set-current-file', tab?.filePath || null);
+        const result = await file.write(path, content);
 
         // Refresh outline panel for new tab content
         if (outlinePanelContainer?._refreshOutline) outlinePanelContainer._refreshOutline();
@@ -923,7 +924,7 @@ class TabManager {
 
         // Only auto-save if content has changed since last save
         if (tab.lastSavedContent !== tab.content) {
-            ipcRenderer.send('save-file', { path: tab.filePath, content: tab.content });
+            await file.write(tab.filePath, tab.content);
             tab.lastSavedContent = tab.content;
 
             // Show brief auto-save indicator
@@ -962,7 +963,7 @@ class TabManager {
 
         // Save to localStorage and sync with main process
         localStorage.setItem('recentFiles', JSON.stringify(this.recentFiles));
-        ipcRenderer.send('save-recent-files', this.recentFiles);
+        await app.saveRecentFiles(this.recentFiles);
     }
 
     getRecentFiles() {
@@ -1371,7 +1372,7 @@ class TabManager {
         this.updateBreadcrumb();
 
         // Notify main process about current file for exports
-        ipcRenderer.send('set-current-file', filePath);
+        // handled via event
 
         console.log('File opened successfully');
     }
@@ -1488,7 +1489,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     sidebarManager.registerPanel('explorer', {
         title: 'Explorer',
         render: (container) => getRenderExplorerPanel()(container, {
-            listDirectory: (dir) => ipcRenderer.invoke('list-directory', dir),
+            listDirectory: (dir) => file.listDirectory(dir),
             onFileOpen: (filePath) => ipcRenderer.send('open-file-path', filePath),
             currentDir: explorerCurrentDir,
         })
@@ -1496,11 +1497,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     sidebarManager.registerPanel('git', {
         title: 'Git',
         render: (container) => getRenderGitPanel()(container, {
-            gitStatus: () => ipcRenderer.invoke('git-status'),
-            gitDiff: (file) => ipcRenderer.invoke('git-diff', { file }),
-            gitStage: (files) => ipcRenderer.invoke('git-stage', { files }),
-            gitCommit: (message) => ipcRenderer.invoke('git-commit', { message }),
-            gitLog: () => ipcRenderer.invoke('git-log'),
+            gitStatus: () => git.status(tab?.filePath ? path.dirname(tab.filePath) : null),
+            gitDiff: (file) => git.diff(path.dirname(file) || null, file),
+            gitStage: (files) => git.stage(path.dirname(files[0]) || null, files),
+            gitCommit: (message) => git.commit(getGitRepoPath(), message),
+            gitLog: () => git.log(getGitRepoPath()),
         })
     });
     sidebarManager.registerPanel('snippets', {
@@ -1515,7 +1516,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     sidebarManager.registerPanel('templates', {
         title: 'Templates',
         render: (container) => getRenderTemplatesPanel()(container, async (file) => {
-            const templateContent = await ipcRenderer.invoke('load-template', file);
+            const templateContent = await ipcRenderer.invoke('load-template', file),
             if (templateContent) {
                 const content = templateContent.replace(/\{\{DATE\}\}/g, new Date().toISOString().split('T')[0]);
                 tabManager.createNewTab();
@@ -1836,11 +1837,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // IPC event listeners
-ipcRenderer.on('file-new', () => {
+events.onFileNew(() => {
     tabManager.createNewTab();
 });
 
-ipcRenderer.on('file-opened', (event, data) => {
+events.onFileOpened((event, data) => {
     console.log('[RENDERER] file-opened received:', data.path, 'content length:', data.content.length);
     if (tabManager) {
         tabManager.openFile(data.path, data.content);
@@ -1849,7 +1850,7 @@ ipcRenderer.on('file-opened', (event, data) => {
     }
 });
 
-ipcRenderer.on('file-save', () => {
+events.onFileSave(() => {
     const currentContent = tabManager.getCurrentContent();
     const currentFilePath = tabManager.getCurrentFilePath();
     // send to main process which will save or trigger save-as dialog
@@ -1877,12 +1878,12 @@ ipcRenderer.on('get-content-for-spreadsheet', (event, format) => {
     ipcRenderer.send('export-spreadsheet', { content: currentContent, format });
 });
 
-ipcRenderer.on('toggle-preview', () => {
+events.onTogglePreview(() => {
     tabManager.isPreviewVisible = !tabManager.isPreviewVisible;
     tabManager.updatePreviewVisibility();
 });
 
-ipcRenderer.on('toggle-find', () => {
+events.onToggleFind(() => {
     if (window.modals.findModal.isOpen()) {
         window.modals.findModal.close();
     } else {
@@ -1891,7 +1892,7 @@ ipcRenderer.on('toggle-find', () => {
     }
 });
 
-ipcRenderer.on('theme-changed', (event, theme) => {
+events.onThemeChanged((event, theme) => {
     console.log('[RENDERER] Theme changed to:', theme);
     document.body.className = `theme-${theme}`;
 
@@ -1904,7 +1905,7 @@ ipcRenderer.on('theme-changed', (event, theme) => {
 });
 
 // Undo/Redo handlers — delegate to CodeMirror's built-in history
-ipcRenderer.on('undo', () => {
+events.onUndo(() => {
     if (tabManager) {
         const tab = tabManager.tabs.get(tabManager.activeTabId);
         if (tab?.editorView) {
@@ -1913,7 +1914,7 @@ ipcRenderer.on('undo', () => {
     }
 });
 
-ipcRenderer.on('redo', () => {
+events.onRedo(() => {
     if (tabManager) {
         const tab = tabManager.tabs.get(tabManager.activeTabId);
         if (tab?.editorView) {

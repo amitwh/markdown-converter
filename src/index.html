@@ -2,9 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- CSP: unsafe-inline/unsafe-eval required for marked.js extensions and Mermaid -->
-    <!-- TODO: Migrate to nonce-based CSP for better security -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://www.plantuml.com;">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MarkdownConverter</title>
     <!-- Design tokens - loaded first for CSS variable availability -->
@@ -1605,6 +1602,6 @@
     </div>
 
     <script src="utils/ModalManager.js"></script>
-    <script src="renderer.js"></script>
+    <script type="module" src="./renderer.js"></script>
 </body>
 </html>
