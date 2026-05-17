@@ -5,12 +5,13 @@ use crate::error::AppError;
 #[tauri::command]
 pub async fn git_status(repo_path: String) -> CommandResult<Vec<GitStatusEntry>, AppError> {
     let repo = Repository::open(&repo_path).map_err(|e| AppError::Git(e.to_string()))?;
-    let mut statuses = Vec::new();
+    let mut entries = Vec::new();
 
-    repo.statuses(None).map_err(|e| AppError::Git(e.to_string()))?.foreach(|entry| {
+    let statuses = repo.statuses(None).map_err(|e| AppError::Git(e.to_string()))?;
+    for entry in statuses.iter() {
         if let Some(status) = entry.status() {
             let path = entry.path().unwrap_or("").to_string();
-            statuses.push(GitStatusEntry {
+            entries.push(GitStatusEntry {
                 path,
                 is_staged: status.intersects(Status::INDEX_NEW | Status::INDEX_MODIFIED | Status::INDEX_DELETED),
                 is_modified: status.intersects(Status::WT_MODIFIED),
@@ -18,10 +19,9 @@ pub async fn git_status(repo_path: String) -> CommandResult<Vec<GitStatusEntry>,
                 is_deleted: status.intersects(Status::WT_DELETED),
             });
         }
-        true
-    }).map_err(|e| AppError::Git(e.to_string()))?;
+    }
 
-    Ok(statuses)
+    Ok(entries)
 }
 
 #[derive(serde::Serialize)]
@@ -97,7 +97,7 @@ pub async fn git_diff(repo_path: String, path: Option<String>) -> CommandResult<
     let diff = repo.diff_index_to_workdir(None, Some(&mut opts))
         .map_err(|e| AppError::Git(e.to_string()))?;
     let mut out = Vec::new();
-    diff.print(git2::DiffFormat::Patch, |_delta, _origin, line| {
+    diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| {
         let prefix = match line.origin() {
             '+' => " +",
             '-' => " -",
