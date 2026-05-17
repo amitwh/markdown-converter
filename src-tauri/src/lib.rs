@@ -1,3 +1,6 @@
+pub mod menu;
+pub mod tray;
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().build())
@@ -41,6 +44,15 @@ pub fn run() {
         ])
         .setup(|app| {
             log::info!("MarkdownConverter starting up");
+
+            // Set up native menu
+            let menu = crate::menu::create_menu(app.handle())?;
+            app.set_menu(menu)?;
+            app.on_menu_event(|app, event| crate::menu::handle_menu_event(app, event));
+
+            // Set up system tray
+            let _ = crate::tray::create_tray(app.handle());
+
             Ok(())
         })
         .on_window_event(|window, event| {
