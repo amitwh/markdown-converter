@@ -237,8 +237,8 @@ class ModalManager {
     }
 }
 
-// Export for use in renderer
-if (typeof window !== 'undefined') {
+// Export for use in renderer - avoid duplicate declaration
+if (typeof window !== 'undefined' && !window.ModalManager) {
     window.ModalManager = ModalManager;
 }
 
