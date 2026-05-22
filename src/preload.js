@@ -9,7 +9,7 @@
  * - All IPC channels are explicitly whitelisted
  * - Prevents XSS from escalating to full system access
  *
- * @version 4.3.0
+ * @version 4.4.1
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
