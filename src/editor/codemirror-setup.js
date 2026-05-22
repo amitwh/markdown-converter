@@ -59,6 +59,11 @@ const jetBrainsMonoTheme = EditorView.theme({
  * @returns {EditorView} the created editor view
  */
 function createEditor(parentElement, options = {}) {
+  console.log('[createEditor] Called with parentElement:', parentElement?.id, 'dimensions:', parentElement?.clientWidth, 'x', parentElement?.clientHeight);
+  if (!parentElement) {
+    console.error('[createEditor] ERROR: parentElement is null or undefined!');
+    return null;
+  }
   const {
     content = '',
     onChange = () => {},
