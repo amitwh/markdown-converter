@@ -3759,7 +3759,7 @@ app.on('open-file', (event, filePath) => {
 // Handle file opening from command line or file association
 function openFileFromPath(filePath) {
   console.log('[MAIN] openFileFromPath called with:', filePath);
-  console.log('[MAIN] rendererReady:', rendererReady, 'mainWindow exists:', !!mainWindow);
+  console.log('[MAIN] rendererReady:', rendererReady, 'mainWindow exists:', !!mainWindow, 'webContents exists:', !!(mainWindow?.webContents));
   if (fs.existsSync(filePath)) {
     const stats = fs.statSync(filePath);
     if (stats.size > MAX_FILE_SIZE) {
@@ -3769,6 +3769,7 @@ function openFileFromPath(filePath) {
     currentFile = filePath;
     const content = fs.readFileSync(filePath, 'utf-8');
     console.log('[MAIN] File read successfully, content length:', content.length);
+    console.log('[MAIN] About to send file-opened. mainWindow:', !!mainWindow, 'webContents:', !!(mainWindow?.webContents), 'rendererReady:', rendererReady);
     if (mainWindow && mainWindow.webContents && rendererReady) {
       // Send file immediately - renderer-ready means UI is initialized
       console.log('[MAIN] Sending file-opened to renderer');

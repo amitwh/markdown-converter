@@ -230,7 +230,7 @@ class TabManager {
             editorView: null,
             findMatches: [],
             currentMatchIndex: -1,
-            type: type,
+            type: type, // 'markdown' or 'pdf'
             // PDF-specific state
             pdfDoc: null,
             pdfCurrentPage: 1,
@@ -243,6 +243,7 @@ class TabManager {
         this.switchToTab(newTabId);
         this.startAutoSave();
         this.updateTabBar();
+        console.log('createNewTab: tab created with type:', type);
     }
 
     createPdfTab(filePath) {
@@ -1331,6 +1332,7 @@ class TabManager {
     openFile(filePath, content) {
         console.log('openFile called with:', filePath, 'content length:', content.length);
         let tab = this.tabs.get(this.activeTabId);
+        console.log('openFile tab state before:', { id: tab?.id, hasEditorView: !!tab?.editorView, contentLength: tab?.content?.length, filePath: tab?.filePath, isDirty: tab?.isDirty });
 
         // Handle both forward and back slashes for cross-platform compatibility
         const fileName = filePath.split(/[\\/]/).pop();
@@ -1346,6 +1348,7 @@ class TabManager {
 
             // Update the editor and preview
             this.setEditorContent(this.activeTabId, content);
+            console.log('openFile after setEditorContent, tab state:', { id: tab.id, hasEditorView: !!tab.editorView, contentLength: tab.content.length });
             this.updatePreview(this.activeTabId);
             this.updateWordCount();
         } else {
@@ -1353,6 +1356,7 @@ class TabManager {
             console.log('Creating new tab for file');
             this.createNewTab();
             tab = this.tabs.get(this.activeTabId);
+            console.log('openFile after createNewTab, tab:', { id: tab.id, hasEditorView: !!tab.editorView });
             tab.filePath = filePath;
             tab.title = fileName;
             tab.content = content;
@@ -1361,6 +1365,7 @@ class TabManager {
 
             // Set content in the CodeMirror editor
             this.setEditorContent(this.activeTabId, content);
+            console.log('openFile after setEditorContent, tab state:', { id: tab.id, hasEditorView: !!tab.editorView, contentLength: tab.content.length });
             this.updatePreview(this.activeTabId);
             this.updateWordCount();
         }
@@ -1369,6 +1374,7 @@ class TabManager {
         this.updateTabBar();
         this.updateFilePath();
         this.updateBreadcrumb();
+        this.updateUI(); // Ensure tab content is visible
 
         // Notify main process about current file for exports
         ipcRenderer.send('set-current-file', filePath);
@@ -1836,14 +1842,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // IPC event listeners
+// IPC event listeners
 ipcRenderer.on('file-new', () => {
     tabManager.createNewTab();
 });
 
 ipcRenderer.on('file-opened', (event, data) => {
     console.log('[RENDERER] file-opened received:', data.path, 'content length:', data.content.length);
+    console.log('[RENDERER] activeTabId before openFile:', tabManager.activeTabId);
+    // Diagnostic: check library state
+    console.log('[RENDERER] Library state:', {
+        marked: typeof marked,
+        DOMPurify: typeof DOMPurify,
+        markedParse: typeof marked?.parse,
+        dompurifySanitize: typeof DOMPurify?.sanitize,
+        tabManagerExists: !!tabManager
+    });
     if (tabManager) {
         tabManager.openFile(data.path, data.content);
+        console.log('[RENDERER] activeTabId after openFile:', tabManager.activeTabId);
+        const tab = tabManager.tabs.get(tabManager.activeTabId);
+        console.log('[RENDERER] tab state:', { id: tab?.id, hasEditorView: !!tab?.editorView, contentLength: tab?.content?.length });
     } else {
         console.error('[RENDERER] tabManager not initialized!');
     }
