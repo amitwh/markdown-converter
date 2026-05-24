@@ -117,7 +117,7 @@ class ZenMode {
     _applyTypewriterBehavior(view) {
         // We use a custom update listener that scrolls the cursor to center.
         // This is stored on the instance so we can clean it up.
-        let scrollTimeout = null;
+        const scrollTimeout = null;
 
         const scrollFn = () => {
             if (!this.active) return;

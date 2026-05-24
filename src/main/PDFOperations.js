@@ -60,13 +60,13 @@ async function pdfSplit(data) {
     const pdf = await PDFDocument.load(pdfBytes);
     const totalPages = pdf.getPageCount();
 
-    let splits = [];
+    const splits = [];
 
     if (data.splitMode === 'pages') {
       const ranges = data.pageRanges.split(',').map(r => r.trim());
       for (let i = 0; i < ranges.length; i++) {
         const range = ranges[i];
-        let pages = [];
+        const pages = [];
 
         if (range.includes('-')) {
           const [start, end] = range.split('-').map(n => parseInt(n.trim()));

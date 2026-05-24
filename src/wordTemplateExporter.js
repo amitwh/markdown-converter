@@ -655,7 +655,7 @@ class WordTemplateExporter {
      */
     parseInlineFormatting(text) {
         let xml = '';
-        let pos = 0;
+        const pos = 0;
 
         // Patterns for inline formatting
         const patterns = [

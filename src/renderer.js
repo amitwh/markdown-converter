@@ -132,7 +132,7 @@ function plantumlEncode(text) {
 }
 
 // Module-level reference set by DOMContentLoaded after sidebar registration
-let outlinePanelContainer = null;
+const outlinePanelContainer = null;
 
 // Tab Management
 class TabManager {
@@ -1489,7 +1489,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize sidebar
     const SidebarManager = getSidebarManager();
     const sidebarManager = new SidebarManager();
-    let explorerCurrentDir = null;
+    const explorerCurrentDir = null;
 
     sidebarManager.registerPanel('explorer', {
         title: 'Explorer',
@@ -3416,7 +3416,7 @@ function showPDFValidationMessage(message, focusSelector = null) {
 // Process PDF Operation
 function processPDFOperation() {
     const operation = currentPDFOperation;
-    let operationData = { operation };
+    const operationData = { operation };
 
     try {
         switch (operation) {
@@ -4206,7 +4206,7 @@ function textToASCII(text, style) {
         lines[i] = '';
     }
 
-    for (let char of upperText) {
+    for (const char of upperText) {
         const charLines = font.chars[char] || font.chars[' '];
         if (charLines) {
             for (let i = 0; i < font.height; i++) {
@@ -4244,7 +4244,7 @@ function createASCIIBox(text, style, padding) {
     }
 
     // Content lines
-    for (let line of lines) {
+    for (const line of lines) {
         const paddedLine = line.padEnd(maxLength, ' ');
         result += chars.v + ' '.repeat(padding) + paddedLine + ' '.repeat(padding) + chars.v + '\n';
     }
