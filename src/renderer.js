@@ -682,17 +682,26 @@ class TabManager {
     _renderPreview(tabId) {
         const tab = this.tabs.get(tabId);
         const preview = document.getElementById(`preview-${tabId}`);
+        console.log('[_renderPreview] tabId:', tabId, 'tab exists:', !!tab, 'preview exists:', !!preview, 'content length:', tab?.content?.length);
 
         if (!tab || !preview) return;
 
         try {
             // Check if libraries are available
             if (!marked || !DOMPurify) {
+                console.error('[_renderPreview] Libraries not available:', { marked: !!marked, DOMPurify: !!DOMPurify });
                 preview.innerHTML = '<div class="preview-error"><div class="preview-error-icon">⚠️</div><div class="preview-error-title">Libraries Not Loaded</div><div class="preview-error-message">Required libraries (marked/DOMPurify) could not be loaded. Please check your installation.</div></div>';
                 return;
             }
+            console.log('[_renderPreview] About to call marked.parse, content length:', tab.content.length);
             const html = marked.parse(tab.content);
+            console.log('[_renderPreview] marked.parse returned type:', typeof html, 'isPromise:', html instanceof Promise);
+            if (html instanceof Promise) {
+                console.error('[_renderPreview] marked.parse returned a Promise! Need to await it.');
+                return;
+            }
             let sanitizedHtml = DOMPurify.sanitize(html);
+            console.log('[_renderPreview] DOMPurify.sanitize returned, length:', sanitizedHtml.length);
 
             // TOC generation
             if (sanitizedHtml.includes('[[toc]]') || sanitizedHtml.includes('[TOC]')) {
