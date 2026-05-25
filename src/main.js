@@ -849,6 +849,20 @@ function createMenu() {
           }
         },
         { type: 'separator' },
+        {
+          label: 'Custom Preview CSS',
+          submenu: [
+            {
+              label: 'Load Custom Preview CSS...',
+              click: () => mainWindow.webContents.send('load-custom-css')
+            },
+            {
+              label: 'Clear Custom Preview CSS',
+              click: () => mainWindow.webContents.send('clear-custom-css')
+            }
+          ]
+        },
+        { type: 'separator' },
         { label: 'Reload', accelerator: 'CmdOrCtrl+R', role: 'reload' },
         { label: 'Toggle DevTools', accelerator: 'F12', role: 'toggleDevTools' },
         { type: 'separator' },
@@ -2297,8 +2311,32 @@ function performExportWithOptions(format, options) {
         dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export: ${err.message}`));
       }
     } else if (format === 'revealjs') {
-      pandocCmd = `${getPandocPath()} "${currentFile}" -t revealjs -s -o "${outputFile}" --slide-level=2`;
-      exportWithPandoc(pandocCmd, outputFile, format);
+      let revealCmd = `${getPandocPath()} "${currentFile}" -t revealjs -s -o "${outputFile}" --slide-level=2`;
+      if (options) {
+        if (options.revealTheme) revealCmd += ` -V theme="${options.revealTheme}"`;
+        if (options.revealTransition) revealCmd += ` -V transition="${options.revealTransition}"`;
+        if (options.revealTransitionSpeed) revealCmd += ` -V transitionSpeed="${options.revealTransitionSpeed}"`;
+        if (options.revealControls !== undefined) revealCmd += ` -V controls="${options.revealControls}"`;
+        if (options.revealSlideNumber !== undefined) revealCmd += ` -V slideNumber="${options.revealSlideNumber}"`;
+        if (options.revealProgress !== undefined) revealCmd += ` -V progress="${options.revealProgress}"`;
+        if (options.revealHistory !== undefined) revealCmd += ` -V history="${options.revealHistory}"`;
+        if (options.revealCenter !== undefined) revealCmd += ` -V center="${options.revealCenter}"`;
+
+        // Support for templates, metadata, bibliography
+        if (options.template && options.template !== 'default') {
+          revealCmd += ` --template="${options.template}"`;
+        }
+        if (options.metadata) {
+          for (const [key, value] of Object.entries(options.metadata)) {
+            if (value.trim()) {
+              revealCmd += ` -M ${key}="${value.replace(/"/g, '\\"')}"`;
+            }
+          }
+        }
+        if (options.bibliography) revealCmd += ` --bibliography="${options.bibliography}"`;
+        if (options.csl) revealCmd += ` --csl="${options.csl}"`;
+      }
+      exportWithPandoc(revealCmd, outputFile, format);
     } else if (format === 'beamer') {
       pandocCmd = `${getPandocPath()} "${currentFile}" -t beamer -o "${outputFile}"`;
       exportWithPandoc(pandocCmd, outputFile, format);
@@ -3989,7 +4027,24 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
     console.error('list-directory error:', err);
     return null;
   }
+ipcMain.handle('select-custom-css', async (event) => {
+  const result = dialog.showOpenDialogSync(mainWindow, {
+    title: 'Select Custom Preview CSS',
+    properties: ['openFile'],
+    filters: [
+      { name: 'CSS Stylesheets', extensions: ['css'] }
+    ]
+  });
+
+  if (result && result[0]) {
+    const filePath = result[0];
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return { path: filePath, content };
+  }
+  return null;
 });
+
+
 
 ipcMain.handle('read-file', async (event, filePath) => {
   const validation = validatePath(filePath);

@@ -76,6 +76,75 @@ describe('Markdown Extensions', () => {
         });
     });
 
+    describe('Admonitions full parsing integration (mocked environment)', () => {
+        const extension = {
+            name: 'admonition',
+            level: 'block',
+            start(src) { return src.match(/^:::(note|warning|tip|danger|info)/m)?.index; },
+            tokenizer(src) {
+                const match = src.match(/^:::(note|warning|tip|danger|info)\s*\n([\s\S]*?)^:::\s*$/m);
+                if (match && match.index === 0) {
+                    const admonitionType = match[1];
+                    const text = match[2].trim();
+                    const tokens = [];
+                    this.lexer.blockTokens(text, tokens);
+                    return {
+                        type: 'admonition',
+                        raw: match[0],
+                        admonitionType,
+                        text,
+                        tokens
+                    };
+                }
+            },
+            renderer(token) {
+                const icons = { note: 'ℹ', warning: '⚠', tip: '💡', danger: '🔴', info: 'ℹ' };
+                const icon = icons[token.admonitionType] || 'ℹ';
+                const inner = this.parser.parse(token.tokens || []);
+                return `<div class="admonition admonition-${token.admonitionType}">
+                    <div class="admonition-title">${icon} ${token.admonitionType.charAt(0).toUpperCase() + token.admonitionType.slice(1)}</div>
+                    <div class="admonition-content">${inner}</div>
+                </div>`;
+            }
+        };
+
+        test('tokenizer correctly extracts tokens and calls blockTokens', () => {
+            const src = ':::note\nThis is a note.\n:::';
+            const mockLexer = {
+                blockTokens: jest.fn((text, tokens) => {
+                    tokens.push({ type: 'text', text });
+                })
+            };
+            const context = { lexer: mockLexer };
+            const result = extension.tokenizer.call(context, src);
+            
+            expect(result).toBeDefined();
+            expect(result.type).toBe('admonition');
+            expect(result.admonitionType).toBe('note');
+            expect(result.text).toBe('This is a note.');
+            expect(mockLexer.blockTokens).toHaveBeenCalledWith('This is a note.', expect.any(Array));
+            expect(result.tokens).toEqual([{ type: 'text', text: 'This is a note.' }]);
+        });
+
+        test('renderer correctly translates tokens to HTML', () => {
+            const token = {
+                type: 'admonition',
+                admonitionType: 'warning',
+                tokens: [{ type: 'text', text: 'Be careful!' }]
+            };
+            const mockParser = {
+                parse: jest.fn((tokens) => '<p>Be careful!</p>')
+            };
+            const context = { parser: mockParser };
+            const html = extension.renderer.call(context, token);
+            
+            expect(html).toContain('admonition admonition-warning');
+            expect(html).toContain('⚠ Warning');
+            expect(html).toContain('<p>Be careful!</p>');
+            expect(mockParser.parse).toHaveBeenCalledWith(token.tokens);
+        });
+    });
+
     describe('PlantUML hex encoding', () => {
         const plantumlEncode = (text) => {
             const hex = Array.from(Buffer.from(text, 'utf-8'))
@@ -125,6 +194,55 @@ describe('Markdown Extensions', () => {
 
         test('handles already lowercase text', () => {
             expect(slugify('simple')).toBe('simple');
+        });
+    });
+
+    describe('scopeCSS utility', () => {
+        const scopeCSS = (cssText, scopeSelector) => {
+            if (!cssText) return '';
+            return cssText.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|(?=[^{]*{))/g, (match, selector, separator) => {
+                const trimmed = selector.trim();
+                if (!trimmed || trimmed.startsWith('@') || trimmed.startsWith(':root') || trimmed.startsWith('from') || trimmed.startsWith('to') || /^\d+%$/.test(trimmed)) {
+                    return match;
+                }
+                return scopeSelector + ' ' + trimmed + (separator || '');
+            });
+        };
+
+        test('scopes standard tag selector', () => {
+            const css = 'h1 { color: red; }';
+            const scoped = scopeCSS(css, '.preview-content');
+            expect(scoped).toBe('.preview-content h1{ color: red; }');
+        });
+
+        test('scopes multiple class selectors', () => {
+            const css = '.title, .content { font-family: sans-serif; }';
+            const scoped = scopeCSS(css, '.preview-content');
+            expect(scoped).toBe('.preview-content .title,.preview-content .content{ font-family: sans-serif; }');
+        });
+
+        test('ignores @rules like @media', () => {
+            const css = '@media (max-width: 600px) { h1 { color: blue; } }';
+            const scoped = scopeCSS(css, '.preview-content');
+            expect(scoped).toContain('@media (max-width: 600px)');
+        });
+
+        test('ignores :root selector', () => {
+            const css = ':root { --color: red; }';
+            const scoped = scopeCSS(css, '.preview-content');
+            expect(scoped).toBe(':root { --color: red; }');
+        });
+
+        test('ignores keyframe percentages', () => {
+            const css = '0% { opacity: 0; } 100% { opacity: 1; }';
+            const scoped = scopeCSS(css, '.preview-content');
+            expect(scoped).toContain('0%');
+            expect(scoped).toContain('100%');
+        });
+
+        test('handles empty input', () => {
+            expect(scopeCSS('', '.preview-content')).toBe('');
+            expect(scopeCSS(null, '.preview-content')).toBe('');
         });
     });
 });

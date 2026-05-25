@@ -288,6 +288,52 @@
                         </div>
                     </div>
 
+                    <div class="export-section revealjs-only" style="display: none;">
+                        <label>Reveal.js Options:</label>
+                        <div class="form-row">
+                            <label for="reveal-theme">Slide Theme:</label>
+                            <select id="reveal-theme">
+                                <option value="black">Black</option>
+                                <option value="white">White</option>
+                                <option value="league">League</option>
+                                <option value="beige">Beige</option>
+                                <option value="sky">Sky</option>
+                                <option value="night">Night</option>
+                                <option value="serif">Serif</option>
+                                <option value="simple">Simple</option>
+                                <option value="solarized">Solarized</option>
+                                <option value="blood">Blood</option>
+                                <option value="moon">Moon</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="reveal-transition">Transition:</label>
+                            <select id="reveal-transition">
+                                <option value="slide">Slide</option>
+                                <option value="none">None</option>
+                                <option value="fade">Fade</option>
+                                <option value="convex">Convex</option>
+                                <option value="concave">Concave</option>
+                                <option value="zoom">Zoom</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="reveal-speed">Transition Speed:</label>
+                            <select id="reveal-speed">
+                                <option value="default">Default</option>
+                                <option value="fast">Fast</option>
+                                <option value="slow">Slow</option>
+                            </select>
+                        </div>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" id="reveal-slide-number"> Slide Numbers</label>
+                            <label><input type="checkbox" id="reveal-controls" checked> Controls</label>
+                            <label><input type="checkbox" id="reveal-progress" checked> Progress Bar</label>
+                            <label><input type="checkbox" id="reveal-history" checked> Slide History</label>
+                            <label><input type="checkbox" id="reveal-center" checked> Center Content</label>
+                        </div>
+                    </div>
+
                     <div class="export-section">
                         <label>Bibliography:</label>
                         <div class="form-row">
@@ -905,6 +951,7 @@
                     <button class="modal-close" id="pdf-editor-dialog-close" aria-label="Close">&times;</button>
                 </div>
                 <div class="modal-body pdf-editor-body">
+                    <div class="pdf-editor-left-panel">
                     <!-- Merge PDFs Section -->
                     <div id="pdf-merge-section" class="pdf-operation-section hidden">
                         <div class="export-section">
@@ -1287,6 +1334,16 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Right Panel: Scrollable Visual Page Sidebar -->
+                <div id="pdf-thumbnail-sidebar" class="pdf-editor-right-panel hidden">
+                    <h4>Page Preview &amp; Editor</h4>
+                    <p class="sidebar-help">Select a PDF to view pages, check to delete, click ↻ to rotate, and use ◀ / ▶ to reorder.</p>
+                    <div id="pdf-thumbnail-grid" class="pdf-thumbnail-grid">
+                        <!-- Page thumbnail cards will be rendered here dynamically -->
+                    </div>
+                </div>
+            </div>
                 <div class="modal-footer">
                     <button id="pdf-editor-cancel" class="btn btn-secondary" data-close>Cancel</button>
                     <button id="pdf-editor-process" class="btn btn-primary">Process</button>

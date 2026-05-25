@@ -1,6 +1,6 @@
 /**
  * MarkdownConverter Renderer Process
- * @version 4.4.1
+ * @version 4.4.2
  */
 
 const { ipcRenderer } = require('electron');
@@ -11,7 +11,16 @@ const DOMPurify = createDOMPurify(window);
 const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
-const { ModalManager } = require('./utils/ModalManager');
+// Use window.ModalManager if already set by script tag, otherwise require it.
+// This prevents "Identifier 'ModalManager' has already been declared" when
+// both the script tag in index.html and CommonJS require() declare it.
+let ModalManager;
+if (typeof window !== 'undefined' && window.ModalManager) {
+    ModalManager = window.ModalManager;
+} else {
+    const result = require('./utils/ModalManager');
+    ModalManager = result.ModalManager || result;
+}
 // Lazy-loaded modules — defer heavy imports until first use
 let _SidebarManager, _renderTemplatesPanel, _renderExplorerPanel, _renderGitPanel, _renderSnippetsPanel;
 let _ReplPanel, _CommandPalette, _PrintPreview, _createWelcomeContent;
@@ -102,19 +111,24 @@ marked.use({
         start(src) { return src.match(/^:::(note|warning|tip|danger|info)/m)?.index; },
         tokenizer(src) {
             const match = src.match(/^:::(note|warning|tip|danger|info)\s*\n([\s\S]*?)^:::\s*$/m);
-            if (match) {
+            if (match && match.index === 0) {
+                const admonitionType = match[1];
+                const text = match[2].trim();
+                const tokens = [];
+                this.lexer.blockTokens(text, tokens);
                 return {
                     type: 'admonition',
                     raw: match[0],
-                    admonitionType: match[1],
-                    text: match[2].trim()
+                    admonitionType,
+                    text,
+                    tokens
                 };
             }
         },
         renderer(token) {
             const icons = { note: '\u2139', warning: '\u26A0', tip: '\uD83D\uDCA1', danger: '\uD83D\uDD34', info: '\u2139' };
             const icon = icons[token.admonitionType] || '\u2139';
-            const inner = this.parser.parse(token.text);
+            const inner = this.parser.parse(token.tokens || []);
             return `<div class="admonition admonition-${token.admonitionType}">
                 <div class="admonition-title">${icon} ${token.admonitionType.charAt(0).toUpperCase() + token.admonitionType.slice(1)}</div>
                 <div class="admonition-content">${inner}</div>
@@ -129,6 +143,18 @@ function plantumlEncode(text) {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
     return '~h' + hex;
+}
+
+// Scopes user custom CSS by prefixing all selectors to protect application UI
+function scopeCSS(cssText, scopeSelector) {
+    if (!cssText) return '';
+    return cssText.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|(?=[^{]*{))/g, (match, selector, separator) => {
+        const trimmed = selector.trim();
+        if (!trimmed || trimmed.startsWith('@') || trimmed.startsWith(':root') || trimmed.startsWith('from') || trimmed.startsWith('to') || /^\d+%$/.test(trimmed)) {
+            return match;
+        }
+        return scopeSelector + ' ' + trimmed + (separator || '');
+    });
 }
 
 // Module-level reference set by DOMContentLoaded after sidebar registration
@@ -147,6 +173,7 @@ class TabManager {
         this.recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
         this.previewDebounceTimers = new Map(); // Debounce timers per tab
         this.previewDebounceDelay = 300; // 300ms debounce
+        this.previewCache = new Map(); // Performance optimization render cache
 
         // Initialize first tab
         this.tabs.set(1, {
@@ -463,6 +490,17 @@ class TabManager {
                 onChange: (newContent) => {
                     tab.content = newContent;
                     tab.isDirty = true;
+                    // Dynamically enable/disable Large File Mode on edit
+                    if (newContent.length > 1024 * 1024) {
+                        if (!tab.largeFileMode) {
+                            tab.largeFileMode = true;
+                            this.isPreviewVisible = false;
+                            this.updatePreviewVisibility();
+                            notifyUser('Large content detected (>1MB). Large File Mode enabled to maintain peak responsiveness. Live preview auto-render is disabled.', 'warning');
+                        }
+                    } else {
+                        tab.largeFileMode = false;
+                    }
                     this.updatePreview(tab.id);
                     this.updateWordCount();
                     this.updateTabBar();
@@ -661,6 +699,11 @@ class TabManager {
         const tab = this.tabs.get(tabId);
         if (!tab || tab.type === 'pdf') return;
 
+        // Guard against auto-renders in large file mode
+        if (tab.largeFileMode && !immediate) {
+            return;
+        }
+
         // Clear existing debounce timer for this tab
         if (this.previewDebounceTimers.has(tabId)) {
             clearTimeout(this.previewDebounceTimers.get(tabId));
@@ -679,6 +722,16 @@ class TabManager {
         }, this.previewDebounceDelay));
     }
 
+    _hash(str) {
+        if (!str) return 0;
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0; // Convert to 32bit integer
+        }
+        return hash;
+    }
+
     _renderPreview(tabId) {
         const tab = this.tabs.get(tabId);
         const preview = document.getElementById(`preview-${tabId}`);
@@ -693,15 +746,31 @@ class TabManager {
                 preview.innerHTML = '<div class="preview-error"><div class="preview-error-icon">⚠️</div><div class="preview-error-title">Libraries Not Loaded</div><div class="preview-error-message">Required libraries (marked/DOMPurify) could not be loaded. Please check your installation.</div></div>';
                 return;
             }
-            console.log('[_renderPreview] About to call marked.parse, content length:', tab.content.length);
-            const html = marked.parse(tab.content);
-            console.log('[_renderPreview] marked.parse returned type:', typeof html, 'isPromise:', html instanceof Promise);
-            if (html instanceof Promise) {
-                console.error('[_renderPreview] marked.parse returned a Promise! Need to await it.');
-                return;
+
+            // Cache lookup
+            const contentHash = this._hash(tab.content);
+            let sanitizedHtml;
+            if (this.previewCache.has(contentHash)) {
+                console.log('[_renderPreview] Cache hit for hash:', contentHash);
+                sanitizedHtml = this.previewCache.get(contentHash);
+            } else {
+                console.log('[_renderPreview] Cache miss. About to call marked.parse, content length:', tab.content.length);
+                const html = marked.parse(tab.content);
+                console.log('[_renderPreview] marked.parse returned type:', typeof html, 'isPromise:', html instanceof Promise);
+                if (html instanceof Promise) {
+                    console.error('[_renderPreview] marked.parse returned a Promise! Need to await it.');
+                    return;
+                }
+                sanitizedHtml = DOMPurify.sanitize(html);
+                console.log('[_renderPreview] DOMPurify.sanitize returned, length:', sanitizedHtml.length);
+
+                // Add to cache and maintain cache size limit (100 entries)
+                this.previewCache.set(contentHash, sanitizedHtml);
+                if (this.previewCache.size > 100) {
+                    const oldestKey = this.previewCache.keys().next().value;
+                    this.previewCache.delete(oldestKey);
+                }
             }
-            let sanitizedHtml = DOMPurify.sanitize(html);
-            console.log('[_renderPreview] DOMPurify.sanitize returned, length:', sanitizedHtml.length);
 
             // TOC generation
             if (sanitizedHtml.includes('[[toc]]') || sanitizedHtml.includes('[TOC]')) {
@@ -1337,6 +1406,17 @@ class TabManager {
         }
     }
     
+    checkForLargeFile(tab, content) {
+        if (content && content.length > 1024 * 1024) { // >1MB
+            tab.largeFileMode = true;
+            this.isPreviewVisible = false;
+            this.updatePreviewVisibility();
+            notifyUser('Large file detected (>1MB). Large File Mode enabled to maintain peak responsiveness. Live preview auto-render is disabled.', 'warning');
+        } else {
+            tab.largeFileMode = false;
+        }
+    }
+
     // File operations
     openFile(filePath, content) {
         console.log('openFile called with:', filePath, 'content length:', content.length);
@@ -1355,10 +1435,12 @@ class TabManager {
             tab.originalContent = content;
             tab.isDirty = false;
 
+            this.checkForLargeFile(tab, content);
+
             // Update the editor and preview
             this.setEditorContent(this.activeTabId, content);
             console.log('openFile after setEditorContent, tab state:', { id: tab.id, hasEditorView: !!tab.editorView, contentLength: tab.content.length });
-            this.updatePreview(this.activeTabId);
+            this.updatePreview(this.activeTabId, true); // immediate=true for initial load
             this.updateWordCount();
         } else {
             // Create new tab for the file
@@ -1372,10 +1454,12 @@ class TabManager {
             tab.originalContent = content;
             tab.isDirty = false;
 
+            this.checkForLargeFile(tab, content);
+
             // Set content in the CodeMirror editor
             this.setEditorContent(this.activeTabId, content);
             console.log('openFile after setEditorContent, tab state:', { id: tab.id, hasEditorView: !!tab.editorView, contentLength: tab.content.length });
-            this.updatePreview(this.activeTabId);
+            this.updatePreview(this.activeTabId, true); // immediate=true for initial load
             this.updateWordCount();
         }
         this.startAutoSave();
@@ -1460,6 +1544,13 @@ let replPanel;
 
 document.addEventListener('DOMContentLoaded', async () => {
     tabManager = new TabManager();
+
+    // Load saved Custom Preview CSS if present
+    const savedCSSContent = localStorage.getItem('customPreviewCSSContent');
+    if (savedCSSContent) {
+        applyCustomPreviewCSS(savedCSSContent);
+    }
+
     const ReplPanel = getReplPanel();
     replPanel = new ReplPanel();
 
@@ -1781,6 +1872,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     commandPalette.register('Insert Image', '', () => tabManager.wrapSelection('![', '](image.jpg)'));
     commandPalette.register('Toggle Zen Mode', 'F11', () => zenMode.toggle());
     commandPalette.register('Writing Analytics', 'Ctrl+Shift+A', () => getShowAnalyticsModal()(tabManager));
+    commandPalette.register('Load Custom Preview CSS', '', triggerLoadCustomCSS);
+    commandPalette.register('Clear Custom Preview CSS', '', triggerClearCustomCSS);
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -1948,7 +2041,48 @@ ipcRenderer.on('redo', () => {
             redo(tab.editorView);
         }
     }
-});
+// Custom Preview CSS event handlers and trigger helpers
+function applyCustomPreviewCSS(cssContent) {
+    let styleTag = document.getElementById('custom-preview-style');
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'custom-preview-style';
+        document.head.appendChild(styleTag);
+    }
+    const scopedCSS = scopeCSS(cssContent, '.preview-content');
+    styleTag.textContent = scopedCSS;
+}
+
+async function triggerLoadCustomCSS() {
+    try {
+        const result = await window.electronAPI.invoke('select-custom-css');
+        if (result) {
+            console.log('[RENDERER] Custom CSS loaded from:', result.path);
+            localStorage.setItem('customPreviewCSSPath', result.path);
+            localStorage.setItem('customPreviewCSSContent', result.content);
+            applyCustomPreviewCSS(result.content);
+            notifyUser('Custom preview stylesheet applied successfully.', 'success');
+        }
+    } catch (err) {
+        console.error('[RENDERER] Error loading custom CSS:', err);
+        notifyUser('Failed to load custom CSS stylesheet.', 'error');
+    }
+}
+
+function triggerClearCustomCSS() {
+    localStorage.removeItem('customPreviewCSSPath');
+    localStorage.removeItem('customPreviewCSSContent');
+    const styleTag = document.getElementById('custom-preview-style');
+    if (styleTag) {
+        styleTag.remove();
+    }
+    notifyUser('Custom preview stylesheet cleared.', 'info');
+}
+
+ipcRenderer.on('load-custom-css', triggerLoadCustomCSS);
+ipcRenderer.on('clear-custom-css', triggerClearCustomCSS);
+
+
 
 // Font size adjustment
 let currentFontSize = parseInt(localStorage.getItem('fontSize')) || 15;
@@ -2069,12 +2203,38 @@ function initializeExportForm(format) {
     document.getElementById('export-citeproc').checked = false;
     document.getElementById('export-toc-depth').value = 3;
 
-    // PDF-specific fields
+    // Toggle and reset PDF-specific fields
+    const pdfOnly = document.querySelector('.pdf-only');
+    if (pdfOnly) {
+        pdfOnly.style.display = (format === 'pdf') ? 'block' : 'none';
+    }
     if (format === 'pdf') {
         document.getElementById('pdf-engine').value = 'xelatex';
         document.getElementById('pdf-geometry').value = 'margin=1in';
         document.getElementById('custom-geometry').style.display = 'none';
     }
+
+    // Toggle and reset Reveal.js-specific fields
+    const revealjsOnly = document.querySelector('.revealjs-only');
+    if (revealjsOnly) {
+        revealjsOnly.style.display = (format === 'revealjs') ? 'block' : 'none';
+    }
+    const revealTheme = document.getElementById('reveal-theme');
+    if (revealTheme) revealTheme.value = 'black';
+    const revealTransition = document.getElementById('reveal-transition');
+    if (revealTransition) revealTransition.value = 'slide';
+    const revealSpeed = document.getElementById('reveal-speed');
+    if (revealSpeed) revealSpeed.value = 'default';
+    const revealSlideNumber = document.getElementById('reveal-slide-number');
+    if (revealSlideNumber) revealSlideNumber.checked = false;
+    const revealControls = document.getElementById('reveal-controls');
+    if (revealControls) revealControls.checked = true;
+    const revealProgress = document.getElementById('reveal-progress');
+    if (revealProgress) revealProgress.checked = true;
+    const revealHistory = document.getElementById('reveal-history');
+    if (revealHistory) revealHistory.checked = true;
+    const revealCenter = document.getElementById('reveal-center');
+    if (revealCenter) revealCenter.checked = true;
 
     // Clear bibliography fields
     document.getElementById('bibliography-file').value = '';
@@ -2135,6 +2295,18 @@ function collectExportOptions() {
             }
         }
 
+        // Reveal.js-specific options
+        if (currentExportFormat === 'revealjs') {
+            options.revealTheme = document.getElementById('reveal-theme').value;
+            options.revealTransition = document.getElementById('reveal-transition').value;
+            options.revealTransitionSpeed = document.getElementById('reveal-speed').value;
+            options.revealSlideNumber = document.getElementById('reveal-slide-number').checked;
+            options.revealControls = document.getElementById('reveal-controls').checked;
+            options.revealProgress = document.getElementById('reveal-progress').checked;
+            options.revealHistory = document.getElementById('reveal-history').checked;
+            options.revealCenter = document.getElementById('reveal-center').checked;
+        }
+
         // Bibliography
         const bibFile = document.getElementById('bibliography-file').value.trim();
         const cslFile = document.getElementById('csl-file').value.trim();
@@ -2145,6 +2317,15 @@ function collectExportOptions() {
         if (currentExportFormat === 'pdf') {
             options.pdfEngine = 'xelatex';
             options.geometry = 'margin=1in';
+        } else if (currentExportFormat === 'revealjs') {
+            options.revealTheme = 'black';
+            options.revealTransition = 'slide';
+            options.revealTransitionSpeed = 'default';
+            options.revealSlideNumber = false;
+            options.revealControls = true;
+            options.revealProgress = true;
+            options.revealHistory = true;
+            options.revealCenter = true;
         }
     }
 
@@ -3062,6 +3243,18 @@ function showPDFEditorDialog(operation, openedFilePath = null) {
         section.classList.add('hidden');
     });
 
+    // Hide visual thumbnail sidebar by default
+    const sidebar = document.getElementById('pdf-thumbnail-sidebar');
+    if (sidebar) {
+        sidebar.classList.add('hidden');
+    }
+    const body = document.querySelector('.pdf-editor-body');
+    if (body) {
+        body.classList.remove('side-by-side');
+    }
+    pdfDocInstance = null;
+    pdfPreviewState = { pages: [], filePath: '' };
+
     // Show the appropriate section and set title
     let sectionId, titleText;
     switch (operation) {
@@ -3095,7 +3288,11 @@ function showPDFEditorDialog(operation, openedFilePath = null) {
             titleText = 'Rotate Pages';
             if (openedFilePath) {
                 const rotateInput = document.getElementById('rotate-input-path');
-                if (rotateInput) rotateInput.value = openedFilePath;
+                if (rotateInput) {
+                    rotateInput.value = openedFilePath;
+                    // Trigger thumbnail generation
+                    setTimeout(() => onPDFFileSelected('rotate-input-path', openedFilePath), 50);
+                }
             }
             break;
         case 'delete':
@@ -3103,7 +3300,11 @@ function showPDFEditorDialog(operation, openedFilePath = null) {
             titleText = 'Delete Pages';
             if (openedFilePath) {
                 const deleteInput = document.getElementById('delete-input-path');
-                if (deleteInput) deleteInput.value = openedFilePath;
+                if (deleteInput) {
+                    deleteInput.value = openedFilePath;
+                    // Trigger thumbnail generation
+                    setTimeout(() => onPDFFileSelected('delete-input-path', openedFilePath), 50);
+                }
             }
             break;
         case 'reorder':
@@ -3111,7 +3312,11 @@ function showPDFEditorDialog(operation, openedFilePath = null) {
             titleText = 'Reorder Pages';
             if (openedFilePath) {
                 const reorderInput = document.getElementById('reorder-input-path');
-                if (reorderInput) reorderInput.value = openedFilePath;
+                if (reorderInput) {
+                    reorderInput.value = openedFilePath;
+                    // Trigger thumbnail generation
+                    setTimeout(() => onPDFFileSelected('reorder-input-path', openedFilePath), 50);
+                }
             }
             break;
         case 'watermark':
@@ -3272,6 +3477,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const file = e.target.files[0];
                         if (file) {
                             document.getElementById(button.inputId).value = file.path;
+                            onPDFFileSelected(button.inputId, file.path);
                         }
                     };
                     input.click();
@@ -3281,6 +3487,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const file = e.target.files[0];
                         if (file) {
                             document.getElementById(button.inputId).value = file.path;
+                            onPDFFileSelected(button.inputId, file.path);
                         }
                     };
                     input.click();
@@ -4889,3 +5096,224 @@ ipcRenderer.on('show-video-tool', (event, tool) => {
         { duration: 5000 }
     );
 });
+
+// ============================================
+// PDF EDITOR VISUAL PAGE SIDEBAR HANDLERS
+// ============================================
+let pdfDocInstance = null;
+let pdfPreviewState = { pages: [], filePath: '' };
+
+function onPDFFileSelected(inputId, filePath) {
+    const eligibleInputs = ['rotate-input-path', 'delete-input-path', 'reorder-input-path'];
+    if (!eligibleInputs.includes(inputId)) {
+        return;
+    }
+
+    const sidebar = document.getElementById('pdf-thumbnail-sidebar');
+    if (sidebar) {
+        sidebar.classList.remove('hidden');
+    }
+    const body = document.querySelector('.pdf-editor-body');
+    if (body) {
+        body.classList.add('side-by-side');
+    }
+
+    loadPDFThumbnails(filePath);
+}
+
+async function loadPDFThumbnails(filePath) {
+    const grid = document.getElementById('pdf-thumbnail-grid');
+    if (!grid) return;
+
+    // Reset previous inputs
+    const rotateInput = document.getElementById('rotate-pages');
+    if (rotateInput) rotateInput.value = '';
+    const deleteInput = document.getElementById('delete-pages');
+    if (deleteInput) deleteInput.value = '';
+    const reorderInput = document.getElementById('reorder-pages');
+    if (reorderInput) reorderInput.value = '';
+
+    grid.innerHTML = '<div class="loading-thumbnails">Loading page thumbnails...</div>';
+
+    try {
+        const pdfjs = getPdfjsLib();
+        const loadingTask = pdfjs.getDocument(filePath);
+        pdfDocInstance = await loadingTask.promise;
+
+        pdfPreviewState.filePath = filePath;
+        pdfPreviewState.pages = [];
+
+        for (let i = 1; i <= pdfDocInstance.numPages; i++) {
+            pdfPreviewState.pages.push({
+                originalPageNum: i,
+                rotation: 0,
+                isDeleted: false
+            });
+        }
+
+        renderThumbnailGrid();
+    } catch (err) {
+        console.error('Error loading PDF thumbnails:', err);
+        grid.innerHTML = '<div class="thumbnail-error">Failed to load PDF thumbnails.</div>';
+    }
+}
+
+function renderThumbnailGrid() {
+    const grid = document.getElementById('pdf-thumbnail-grid');
+    if (!grid || !pdfDocInstance) return;
+
+    grid.innerHTML = '';
+
+    pdfPreviewState.pages.forEach((pageInfo, index) => {
+        const card = document.createElement('div');
+        card.className = 'pdf-thumbnail-card';
+        if (pageInfo.isDeleted) {
+            card.classList.add('marked-delete');
+        }
+
+        const heading = document.createElement('div');
+        heading.className = 'pdf-thumbnail-header';
+        heading.innerHTML = `<span class="badge">Page ${pageInfo.originalPageNum}</span>`;
+
+        const canvasContainer = document.createElement('div');
+        canvasContainer.className = 'canvas-container';
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'pdf-thumbnail-canvas';
+        if (pageInfo.rotation > 0) {
+            canvas.classList.add('rot' + pageInfo.rotation);
+        }
+        canvasContainer.appendChild(canvas);
+
+        // Render thumbnail canvas
+        renderThumbnail(pdfDocInstance, pageInfo.originalPageNum, canvas, pageInfo.rotation);
+
+        const controlsRow = document.createElement('div');
+        controlsRow.className = 'pdf-thumbnail-controls';
+
+        // Rotate Button
+        const rotateBtn = document.createElement('button');
+        rotateBtn.type = 'button';
+        rotateBtn.className = 'btn-rotate-thumbnail';
+        rotateBtn.innerHTML = '↻ Rotate 90°';
+        rotateBtn.addEventListener('click', () => {
+            pageInfo.rotation = (pageInfo.rotation + 90) % 360;
+            canvas.className = 'pdf-thumbnail-canvas';
+            if (pageInfo.rotation > 0) {
+                canvas.classList.add('rot' + pageInfo.rotation);
+            }
+            renderThumbnail(pdfDocInstance, pageInfo.originalPageNum, canvas, pageInfo.rotation);
+            syncRotateInput();
+        });
+
+        // Delete Checkbox
+        const deleteLabel = document.createElement('label');
+        deleteLabel.className = 'delete-thumbnail-checkbox';
+
+        const deleteChk = document.createElement('input');
+        deleteChk.type = 'checkbox';
+        deleteChk.checked = pageInfo.isDeleted;
+        deleteChk.addEventListener('change', (e) => {
+            pageInfo.isDeleted = e.target.checked;
+            card.classList.toggle('marked-delete', pageInfo.isDeleted);
+            syncDeleteInput();
+        });
+        deleteLabel.appendChild(deleteChk);
+        deleteLabel.appendChild(document.createTextNode(' Delete'));
+
+        // Reorder buttons
+        const reorderDiv = document.createElement('div');
+        reorderDiv.className = 'pdf-thumbnail-reorder';
+
+        const leftBtn = document.createElement('button');
+        leftBtn.type = 'button';
+        leftBtn.className = 'btn-reorder-left';
+        leftBtn.innerHTML = '◀';
+        leftBtn.disabled = (index === 0);
+        leftBtn.addEventListener('click', () => {
+            const temp = pdfPreviewState.pages[index];
+            pdfPreviewState.pages[index] = pdfPreviewState.pages[index - 1];
+            pdfPreviewState.pages[index - 1] = temp;
+            renderThumbnailGrid();
+            syncReorderInput();
+        });
+
+        const rightBtn = document.createElement('button');
+        rightBtn.type = 'button';
+        rightBtn.className = 'btn-reorder-right';
+        rightBtn.innerHTML = '▶';
+        rightBtn.disabled = (index === pdfPreviewState.pages.length - 1);
+        rightBtn.addEventListener('click', () => {
+            const temp = pdfPreviewState.pages[index];
+            pdfPreviewState.pages[index] = pdfPreviewState.pages[index + 1];
+            pdfPreviewState.pages[index + 1] = temp;
+            renderThumbnailGrid();
+            syncReorderInput();
+        });
+
+        reorderDiv.appendChild(leftBtn);
+        reorderDiv.appendChild(rightBtn);
+
+        controlsRow.appendChild(rotateBtn);
+        controlsRow.appendChild(deleteLabel);
+        controlsRow.appendChild(reorderDiv);
+
+        card.appendChild(heading);
+        card.appendChild(canvasContainer);
+        card.appendChild(controlsRow);
+
+        grid.appendChild(card);
+    });
+}
+
+async function renderThumbnail(pdfDoc, originalPageNum, canvasElement, rotation) {
+    try {
+        const page = await pdfDoc.getPage(originalPageNum);
+        const ctx = canvasElement.getContext('2d');
+
+        // Render at a fixed width of 100px
+        const unscaledViewport = page.getViewport({ scale: 1, rotation: 0 });
+        const scale = 100 / unscaledViewport.width;
+        const viewport = page.getViewport({ scale: scale, rotation: 0 });
+
+        canvasElement.width = viewport.width;
+        canvasElement.height = viewport.height;
+
+        await page.render({
+            canvasContext: ctx,
+            viewport: viewport
+        }).promise;
+    } catch (err) {
+        console.error('Error rendering page canvas:', err);
+    }
+}
+
+function syncRotateInput() {
+    const rotatedPages = pdfPreviewState.pages
+        .filter(p => p.rotation > 0)
+        .map(p => p.originalPageNum);
+
+    const rotateInput = document.getElementById('rotate-pages');
+    if (rotateInput) {
+        rotateInput.value = rotatedPages.join(', ');
+    }
+}
+
+function syncDeleteInput() {
+    const deletedPages = pdfPreviewState.pages
+        .filter(p => p.isDeleted)
+        .map(p => p.originalPageNum);
+
+    const deleteInput = document.getElementById('delete-pages');
+    if (deleteInput) {
+        deleteInput.value = deletedPages.join(', ');
+    }
+}
+
+function syncReorderInput() {
+    const order = pdfPreviewState.pages.map(p => p.originalPageNum);
+    const reorderInput = document.getElementById('reorder-pages');
+    if (reorderInput) {
+        reorderInput.value = order.join(', ');
+    }
+}

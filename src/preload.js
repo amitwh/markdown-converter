@@ -23,6 +23,7 @@ const ALLOWED_SEND_CHANNELS = [
   'save-recent-files',
   'clear-recent-files',
   'renderer-ready',
+  'select-custom-css',
 
   // Theme
   'get-theme',
@@ -150,6 +151,8 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'get-content-for-save',
   'get-content-for-spreadsheet',
   'recent-files-cleared',
+  'load-custom-css',
+  'clear-custom-css',
 
   // UI toggles
   'toggle-preview',
