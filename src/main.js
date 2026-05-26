@@ -4027,6 +4027,8 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
     console.error('list-directory error:', err);
     return null;
   }
+});
+
 ipcMain.handle('select-custom-css', async (event) => {
   const result = dialog.showOpenDialogSync(mainWindow, {
     title: 'Select Custom Preview CSS',
