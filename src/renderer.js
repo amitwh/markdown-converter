@@ -1730,7 +1730,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const welcomeHtml = getCreateWelcomeContent()(recentFiles, appVersion);
 
         const tab = tabManager.tabs.get(tabManager.activeTabId);
-        if (tab) {
+        // Only show welcome if no file was opened while we were awaiting
+        if (tab && !tab.filePath && tab.content === '') {
             tab.title = 'Welcome';
             tab.content = '';
             const preview = document.getElementById(`preview-${tab.id}`);
