@@ -11,13 +11,10 @@ const DOMPurify = createDOMPurify(window);
 const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
-// Use window.ModalManager if already set by script tag, otherwise require it.
-// This prevents "Identifier 'ModalManager' has already been declared" when
-// both the script tag in index.html and CommonJS require() declare it.
-let ModalManager;
-if (typeof window !== 'undefined' && window.ModalManager) {
-    ModalManager = window.ModalManager;
-} else {
+// ModalManager is loaded via <script src="utils/ModalManager.js"> in index.html.
+// It already exists in the global scope — re-declaring with let/const causes
+// SyntaxError: "Identifier 'ModalManager' has already been declared".
+if (typeof ModalManager === 'undefined') {
     const result = require('./utils/ModalManager');
     ModalManager = result.ModalManager || result;
 }
