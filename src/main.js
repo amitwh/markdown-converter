@@ -242,7 +242,9 @@ function runPandoc(args, callback) {
 function runPandocCmd(cmdString, callback) {
   const parsed = parseCommand(cmdString);
   // Skip 'pandoc' if it's the first element (command itself)
-  const args = parsed.command === 'pandoc' ? parsed.args : [parsed.command, ...parsed.args];
+  // Use path.basename to handle full paths like bin/linux/pandoc
+  const cmdBase = path.basename(parsed.command).replace(/\.exe$/i, '');
+  const args = cmdBase === 'pandoc' ? parsed.args : [parsed.command, ...parsed.args];
   const pandocPath = getPandocPath();
   execFile(pandocPath, args, { maxBuffer: 10 * 1024 * 1024 }, callback);
 }

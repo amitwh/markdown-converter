@@ -490,38 +490,7 @@ class TabManager {
         document.querySelector('.editor-container').appendChild(tabContent);
 
         // Initialize CodeMirror editor
-        const editorContainer = document.getElementById(`editor-cm-${tab.id}`);
-        if (editorContainer) {
-            const isDark = document.body.className.includes('dark');
-            tab.editorView = createEditor(editorContainer, {
-                content: tab.content,
-                onChange: (newContent) => {
-                    tab.content = newContent;
-                    tab.isDirty = true;
-                    // Dynamically enable/disable Large File Mode on edit
-                    if (newContent.length > 1024 * 1024) {
-                        if (!tab.largeFileMode) {
-                            tab.largeFileMode = true;
-                            this.isPreviewVisible = false;
-                            this.updatePreviewVisibility();
-                            notifyUser('Large content detected (>1MB). Large File Mode enabled to maintain peak responsiveness. Live preview auto-render is disabled.', 'warning');
-                        }
-                    } else {
-                        tab.largeFileMode = false;
-                    }
-                    this.updatePreview(tab.id);
-                    this.updateWordCount();
-                    this.updateTabBar();
-                    if (outlinePanelContainer?._refreshOutline) outlinePanelContainer._refreshOutline();
-                },
-                onUpdate: (view) => {
-                    this.updateCursorPosition(view);
-                    if (outlinePanelContainer?._setActiveHeading) outlinePanelContainer._setActiveHeading(view.state.doc.lineAt(view.state.selection.main.head).number);
-                },
-                isDark,
-                showLineNumbers: this.showLineNumbers,
-            });
-        }
+        this.ensureEditor(tab);
     }
     
     switchToTab(tabId) {
@@ -1492,9 +1461,47 @@ class TabManager {
         return tab?.content || '';
     }
 
+    // Ensure a tab has a CodeMirror editor (lazy creation fallback)
+    ensureEditor(tab) {
+        if (tab.editorView) return true;
+        const editorContainer = document.getElementById(`editor-cm-${tab.id}`);
+        if (!editorContainer) {
+            console.error(`[ensureEditor] editor-cm-${tab.id} not found in DOM`);
+            return false;
+        }
+        try {
+            const isDark = document.body.className.includes('dark');
+            tab.editorView = createEditor(editorContainer, {
+                content: tab.content,
+                onChange: (newContent) => {
+                    tab.content = newContent;
+                    tab.isDirty = true;
+                    this.updatePreview(tab.id);
+                    this.updateWordCount();
+                    this.updateTabBar();
+                    if (outlinePanelContainer?._refreshOutline) outlinePanelContainer._refreshOutline();
+                },
+                onUpdate: (view) => {
+                    this.updateCursorPosition(view);
+                    if (outlinePanelContainer?._setActiveHeading) outlinePanelContainer._setActiveHeading(view.state.doc.lineAt(view.state.selection.main.head).number);
+                },
+                isDark,
+                showLineNumbers: this.showLineNumbers,
+            });
+            console.log(`[ensureEditor] Created editor for tab ${tab.id}`);
+            return true;
+        } catch (err) {
+            console.error(`[ensureEditor] Failed to create editor for tab ${tab.id}:`, err);
+            return false;
+        }
+    }
+
     // Set content in editor
     setEditorContent(tabId, content) {
         const tab = this.tabs.get(tabId);
+        if (!tab?.editorView) {
+            this.ensureEditor(tab);
+        }
         if (tab?.editorView) {
             tab.editorView.dispatch({
                 changes: { from: 0, to: tab.editorView.state.doc.length, insert: content }
@@ -1908,27 +1915,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Initialize CodeMirror for the initial tab (tab 1)
-    const initialEditorContainer = document.getElementById('editor-cm-1');
-    if (initialEditorContainer) {
-        const tab = tabManager.tabs.get(1);
-        const isDark = document.body.className.includes('dark');
-        tab.editorView = createEditor(initialEditorContainer, {
-            content: tab.content,
-            onChange: (newContent) => {
-                tab.content = newContent;
-                tab.isDirty = true;
-                tabManager.updatePreview(tab.id);
-                tabManager.updateWordCount();
-                tabManager.updateTabBar();
-                if (outlinePanelContainer?._refreshOutline) outlinePanelContainer._refreshOutline();
-            },
-            onUpdate: (view) => {
-                tabManager.updateCursorPosition(view);
-                if (outlinePanelContainer?._setActiveHeading) outlinePanelContainer._setActiveHeading(view.state.doc.lineAt(view.state.selection.main.head).number);
-            },
-            isDark,
-            showLineNumbers: tabManager.showLineNumbers,
-        });
+    const initialTab = tabManager.tabs.get(1);
+    if (initialTab) {
+        tabManager.ensureEditor(initialTab);
     }
 
     // Request current theme
