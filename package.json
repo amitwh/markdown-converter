@@ -44,6 +44,12 @@
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "autoprefixer": "^10.5.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "cross-env": "^10.0.0",
     "electron": "^41.1.1",
     "electron-builder": "^26.0.12",
@@ -52,8 +58,15 @@
     "eslint-plugin-prettier": "^5.5.4",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
+    "lucide-react": "^1.17.0",
+    "postcss": "^8.5.15",
     "prettier": "^3.7.4",
-    "sharp": "^0.34.3"
+    "sharp": "^0.34.3",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^3.4.19",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.1",
@@ -70,6 +83,7 @@
     "@codemirror/state": "^6.5.4",
     "@codemirror/theme-one-dark": "^6.1.3",
     "@codemirror/view": "^6.39.16",
+    "@tanstack/react-table": "^8.21.3",
     "codemirror": "^6.0.2",
     "core-util-is": "^1.0.3",
     "docx": "^9.6.0",
@@ -87,8 +101,11 @@
     "pdfjs-dist": "^5.5.207",
     "pdfkit": "^0.17.2",
     "pizzip": "^3.2.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "simple-git": "^3.32.3",
-    "tslib": "^2.8.1"
+    "tslib": "^2.8.1",
+    "zustand": "^5.0.14"
   },
   "overrides": {
     "jszip": "^3.10.1",
