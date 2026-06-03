@@ -2041,6 +2041,8 @@ ipcRenderer.on('redo', () => {
             redo(tab.editorView);
         }
     }
+});
+
 // Custom Preview CSS event handlers and trigger helpers
 function applyCustomPreviewCSS(cssContent) {
     let styleTag = document.getElementById('custom-preview-style');
