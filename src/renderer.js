@@ -4,6 +4,17 @@
  */
 
 const { ipcRenderer } = require('electron');
+
+// Shim window.electronAPI for main window which uses nodeIntegration
+// without preload script (window.electronAPI is normally set by preload.js).
+if (typeof window !== 'undefined' && !window.electronAPI) {
+    window.electronAPI = {
+        getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+        invoke: (channel, data) => ipcRenderer.invoke(channel, data),
+        on: (channel, callback) => ipcRenderer.on(channel, (event, ...args) => callback(...args))
+    };
+}
+
 const marked = require('marked');
 const { markedHighlight } = require('marked-highlight');
 const createDOMPurify = require('dompurify');
