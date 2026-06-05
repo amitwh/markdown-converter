@@ -43,3 +43,15 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
   }
   window.ResizeObserver = ResizeObserver;
 }
+
+// Polyfill hasPointerCapture for @radix-ui/react-select (jsdom doesn't implement it)
+if (typeof window !== 'undefined' && !Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = function () {
+    return false;
+  };
+}
+
+// Polyfill scrollIntoView for @radix-ui/react-select (jsdom doesn't implement it)
+if (typeof window !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function () {};
+}
