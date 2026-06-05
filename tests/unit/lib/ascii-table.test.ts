@@ -15,17 +15,31 @@ describe('toAsciiTable', () => {
     expect(toAsciiTable([])).toBe('');
   });
 
-  it('aligns numeric columns to the right', () => {
+  it('left-aligns non-numeric columns', () => {
     // With header 'Price' (starts with P, not digit), all columns are left-aligned.
-    // Price column width = 5 (from 'Price'), so '100' -> '100   ', '7' -> '7     '.
+    // Col 0 width = max(4,1,2) = 4 (from 'Item'); col 1 width = max(5,3,1) = 5 (from 'Price').
     const out = toAsciiTable([
       ['Item', 'Price'],
       ['X', '100'],
       ['YY', '7'],
     ]);
-    expect(out).toContain('| 100   |');
-    expect(out).toContain('| 7     |');
+    expect(out).toContain('| X    | 100   |');
+    expect(out).toContain('| YY   | 7     |');
   });
+
+  it('right-aligns all columns when any header starts with a digit', () => {
+    // Header '7' starts with a digit -> right-align all columns.
+    // Col 0 width = max(4,1,2) = 4 (from 'Item'); col 1 width = max(1,3,2) = 3 (from '100').
+    const out = toAsciiTable([
+      ['Item', '7'],
+      ['X', '100'],
+      ['YY', '25'],
+    ]);
+    // Right-aligned: "X" padStart(4) -> "   X", "100" padStart(3) -> "100"
+    expect(out).toContain('|    X | 100 |');
+    // Right-aligned: "YY" padStart(4) -> "  YY", "25" padStart(3) -> " 25"
+    expect(out).toContain('|   YY |  25 |');
+ });
 });
 
 describe('applyAsciiTransform', () => {
