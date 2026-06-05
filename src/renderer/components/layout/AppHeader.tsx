@@ -1,10 +1,12 @@
-import { PanelLeft, PanelRight } from 'lucide-react';
+import { PanelLeft, PanelRight, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useAppStore } from '@/stores/app-store';
+import { useCommandStore } from '@/stores/command-store';
 
 export function AppHeader() {
-  const { sidebarVisible, previewVisible, toggleSidebar, togglePreview } = useAppStore();
+  const { sidebarVisible, previewVisible } = useAppStore();
+  const dispatch = useCommandStore((s) => s.dispatch);
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-card/40 px-4 backdrop-blur">
@@ -21,7 +23,8 @@ export function AppHeader() {
           size="icon"
           aria-label="Toggle sidebar"
           aria-pressed={sidebarVisible}
-          onClick={toggleSidebar}
+          data-testid="header-toggle-sidebar"
+          onClick={() => dispatch('view.toggleSidebar')}
         >
           <PanelLeft className="h-4 w-4" />
         </Button>
@@ -30,9 +33,19 @@ export function AppHeader() {
           size="icon"
           aria-label="Toggle preview"
           aria-pressed={previewVisible}
-          onClick={togglePreview}
+          data-testid="header-toggle-preview"
+          onClick={() => dispatch('view.togglePreview')}
         >
           <PanelRight className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Keyboard shortcuts"
+          data-testid="header-shortcuts"
+          onClick={() => dispatch('shortcuts.show')}
+        >
+          <Keyboard className="h-4 w-4" />
         </Button>
         <ThemeToggle />
       </div>

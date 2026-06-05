@@ -71,9 +71,11 @@ describe('Phase 5 integration', () => {
 
   it('opening a folder via the Open Folder button populates the tree', async () => {
     render(<AppShell />);
-    const openBtn = screen.getByRole('button', { name: /open folder/i });
+    // Two buttons share the "Open folder" name (toolbar + sidebar).
+    // Either one triggers the same command, so click the first match.
+    const buttons = screen.getAllByRole('button', { name: /open folder/i });
     await act(async () => {
-      fireEvent.click(openBtn);
+      fireEvent.click(buttons[0]);
     });
     // After openFolder, the tree should have children
     const state = useFileStore.getState();
