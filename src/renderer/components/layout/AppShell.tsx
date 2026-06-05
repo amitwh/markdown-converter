@@ -8,8 +8,10 @@ import { PreviewPane } from '@/components/preview/PreviewPane';
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import { useAppStore } from '@/stores/app-store';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { useFileShortcuts } from '@/hooks/use-file-shortcuts';
 
 export function AppShell() {
+  useFileShortcuts();
   const { sidebarVisible, previewVisible, paneSizes, setPaneSizes } = useAppStore();
 
   return (
