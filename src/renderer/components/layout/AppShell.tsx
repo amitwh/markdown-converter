@@ -4,6 +4,7 @@ import { Toolbar } from './Toolbar';
 import { Breadcrumb } from './Breadcrumb';
 import { StatusBar } from './StatusBar';
 import { EditorPane } from '@/components/editor/EditorPane';
+import { PreviewPane } from '@/components/preview/PreviewPane';
 import { useAppStore } from '@/stores/app-store';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
@@ -38,9 +39,7 @@ export function AppShell() {
             <>
               <ResizableHandle />
               <ResizablePanel defaultSize={paneSizes.preview} minSize={20}>
-                <section className="h-full border-l border-border bg-card/10 p-4 text-sm text-muted-foreground">
-                  Preview placeholder
-                </section>
+                <PreviewPane />
               </ResizablePanel>
             </>
           )}
