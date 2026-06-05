@@ -90,4 +90,27 @@ describe('TabBar', () => {
     const dirtyDot = screen.getByLabelText('Unsaved changes');
     expect(dirtyDot).toBeInTheDocument();
   });
+
+  it('reorders tabs when reorderTabs is called (drag end handler integration)', () => {
+    useFileStore.setState({
+      openTabs: [
+        { id: '/tmp/a.md', path: '/tmp/a.md', title: 'a.md', dirty: false },
+        { id: '/tmp/b.md', path: '/tmp/b.md', title: 'b.md', dirty: false },
+        { id: '/tmp/c.md', path: '/tmp/c.md', title: 'c.md', dirty: false },
+      ],
+      activeTabId: '/tmp/a.md',
+    });
+    render(<TabBar />);
+    // Initial DOM order
+    const initialOrder = screen.getAllByRole('tab').map((el) => el.getAttribute('data-testid'));
+    expect(initialOrder).toEqual(['tab-/tmp/a.md', 'tab-/tmp/b.md', 'tab-/tmp/c.md']);
+
+    // Simulate what dnd-kit's onDragEnd would do: move a.md (idx 0) to idx 2
+    act(() => {
+      useFileStore.getState().reorderTabs(0, 2);
+    });
+
+    const newOrder = screen.getAllByRole('tab').map((el) => el.getAttribute('data-testid'));
+    expect(newOrder).toEqual(['tab-/tmp/b.md', 'tab-/tmp/c.md', 'tab-/tmp/a.md']);
+  });
 });
