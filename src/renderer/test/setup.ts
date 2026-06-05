@@ -27,3 +27,9 @@ if (typeof window !== 'undefined') {
     }),
   });
 }
+
+// Mock react-resizable-panels for jsdom environment
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'innerWidth', { writable: true, value: 1920 });
+  Object.defineProperty(window, 'innerHeight', { writable: true, value: 1080 });
+}
