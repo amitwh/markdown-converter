@@ -19,6 +19,12 @@ describe('AppHeader', () => {
       useAppStore.getState().togglePreview();
     });
     useCommandStore.getState().register('shortcuts.show', () => {});
+    useCommandStore.getState().register('settings.open', () => {
+      useAppStore.getState().openModal('settings');
+    });
+    useCommandStore.getState().register('help.about', () => {
+      useAppStore.getState().openModal('about');
+    });
   });
 
   it('renders the app title', () => {
@@ -63,5 +69,25 @@ describe('AppHeader', () => {
     // No observable side effect; the command was registered as a no-op.
     // The test passes if no error is thrown and the click is processed.
     expect(btn).toBeInTheDocument();
+  });
+
+  it('settings button opens settings modal', async () => {
+    render(
+      <ThemeProvider defaultTheme="dark" attribute="class">
+        <AppHeader />
+      </ThemeProvider>
+    );
+    await userEvent.click(screen.getByRole('button', { name: /settings/i }));
+    expect(useAppStore.getState().modal).toEqual({ kind: 'settings' });
+  });
+
+  it('about button opens about modal', async () => {
+    render(
+      <ThemeProvider defaultTheme="dark" attribute="class">
+        <AppHeader />
+      </ThemeProvider>
+    );
+    await userEvent.click(screen.getByRole('button', { name: /^about$/i }));
+    expect(useAppStore.getState().modal).toEqual({ kind: 'about' });
   });
 });

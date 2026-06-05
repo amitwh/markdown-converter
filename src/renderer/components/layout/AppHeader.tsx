@@ -1,4 +1,4 @@
-import { PanelLeft, PanelRight, Keyboard } from 'lucide-react';
+import { PanelLeft, PanelRight, Keyboard, Settings, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useAppStore } from '@/stores/app-store';
@@ -46,6 +46,22 @@ export function AppHeader() {
           onClick={() => dispatch('shortcuts.show')}
         >
           <Keyboard className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Settings"
+          onClick={() => dispatch('settings.open')}
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="About"
+          onClick={() => dispatch('help.about')}
+        >
+          <Info className="h-4 w-4" />
         </Button>
         <ThemeToggle />
       </div>
