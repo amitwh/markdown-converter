@@ -3,6 +3,7 @@ import { TabBar } from './TabBar';
 import { Toolbar } from './Toolbar';
 import { Breadcrumb } from './Breadcrumb';
 import { StatusBar } from './StatusBar';
+import { EditorPane } from '@/components/editor/EditorPane';
 import { useAppStore } from '@/stores/app-store';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
@@ -31,9 +32,7 @@ export function AppShell() {
             </>
           )}
           <ResizablePanel defaultSize={previewVisible ? paneSizes.editor : 100} minSize={20}>
-            <section className="h-full bg-background p-4 text-sm text-muted-foreground">
-              Editor placeholder
-            </section>
+            <EditorPane />
           </ResizablePanel>
           {previewVisible && (
             <>
