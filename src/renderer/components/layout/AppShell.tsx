@@ -5,6 +5,7 @@ import { Breadcrumb } from './Breadcrumb';
 import { StatusBar } from './StatusBar';
 import { EditorPane } from '@/components/editor/EditorPane';
 import { PreviewPane } from '@/components/preview/PreviewPane';
+import { Sidebar } from '@/components/sidebar/Sidebar';
 import { useAppStore } from '@/stores/app-store';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
@@ -26,7 +27,7 @@ export function AppShell() {
             <>
               <ResizablePanel defaultSize={paneSizes.sidebar} minSize={15} maxSize={40}>
                 <aside className="h-full border-r border-border bg-card/10 p-3 text-sm text-muted-foreground">
-                  File tree placeholder
+                  <Sidebar />
                 </aside>
               </ResizablePanel>
               <ResizableHandle />
