@@ -33,3 +33,32 @@ describe('useAppStore', () => {
     expect(useAppStore.getState().zenMode).toBe(true);
   });
 });
+
+describe('useAppStore (modal)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useAppStore.setState({
+      sidebarVisible: true,
+      previewVisible: true,
+      zenMode: false,
+      paneSizes: { sidebar: 20, editor: 50, preview: 30 },
+      modal: { kind: null },
+    } as any);
+  });
+
+  it('openModal sets the modal state', () => {
+    useAppStore.getState().openModal('about');
+    expect(useAppStore.getState().modal).toEqual({ kind: 'about' });
+  });
+
+  it('openModal with kind requiring props passes them through', () => {
+    useAppStore.getState().openModal('export-pdf', { sourcePath: '/a.md' });
+    expect(useAppStore.getState().modal).toEqual({ kind: 'export-pdf', props: { sourcePath: '/a.md' } });
+  });
+
+  it('closeModal clears the modal state', () => {
+    useAppStore.getState().openModal('about');
+    useAppStore.getState().closeModal();
+    expect(useAppStore.getState().modal).toEqual({ kind: null });
+  });
+});

@@ -7,15 +7,44 @@ export interface PaneSizes {
   preview: number;
 }
 
+export interface ConfirmProps {
+  title: string;
+  body: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  destructive?: boolean;
+  onConfirm: () => void | Promise<void>;
+  onCancel?: () => void;
+}
+
+export type ModalState =
+  | { kind: null }
+  | { kind: 'export-pdf'; props: { sourcePath: string } }
+  | { kind: 'export-docx'; props: { sourcePath: string } }
+  | { kind: 'export-html'; props: { sourcePath: string } }
+  | { kind: 'export-batch'; props: { sourcePaths: string[] } }
+  | { kind: 'settings' }
+  | { kind: 'about' }
+  | { kind: 'welcome' }
+  | { kind: 'confirm'; props: ConfirmProps };
+
+export type ModalKind = ModalState['kind'];
+
 interface AppState {
   sidebarVisible: boolean;
   previewVisible: boolean;
   zenMode: boolean;
   paneSizes: PaneSizes;
+  modal: ModalState;
   toggleSidebar: () => void;
   togglePreview: () => void;
   setZenMode: (value: boolean) => void;
   setPaneSizes: (sizes: PaneSizes) => void;
+  openModal: <K extends NonNullable<ModalKind>>(
+    kind: K,
+    ...args: Extract<ModalState, { kind: K }> extends { props: infer P } ? [props?: P] : []
+  ) => void;
+  closeModal: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -25,11 +54,27 @@ export const useAppStore = create<AppState>()(
       previewVisible: true,
       zenMode: false,
       paneSizes: { sidebar: 20, editor: 50, preview: 30 },
+      modal: { kind: null },
       toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),
       togglePreview: () => set((s) => ({ previewVisible: !s.previewVisible })),
       setZenMode: (value) => set({ zenMode: value }),
       setPaneSizes: (sizes) => set({ paneSizes: sizes }),
+      openModal: (kind, ...args) =>
+        set(() => {
+          const candidate = { kind, ...(args[0] ? { props: args[0] } : {}) } as ModalState;
+          return { modal: candidate };
+        }),
+      closeModal: () => set({ modal: { kind: null } }),
     }),
-    { name: 'mc-app-store' }
+    {
+      name: 'mc-app-store',
+      partialize: (state) => ({
+        sidebarVisible: state.sidebarVisible,
+        previewVisible: state.previewVisible,
+        zenMode: state.zenMode,
+        paneSizes: state.paneSizes,
+        // modal is intentionally NOT persisted (runtime-only)
+      }),
+    }
   )
 );
