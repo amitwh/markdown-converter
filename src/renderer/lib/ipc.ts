@@ -95,4 +95,16 @@ export const ipc = {
     showItemInFolder: (path: string): Promise<IpcResult<void | ChannelMissing>> =>
       safeCall('app', 'showItemInFolder', path),
   },
+  menu: {
+    /**
+     * Subscribe to a native-menu IPC channel. The callback receives the
+     * raw payload(s) from the main process. Returns an unsubscribe fn.
+     */
+    on: (channel: string, callback: (...args: unknown[]) => void): (() => void) => {
+      if (typeof window === 'undefined' || !window.electronAPI?.on) {
+        return () => {};
+      }
+      return window.electronAPI.on(channel, callback as (...a: any[]) => void);
+    },
+  },
 };
