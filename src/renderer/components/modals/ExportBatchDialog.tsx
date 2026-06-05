@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppStore } from '@/stores/app-store';
 import { ipc } from '@/lib/ipc';
+import { toast } from '@/lib/toast';
 import { ExportDialogFooter } from './ExportDialogFooter';
 
 const extFor = (format: 'pdf' | 'docx' | 'html' | 'png') =>
@@ -25,9 +26,11 @@ export function ExportBatchDialog({ sourcePaths }: { sourcePaths: string[] }) {
     }));
     const result = await ipc.export.batch(items, { format, concurrency });
     if (!result.ok) {
+      toast.error(`Export failed: ${result.error.message}`);
       setError(result.error.message);
       setSubmitting(false);
     } else {
+      toast.success(`Exported ${sourcePaths.length} files`);
       closeModal();
     }
   };

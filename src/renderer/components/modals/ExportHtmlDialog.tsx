@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/app-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useExportSource } from '@/hooks/use-export-source';
 import { ipc } from '@/lib/ipc';
+import { toast } from '@/lib/toast';
 import { ExportDialogFooter } from './ExportDialogFooter';
 
 export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
@@ -31,9 +32,11 @@ export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
       renderTablesAsAscii: ascii,
     } as any);
     if (!result.ok) {
+      toast.error(`Export failed: ${result.error.message}`);
       setError(result.error.message);
       setSubmitting(false);
     } else {
+      toast.success(`Exported ${source.title} to ${result.data?.outputPath ?? 'file'}`);
       closeModal();
     }
   };
