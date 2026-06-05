@@ -46,7 +46,7 @@ function entryToNode(entry: FileEntry): FileNode {
     name: entry.name,
     path: entry.path,
     isDirectory: entry.isDirectory,
-    children: entry.isDirectory ? null : null,
+    children: null, // lazy: start unloaded; loadChildren populates this
   };
 }
 
@@ -97,7 +97,7 @@ export const useFileStore = create<FileState>()(
 
       let found = false;
       updateNode(tree, dirPath, (node) => {
-        if (node.loaded) return;
+        if (node.loaded === true) return;
         found = true;
       });
       if (!found) return;

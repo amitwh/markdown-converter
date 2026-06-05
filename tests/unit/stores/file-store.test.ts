@@ -139,6 +139,28 @@ describe('useFileStore', () => {
     expect(fakeList).not.toHaveBeenCalled();
   });
 
+  it('loadChildren is idempotent: does not re-fetch when already loaded', async () => {
+    fakeList.mockResolvedValue({
+      ok: true,
+      data: [{ name: 'src', path: '/root/src', isDirectory: true }],
+    });
+    await useFileStore.getState().openFolder('/root');
+
+    fakeList.mockClear();
+    fakeList.mockResolvedValue({
+      ok: true,
+      data: [{ name: 'foo.ts', path: '/root/src/foo.ts', isDirectory: false }],
+    });
+
+    await useFileStore.getState().loadChildren('/root/src');
+    const callsAfterFirst = fakeList.mock.calls.length;
+    expect(callsAfterFirst).toBe(1);
+
+    // Second call should be a no-op (loaded is true)
+    await useFileStore.getState().loadChildren('/root/src');
+    expect(fakeList.mock.calls.length).toBe(callsAfterFirst);
+  });
+
   // --- toggleExpanded ---
 
   it('toggleExpanded adds and removes paths from the expanded Set', () => {
