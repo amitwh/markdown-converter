@@ -1,4 +1,5 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, FolderOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFileStore } from '@/stores/file-store';
@@ -6,7 +7,7 @@ import { FileTree } from './FileTree';
 import { Outline } from './Outline';
 
 export function Sidebar() {
-  const rootPath = useFileStore((s) => s.rootPath);
+  const tree = useFileStore((s) => s.tree);
 
   return (
     <div className="flex h-full flex-col gap-3">
@@ -20,9 +21,12 @@ export function Sidebar() {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <ScrollArea className="h-[calc(100vh-240px)]">
-            {!rootPath ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-8 text-xs text-muted-foreground">
+            {!tree ? (
+              <div className="flex flex-col items-center gap-2 p-4 text-xs text-muted-foreground">
                 <span>No folder opened</span>
+                <Button size="sm" variant="outline" onClick={() => useFileStore.getState().openFolderDialog()}>
+                  <FolderOpen className="mr-1" /> Open Folder
+                </Button>
               </div>
             ) : (
               <FileTree />

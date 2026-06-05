@@ -39,6 +39,9 @@ interface FileState {
   markTabClean: (id: string) => void;
   markTabDirty: (id: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
+  openFolderDialog: () => Promise<void>;
+  openFileDialog: () => Promise<void>;
+  saveActiveBuffer: () => Promise<boolean>;
 }
 
 function entryToNode(entry: FileEntry): FileNode {
@@ -190,6 +193,33 @@ export const useFileStore = create<FileState>()(
         const [moved] = tabs.splice(fromIndex, 1);
         tabs.splice(toIndex, 0, moved);
       });
+    },
+
+    openFolderDialog: async () => {
+      const result = await ipc.file.pickFolder();
+      if (!result.ok || result.data === null) return;
+      await useFileStore.getState().openFolder(result.data);
+    },
+
+    openFileDialog: async () => {
+      const result = await ipc.file.pickFile();
+      if (!result.ok || result.data === null) return;
+      await useFileStore.getState().openFile(result.data);
+    },
+
+    saveActiveBuffer: async () => {
+      const { activeTabId } = useFileStore.getState();
+      if (!activeTabId) return false;
+
+      const buffer = useEditorStore.getState().buffers.get(activeTabId);
+      if (!buffer) return false;
+
+      const writeResult = await ipc.file.write(activeTabId, buffer.content);
+      if (!writeResult.ok) return false;
+
+      useEditorStore.getState().markSaved(activeTabId);
+      useFileStore.getState().markTabClean(activeTabId);
+      return true;
     },
   }))
 );

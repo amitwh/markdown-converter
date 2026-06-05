@@ -237,7 +237,12 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'load-template-menu',
   'toggle-command-palette',
   'toggle-sidebar-panel',
-  'toggle-bottom-panel'
+  'toggle-bottom-panel',
+
+  // File dialog / directory listing
+  'list-directory',
+  'pick-folder',
+  'pick-file'
 ];
 
 /**
@@ -344,7 +349,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     exists: (filePath) => ipcRenderer.invoke('path-exists', filePath),
     isDirectory: (filePath) => ipcRenderer.invoke('is-directory', filePath),
     copy: (source, destination) => ipcRenderer.invoke('copy-path', { source, destination }),
-    move: (source, destination) => ipcRenderer.invoke('move-path', { source, destination })
+    move: (source, destination) => ipcRenderer.invoke('move-path', { source, destination }),
+    list: (dirPath) => ipcRenderer.invoke('list-directory', dirPath),
+    pickFolder: () => ipcRenderer.invoke('pick-folder'),
+    pickFile: () => ipcRenderer.invoke('pick-file')
   },
 
   // Theme Operations

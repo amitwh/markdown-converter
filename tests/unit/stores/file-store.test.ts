@@ -8,6 +8,9 @@ vi.mock('@/lib/ipc', () => ({
     file: {
       list: vi.fn(),
       read: vi.fn(),
+      pickFolder: vi.fn(),
+      pickFile: vi.fn(),
+      write: vi.fn(),
     },
   },
 }));
@@ -16,6 +19,9 @@ import { ipc } from '@/lib/ipc';
 
 const fakeList = ipc.file.list as ReturnType<typeof vi.fn>;
 const fakeRead = ipc.file.read as ReturnType<typeof vi.fn>;
+const fakePickFolder = ipc.file.pickFolder as ReturnType<typeof vi.fn>;
+const fakePickFile = ipc.file.pickFile as ReturnType<typeof vi.fn>;
+const fakeWrite = ipc.file.write as ReturnType<typeof vi.fn>;
 
 function fakeFileEntry(name: string, isDirectory: boolean): FileEntry {
   return { name, path: `/root/${name}`, isDirectory };
@@ -33,6 +39,9 @@ describe('useFileStore', () => {
     useEditorStore.setState({ buffers: new Map(), activeId: null });
     fakeList.mockClear();
     fakeRead.mockClear();
+    fakePickFolder.mockClear();
+    fakePickFile.mockClear();
+    fakeWrite.mockClear();
   });
 
   // --- openFolder ---
@@ -301,5 +310,90 @@ describe('useFileStore', () => {
 
     const tabs = useFileStore.getState().openTabs;
     expect(tabs.map((t) => t.title)).toEqual(['c.md', 'a.md', 'b.md']);
+  });
+
+  // --- openFolderDialog ---
+
+  it('openFolderDialog calls pickFolder, then openFolder on the returned path', async () => {
+    fakePickFolder.mockResolvedValue({ ok: true, data: '/projects/myapp' });
+    fakeList.mockResolvedValue({
+      ok: true,
+      data: [fakeFileEntry('README.md', false)],
+    });
+
+    await useFileStore.getState().openFolderDialog();
+
+    expect(fakePickFolder).toHaveBeenCalled();
+    expect(fakeList).toHaveBeenCalledWith('/projects/myapp');
+    expect(useFileStore.getState().rootPath).toBe('/projects/myapp');
+  });
+
+  it('openFolderDialog on cancelled (null) is a no-op', async () => {
+    fakePickFolder.mockResolvedValue({ ok: true, data: null });
+
+    await useFileStore.getState().openFolderDialog();
+
+    expect(fakeList).not.toHaveBeenCalled();
+    expect(useFileStore.getState().tree).toBeNull();
+  });
+
+  // --- openFileDialog ---
+
+  it('openFileDialog calls pickFile, then openFile on the returned path', async () => {
+    fakePickFile.mockResolvedValue({ ok: true, data: '/root/README.md' });
+    fakeRead.mockResolvedValue({ ok: true, data: '# hello' });
+
+    await useFileStore.getState().openFileDialog();
+
+    expect(fakePickFile).toHaveBeenCalled();
+    expect(fakeRead).toHaveBeenCalledWith('/root/README.md');
+    const tabs = useFileStore.getState().openTabs;
+    expect(tabs).toHaveLength(1);
+    expect(tabs[0].path).toBe('/root/README.md');
+  });
+
+  it('openFileDialog on cancelled (null) is a no-op', async () => {
+    fakePickFile.mockResolvedValue({ ok: true, data: null });
+
+    await useFileStore.getState().openFileDialog();
+
+    expect(fakeRead).not.toHaveBeenCalled();
+    expect(useFileStore.getState().openTabs).toHaveLength(0);
+  });
+
+  // --- saveActiveBuffer ---
+
+  it('saveActiveBuffer with no active tab returns false', async () => {
+    const result = await useFileStore.getState().saveActiveBuffer();
+    expect(result).toBe(false);
+    expect(fakeWrite).not.toHaveBeenCalled();
+  });
+
+  it('saveActiveBuffer with active buffer calls write, then marks saved and clean, returns true', async () => {
+    fakeRead.mockResolvedValue({ ok: true, data: '# content' });
+    await useFileStore.getState().openFile('/root/doc.md');
+    fakeWrite.mockResolvedValue({ ok: true, data: undefined });
+
+    const result = await useFileStore.getState().saveActiveBuffer();
+
+    expect(fakeWrite).toHaveBeenCalledWith('/root/doc.md', '# content');
+    expect(useEditorStore.getState().buffers.get('/root/doc.md')!.dirty).toBe(false);
+    expect(useFileStore.getState().openTabs[0].dirty).toBe(false);
+    expect(result).toBe(true);
+  });
+
+  it('saveActiveBuffer on write failure returns false and does NOT mark clean', async () => {
+    fakeRead.mockResolvedValue({ ok: true, data: '# content' });
+    await useFileStore.getState().openFile('/root/doc.md');
+    // Mark the buffer dirty and sync the tab dirty flag before attempting save
+    useEditorStore.getState().updateContent('/root/doc.md', '# modified');
+    useFileStore.getState().markTabDirty('/root/doc.md');
+    fakeWrite.mockResolvedValue({ ok: false, error: { code: 'EIO', message: 'write error' } });
+
+    const result = await useFileStore.getState().saveActiveBuffer();
+
+    expect(result).toBe(false);
+    expect(useEditorStore.getState().buffers.get('/root/doc.md')!.dirty).toBe(true);
+    expect(useFileStore.getState().openTabs[0].dirty).toBe(true);
   });
 });

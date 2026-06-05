@@ -3039,6 +3039,55 @@ ipcMain.on('select-folder', (event, type) => {
   }
 });
 
+// List directory contents as FileEntry[]
+ipcMain.handle('list-directory', async (event, dirPath) => {
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    return entries.map((dirent) => {
+      const fullPath = path.join(dirPath, dirent.name);
+      let size;
+      let modifiedAt;
+      if (!dirent.isDirectory()) {
+        try {
+          const stat = fs.statSync(fullPath);
+          size = stat.size;
+          modifiedAt = stat.mtime.toISOString();
+        } catch {
+          // ignore stat errors
+        }
+      }
+      return {
+        name: dirent.name,
+        path: fullPath,
+        isDirectory: dirent.isDirectory(),
+        size,
+        modifiedAt,
+      };
+    });
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// Show folder picker dialog and return selected path or null
+ipcMain.handle('pick-folder', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+// Show file picker dialog for markdown files and return selected path or null
+ipcMain.handle('pick-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd'] }],
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
 ipcMain.on('export-spreadsheet', (event, { content, format }) => {
   const outputFile = dialog.showSaveDialogSync(mainWindow, {
     defaultPath: currentFile.replace(/\.[^/.]+$/, `.${format}`),

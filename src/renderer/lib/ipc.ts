@@ -66,6 +66,10 @@ export const ipc = {
       safeCall('file', 'write', path, content),
     list: (dir: string): Promise<IpcResult<FileEntry[] | ChannelMissing>> =>
       safeCall('file', 'list', dir),
+    pickFolder: (): Promise<IpcResult<string | null | ChannelMissing>> =>
+      safeCall('file', 'pickFolder'),
+    pickFile: (): Promise<IpcResult<string | null | ChannelMissing>> =>
+      safeCall('file', 'pickFile'),
     onChange: (cb: (path: string) => void): (() => void) => {
       if (typeof window === 'undefined' || !window.electronAPI?.file?.onChange) {
         return () => {};
