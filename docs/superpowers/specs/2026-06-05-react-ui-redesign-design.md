@@ -46,7 +46,8 @@ Replace the legacy vanilla JS renderer (`src/renderer.js` is 213 KB; `src/styles
 | Theming | shadcn `next-themes`, dark default + light, system-aware | shadcn canonical pattern. Brand colors already in CSS vars. |
 | Icons | `lucide-react` (already in deps) | 1000+ tree-shakable icons. |
 | Forms | `react-hook-form` + `zod` | Standard for shadcn forms. |
-| Drag/drop | `@dnd-kit/core` | De facto React drag lib (file tree reordering, divider resize). |
+| Drag/drop (sortable lists) | `@dnd-kit/core` | De facto React drag lib (file tree reordering, plugin list reorder). |
+| Pane resize (split layout) | `react-resizable-panels` | Canonical React lib for resizable pane groups; handles drag, arrow keys, snap, persisted sizes. |
 | Testing | Vitest + RTL + Playwright (E2E + visual regression) | Standard for React + Electron. |
 | TypeScript | Strict mode (already wired) | Already in deps and `vite.renderer.config.ts`. |
 
@@ -321,11 +322,11 @@ Each phase is a shippable PR that keeps the app runnable. The legacy `renderer.j
 
 | # | Phase | Output | Acceptance |
 |---|---|---|---|
-| 1 | **Foundation** | shadcn installed; `next-themes`, `motion`, `react-hook-form`, `zod`, `dnd-kit`, `sonner` installed; design tokens finalized; `lib/utils.ts` (`cn`), `lib/ipc.ts` typed wrappers, `lib/motion.ts` preset transitions, `app.tsx` shell skeleton renders | `npm run build` succeeds; dev server shows the new shell with theme toggle working |
+| 1 | **Foundation** | shadcn installed; `next-themes`, `motion`, `react-hook-form`, `zod`, `@dnd-kit/core`, `react-resizable-panels`, `sonner` installed; design tokens finalized; `lib/utils.ts` (`cn`), `lib/ipc.ts` typed wrappers, `lib/motion.ts` preset transitions, `App.tsx` shell skeleton renders | `npm run build` succeeds; dev server shows the new shell with theme toggle working |
 | 2 | **App shell + layout** | `AppHeader`, `TabBar`, `Toolbar`, `Breadcrumb`, `StatusBar`, `ResizablePaneGroup` with sidebar toggle and draggable divider. Empty editor/preview panes. | Resize divider with mouse and arrow keys; sidebar collapses; pane sizes persist. |
 | 3 | **Editor pane** | CodeMirror 6 wrapped, dark/light themes wired to shadcn theme, syntax highlighting, line numbers, search, autocomplete | Open `.md` file → renders in editor; can edit and save. |
 | 4 | **Preview pane** | marked + DOMPurify + KaTeX + Mermaid + highlight.js. Bidirectional scroll sync with editor. | Open file → preview renders, follows cursor. |
-| 5 | **File tree + tabs** | Sidebar file tree (open from disk, lazy load). Tabs for open files. Dirty state indicator. | Open folder → tree populates; click file → opens in tab; close tab reverts dirty. |
+| 5 | **File tree + tabs** | Sidebar file tree (read directory on demand, lazy-expand children only on click). Tabs for open files. Dirty state indicator. File content is read from disk only when the tab is activated. | Open folder → root populates; click folder → children load; click file → opens in tab; close tab reverts dirty. |
 | 6 | **Native menus + toolbar** | Replace the legacy `CommandPalette` with full menus (File / Edit / View / Insert / Format / Tools / Help) bound to keyboard shortcuts. Toolbar buttons. | All menu items invoke the right action; shortcuts work; toolbar reflects active state. |
 | 7 | **Modals** | Export dialog (PDF/DOCX/HTML/batch), Settings side-sheet (Editor/Theme/Export/Plugins/About tabs), About dialog, Confirm-destructive dialog | All dialogs and sheet render with proper motion; settings persist; export works end-to-end. |
 | 8 | **Toasts** | Sonner wired into all async operations (save, export, errors, tool missing) | All operations give appropriate feedback; no silent failures. |
