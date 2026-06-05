@@ -44,9 +44,9 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
       renderTablesAsAscii: ascii,
       fontSize,
     } as any);
-    if (!result.data?.ok) {
-      toast.error(`Export failed: ${result.data?.error?.message ?? 'Export failed'}`);
-      setError(result.data?.error?.message ?? 'Export failed');
+    if (!result.ok) {
+      toast.error(`Export failed: ${result.error?.message ?? 'Export failed'}`);
+      setError(result.error?.message ?? 'Export failed');
       setSubmitting(false);
     } else {
       toast.success(`Exported ${source.title} to ${result.data?.outputPath ?? 'file'}`);
