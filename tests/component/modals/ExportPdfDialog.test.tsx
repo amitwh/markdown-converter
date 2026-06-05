@@ -35,7 +35,7 @@ describe('ExportPdfDialog', () => {
   });
 
   it('renders an error banner when IPC fails', async () => {
-    (window.electronAPI.export.pdf as any).mockResolvedValueOnce({ ok: false, error: { code: 'E', message: 'Pandoc not found' } });
+    (window.electronAPI.export.pdf as any).mockRejectedValueOnce(new Error('Pandoc not found'));
     render(<ExportPdfDialog sourcePath="/test.md" />);
     await userEvent.click(screen.getByRole('button', { name: /^export$/i }));
     expect(await screen.findByText(/pandoc not found/i)).toBeInTheDocument();
