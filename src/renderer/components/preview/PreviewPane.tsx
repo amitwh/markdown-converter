@@ -1,8 +1,10 @@
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { usePreviewStore } from '@/stores/preview-store';
+import { useScrollSync } from '@/hooks/use-scroll-sync';
 
 export function PreviewPane() {
-  const { source } = usePreviewStore();
+  const { source, setScrollRatio } = usePreviewStore();
+  const { handlePreviewScroll } = useScrollSync({ onPreviewScroll: setScrollRatio });
 
   if (!source) {
     return (
@@ -13,7 +15,7 @@ export function PreviewPane() {
   }
 
   return (
-    <div className="h-full overflow-auto bg-card/10">
+    <div className="h-full overflow-auto bg-card/10" onScroll={handlePreviewScroll}>
       <MarkdownRenderer source={source} />
     </div>
   );
