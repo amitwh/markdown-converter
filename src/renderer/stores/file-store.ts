@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { enableMapSet } from 'immer';
 import { ipc } from '@/lib/ipc';
+import { toast } from '@/lib/toast';
 import { useEditorStore } from '@/stores/editor-store';
 import type { FileEntry } from '@/types/ipc';
 
@@ -79,7 +80,10 @@ export const useFileStore = create<FileState>()(
 
     openFolder: async (path) => {
       const result = await ipc.file.list(path);
-      if (!result.ok) return;
+      if (!result.ok) {
+        toast.error(`Failed to open folder: ${result.error.message}`);
+        return;
+      }
 
       const children: FileNode[] = result.data!.map(entryToNode);
 
@@ -144,7 +148,10 @@ export const useFileStore = create<FileState>()(
       }
 
       const result = await ipc.file.read(filePath);
-      if (!result.ok) return;
+      if (!result.ok) {
+        toast.error(`Failed to open file: ${result.error.message}`);
+        return;
+      }
 
       const content = result.data!;
       const title = filePath.split('/').pop() ?? filePath;
@@ -217,10 +224,15 @@ export const useFileStore = create<FileState>()(
       if (!buffer) return false;
 
       const writeResult = await ipc.file.write(activeTabId, buffer.content);
-      if (!writeResult.ok) return false;
+      if (!writeResult.ok) {
+        toast.error(`Failed to save: ${writeResult.error.message}`);
+        return false;
+      }
 
       useEditorStore.getState().markSaved(activeTabId);
       useFileStore.getState().markTabClean(activeTabId);
+      const title = useFileStore.getState().openTabs.find(t => t.id === activeTabId)?.title ?? activeTabId.split('/').pop() ?? activeTabId;
+      toast.success(`Saved ${title}`);
       return true;
     },
   })),
