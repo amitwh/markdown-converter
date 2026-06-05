@@ -8,9 +8,15 @@ export function toAsciiTable(rows: string[][]): string {
   const widths: number[] = Array.from({ length: numCols }, (_, c) =>
     Math.max(...rows.map((r) => (r[c] ?? '').length))
   );
+  // Heuristic: if ANY column header starts with a digit, right-align ALL columns
+  const header = rows[0];
+  const rightAlign = header.some((cell) => /^\d/.test(cell));
+  const pad = rightAlign
+    ? (s: string, w: number) => s.padStart(w)
+    : (s: string, w: number) => s.padEnd(w);
   const lines = rows.map((row) =>
     '| ' +
-    Array.from({ length: numCols }, (_, c) => (row[c] ?? '').padEnd(widths[c])).join(' | ') +
+    Array.from({ length: numCols }, (_, c) => pad(row[c] ?? '', widths[c])).join(' | ') +
     ' |'
   );
   // Insert separator after first row
