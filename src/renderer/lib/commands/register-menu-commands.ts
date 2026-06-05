@@ -12,41 +12,79 @@ import { useMenuAction } from '@/hooks/use-menu-action';
  * Phase 7+ will add the dialog-driven commands (export, settings, etc.)
  * once the corresponding modals exist.
  */
+export function registerMenuCommands(): void {
+  const { registerMany } = useCommandStore.getState();
+
+  registerMany({
+    'settings.open': () => useAppStore.getState().openModal('settings'),
+    'help.about': () => useAppStore.getState().openModal('about'),
+    'help.welcome': () => useAppStore.getState().openModal('welcome'),
+    'file.exportPdf': () => {
+      const activeTabId = useFileStore.getState().activeTabId;
+      if (!activeTabId) return;
+      useAppStore.getState().openModal('export-pdf', { sourcePath: activeTabId });
+    },
+    'file.exportDocx': () => {
+      const activeTabId = useFileStore.getState().activeTabId;
+      if (!activeTabId) return;
+      useAppStore.getState().openModal('export-docx', { sourcePath: activeTabId });
+    },
+    'file.exportHtml': () => {
+      const activeTabId = useFileStore.getState().activeTabId;
+      if (!activeTabId) return;
+      useAppStore.getState().openModal('export-html', { sourcePath: activeTabId });
+    },
+    'file.exportBatch': () => {
+      const paths = useFileStore.getState().openTabs.map((t) => t.path);
+      if (paths.length === 0) return;
+      useAppStore.getState().openModal('export-batch', { sourcePaths: paths });
+    },
+    'file.confirmClose': () => {
+      /* stub — wired in later phase */
+    },
+    'app.quit': () => {
+      /* stub — wired in later phase */
+    },
+  });
+
+  const { register } = useCommandStore.getState();
+  register('file.open', () => {
+    void useFileStore.getState().openFileDialog();
+  });
+  register('file.openFolder', () => {
+    void useFileStore.getState().openFolderDialog();
+  });
+  register('file.save', () => {
+    void useFileStore.getState().saveActiveBuffer();
+  });
+  register('file.closeTab', () => {
+    const { activeTabId, closeTab } = useFileStore.getState();
+    if (activeTabId) closeTab(activeTabId);
+  });
+  register('tab.next', () => {
+    const { openTabs, activeTabId, setActiveTab } = useFileStore.getState();
+    if (openTabs.length === 0) return;
+    const idx = activeTabId ? openTabs.findIndex((t) => t.id === activeTabId) : 0;
+    const safeIdx = idx === -1 ? 0 : idx;
+    const nextIdx = safeIdx >= openTabs.length - 1 ? 0 : safeIdx + 1;
+    setActiveTab(openTabs[nextIdx].id);
+  });
+  register('tab.prev', () => {
+    const { openTabs, activeTabId, setActiveTab } = useFileStore.getState();
+    if (openTabs.length === 0) return;
+    const idx = activeTabId ? openTabs.findIndex((t) => t.id === activeTabId) : 0;
+    const safeIdx = idx === -1 ? 0 : idx;
+    const nextIdx = safeIdx <= 0 ? openTabs.length - 1 : safeIdx - 1;
+    setActiveTab(openTabs[nextIdx].id);
+  });
+  register('view.toggleSidebar', () => useAppStore.getState().toggleSidebar());
+  register('view.togglePreview', () => useAppStore.getState().togglePreview());
+}
+
 export function useRegisterMenuCommands(): void {
   // Register handlers in the command store.
   useEffect(() => {
-    const { register } = useCommandStore.getState();
-    register('file.open', () => {
-      void useFileStore.getState().openFileDialog();
-    });
-    register('file.openFolder', () => {
-      void useFileStore.getState().openFolderDialog();
-    });
-    register('file.save', () => {
-      void useFileStore.getState().saveActiveBuffer();
-    });
-    register('file.closeTab', () => {
-      const { activeTabId, closeTab } = useFileStore.getState();
-      if (activeTabId) closeTab(activeTabId);
-    });
-    register('tab.next', () => {
-      const { openTabs, activeTabId, setActiveTab } = useFileStore.getState();
-      if (openTabs.length === 0) return;
-      const idx = activeTabId ? openTabs.findIndex((t) => t.id === activeTabId) : 0;
-      const safeIdx = idx === -1 ? 0 : idx;
-      const nextIdx = safeIdx >= openTabs.length - 1 ? 0 : safeIdx + 1;
-      setActiveTab(openTabs[nextIdx].id);
-    });
-    register('tab.prev', () => {
-      const { openTabs, activeTabId, setActiveTab } = useFileStore.getState();
-      if (openTabs.length === 0) return;
-      const idx = activeTabId ? openTabs.findIndex((t) => t.id === activeTabId) : 0;
-      const safeIdx = idx === -1 ? 0 : idx;
-      const nextIdx = safeIdx <= 0 ? openTabs.length - 1 : safeIdx - 1;
-      setActiveTab(openTabs[nextIdx].id);
-    });
-    register('view.toggleSidebar', () => useAppStore.getState().toggleSidebar());
-    register('view.togglePreview', () => useAppStore.getState().togglePreview());
+    registerMenuCommands();
   }, []);
 }
 
