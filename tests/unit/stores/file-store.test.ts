@@ -396,4 +396,24 @@ describe('useFileStore', () => {
     expect(useEditorStore.getState().buffers.get('/root/doc.md')!.dirty).toBe(true);
     expect(useFileStore.getState().openTabs[0].dirty).toBe(true);
   });
+
+  // --- persistence ---
+
+  it('persists rootPath to localStorage and restores on next mount', async () => {
+    fakeList.mockResolvedValue({
+      ok: true,
+      data: [{ name: 'a.md', path: '/root/a.md', isDirectory: false }],
+    });
+    await useFileStore.getState().openFolder('/root');
+
+    // Force the persist middleware to flush to localStorage
+    await useFileStore.persist?.flush?.();
+
+    const stored = JSON.parse(localStorage.getItem('mc-file-store') ?? '{}');
+    expect(stored.state.rootPath).toBe('/root');
+    // Ensure non-persisted fields are NOT in storage
+    expect(stored.state.tree).toBeUndefined();
+    expect(stored.state.openTabs).toBeUndefined();
+    expect(stored.state.expanded).toBeUndefined();
+  });
 });

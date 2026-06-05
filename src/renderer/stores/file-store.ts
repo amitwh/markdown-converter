@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { enableMapSet } from 'immer';
 import { ipc } from '@/lib/ipc';
@@ -68,7 +69,8 @@ function updateNode(tree: FileNode, dirPath: string, updater: (node: FileNode) =
 }
 
 export const useFileStore = create<FileState>()(
-  immer((set) => ({
+  persist(
+    immer((set) => ({
     tree: null,
     rootPath: null,
     expanded: new Set<string>(),
@@ -221,5 +223,13 @@ export const useFileStore = create<FileState>()(
       useFileStore.getState().markTabClean(activeTabId);
       return true;
     },
-  }))
+  })),
+    {
+      name: 'mc-file-store',
+      storage: createJSONStorage(() => localStorage),
+      // Only persist the folder path; tree, expanded Set, and openTabs are
+      // rebuilt on demand. The app re-opens the folder on startup.
+      partialize: (state) => ({ rootPath: state.rootPath }),
+    }
+  )
 );
