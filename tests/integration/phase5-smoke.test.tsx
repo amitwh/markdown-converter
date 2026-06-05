@@ -37,6 +37,9 @@ vi.mock('@/lib/ipc', () => ({
       pickFile: vi.fn().mockResolvedValue({ ok: true, data: '/root/README.md' }),
       onChange: vi.fn(() => () => {}),
     },
+    menu: {
+      on: vi.fn(() => () => {}),
+    },
   },
 }));
 

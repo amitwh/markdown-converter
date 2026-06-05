@@ -10,10 +10,13 @@ import { useAppStore } from '@/stores/app-store';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { useFileShortcuts } from '@/hooks/use-file-shortcuts';
 import { useRestoreLastFolder } from '@/hooks/use-restore-last-folder';
+import { useRegisterMenuCommands, useBridgeNativeMenu } from '@/lib/commands/register-menu-commands';
 
 export function AppShell() {
   useFileShortcuts();
   useRestoreLastFolder();
+  useRegisterMenuCommands();
+  useBridgeNativeMenu();
   const { sidebarVisible, previewVisible, paneSizes, setPaneSizes } = useAppStore();
 
   return (
