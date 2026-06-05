@@ -25,12 +25,11 @@ describe('ExportHtmlDialog', () => {
   it('toggles standalone and submits with chosen highlight', async () => {
     render(<ExportHtmlDialog sourcePath="/test.md" />);
     await userEvent.click(screen.getByRole('checkbox', { name: /standalone/i }));
-    await userEvent.click(screen.getByRole('checkbox', { name: /standalone/i }));
     await userEvent.click(screen.getByRole('combobox', { name: /highlight/i }));
     await userEvent.click(screen.getByRole('option', { name: /monokai/i }));
     await userEvent.click(screen.getByRole('button', { name: /^export$/i }));
     const call = (window.electronAPI.export.html as any).mock.calls[0][0];
-    expect(call.standalone).toBe(true);
+    expect(call.standalone).toBe(false);
     expect(call.highlightStyle).toBe('monokai');
   });
 });
