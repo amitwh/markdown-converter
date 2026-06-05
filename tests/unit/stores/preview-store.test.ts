@@ -4,7 +4,7 @@ import { usePreviewStore } from '@/stores/preview-store';
 describe('usePreviewStore', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    usePreviewStore.setState({ html: '', scrollRatio: 0, source: '' });
+    usePreviewStore.setState({ scrollRatio: 0, source: '' });
   });
 
   it('debounces source updates (300 ms)', () => {
