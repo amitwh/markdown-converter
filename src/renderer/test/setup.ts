@@ -33,3 +33,13 @@ if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'innerWidth', { writable: true, value: 1920 });
   Object.defineProperty(window, 'innerHeight', { writable: true, value: 1080 });
 }
+
+// Polyfill ResizeObserver for @radix-ui/react-use-size
+if (typeof window !== 'undefined' && !window.ResizeObserver) {
+  class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  window.ResizeObserver = ResizeObserver;
+}
