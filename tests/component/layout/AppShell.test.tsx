@@ -6,7 +6,7 @@ import { useAppStore } from '@/stores/app-store';
 
 // Mock react-resizable-panels for jsdom environment
 vi.mock('@/components/ui/resizable', () => ({
-  ResizablePanelGroup: ({ children, direction, onLayout }: any) => (
+  ResizablePanelGroup: ({ children, direction, onLayoutChange }: any) => (
     <div data-testid="resizable-panel-group" data-direction={direction}>
       {children}
     </div>

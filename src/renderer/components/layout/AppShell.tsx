@@ -27,7 +27,7 @@ export function AppShell() {
       <main className="h-screen w-screen overflow-hidden bg-background">
         <ResizablePanelGroup
           direction="horizontal"
-          onLayout={(sizes) => setPaneSizes({ sidebar: 0, editor: sizes[0], preview: sizes[1] })}
+          onLayoutChange={(sizes) => setPaneSizes({ sidebar: 0, editor: sizes[0], preview: sizes[1] })}
         >
           <ResizablePanel defaultSize={previewVisible ? 50 : 100} minSize={20}>
             <section className="h-full bg-background">
@@ -58,7 +58,7 @@ export function AppShell() {
       <main className="flex-1 overflow-hidden">
         <ResizablePanelGroup
           direction="horizontal"
-          onLayout={(sizes) => setPaneSizes({ sidebar: sizes[0], editor: sizes[1], preview: sizes[2] })}
+          onLayoutChange={(sizes) => setPaneSizes({ sidebar: sizes[0], editor: sizes[1], preview: sizes[2] })}
         >
           {sidebarVisible && (
             <>
