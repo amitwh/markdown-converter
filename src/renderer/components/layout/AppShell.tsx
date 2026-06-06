@@ -11,13 +11,43 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { useFileShortcuts } from '@/hooks/use-file-shortcuts';
 import { useRestoreLastFolder } from '@/hooks/use-restore-last-folder';
 import { useRegisterMenuCommands, useBridgeNativeMenu } from '@/lib/commands/register-menu-commands';
+import { useZenMode } from '@/hooks/use-zen-mode';
 
 export function AppShell() {
   useFileShortcuts();
   useRestoreLastFolder();
   useRegisterMenuCommands();
   useBridgeNativeMenu();
+  useZenMode();
   const { sidebarVisible, previewVisible, paneSizes, setPaneSizes } = useAppStore();
+  const zenMode = useAppStore((s) => s.zenMode);
+
+  if (zenMode) {
+    return (
+      <main className="h-screen w-screen overflow-hidden bg-background">
+        <ResizablePanelGroup
+          direction="horizontal"
+          onLayout={(sizes) => setPaneSizes({ sidebar: 0, editor: sizes[0], preview: sizes[1] })}
+        >
+          <ResizablePanel defaultSize={previewVisible ? 50 : 100} minSize={20}>
+            <section className="h-full bg-background">
+              <EditorPane />
+            </section>
+          </ResizablePanel>
+          {previewVisible && (
+            <>
+              <ResizableHandle />
+              <ResizablePanel defaultSize={50} minSize={20}>
+                <section className="h-full border-l border-border bg-card/10">
+                  <PreviewPane />
+                </section>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
+      </main>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
