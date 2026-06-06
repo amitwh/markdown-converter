@@ -35,6 +35,7 @@ vi.mock('@/lib/ipc', () => ({
       pickFolder: vi.fn().mockResolvedValue({ ok: true, data: '/root' }),
       pickFile: vi.fn().mockResolvedValue({ ok: true, data: '/root/README.md' }),
       onChange: vi.fn(() => () => {}),
+      gitStatus: vi.fn().mockResolvedValue({ ok: true, data: [] }),
     },
     menu: {
       on: vi.fn((channel: string, cb: (...args: unknown[]) => void) => {

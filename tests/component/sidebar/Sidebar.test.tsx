@@ -13,6 +13,7 @@ vi.mock('@/lib/ipc', () => ({
       pickFile: vi.fn(),
       read: vi.fn(),
       write: vi.fn(),
+      gitStatus: vi.fn().mockResolvedValue({ ok: true, data: [] }),
     },
   },
 }));

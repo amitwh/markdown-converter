@@ -66,7 +66,7 @@ export function registerMenuCommands(): void {
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('mc:print'));
     },
     'git.refresh': () => {
-      /* stub — actual refresh is a useEffect in GitStatusPanel */
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('mc:git-refresh'));
     },
   });
 

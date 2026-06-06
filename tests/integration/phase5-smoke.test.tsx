@@ -36,6 +36,7 @@ vi.mock('@/lib/ipc', () => ({
       pickFolder: vi.fn().mockResolvedValue({ ok: true, data: '/root' }),
       pickFile: vi.fn().mockResolvedValue({ ok: true, data: '/root/README.md' }),
       onChange: vi.fn(() => () => {}),
+      gitStatus: vi.fn().mockResolvedValue({ ok: true, data: [] }),
     },
     menu: {
       on: vi.fn(() => () => {}),
@@ -54,6 +55,8 @@ describe('Phase 5 integration', () => {
       activeTabId: null,
     });
     useEditorStore.setState({ buffers: new Map(), activeId: null });
+    // Also clear the active buffer so breadcrumb symbols won't show stale heading text
+    useEditorStore.getState().buffers.clear();
     useAppStore.setState({
       sidebarVisible: true,
       previewVisible: true,
@@ -128,12 +131,14 @@ describe('Phase 5 integration', () => {
       ],
       activeTabId: '/a.md',
     });
+    // Use a buffer content that won't conflict with tab title in breadcrumb symbols
+    useEditorStore.setState({ buffers: new Map([['/a.md', { id: '/a.md', path: '/a.md', content: '# Hello', dirty: false }], ['/b.md', { id: '/b.md', path: '/b.md', content: '# World', dirty: false }]]), activeId: '/a.md' });
     render(<AppShell />);
-    const aTab = screen.getByText('a.md').closest('[role="tab"]')!;
-    const bTab = screen.getByText('b.md').closest('[role="tab"]')!;
-    expect(aTab).toHaveAttribute('aria-current', 'page');
+    // Use role="tab" to find tabs specifically, avoiding breadcrumb "a.md" text
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs[0]).toHaveAttribute('aria-current', 'page');
     await act(async () => {
-      fireEvent.click(bTab);
+      fireEvent.click(tabs[1]);
     });
     expect(useFileStore.getState().activeTabId).toBe('/b.md');
   });
