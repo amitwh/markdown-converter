@@ -166,14 +166,19 @@
     },
     "icon": "assets/icon",
     "files": [
-      "src/**/*",
-      "assets/**/*",
-      "scripts/**/*",
-      "node_modules/**/*",
+      "src/main/**/*",
+      "src/preload.js",
+      "src/plugins/**/*",
       "package.json"
     ],
     "asarUnpack": [
       "node_modules/ffmpeg-static/**"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/renderer",
+        "to": "renderer"
+      }
     ],
     "extraFiles": [],
     "fileAssociations": [
@@ -201,7 +206,16 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "identity": null
+      "identity": null,
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "assets/icon.icns",
+      "darkModeSupport": true,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "entitlements": null
     },
     "win": {
       "target": [
@@ -274,6 +288,12 @@
       ],
       "description": "Professional Markdown editor and universal file converter",
       "maintainer": "ConcreteInfo <amit.wh@gmail.com>"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "amitwh",
+      "repo": "markdown-converter",
+      "releaseType": "release"
     }
   }
 }

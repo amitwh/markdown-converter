@@ -94,8 +94,42 @@ jobs:
             dist/*.zip
           retention-days: 5
 
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download external tools (pandoc)
+        run: node scripts/download-tools.js
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build macOS packages (unsigned)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run build:mac -- --publish=never
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          retention-days: 5
+
   release:
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, build-macos]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -113,6 +147,13 @@ jobs:
         continue-on-error: true
         with:
           name: windows-artifacts
+          path: dist
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: macos-artifacts
           path: dist
 
       - name: Create GitHub Release

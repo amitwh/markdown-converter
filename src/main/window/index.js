@@ -24,7 +24,11 @@ function createMainWindow() {
   });
 
   // Dev (Vite): load the running dev server so .tsx is transformed on the fly.
-  // Production: load the built dist/renderer/index.html (Vite output).
+  // Production (running from dist/ directly): load the built renderer at the
+  //   relative path from this file.
+  // Production (packaged installer build): the renderer ships under
+  //   process.resourcesPath/renderer (configured via build.extraResources in
+  //   package.json) — not inside the asar.
   // VITE_DEV_SERVER_URL is set by `npm run dev` via cross-env.
   // app.isPackaged is set by electron-builder for installer builds.
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
@@ -32,9 +36,24 @@ function createMainWindow() {
     console.log('[WINDOW] Dev mode — loading', devServerUrl);
     win.loadURL(devServerUrl);
   } else {
-    const prodPath = path.join(__dirname, '../../dist/renderer/index.html');
-    console.log('[WINDOW] Production mode — loading', prodPath);
-    win.loadFile(prodPath);
+    const rendererIndex = app.isPackaged
+      ? path.join(process.resourcesPath, 'renderer', 'index.html')
+      : path.join(__dirname, '../../dist/renderer/index.html');
+
+    if (app.isPackaged) {
+      try {
+        fs.accessSync(rendererIndex);
+      } catch {
+        console.error(
+          '[WINDOW] Renderer not found at',
+          rendererIndex,
+          '— did you run `npm run build:renderer` before packaging?',
+        );
+      }
+    }
+
+    console.log('[WINDOW] Production mode — loading', rendererIndex);
+    win.loadFile(rendererIndex);
   }
 
   // Show window only after content is ready — avoids blank flash
