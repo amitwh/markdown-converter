@@ -22,7 +22,7 @@ function createMainWindow() {
     icon: path.join(__dirname, '../../assets/icon.png')
   });
 
-  win.loadFile(path.join(__dirname, '../../index.html'));
+  win.loadFile(path.join(__dirname, '../../renderer/index.html'));
 
   // Show window only after content is ready — avoids blank flash
   win.once('ready-to-show', () => {

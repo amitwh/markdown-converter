@@ -19,8 +19,7 @@ module.exports = {
   // Coverage configuration
   collectCoverageFrom: [
     'src/**/*.js',
-    '!src/main.js', // Main process needs electron-mock
-    '!src/renderer.js', // Large renderer file with duplicate declarations
+    '!src/main/**', // Main process needs electron-mock
     '!src/preload.js', // Electron preload requires contextBridge
     '!**/node_modules/**'
   ],
