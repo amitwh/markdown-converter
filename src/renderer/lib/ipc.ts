@@ -102,6 +102,8 @@ export const ipc = {
       safeCall('app', 'openExternal', url),
     showItemInFolder: (path: string): Promise<IpcResult<void | ChannelMissing>> =>
       safeCall('app', 'showItemInFolder', path),
+    showSaveDialog: (args?: { title?: string; defaultPath?: string }): Promise<IpcResult<string | null | ChannelMissing>> =>
+      safeCall('app', 'showSaveDialog', args),
   },
   menu: {
     /**
