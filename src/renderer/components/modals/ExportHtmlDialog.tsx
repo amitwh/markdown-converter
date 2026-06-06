@@ -43,10 +43,10 @@ export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent aria-describedby="html-desc">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Export to HTML</DialogTitle>
-          <DialogDescription id="html-desc">{sourcePath}</DialogDescription>
+          <DialogDescription>{sourcePath}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 text-sm">
           <label className="flex items-center gap-2">

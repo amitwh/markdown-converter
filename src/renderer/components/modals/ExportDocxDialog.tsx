@@ -41,10 +41,10 @@ export function ExportDocxDialog({ sourcePath }: { sourcePath: string }) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent aria-describedby="docx-desc">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Export to DOCX</DialogTitle>
-          <DialogDescription id="docx-desc">{sourcePath}</DialogDescription>
+          <DialogDescription>{sourcePath}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 text-sm">
           <div>

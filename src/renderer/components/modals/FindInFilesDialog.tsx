@@ -47,10 +47,10 @@ export function FindInFilesDialog() {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent aria-describedby="find-desc" className="max-w-2xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Find in files</DialogTitle>
-          <DialogDescription id="find-desc">
+          <DialogDescription>
             {rootPath ? `Search in ${rootPath}` : 'No folder open'}
           </DialogDescription>
         </DialogHeader>

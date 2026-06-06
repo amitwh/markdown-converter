@@ -56,10 +56,10 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent aria-describedby="pdf-desc">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Export to PDF</DialogTitle>
-          <DialogDescription id="pdf-desc">{sourcePath}</DialogDescription>
+          <DialogDescription>{sourcePath}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 text-sm">
           <div>

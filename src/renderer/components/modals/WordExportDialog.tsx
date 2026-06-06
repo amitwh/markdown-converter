@@ -65,10 +65,10 @@ export function WordExportDialog({ sourcePath }: { sourcePath: string }) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent aria-describedby="word-desc">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Export to Word (.docx)</DialogTitle>
-          <DialogDescription id="word-desc">{sourcePath}</DialogDescription>
+          <DialogDescription>{sourcePath}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 text-sm">
           <div>

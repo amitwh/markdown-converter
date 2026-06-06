@@ -17,10 +17,10 @@ export function WelcomeDialog() {
 
   return (
     <Dialog open onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent aria-describedby="welcome-desc" className="max-w-xl">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Welcome to MarkdownConverter</DialogTitle>
-          <DialogDescription id="welcome-desc">
+          <DialogDescription>
             A polished editor for Markdown, with PDF, DOCX, and HTML export.
           </DialogDescription>
         </DialogHeader>

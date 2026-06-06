@@ -17,10 +17,10 @@ export function AboutDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent aria-describedby="about-desc">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>About MarkdownConverter</DialogTitle>
-          <DialogDescription id="about-desc">
+          <DialogDescription>
             Professional Markdown editor and universal file converter.
           </DialogDescription>
         </DialogHeader>

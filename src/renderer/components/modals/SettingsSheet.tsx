@@ -15,10 +15,10 @@ export function SettingsSheet() {
 
   return (
     <Sheet open onOpenChange={(o) => !o && closeModal()}>
-      <SheetContent aria-describedby="settings-desc" side="right" className="w-full sm:max-w-[480px]">
+      <SheetContent side="right" className="w-full sm:max-w-[480px]">
         <SheetHeader>
           <SheetTitle>Settings</SheetTitle>
-          <SheetDescription id="settings-desc">Editor, theme, and export preferences</SheetDescription>
+          <SheetDescription>Editor, theme, and export preferences</SheetDescription>
         </SheetHeader>
         <Tabs defaultValue="editor" className="mt-4">
           <TabsList className="grid w-full grid-cols-5">

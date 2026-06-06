@@ -37,10 +37,10 @@ export function ExportBatchDialog({ sourcePaths }: { sourcePaths: string[] }) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent aria-describedby="batch-desc">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Batch export</DialogTitle>
-          <DialogDescription id="batch-desc">{sourcePaths.length} files</DialogDescription>
+          <DialogDescription>{sourcePaths.length} files</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 text-sm">
           <div>

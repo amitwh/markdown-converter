@@ -33,10 +33,10 @@ export function AsciiGeneratorDialog() {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent aria-describedby="ascii-desc" className="max-w-2xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>ASCII generator</DialogTitle>
-          <DialogDescription id="ascii-desc">Type text, pick a font, see ASCII art</DialogDescription>
+          <DialogDescription>Type text, pick a font, see ASCII art</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>

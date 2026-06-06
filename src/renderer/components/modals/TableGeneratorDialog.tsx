@@ -60,10 +60,10 @@ export function TableGeneratorDialog() {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent aria-describedby="table-desc" className="max-w-2xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Table generator</DialogTitle>
-          <DialogDescription id="table-desc">Specify rows × columns to generate a markdown table</DialogDescription>
+          <DialogDescription>Specify rows × columns to generate a markdown table</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="flex gap-3">

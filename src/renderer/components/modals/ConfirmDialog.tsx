@@ -17,10 +17,10 @@ export function ConfirmDialog(props: ConfirmProps) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && handleCancel()}>
-      <DialogContent aria-describedby="confirm-body">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription id="confirm-body">{body}</DialogDescription>
+          <DialogDescription>{body}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="ghost" onClick={handleCancel}>
