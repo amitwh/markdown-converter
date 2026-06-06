@@ -14,6 +14,30 @@ const { execSync } = require('child_process');
 
 const PANDOC_VERSION = '3.9.0.2';
 
+/**
+ * Pandoc's archive inner layout has shifted across releases and platforms:
+ *   linux  tarball: pandoc-3.9.0.2/bin/pandoc
+ *   win32  zip:     pandoc-3.9.0.2/pandoc.exe
+ *   darwin zip:     pandoc-3.9.0.2-x86_64/bin/pandoc   (arch-suffixed inner dir)
+ *                   pandoc-3.9.0.2-arm64/bin/pandoc    (on Apple Silicon builds)
+ * Rather than hard-coding the intermediate path — which has already broken
+ * once when pandoc 3.9 added the arch suffix to the macOS archive — we walk
+ * the extracted tree and find the binary by name. This is robust to future
+ * layout shifts (e.g., universal binaries renaming the inner dir).
+ */
+function findFile(rootDir, targetName) {
+  const entries = fs.readdirSync(rootDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = path.join(rootDir, entry.name);
+    if (entry.isFile() && entry.name === targetName) return full;
+    if (entry.isDirectory()) {
+      const found = findFile(full, targetName);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 const PANDOC_CONFIG = {
   linux: {
     url: `https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz`,
@@ -22,8 +46,9 @@ const PANDOC_CONFIG = {
     extract(archivePath, destDir) {
       const tmpDir = path.join(os.tmpdir(), `pandoc-${Date.now()}`);
       fs.mkdirSync(tmpDir, { recursive: true });
-      execSync(`tar -xzf "${archivePath}" -C "${tmpDir}" pandoc-${PANDOC_VERSION}/bin/pandoc`);
-      const src = path.join(tmpDir, `pandoc-${PANDOC_VERSION}`, 'bin', 'pandoc');
+      execSync(`tar -xzf "${archivePath}" -C "${tmpDir}"`);
+      const src = findFile(tmpDir, 'pandoc');
+      if (!src) throw new Error(`pandoc binary not found under ${tmpDir}`);
       fs.copyFileSync(src, path.join(destDir, 'pandoc'));
       fs.chmodSync(path.join(destDir, 'pandoc'), 0o755);
       fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -39,7 +64,8 @@ const PANDOC_CONFIG = {
       execSync(
         `powershell -Command "Expand-Archive -Force '${archivePath}' '${tmpDir}'"`,
       );
-      const src = path.join(tmpDir, `pandoc-${PANDOC_VERSION}`, 'pandoc.exe');
+      const src = findFile(tmpDir, 'pandoc.exe');
+      if (!src) throw new Error(`pandoc.exe not found under ${tmpDir}`);
       fs.copyFileSync(src, path.join(destDir, 'pandoc.exe'));
       fs.rmSync(tmpDir, { recursive: true, force: true });
     },
@@ -52,7 +78,8 @@ const PANDOC_CONFIG = {
       const tmpDir = path.join(os.tmpdir(), `pandoc-${Date.now()}`);
       fs.mkdirSync(tmpDir, { recursive: true });
       execSync(`unzip -o "${archivePath}" -d "${tmpDir}"`);
-      const src = path.join(tmpDir, `pandoc-${PANDOC_VERSION}`, 'bin', 'pandoc');
+      const src = findFile(tmpDir, 'pandoc');
+      if (!src) throw new Error(`pandoc binary not found under ${tmpDir}`);
       fs.copyFileSync(src, path.join(destDir, 'pandoc'));
       fs.chmodSync(path.join(destDir, 'pandoc'), 0o755);
       fs.rmSync(tmpDir, { recursive: true, force: true });
