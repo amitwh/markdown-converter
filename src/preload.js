@@ -85,12 +85,6 @@ const ALLOWED_SEND_CHANNELS = [
   'get-pdf-page-count',
   'select-pdf-folder',
 
-  // ASCII generator (separate window)
-  'open-ascii-generator',
-
-  // Table generator (separate window)
-  'open-table-generator',
-
   // Insert generated content
   'insert-generated-content',
 
@@ -169,15 +163,10 @@ const ALLOWED_RECEIVE_CHANNELS = [
   // Font
   'adjust-font-size',
 
-  // Print
-  'print-preview',
-  'print-preview-styled',
-
   // Export dialogs
   'show-export-dialog',
   'show-batch-dialog',
   'show-universal-converter-dialog',
-  'show-table-generator',
   'show-pdf-editor-dialog',
 
   // Converter dialogs
@@ -213,12 +202,7 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'pdf-operation-complete',
   'pdf-operation-error',
 
-  // ASCII Art Generator
-  'show-ascii-generator-window',
-  'show-ascii-generator',
-
   // Table Generator
-  'show-table-generator-window',
 
   // Header/Footer dialog
   'open-header-footer-dialog',
@@ -235,7 +219,6 @@ const ALLOWED_RECEIVE_CHANNELS = [
 
   // v4 menu-triggered events
   'load-template-menu',
-  'toggle-command-palette',
   'toggle-sidebar-panel',
   'toggle-bottom-panel',
 
@@ -438,12 +421,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     trim: (data) => ipcRenderer.send('video-trim', data),
     extractFrames: (data) => ipcRenderer.send('video-frames', data),
     toGif: (data) => ipcRenderer.send('video-gif', data)
-  },
-
-  // Generator Windows
-  generators: {
-    openAscii: () => ipcRenderer.send('open-ascii-generator'),
-    openTable: () => ipcRenderer.send('open-table-generator')
   },
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version')
