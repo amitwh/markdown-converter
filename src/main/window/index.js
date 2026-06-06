@@ -38,7 +38,7 @@ function createMainWindow() {
   } else {
     const rendererIndex = app.isPackaged
       ? path.join(process.resourcesPath, 'renderer', 'index.html')
-      : path.join(__dirname, '../../dist/renderer/index.html');
+      : path.join(__dirname, '../../../dist/renderer/index.html');
 
     if (app.isPackaged) {
       try {
@@ -63,8 +63,10 @@ function createMainWindow() {
 
   menu.register(win);
 
-  win.on('closed', () => {
-    state.save(win);
+  // Use 'close' (fires before destruction) — 'closed' fires after the
+  // BrowserWindow object is destroyed, so getBounds() would throw.
+  win.on('close', () => {
+    if (!win.isDestroyed()) state.save(win);
   });
 
   // Spell check context menu
