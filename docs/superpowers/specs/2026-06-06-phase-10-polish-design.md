@@ -126,10 +126,11 @@ When the legacy renderer files are deleted, these main-process functions become 
 | `src/wordTemplateExporter.js` | (small) | 743 | `src/main/word-template/` + renderer `lib/docx-export.ts` |
 | `src/ascii-generator.html` | 34KB | (HTML) | `<AsciiGeneratorDialog>` |
 | `src/table-generator.html` | 18KB | (HTML) | `<TableGeneratorDialog>` |
+| `src/index.html` | 103KB | 1667 | `src/renderer/index.html` (already exists, Vite root) |
 
-**Total: 12 JS/CSS/HTML files = 14,426 lines / ~445KB**
+**Total: 13 files = ~16,093 lines / ~548KB**
 
-Note: `src/index.html` is **NOT** deleted — it's rewritten to a minimal Vite bootstrap (~50 lines). See §4.
+`src/renderer/index.html` (the live Vite template) is NOT deleted.
 
 ### 3.2 Dead IPC channels to remove from `src/preload.js`
 
@@ -149,7 +150,7 @@ And from the exposed API surface:
 
 **9 channel names + 2 API entries to remove.**
 
-### 3.3 Legacy references in `src/index.html` (16 places)
+### 3.3 Legacy references in `src/index.html` (16 places) — **the LEGACY file at project root, 1667 lines**
 
 - `<link rel="stylesheet" href="styles.css">` (line ~6)
 - `<link rel="stylesheet" href="styles-welcome.css">` (line ~7)
@@ -157,23 +158,11 @@ And from the exposed API surface:
 - `<div class="command-palette-overlay hidden" id="command-palette-overlay">` block (~5 lines)
 - `<script src="renderer.js"></script>` (final script tag)
 
-**All of these are removed. The rewritten `src/index.html` is just:**
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Markdown Converter</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/renderer/main.tsx"></script>
-  </body>
-</html>
-```
+**All of these are removed by deleting the file `src/index.html` entirely.**
 
-(Confirm exact entrypoint path with `src/renderer/` structure; this is the standard Vite + React 19 shape.)
+The CURRENT live renderer template is **`src/renderer/index.html`** (already correct: minimal, CSP, Plus Jakarta Sans font, `<script type="module" src="./main.tsx">`). This file is **NOT touched** in Phase 10. Vite's `root` is set to `src/renderer/` in `vite.renderer.config.ts`, so `src/renderer/index.html` is the HTML template Vite uses. The `src/index.html` at the project root is an orphan from the pre-Vite era.
+
+**Verification:** after deleting `src/index.html`, the renderer build still works because Vite doesn't look at the project root — it uses `src/renderer/index.html`.
 
 ### 3.4 Main process rewiring
 
@@ -184,26 +173,30 @@ And from the exposed API surface:
 
 ---
 
-## 4. `src/index.html` Rewrite
+## 4. `src/index.html` — DELETE (not rewrite)
 
-The current `src/index.html` is 1667 lines of legacy markup. The new version is minimal:
+The current `src/index.html` is 1667 lines of legacy markup and is **DELETED** (not rewritten). The renderer is already correctly served by `src/renderer/index.html` (the Vite root). Deleting the legacy root-level `src/index.html` is the action — no replacement file is needed.
+
+`src/renderer/index.html` (already correct) is NOT modified:
 
 ```html
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Markdown Converter</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/renderer/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; ...">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarkdownConverter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:..." rel="stylesheet">
+</head>
+<body class="font-sans antialiased">
+  <div id="root"></div>
+  <script type="module" src="./main.tsx"></script>
+</body>
 </html>
 ```
-
-Vite handles the rest. The renderer's `<App />` is mounted in `main.tsx` which is the Vite entrypoint.
 
 ---
 
@@ -253,7 +246,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modal state: `useAppStore.modal: ModalState` discriminated union
 
 ### Removed
-- `src/renderer.js` (legacy vanilla-JS renderer, 5319 lines)
+- `src/renderer.js` (legacy vanilla-JS renderer, 5319 lines) — and `src/index.html` (1667 lines of legacy markup, replaced by `src/renderer/index.html` which is already the live Vite template)
 - 7 legacy stylesheets (styles.css, styles-modern.css, styles-concreteinfo.css, styles-sidebar.css, styles-zen.css, styles-welcome.css, fonts.css)
 - 5 legacy scripts (command-palette.js, print-preview.js, welcome.js, zen-mode.js, wordTemplateExporter.js)
 - 2 legacy HTMLs (ascii-generator.html, table-generator.html)
@@ -272,8 +265,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 4. **Decompose main.js — `src/main/word-template/`** (WordTemplateExporter split into parser/converter/apply)
 5. **Decompose main.js — `src/main/utils/` + `store.js` + `ipc.js` + `index.js`** (glue + new entrypoint)
 6. **Trim preload.js** — remove 9 dead IPC channels + 2 exposed API entries
-7. **Delete legacy renderer files** (12 files: renderer.js, 7 styles, fonts.css, 4 scripts, 2 htmls)
-8. **Rewrite src/index.html** — minimal Vite bootstrap (~50 lines)
+7. **Delete legacy renderer files** (13 files: renderer.js, 7 styles, fonts.css, 4 scripts, 3 htmls)
+8. **Verify src/renderer/index.html is the live template** (no action needed if it's already correct)
 9. **Bump package.json version to 5.0.0 + write CHANGELOG.md**
 10. **Final verification + tag v5.0.0** (build, tests, grep, electron smoke)
 
