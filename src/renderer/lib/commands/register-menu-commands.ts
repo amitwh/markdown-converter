@@ -63,7 +63,7 @@ export function registerMenuCommands(): void {
       useAppStore.getState().setZenMode(!current);
     },
     'file.print': () => {
-      /* stub — placeholder for print feature */
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('mc:print'));
     },
     'git.refresh': () => {
       /* stub — actual refresh is a useEffect in GitStatusPanel */
