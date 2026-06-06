@@ -7,6 +7,7 @@ const PDFOperations = require('./main/PDFOperations');
 const GitOperations = require('./main/GitOperations');
 const { getAllowedDirectories, validatePath, resolveWritablePath, isPathAccessible } = require('./main/utils/paths');
 const fileOps = require('./main/files');
+const menu = require('./main/menu');
 
 // Add MiKTeX to PATH for LaTeX support
 if (process.platform === 'win32') {
@@ -406,7 +407,7 @@ function createWindow() {
     mainWindow.show();
   });
 
-  createMenu();
+  menu.register(mainWindow);
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -452,493 +453,6 @@ function createWindow() {
   });
 }
 
-function buildRecentFilesMenu() {
-  const recentFiles = getRecentFiles();
-
-  if (recentFiles.length === 0) {
-    return [
-      {
-        label: 'No recent files',
-        enabled: false
-      }
-    ];
-  }
-
-  const recentFileItems = recentFiles.map(filePath => ({
-    label: filePath.split(/[\\/]/).pop(), // Get filename only
-    click: () => {
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        if (stats.size > MAX_FILE_SIZE) {
-            dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
-            return;
-        }
-        currentFile = filePath;
-        const content = fs.readFileSync(filePath, 'utf-8');
-        mainWindow.webContents.send('file-opened', { path: filePath, content });
-      } else {
-        dialog.showErrorBox('File Not Found', sanitizeErrorMessage(`The file "${filePath}" could not be found.`));
-      }
-    },
-    toolTip: filePath // Show full path in tooltip
-  }));
-
-  return [
-    ...recentFileItems,
-    { type: 'separator' },
-    {
-      label: 'Clear Recent Files',
-      click: () => {
-        mainWindow.webContents.send('clear-recent-files');
-      }
-    }
-  ];
-}
-
-function getRecentFiles() {
-  try {
-    const recentFiles = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'recent-files.json'), 'utf-8'));
-    return recentFiles.filter(file => fs.existsSync(file));
-  } catch (e) {
-    return [];
-  }
-}
-
-function createMenu() {
-  const template = [
-    {
-      label: 'File',
-      submenu: [
-        {
-          label: 'New',
-          accelerator: 'CmdOrCtrl+N',
-          click: () => mainWindow.webContents.send('file-new')
-        },
-        {
-          label: 'Open',
-          accelerator: 'CmdOrCtrl+O',
-          click: openFile
-        },
-        {
-          label: 'Open PDF',
-          accelerator: 'CmdOrCtrl+Shift+O',
-          click: openPdfFile
-        },
-        {
-          label: 'Save',
-          accelerator: 'CmdOrCtrl+S',
-          click: () => mainWindow.webContents.send('file-save')
-        },
-        {
-          label: 'Save As',
-          accelerator: 'CmdOrCtrl+Shift+S',
-          click: saveAsFile
-        },
-        { type: 'separator' },
-        {
-          label: 'Print',
-          submenu: [
-            {
-              label: 'Print Preview',
-              accelerator: 'CmdOrCtrl+P',
-              click: () => mainWindow.webContents.send('print-preview')
-            },
-            {
-              label: 'Print Preview (With Styles)',
-              click: () => mainWindow.webContents.send('print-preview-styled')
-            }
-          ]
-        },
-        { type: 'separator' },
-        {
-          label: 'Recent Files',
-          submenu: buildRecentFilesMenu()
-        },
-        { type: 'separator' },
-        {
-          label: 'New from Template',
-          submenu: [
-            { label: 'Blog Post', click: () => mainWindow.webContents.send('load-template-menu', 'blog-post.md') },
-            { label: 'Meeting Notes', click: () => mainWindow.webContents.send('load-template-menu', 'meeting-notes.md') },
-            { label: 'Technical Spec', click: () => mainWindow.webContents.send('load-template-menu', 'technical-spec.md') },
-            { label: 'Changelog', click: () => mainWindow.webContents.send('load-template-menu', 'changelog.md') },
-            { label: 'README', click: () => mainWindow.webContents.send('load-template-menu', 'readme.md') },
-            { label: 'Project Plan', click: () => mainWindow.webContents.send('load-template-menu', 'project-plan.md') },
-            { label: 'API Documentation', click: () => mainWindow.webContents.send('load-template-menu', 'api-docs.md') },
-            { label: 'Tutorial', click: () => mainWindow.webContents.send('load-template-menu', 'tutorial.md') },
-            { label: 'Release Notes', click: () => mainWindow.webContents.send('load-template-menu', 'release-notes.md') },
-            { label: 'Comparison', click: () => mainWindow.webContents.send('load-template-menu', 'comparison.md') }
-          ]
-        },
-        { type: 'separator' },
-        {
-          label: 'Import Document...',
-          accelerator: 'CmdOrCtrl+I',
-          click: importDocument
-        },
-        {
-          label: 'Export',
-          submenu: [
-            { label: 'HTML', click: () => exportFile('html') },
-            { label: 'PDF', click: () => exportFile('pdf') },
-            { label: 'PDF (Enhanced)', click: () => exportPDFViaWordTemplate(), accelerator: 'Ctrl+Shift+P' },
-            { label: 'DOCX', click: () => exportFile('docx') },
-            { label: 'DOCX (Enhanced)', click: () => exportWordWithTemplate(), accelerator: 'Ctrl+Shift+W' },
-            { label: 'LaTeX', click: () => exportFile('latex') },
-            { label: 'RTF', click: () => exportFile('rtf') },
-            { label: 'ODT', click: () => exportFile('odt') },
-            { label: 'EPUB', click: () => exportFile('epub') },
-            { type: 'separator' },
-            { label: 'PowerPoint (PPTX)', click: () => exportFile('pptx') },
-            { label: 'OpenDocument Presentation (ODP)', click: () => exportFile('odp') },
-            { type: 'separator' },
-            { label: 'CSV (Tables)', click: () => exportSpreadsheet('csv') },
-            { type: 'separator' },
-            { label: 'JSON (.json)', click: () => exportFile('json') },
-            { label: 'YAML (.yaml)', click: () => exportFile('yaml') },
-            { label: 'XML (.xml)', click: () => exportFile('xml') },
-            { label: 'TOML (.toml)', click: () => exportFile('toml') },
-            { type: 'separator' },
-            { label: 'Reveal.js Slides (.html)', click: () => exportFile('revealjs') },
-            { label: 'Beamer Slides (.pdf)', click: () => exportFile('beamer') },
-            { type: 'separator' },
-            { label: 'Confluence Wiki (.txt)', click: () => exportFile('confluence') },
-            { label: 'MOBI E-book (.mobi)', click: () => exportFile('mobi') },
-          ]
-        },
-        { type: 'separator' },
-        {
-          label: 'Select Word Template...',
-          click: selectWordTemplate
-        },
-        {
-          label: 'Template Settings...',
-          click: showTemplateSettings
-        },
-        {
-          label: 'Header & Footer Settings...',
-          click: () => {
-            if (mainWindow) {
-              mainWindow.webContents.send('open-header-footer-dialog');
-            }
-          }
-        },
-        { type: 'separator' },
-        {
-          label: 'Quit',
-          accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
-          click: () => app.quit()
-        }
-      ]
-    },
-    {
-      label: 'Edit',
-      submenu: [
-        {
-          label: 'Undo',
-          accelerator: 'CmdOrCtrl+Z',
-          click: () => mainWindow.webContents.send('undo')
-        },
-        {
-          label: 'Redo',
-          accelerator: 'CmdOrCtrl+Shift+Z',
-          click: () => mainWindow.webContents.send('redo')
-        },
-        { type: 'separator' },
-        { label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut' },
-        { label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy' },
-        { label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste' },
-        { label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectAll' },
-        { type: 'separator' },
-        {
-          label: 'Find & Replace',
-          accelerator: 'CmdOrCtrl+F',
-          click: () => mainWindow.webContents.send('toggle-find')
-        }
-      ]
-    },
-    {
-      label: 'View',
-      submenu: [
-        {
-          label: 'Toggle Preview',
-          accelerator: 'CmdOrCtrl+Shift+V',
-          click: () => mainWindow.webContents.send('toggle-preview')
-        },
-        {
-          label: 'Command Palette',
-          accelerator: 'CmdOrCtrl+Shift+P',
-          click: () => mainWindow.webContents.send('toggle-command-palette')
-        },
-        { type: 'separator' },
-        {
-          label: 'Sidebar',
-          submenu: [
-            { label: 'File Explorer', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'explorer') },
-            { label: 'Git', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'git') },
-            { label: 'Snippets', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'snippets') },
-            { label: 'Templates', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'templates') }
-          ]
-        },
-        {
-          label: 'Bottom Panel (REPL)',
-          click: () => mainWindow.webContents.send('toggle-bottom-panel')
-        },
-        { type: 'separator' },
-        {
-          label: 'Theme',
-          submenu: [
-            // Light Themes (grouped first)
-            { label: 'Atom One Light (Default)', click: () => setTheme('atomonelight') },
-            { label: 'GitHub Light', click: () => setTheme('github') },
-            { label: 'Light', click: () => setTheme('light') },
-            { label: 'Solarized Light', click: () => setTheme('solarized') },
-            { label: 'Gruvbox Light', click: () => setTheme('gruvbox-light') },
-            { label: 'Ayu Light', click: () => setTheme('ayu-light') },
-            { label: 'Sepia', click: () => setTheme('sepia') },
-            { label: 'Paper', click: () => setTheme('paper') },
-            { label: 'Rose Pine Dawn', click: () => setTheme('rosepine-dawn') },
-            { label: 'Concrete Light', click: () => setTheme('concrete-light') },
-            { type: 'separator' },
-            // Dark Themes
-            { label: 'Dark', click: () => setTheme('dark') },
-            { label: 'One Dark', click: () => setTheme('onedark') },
-            { label: 'Dracula', click: () => setTheme('dracula') },
-            { label: 'Nord', click: () => setTheme('nord') },
-            { label: 'Monokai', click: () => setTheme('monokai') },
-            { label: 'Material', click: () => setTheme('material') },
-            { label: 'Gruvbox Dark', click: () => setTheme('gruvbox-dark') },
-            { label: 'Tokyo Night', click: () => setTheme('tokyonight') },
-            { label: 'Palenight', click: () => setTheme('palenight') },
-            { label: 'Ayu Dark', click: () => setTheme('ayu-dark') },
-            { label: 'Ayu Mirage', click: () => setTheme('ayu-mirage') },
-            { label: 'Oceanic Next', click: () => setTheme('oceanic-next') },
-            { label: 'Cobalt2', click: () => setTheme('cobalt2') },
-            { label: 'Concrete Dark', click: () => setTheme('concrete-dark') },
-            { label: 'Concrete Warm', click: () => setTheme('concrete-warm') }
-          ]
-        },
-        { type: 'separator' },
-        {
-          label: 'Font Size',
-          submenu: [
-            { 
-              label: 'Increase Font Size', 
-              accelerator: 'CmdOrCtrl+Shift+Plus',
-              click: () => mainWindow.webContents.send('adjust-font-size', 'increase')
-            },
-            { 
-              label: 'Decrease Font Size', 
-              accelerator: 'CmdOrCtrl+Shift+-',
-              click: () => mainWindow.webContents.send('adjust-font-size', 'decrease')
-            },
-            { 
-              label: 'Reset Font Size',
-              accelerator: 'CmdOrCtrl+Shift+0',
-              click: () => mainWindow.webContents.send('adjust-font-size', 'reset')
-            }
-          ]
-        },
-        { type: 'separator' },
-        {
-          label: 'Spell Check',
-          type: 'checkbox',
-          checked: true,
-          click: (menuItem) => {
-            mainWindow.webContents.session.setSpellCheckerEnabled(menuItem.checked);
-          }
-        },
-        { type: 'separator' },
-        {
-          label: 'Custom Preview CSS',
-          submenu: [
-            {
-              label: 'Load Custom Preview CSS...',
-              click: () => mainWindow.webContents.send('load-custom-css')
-            },
-            {
-              label: 'Clear Custom Preview CSS',
-              click: () => mainWindow.webContents.send('clear-custom-css')
-            }
-          ]
-        },
-        { type: 'separator' },
-        { label: 'Reload', accelerator: 'CmdOrCtrl+R', role: 'reload' },
-        { label: 'Toggle DevTools', accelerator: 'F12', role: 'toggleDevTools' },
-        { type: 'separator' },
-        { label: 'Zoom In', accelerator: 'CmdOrCtrl+Plus', role: 'zoomIn' },
-        { label: 'Zoom Out', accelerator: 'CmdOrCtrl+-', role: 'zoomOut' },
-        { label: 'Reset Zoom', accelerator: 'CmdOrCtrl+0', role: 'resetZoom' }
-      ]
-    },
-    {
-      label: 'Batch',
-      submenu: [
-        {
-          label: 'Convert Markdown Folder...',
-          click: () => showBatchConversionDialog()
-        },
-        { type: 'separator' },
-        {
-          label: 'Batch Image Conversion...',
-          click: () => mainWindow.webContents.send('show-batch-converter', 'image')
-        },
-        {
-          label: 'Batch Audio Conversion...',
-          click: () => mainWindow.webContents.send('show-batch-converter', 'audio')
-        },
-        {
-          label: 'Batch Video Conversion...',
-          click: () => mainWindow.webContents.send('show-batch-converter', 'video')
-        },
-        {
-          label: 'Batch PDF Conversion...',
-          click: () => mainWindow.webContents.send('show-batch-converter', 'pdf')
-        }
-      ]
-    },
-    {
-      label: 'Convert',
-      submenu: [
-        {
-          label: 'Universal File Converter...',
-          accelerator: 'CmdOrCtrl+Shift+C',
-          click: () => showUniversalConverterDialog()
-        }
-      ]
-    },
-    {
-      label: 'PDF Editor',
-      submenu: [
-        {
-          label: 'Open PDF File...',
-          accelerator: 'CmdOrCtrl+Shift+O',
-          click: () => openPDFFile()
-        },
-        { type: 'separator' },
-        {
-          label: 'Merge PDFs...',
-          click: () => showPDFEditorDialog('merge')
-        },
-        {
-          label: 'Split PDF...',
-          click: () => showPDFEditorDialog('split')
-        },
-        {
-          label: 'Compress PDF...',
-          click: () => showPDFEditorDialog('compress')
-        },
-        {
-          type: 'separator'
-        },
-        {
-          label: 'Rotate Pages...',
-          click: () => showPDFEditorDialog('rotate')
-        },
-        {
-          label: 'Delete Pages...',
-          click: () => showPDFEditorDialog('delete')
-        },
-        {
-          label: 'Reorder Pages...',
-          click: () => showPDFEditorDialog('reorder')
-        },
-        {
-          type: 'separator'
-        },
-        {
-          label: 'Add Watermark...',
-          click: () => showPDFEditorDialog('watermark')
-        },
-        {
-          type: 'separator'
-        },
-        {
-          label: 'Security',
-          submenu: [
-            {
-              label: 'Add Password Protection...',
-              click: () => showPDFEditorDialog('encrypt')
-            },
-            {
-              label: 'Remove Password...',
-              click: () => showPDFEditorDialog('decrypt')
-            },
-            {
-              label: 'Set Permissions...',
-              click: () => showPDFEditorDialog('permissions')
-            }
-          ]
-        },
-        {
-          type: 'separator'
-        },
-        {
-          label: 'About PDF Editor',
-          click: () => {
-            dialog.showMessageBox(mainWindow, {
-              type: 'info',
-              title: 'About PDF Editor',
-              message: 'PDF Editor',
-              detail: 'Comprehensive PDF editing capabilities powered by pdf-lib.\n\nFeatures:\n• Merge multiple PDF files\n• Split PDF into separate files\n• Compress PDF to reduce file size\n• Rotate pages (90°, 180°, 270°)\n• Delete unwanted pages\n• Reorder pages\n• Add text watermarks\n\nSecurity Features:\n• Password protection (encryption)\n• Remove passwords (decryption)\n• Set document permissions\n\n100% offline and open-source.',
-              buttons: ['OK']
-            });
-          }
-        }
-      ]
-    },
-    {
-      label: 'Tools',
-      submenu: [
-        {
-          label: 'Table Generator',
-          accelerator: 'CmdOrCtrl+Shift+T',
-          click: () => openTableGenerator()
-        },
-        {
-          label: 'ASCII Art Generator',
-          accelerator: 'CmdOrCtrl+Shift+A',
-          click: () => openAsciiGenerator()
-        },
-        { type: 'separator' },
-        {
-          label: 'Document Compare',
-          click: () => mainWindow.webContents.send('show-document-compare')
-        }
-      ]
-    },
-    {
-      label: 'Help',
-      submenu: [
-        {
-          label: 'About MarkdownConverter',
-          click: () => showAboutDialog()
-        },
-        { type: 'separator' },
-        {
-          label: 'Dependencies & Requirements',
-          click: () => showDependenciesDialog()
-        },
-        { type: 'separator' },
-        {
-          label: 'Documentation',
-          click: () => shell.openExternal('https://github.com/amitwh/markdown-converter')
-        },
-        {
-          label: 'Report Issue',
-          click: () => shell.openExternal('https://github.com/amitwh/markdown-converter/issues')
-        },
-        {
-          label: 'Check for Updates',
-          click: () => shell.openExternal('https://github.com/amitwh/markdown-converter/releases')
-        }
-      ]
-    }
-  ];
-
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
-}
 
 // Show About Dialog with logo
 function showAboutDialog() {
@@ -3685,7 +3199,7 @@ ipcMain.on('clear-recent-files', (event) => {
     const recentFilesPath = path.join(userDataPath, 'recent-files.json');
     fs.writeFileSync(recentFilesPath, JSON.stringify([], null, 2));
     // Rebuild menu to reflect changes
-    createMenu();
+    menu.register(mainWindow);
     event.reply('recent-files-cleared');
   } catch (error) {
     console.error('Error clearing recent files:', error);
@@ -3770,80 +3284,6 @@ ipcMain.on('select-pdf-folder', (event, inputId) => {
   if (folder && folder[0]) {
     event.reply('pdf-folder-selected', { inputId, path: folder[0] });
   }
-});
-
-// ============================================
-// ASCII Art Generator Window
-// ============================================
-let asciiGeneratorWindow = null;
-
-function openAsciiGenerator() {
-  if (asciiGeneratorWindow) {
-    asciiGeneratorWindow.focus();
-    return;
-  }
-
-  asciiGeneratorWindow = new BrowserWindow({
-    width: 800,
-    height: 700,
-    parent: mainWindow,
-    modal: false,
-    title: 'ASCII Art Generator',
-    icon: path.join(__dirname, '../assets/icon.png'),
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
-    }
-  });
-
-  asciiGeneratorWindow.loadFile(path.join(__dirname, 'ascii-generator.html'));
-  asciiGeneratorWindow.setMenuBarVisibility(false);
-
-  asciiGeneratorWindow.on('closed', () => {
-    asciiGeneratorWindow = null;
-  });
-}
-
-ipcMain.on('open-ascii-generator', () => {
-  openAsciiGenerator();
-});
-
-// ============================================
-// Table Generator Window
-// ============================================
-let tableGeneratorWindow = null;
-
-function openTableGenerator() {
-  if (tableGeneratorWindow) {
-    tableGeneratorWindow.focus();
-    return;
-  }
-
-  tableGeneratorWindow = new BrowserWindow({
-    width: 900,
-    height: 700,
-    parent: mainWindow,
-    modal: false,
-    title: 'Table Generator',
-    icon: path.join(__dirname, '../assets/icon.png'),
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
-    }
-  });
-
-  tableGeneratorWindow.loadFile(path.join(__dirname, 'table-generator.html'));
-  tableGeneratorWindow.setMenuBarVisibility(false);
-
-  tableGeneratorWindow.on('closed', () => {
-    tableGeneratorWindow = null;
-  });
-}
-
-ipcMain.on('open-table-generator', () => {
-  openTableGenerator();
 });
 
 // IPC Handler for loading document templates
@@ -4021,3 +3461,24 @@ ipcMain.handle('execute-code', async (event, { code, language }) => {
     });
   });
 });
+
+// Exports for src/main/menu/ items.js (lazy require inside click handlers)
+module.exports = {
+  openFile,
+  openPdfFile,
+  openFileFromPath,
+  saveAsFile,
+  exportFile,
+  exportPDFViaWordTemplate,
+  exportWordWithTemplate,
+  exportSpreadsheet,
+  importDocument,
+  selectWordTemplate,
+  showTemplateSettings,
+  setTheme,
+  showBatchConversionDialog,
+  showUniversalConverterDialog,
+  showPDFEditorDialog,
+  showAboutDialog,
+  showDependenciesDialog,
+};
