@@ -6,7 +6,7 @@ import './styles/globals.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ThemeProvider defaultTheme="dark" attribute="class" enableSystem>
+    <ThemeProvider defaultTheme="light" attribute="class" enableSystem>
       <App />
     </ThemeProvider>
   </React.StrictMode>
