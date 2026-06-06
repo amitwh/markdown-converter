@@ -3,14 +3,10 @@
 const { ipcMain, dialog, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const { listDirectory } = require('./search');
 const { register: registerGit } = require('./git');
 const { register: registerBinary } = require('./binary');
 
 function register({ validatePath, resolveWritablePath, isPathAccessible, currentFileRef, mainWindow }) {
-  // list-directory (simple version)
-  ipcMain.handle('list-directory', async (event, dirPath) => listDirectory(dirPath));
-
   // pick-folder
   ipcMain.handle('pick-folder', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
