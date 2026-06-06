@@ -89,8 +89,6 @@ describe('Preload Security', () => {
       'undo',
       'redo',
       'adjust-font-size',
-      'print-preview',
-      'print-preview-styled',
       'show-export-dialog',
       'show-batch-dialog',
       'show-universal-converter-dialog',
