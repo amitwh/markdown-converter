@@ -26,7 +26,11 @@ export type ModalState =
   | { kind: 'settings' }
   | { kind: 'about' }
   | { kind: 'welcome' }
-  | { kind: 'confirm'; props: ConfirmProps };
+  | { kind: 'confirm'; props: ConfirmProps }
+  | { kind: 'export-word'; props: { sourcePath: string } }
+  | { kind: 'ascii-generator' }
+  | { kind: 'table-generator' }
+  | { kind: 'find-in-files' };
 
 export type ModalKind = ModalState['kind'];
 

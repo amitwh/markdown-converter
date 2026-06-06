@@ -76,7 +76,15 @@ export const ipc = {
       }
       return window.electronAPI.file.onChange(cb);
     },
+    search: (args: { rootPath: string; query: string; isRegex: boolean; caseSensitive: boolean }): Promise<IpcResult<Array<{ filePath: string; line: number; content: string }> | ChannelMissing>> =>
+      safeCall('file', 'search', args),
+    gitStatus: (args: { rootPath: string }): Promise<IpcResult<Array<{ filePath: string; status: 'modified' | 'added' | 'deleted' | 'untracked' }> | ChannelMissing>> =>
+      safeCall('file', 'gitStatus', args),
+    writeBuffer: (args: { path: string; buffer: Uint8Array }): Promise<IpcResult<void | ChannelMissing>> =>
+      safeCall('file', 'writeBuffer', args),
   },
+  print: (args: { html: string }): Promise<IpcResult<void | ChannelMissing>> =>
+    safeCall('print', 'show', args),
   export: {
     pdf: (opts: PdfOptions): Promise<IpcResult<ExportResult | ChannelMissing>> =>
       safeCall('export', 'pdf', opts),

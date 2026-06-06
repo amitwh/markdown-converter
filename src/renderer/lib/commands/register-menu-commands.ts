@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useCommandStore } from '@/stores/command-store';
 import { useFileStore } from '@/stores/file-store';
 import { useAppStore } from '@/stores/app-store';
+import { useSettingsStore } from '@/stores/settings-store';
 import { useMenuAction } from '@/hooks/use-menu-action';
 
 /**
@@ -44,6 +45,28 @@ export function registerMenuCommands(): void {
     },
     'app.quit': () => {
       /* stub — wired in later phase */
+    },
+    'tools.ascii': () => useAppStore.getState().openModal('ascii-generator'),
+    'tools.table': () => useAppStore.getState().openModal('table-generator'),
+    'tools.findInFiles': () => useAppStore.getState().openModal('find-in-files'),
+    'tools.exportWord': () => {
+      const activeTabId = useFileStore.getState().activeTabId;
+      if (!activeTabId) return;
+      useAppStore.getState().openModal('export-word', { sourcePath: activeTabId });
+    },
+    'tools.repl': () => {
+      const current = useSettingsStore.getState().replOpen;
+      useSettingsStore.getState().setSetting('replOpen', !current);
+    },
+    'view.zenMode': () => {
+      const current = useAppStore.getState().zenMode;
+      useAppStore.getState().setZenMode(!current);
+    },
+    'file.print': () => {
+      /* stub — placeholder for print feature */
+    },
+    'git.refresh': () => {
+      /* stub — actual refresh is a useEffect in GitStatusPanel */
     },
   });
 

@@ -113,7 +113,7 @@
     "@tanstack/react-table": "^8.21.3",
     "codemirror": "^6.0.2",
     "core-util-is": "^1.0.3",
-    "docx": "^9.6.0",
+    "docx": "^9.7.1",
     "docx4js": "^2.0.1",
     "dompurify": "^3.3.1",
     "electron-store": "^10.1.0",
