@@ -16,7 +16,7 @@ function buildRecentFilesMenu(mainWindow) {
     const items = existing.map(file => ({
       label: path.basename(file),
       click: () => {
-        const { openFileFromPath } = require('../main');
+        const { openFileFromPath } = require('../index');
         openFileFromPath(file);
       }
     }));
@@ -48,7 +48,7 @@ function fileItems(mainWindow) {
       label: 'Open',
       accelerator: 'CmdOrCtrl+O',
       click: () => {
-        const { openFile } = require('../main');
+        const { openFile } = require('../index');
         openFile();
       }
     },
@@ -56,7 +56,7 @@ function fileItems(mainWindow) {
       label: 'Open PDF',
       accelerator: 'CmdOrCtrl+Shift+O',
       click: () => {
-        const { openPdfFile } = require('../main');
+        const { openPdfFile } = require('../index');
         openPdfFile();
       }
     },
@@ -69,7 +69,7 @@ function fileItems(mainWindow) {
       label: 'Save As',
       accelerator: 'CmdOrCtrl+Shift+S',
       click: () => {
-        const { saveAsFile } = require('../main');
+        const { saveAsFile } = require('../index');
         saveAsFile();
       }
     },
@@ -101,7 +101,7 @@ function fileItems(mainWindow) {
       label: 'Import Document...',
       accelerator: 'CmdOrCtrl+I',
       click: () => {
-        const { importDocument } = require('../main');
+        const { importDocument } = require('../index');
         importDocument();
       }
     },
@@ -110,64 +110,64 @@ function fileItems(mainWindow) {
       submenu: [
         {
           label: 'HTML', click: () => {
-            const { exportFile } = require('../main');
+            const { exportFile } = require('../index');
             exportFile('html');
           }
         },
         {
           label: 'PDF', click: () => {
-            const { exportFile } = require('../main');
+            const { exportFile } = require('../index');
             exportFile('pdf');
           }
         },
         {
           label: 'PDF (Enhanced)', click: () => {
-            const { exportPDFViaWordTemplate } = require('../main');
+            const { exportPDFViaWordTemplate } = require('../index');
             exportPDFViaWordTemplate();
           }, accelerator: 'Ctrl+Shift+P'
         },
         {
           label: 'DOCX', click: () => {
-            const { exportFile } = require('../main');
+            const { exportFile } = require('../index');
             exportFile('docx');
           }
         },
         {
           label: 'DOCX (Enhanced)', click: () => {
-            const { exportWordWithTemplate } = require('../main');
+            const { exportWordWithTemplate } = require('../index');
             exportWordWithTemplate();
           }, accelerator: 'Ctrl+Shift+W'
         },
-        { label: 'LaTeX', click: () => { const { exportFile } = require('../main'); exportFile('latex'); } },
-        { label: 'RTF', click: () => { const { exportFile } = require('../main'); exportFile('rtf'); } },
-        { label: 'ODT', click: () => { const { exportFile } = require('../main'); exportFile('odt'); } },
-        { label: 'EPUB', click: () => { const { exportFile } = require('../main'); exportFile('epub'); } },
+        { label: 'LaTeX', click: () => { const { exportFile } = require('../index'); exportFile('latex'); } },
+        { label: 'RTF', click: () => { const { exportFile } = require('../index'); exportFile('rtf'); } },
+        { label: 'ODT', click: () => { const { exportFile } = require('../index'); exportFile('odt'); } },
+        { label: 'EPUB', click: () => { const { exportFile } = require('../index'); exportFile('epub'); } },
         { type: 'separator' },
-        { label: 'PowerPoint (PPTX)', click: () => { const { exportFile } = require('../main'); exportFile('pptx'); } },
-        { label: 'OpenDocument Presentation (ODP)', click: () => { const { exportFile } = require('../main'); exportFile('odp'); } },
+        { label: 'PowerPoint (PPTX)', click: () => { const { exportFile } = require('../index'); exportFile('pptx'); } },
+        { label: 'OpenDocument Presentation (ODP)', click: () => { const { exportFile } = require('../index'); exportFile('odp'); } },
         { type: 'separator' },
-        { label: 'CSV (Tables)', click: () => { const { exportSpreadsheet } = require('../main'); exportSpreadsheet('csv'); } },
+        { label: 'CSV (Tables)', click: () => { const { exportSpreadsheet } = require('../index'); exportSpreadsheet('csv'); } },
         { type: 'separator' },
-        { label: 'JSON (.json)', click: () => { const { exportFile } = require('../main'); exportFile('json'); } },
-        { label: 'YAML (.yaml)', click: () => { const { exportFile } = require('../main'); exportFile('yaml'); } },
-        { label: 'XML (.xml)', click: () => { const { exportFile } = require('../main'); exportFile('xml'); } },
+        { label: 'JSON (.json)', click: () => { const { exportFile } = require('../index'); exportFile('json'); } },
+        { label: 'YAML (.yaml)', click: () => { const { exportFile } = require('../index'); exportFile('yaml'); } },
+        { label: 'XML (.xml)', click: () => { const { exportFile } = require('../index'); exportFile('xml'); } },
         { type: 'separator' },
-        { label: 'Confluence Wiki (.txt)', click: () => { const { exportFile } = require('../main'); exportFile('confluence'); } },
-        { label: 'MOBI E-book (.mobi)', click: () => { const { exportFile } = require('../main'); exportFile('mobi'); } }
+        { label: 'Confluence Wiki (.txt)', click: () => { const { exportFile } = require('../index'); exportFile('confluence'); } },
+        { label: 'MOBI E-book (.mobi)', click: () => { const { exportFile } = require('../index'); exportFile('mobi'); } }
       ]
     },
     { type: 'separator' },
     {
       label: 'Select Word Template...',
       click: () => {
-        const { selectWordTemplate } = require('../main');
+        const { selectWordTemplate } = require('../index');
         selectWordTemplate();
       }
     },
     {
       label: 'Template Settings...',
       click: () => {
-        const { showTemplateSettings } = require('../main');
+        const { showTemplateSettings } = require('../index');
         showTemplateSettings();
       }
     },
@@ -240,32 +240,32 @@ function viewItems(mainWindow) {
     {
       label: 'Theme',
       submenu: [
-        { label: 'Atom One Light (Default)', click: () => { const { setTheme } = require('../main'); setTheme('atomonelight'); } },
-        { label: 'GitHub Light', click: () => { const { setTheme } = require('../main'); setTheme('github'); } },
-        { label: 'Light', click: () => { const { setTheme } = require('../main'); setTheme('light'); } },
-        { label: 'Solarized Light', click: () => { const { setTheme } = require('../main'); setTheme('solarized'); } },
-        { label: 'Gruvbox Light', click: () => { const { setTheme } = require('../main'); setTheme('gruvbox-light'); } },
-        { label: 'Ayu Light', click: () => { const { setTheme } = require('../main'); setTheme('ayu-light'); } },
-        { label: 'Sepia', click: () => { const { setTheme } = require('../main'); setTheme('sepia'); } },
-        { label: 'Paper', click: () => { const { setTheme } = require('../main'); setTheme('paper'); } },
-        { label: 'Rose Pine Dawn', click: () => { const { setTheme } = require('../main'); setTheme('rosepine-dawn'); } },
-        { label: 'Concrete Light', click: () => { const { setTheme } = require('../main'); setTheme('concrete-light'); } },
+        { label: 'Atom One Light (Default)', click: () => { const { setTheme } = require('../index'); setTheme('atomonelight'); } },
+        { label: 'GitHub Light', click: () => { const { setTheme } = require('../index'); setTheme('github'); } },
+        { label: 'Light', click: () => { const { setTheme } = require('../index'); setTheme('light'); } },
+        { label: 'Solarized Light', click: () => { const { setTheme } = require('../index'); setTheme('solarized'); } },
+        { label: 'Gruvbox Light', click: () => { const { setTheme } = require('../index'); setTheme('gruvbox-light'); } },
+        { label: 'Ayu Light', click: () => { const { setTheme } = require('../index'); setTheme('ayu-light'); } },
+        { label: 'Sepia', click: () => { const { setTheme } = require('../index'); setTheme('sepia'); } },
+        { label: 'Paper', click: () => { const { setTheme } = require('../index'); setTheme('paper'); } },
+        { label: 'Rose Pine Dawn', click: () => { const { setTheme } = require('../index'); setTheme('rosepine-dawn'); } },
+        { label: 'Concrete Light', click: () => { const { setTheme } = require('../index'); setTheme('concrete-light'); } },
         { type: 'separator' },
-        { label: 'Dark', click: () => { const { setTheme } = require('../main'); setTheme('dark'); } },
-        { label: 'One Dark', click: () => { const { setTheme } = require('../main'); setTheme('onedark'); } },
-        { label: 'Dracula', click: () => { const { setTheme } = require('../main'); setTheme('dracula'); } },
-        { label: 'Nord', click: () => { const { setTheme } = require('../main'); setTheme('nord'); } },
-        { label: 'Monokai', click: () => { const { setTheme } = require('../main'); setTheme('monokai'); } },
-        { label: 'Material', click: () => { const { setTheme } = require('../main'); setTheme('material'); } },
-        { label: 'Gruvbox Dark', click: () => { const { setTheme } = require('../main'); setTheme('gruvbox-dark'); } },
-        { label: 'Tokyo Night', click: () => { const { setTheme } = require('../main'); setTheme('tokyonight'); } },
-        { label: 'Palenight', click: () => { const { setTheme } = require('../main'); setTheme('palenight'); } },
-        { label: 'Ayu Dark', click: () => { const { setTheme } = require('../main'); setTheme('ayu-dark'); } },
-        { label: 'Ayu Mirage', click: () => { const { setTheme } = require('../main'); setTheme('ayu-mirage'); } },
-        { label: 'Oceanic Next', click: () => { const { setTheme } = require('../main'); setTheme('oceanic-next'); } },
-        { label: 'Cobalt2', click: () => { const { setTheme } = require('../main'); setTheme('cobalt2'); } },
-        { label: 'Concrete Dark', click: () => { const { setTheme } = require('../main'); setTheme('concrete-dark'); } },
-        { label: 'Concrete Warm', click: () => { const { setTheme } = require('../main'); setTheme('concrete-warm'); } }
+        { label: 'Dark', click: () => { const { setTheme } = require('../index'); setTheme('dark'); } },
+        { label: 'One Dark', click: () => { const { setTheme } = require('../index'); setTheme('onedark'); } },
+        { label: 'Dracula', click: () => { const { setTheme } = require('../index'); setTheme('dracula'); } },
+        { label: 'Nord', click: () => { const { setTheme } = require('../index'); setTheme('nord'); } },
+        { label: 'Monokai', click: () => { const { setTheme } = require('../index'); setTheme('monokai'); } },
+        { label: 'Material', click: () => { const { setTheme } = require('../index'); setTheme('material'); } },
+        { label: 'Gruvbox Dark', click: () => { const { setTheme } = require('../index'); setTheme('gruvbox-dark'); } },
+        { label: 'Tokyo Night', click: () => { const { setTheme } = require('../index'); setTheme('tokyonight'); } },
+        { label: 'Palenight', click: () => { const { setTheme } = require('../index'); setTheme('palenight'); } },
+        { label: 'Ayu Dark', click: () => { const { setTheme } = require('../index'); setTheme('ayu-dark'); } },
+        { label: 'Ayu Mirage', click: () => { const { setTheme } = require('../index'); setTheme('ayu-mirage'); } },
+        { label: 'Oceanic Next', click: () => { const { setTheme } = require('../index'); setTheme('oceanic-next'); } },
+        { label: 'Cobalt2', click: () => { const { setTheme } = require('../index'); setTheme('cobalt2'); } },
+        { label: 'Concrete Dark', click: () => { const { setTheme } = require('../index'); setTheme('concrete-dark'); } },
+        { label: 'Concrete Warm', click: () => { const { setTheme } = require('../index'); setTheme('concrete-warm'); } }
       ]
     },
     { type: 'separator' },
@@ -327,7 +327,7 @@ function batchItems(mainWindow) {
     {
       label: 'Convert Markdown Folder...',
       click: () => {
-        const { showBatchConversionDialog } = require('../main');
+        const { showBatchConversionDialog } = require('../index');
         showBatchConversionDialog();
       }
     },
@@ -357,7 +357,7 @@ function convertItems(mainWindow) {
       label: 'Universal File Converter...',
       accelerator: 'CmdOrCtrl+Shift+C',
       click: () => {
-        const { showUniversalConverterDialog } = require('../main');
+        const { showUniversalConverterDialog } = require('../index');
         showUniversalConverterDialog();
       }
     }
@@ -370,7 +370,7 @@ function pdfEditorItems(mainWindow) {
       label: 'Open PDF File...',
       accelerator: 'CmdOrCtrl+Shift+O',
       click: () => {
-        const { openPdfFile } = require('../main');
+        const { openPdfFile } = require('../index');
         openPdfFile();
       }
     },
@@ -378,21 +378,21 @@ function pdfEditorItems(mainWindow) {
     {
       label: 'Merge PDFs...',
       click: () => {
-        const { showPDFEditorDialog } = require('../main');
+        const { showPDFEditorDialog } = require('../index');
         showPDFEditorDialog('merge');
       }
     },
     {
       label: 'Split PDF...',
       click: () => {
-        const { showPDFEditorDialog } = require('../main');
+        const { showPDFEditorDialog } = require('../index');
         showPDFEditorDialog('split');
       }
     },
     {
       label: 'Compress PDF...',
       click: () => {
-        const { showPDFEditorDialog } = require('../main');
+        const { showPDFEditorDialog } = require('../index');
         showPDFEditorDialog('compress');
       }
     },
@@ -400,21 +400,21 @@ function pdfEditorItems(mainWindow) {
     {
       label: 'Rotate Pages...',
       click: () => {
-        const { showPDFEditorDialog } = require('../main');
+        const { showPDFEditorDialog } = require('../index');
         showPDFEditorDialog('rotate');
       }
     },
     {
       label: 'Delete Pages...',
       click: () => {
-        const { showPDFEditorDialog } = require('../main');
+        const { showPDFEditorDialog } = require('../index');
         showPDFEditorDialog('delete');
       }
     },
     {
       label: 'Reorder Pages...',
       click: () => {
-        const { showPDFEditorDialog } = require('../main');
+        const { showPDFEditorDialog } = require('../index');
         showPDFEditorDialog('reorder');
       }
     },
@@ -422,7 +422,7 @@ function pdfEditorItems(mainWindow) {
     {
       label: 'Add Watermark...',
       click: () => {
-        const { showPDFEditorDialog } = require('../main');
+        const { showPDFEditorDialog } = require('../index');
         showPDFEditorDialog('watermark');
       }
     },
@@ -433,21 +433,21 @@ function pdfEditorItems(mainWindow) {
         {
           label: 'Add Password Protection...',
           click: () => {
-            const { showPDFEditorDialog } = require('../main');
+            const { showPDFEditorDialog } = require('../index');
             showPDFEditorDialog('encrypt');
           }
         },
         {
           label: 'Remove Password...',
           click: () => {
-            const { showPDFEditorDialog } = require('../main');
+            const { showPDFEditorDialog } = require('../index');
             showPDFEditorDialog('decrypt');
           }
         },
         {
           label: 'Set Permissions...',
           click: () => {
-            const { showPDFEditorDialog } = require('../main');
+            const { showPDFEditorDialog } = require('../index');
             showPDFEditorDialog('permissions');
           }
         }
@@ -457,7 +457,7 @@ function pdfEditorItems(mainWindow) {
     {
       label: 'About PDF Editor',
       click: () => {
-        const { showAboutDialog } = require('../main');
+        const { showAboutDialog } = require('../index');
         showAboutDialog();
       }
     }
@@ -482,7 +482,7 @@ function helpItems(mainWindow) {
     {
       label: 'About MarkdownConverter',
       click: () => {
-        const { showAboutDialog } = require('../main');
+        const { showAboutDialog } = require('../index');
         showAboutDialog();
       }
     },
@@ -490,7 +490,7 @@ function helpItems(mainWindow) {
     {
       label: 'Dependencies & Requirements',
       click: () => {
-        const { showDependenciesDialog } = require('../main');
+        const { showDependenciesDialog } = require('../index');
         showDependenciesDialog();
       }
     },
