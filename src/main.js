@@ -8,6 +8,7 @@ const GitOperations = require('./main/GitOperations');
 const { getAllowedDirectories, validatePath, resolveWritablePath, isPathAccessible } = require('./main/utils/paths');
 const fileOps = require('./main/files');
 const menu = require('./main/menu');
+const { createMainWindow } = require('./main/window');
 
 // Add MiKTeX to PATH for LaTeX support
 if (process.platform === 'win32') {
@@ -387,71 +388,6 @@ function checkPandocAvailability() {
   });
 }
 
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    show: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      spellcheck: true
-    },
-    icon: path.join(__dirname, '../assets/icon.png')
-  });
-
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
-
-  // Show window only after content is ready — avoids blank flash
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-  });
-
-  menu.register(mainWindow);
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
-
-  // Spell check context menu
-  mainWindow.webContents.on('context-menu', (event, params) => {
-    const { Menu, MenuItem } = require('electron');
-    const menu = new Menu();
-
-    // Add spell check suggestions
-    if (params.misspelledWord) {
-      for (const suggestion of params.dictionarySuggestions) {
-        menu.append(new MenuItem({
-          label: suggestion,
-          click: () => mainWindow.webContents.replaceMisspelling(suggestion)
-        }));
-      }
-      if (params.dictionarySuggestions.length > 0) {
-        menu.append(new MenuItem({ type: 'separator' }));
-      }
-      menu.append(new MenuItem({
-        label: 'Add to Dictionary',
-        click: () => mainWindow.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord)
-      }));
-      menu.append(new MenuItem({ type: 'separator' }));
-    }
-
-    // Standard context menu items
-    menu.append(new MenuItem({ role: 'cut' }));
-    menu.append(new MenuItem({ role: 'copy' }));
-    menu.append(new MenuItem({ role: 'paste' }));
-    menu.append(new MenuItem({ role: 'selectAll' }));
-
-    menu.popup();
-  });
-
-  // Wait for the page to fully load before sending file data
-  mainWindow.webContents.on('did-finish-load', () => {
-    console.log('Window finished loading');
-    // Don't open file here - wait for renderer-ready signal
-    // The renderer will send renderer-ready when TabManager is initialized
-  });
-}
 
 
 // Show About Dialog with logo
@@ -3127,7 +3063,8 @@ app.whenReady().then(() => {
     return; // Don't create window for CLI operations
   }
 
-  createWindow();
+  mainWindow = createMainWindow();
+  mainWindow.on('closed', () => { mainWindow = null; });
 
   // Register file ops IPC handlers
   fileOps.register({
@@ -3178,7 +3115,8 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    mainWindow = createMainWindow();
+    mainWindow.on('closed', () => { mainWindow = null; });
   }
 });
 
