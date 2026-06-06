@@ -6,6 +6,7 @@ const WordTemplateExporter = require('./wordTemplateExporter');
 const PDFOperations = require('./main/PDFOperations');
 const GitOperations = require('./main/GitOperations');
 const { getAllowedDirectories, validatePath, resolveWritablePath, isPathAccessible } = require('./main/utils/paths');
+const fileOps = require('./main/files');
 
 // Add MiKTeX to PATH for LaTeX support
 if (process.platform === 'win32') {
@@ -2936,55 +2937,6 @@ ipcMain.on('select-folder', (event, type) => {
   }
 });
 
-// List directory contents as FileEntry[]
-ipcMain.handle('list-directory', async (event, dirPath) => {
-  try {
-    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-    return entries.map((dirent) => {
-      const fullPath = path.join(dirPath, dirent.name);
-      let size;
-      let modifiedAt;
-      if (!dirent.isDirectory()) {
-        try {
-          const stat = fs.statSync(fullPath);
-          size = stat.size;
-          modifiedAt = stat.mtime.toISOString();
-        } catch {
-          // ignore stat errors
-        }
-      }
-      return {
-        name: dirent.name,
-        path: fullPath,
-        isDirectory: dirent.isDirectory(),
-        size,
-        modifiedAt,
-      };
-    });
-  } catch (err) {
-    return { error: err.message };
-  }
-});
-
-// Show folder picker dialog and return selected path or null
-ipcMain.handle('pick-folder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory'],
-  });
-  if (result.canceled || result.filePaths.length === 0) return null;
-  return result.filePaths[0];
-});
-
-// Show file picker dialog for markdown files and return selected path or null
-ipcMain.handle('pick-file', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openFile'],
-    filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd'] }],
-  });
-  if (result.canceled || result.filePaths.length === 0) return null;
-  return result.filePaths[0];
-});
-
 ipcMain.on('export-spreadsheet', (event, { content, format }) => {
   const outputFile = dialog.showSaveDialogSync(mainWindow, {
     defaultPath: currentFile.replace(/\.[^/.]+$/, `.${format}`),
@@ -3662,6 +3614,15 @@ app.whenReady().then(() => {
   }
 
   createWindow();
+
+  // Register file ops IPC handlers
+  fileOps.register({
+    validatePath,
+    resolveWritablePath,
+    isPathAccessible,
+    currentFileRef: { get current() { return currentFile; } },
+    mainWindow,
+  });
   
   // Handle file association on app startup
   // In packaged apps, process.argv structure is different:
@@ -3992,152 +3953,6 @@ ipcMain.handle('select-custom-css', async (event) => {
     return { path: filePath, content };
   }
   return null;
-});
-
-
-
-ipcMain.handle('read-file', async (event, filePath) => {
-  const validation = validatePath(filePath);
-  if (!validation.valid || !isPathAccessible(validation.resolved)) {
-    throw new Error(validation.error || 'Invalid file path');
-  }
-
-  return fs.readFileSync(validation.resolved, 'utf-8');
-});
-
-ipcMain.handle('write-file', async (event, payload) => {
-  const validation = resolveWritablePath(payload?.path);
-  if (!validation.valid) {
-    throw new Error(validation.error || 'Invalid file path');
-  }
-
-  fs.mkdirSync(path.dirname(validation.resolved), { recursive: true });
-  fs.writeFileSync(validation.resolved, payload?.content ?? '', 'utf-8');
-  return { path: validation.resolved };
-});
-
-ipcMain.handle('delete-file', async (event, filePath) => {
-  const validation = validatePath(filePath);
-  if (!validation.valid || !isPathAccessible(validation.resolved)) {
-    throw new Error(validation.error || 'Invalid file path');
-  }
-
-  fs.rmSync(validation.resolved, { recursive: true, force: false });
-  return true;
-});
-
-ipcMain.handle('ensure-directory', async (event, dirPath) => {
-  const validation = resolveWritablePath(dirPath);
-  if (!validation.valid) {
-    throw new Error(validation.error || 'Invalid directory path');
-  }
-
-  fs.mkdirSync(validation.resolved, { recursive: true });
-  return validation.resolved;
-});
-
-ipcMain.handle('path-exists', async (event, filePath) => {
-  const validation = resolveWritablePath(filePath);
-  return validation.valid ? fs.existsSync(validation.resolved) : false;
-});
-
-ipcMain.handle('is-directory', async (event, filePath) => {
-  const validation = validatePath(filePath);
-  if (!validation.valid || !isPathAccessible(validation.resolved)) {
-    return false;
-  }
-
-  return fs.statSync(validation.resolved).isDirectory();
-});
-
-ipcMain.handle('copy-path', async (event, payload) => {
-  const sourceValidation = validatePath(payload?.source);
-  const destinationValidation = resolveWritablePath(payload?.destination);
-
-  if (!sourceValidation.valid || !isPathAccessible(sourceValidation.resolved)) {
-    throw new Error(sourceValidation.error || 'Invalid source path');
-  }
-  if (!destinationValidation.valid) {
-    throw new Error(destinationValidation.error || 'Invalid destination path');
-  }
-
-  fs.mkdirSync(path.dirname(destinationValidation.resolved), { recursive: true });
-  fs.cpSync(sourceValidation.resolved, destinationValidation.resolved, { recursive: true });
-  return { source: sourceValidation.resolved, destination: destinationValidation.resolved };
-});
-
-ipcMain.handle('move-path', async (event, payload) => {
-  const sourceValidation = validatePath(payload?.source);
-  const destinationValidation = resolveWritablePath(payload?.destination);
-
-  if (!sourceValidation.valid || !isPathAccessible(sourceValidation.resolved)) {
-    throw new Error(sourceValidation.error || 'Invalid source path');
-  }
-  if (!destinationValidation.valid) {
-    throw new Error(destinationValidation.error || 'Invalid destination path');
-  }
-
-  fs.mkdirSync(path.dirname(destinationValidation.resolved), { recursive: true });
-
-  try {
-    fs.renameSync(sourceValidation.resolved, destinationValidation.resolved);
-  } catch (error) {
-    if (error.code !== 'EXDEV') {
-      throw error;
-    }
-
-    fs.cpSync(sourceValidation.resolved, destinationValidation.resolved, { recursive: true });
-    fs.rmSync(sourceValidation.resolved, { recursive: true, force: false });
-  }
-
-  return { source: sourceValidation.resolved, destination: destinationValidation.resolved };
-});
-
-// Open a file by path (from explorer panel)
-ipcMain.on('open-file-path', (event, filePath) => {
-  try {
-    // Validate path to prevent traversal attacks
-    const validation = validatePath(filePath);
-    if (!validation.valid) {
-      console.error('[SECURITY] Invalid file path:', validation.error);
-      return;
-    }
-
-    if (!isPathAccessible(validation.resolved)) {
-      return;
-    }
-
-    const stat = fs.statSync(validation.resolved);
-    if (stat.size > MAX_FILE_SIZE) return;
-    currentFile = validation.resolved;
-    const content = fs.readFileSync(validation.resolved, 'utf-8');
-    mainWindow.webContents.send('file-opened', { path: validation.resolved, content });
-  } catch (err) {
-    console.error('open-file-path error:', err);
-  }
-});
-
-// ============================================
-// Git IPC Handlers
-// ============================================
-ipcMain.handle('git-status', async () => {
-  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
-  return GitOperations.getStatus(dir);
-});
-
-ipcMain.handle('git-stage', async (event, { files }) => {
-  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
-  return GitOperations.stage(dir, files);
-});
-
-ipcMain.handle('git-commit', async (event, { message }) => {
-  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
-  return GitOperations.commit(dir, message);
-});
-
-ipcMain.handle('git-log', async () => {
-  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
-  return GitOperations.log(dir);
 });
 
 // ============================================
