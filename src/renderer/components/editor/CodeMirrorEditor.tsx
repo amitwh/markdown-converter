@@ -9,6 +9,8 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { useTheme } from 'next-themes';
 import { lightTheme, lightHighlight } from './themes/light';
 import { useEditorStore } from '@/stores/editor-store';
+import { useSettingsStore } from '@/stores/settings-store';
+import { Minimap } from './Minimap';
 
 interface Props {
   bufferId: string;
@@ -24,6 +26,7 @@ export function CodeMirrorEditor({ bufferId, initialContent, onChange, onCursorC
   const { resolvedTheme } = useTheme();
   const updateContent = useEditorStore((s) => s.updateContent);
   const setCursor = useEditorStore((s) => s.setCursor);
+  const minimap = useSettingsStore((s) => s.minimap);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -76,5 +79,10 @@ export function CodeMirrorEditor({ bufferId, initialContent, onChange, onCursorC
     });
   }, [resolvedTheme]);
 
-  return <div ref={ref} className="h-full overflow-hidden" />;
+  return (
+    <div className="relative h-full overflow-hidden">
+      <div ref={ref} className="h-full overflow-hidden" />
+      {minimap && <Minimap content={initialContent} />}
+    </div>
+  );
 }
