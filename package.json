@@ -2,7 +2,7 @@
   "name": "markdown-converter",
   "version": "4.4.2",
   "description": "Professional Markdown editor and universal file converter with PDF editing, batch processing, and syntax highlighting",
-  "main": "src/main.js",
+  "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
     "test": "jest",
