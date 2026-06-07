@@ -1,4 +1,16 @@
-import { Bold, Italic, List, ListOrdered, Code, Link as LinkIcon, PanelLeft, PanelRight, Save, FolderOpen, FileText } from 'lucide-react';
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Code,
+  Link as LinkIcon,
+  PanelLeft,
+  PanelRight,
+  Save,
+  FolderOpen,
+  FileText,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCommandStore } from '@/stores/command-store';
 import { useAppStore } from '@/stores/app-store';
@@ -66,12 +78,60 @@ export function Toolbar() {
 
       <div className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
 
-      <Button variant="ghost" size="icon" aria-label="Bold" disabled><Bold className="h-4 w-4" /></Button>
-      <Button variant="ghost" size="icon" aria-label="Italic" disabled><Italic className="h-4 w-4" /></Button>
-      <Button variant="ghost" size="icon" aria-label="Unordered list" disabled><List className="h-4 w-4" /></Button>
-      <Button variant="ghost" size="icon" aria-label="Ordered list" disabled><ListOrdered className="h-4 w-4" /></Button>
-      <Button variant="ghost" size="icon" aria-label="Code" disabled><Code className="h-4 w-4" /></Button>
-      <Button variant="ghost" size="icon" aria-label="Link" disabled><LinkIcon className="h-4 w-4" /></Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Bold"
+        data-testid="toolbar-bold"
+        onClick={() => dispatch('editor.bold')}
+      >
+        <Bold className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Italic"
+        data-testid="toolbar-italic"
+        onClick={() => dispatch('editor.italic')}
+      >
+        <Italic className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Unordered list"
+        data-testid="toolbar-list-unordered"
+        onClick={() => dispatch('editor.list.unordered')}
+      >
+        <List className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Ordered list"
+        data-testid="toolbar-list-ordered"
+        onClick={() => dispatch('editor.list.ordered')}
+      >
+        <ListOrdered className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Inline code"
+        data-testid="toolbar-code"
+        onClick={() => dispatch('editor.code')}
+      >
+        <Code className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Insert link"
+        data-testid="toolbar-link"
+        onClick={() => dispatch('editor.link')}
+      >
+        <LinkIcon className="h-4 w-4" />
+      </Button>
     </div>
   );
 }

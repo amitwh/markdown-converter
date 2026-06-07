@@ -86,13 +86,31 @@ describe('Toolbar', () => {
     expect(btn).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('formatting buttons (bold, italic, etc.) are disabled (Phase 9 work)', () => {
+  it('formatting buttons dispatch their command ids', () => {
+    const bold = vi.fn();
+    const italic = vi.fn();
+    const listU = vi.fn();
+    const listO = vi.fn();
+    const code = vi.fn();
+    const link = vi.fn();
+    useCommandStore.getState().register('editor.bold', bold);
+    useCommandStore.getState().register('editor.italic', italic);
+    useCommandStore.getState().register('editor.list.unordered', listU);
+    useCommandStore.getState().register('editor.list.ordered', listO);
+    useCommandStore.getState().register('editor.code', code);
+    useCommandStore.getState().register('editor.link', link);
     render(<Toolbar />);
-    expect(screen.getByLabelText('Bold')).toBeDisabled();
-    expect(screen.getByLabelText('Italic')).toBeDisabled();
-    expect(screen.getByLabelText('Unordered list')).toBeDisabled();
-    expect(screen.getByLabelText('Ordered list')).toBeDisabled();
-    expect(screen.getByLabelText('Code')).toBeDisabled();
-    expect(screen.getByLabelText('Link')).toBeDisabled();
+    fireEvent.click(screen.getByLabelText('Bold'));
+    fireEvent.click(screen.getByLabelText('Italic'));
+    fireEvent.click(screen.getByLabelText('Unordered list'));
+    fireEvent.click(screen.getByLabelText('Ordered list'));
+    fireEvent.click(screen.getByLabelText('Inline code'));
+    fireEvent.click(screen.getByLabelText('Insert link'));
+    expect(bold).toHaveBeenCalledTimes(1);
+    expect(italic).toHaveBeenCalledTimes(1);
+    expect(listU).toHaveBeenCalledTimes(1);
+    expect(listO).toHaveBeenCalledTimes(1);
+    expect(code).toHaveBeenCalledTimes(1);
+    expect(link).toHaveBeenCalledTimes(1);
   });
 });

@@ -16,15 +16,18 @@ vi.mock('@/lib/ipc', () => ({
     app: {
       getVersion: vi.fn().mockResolvedValue({ ok: true, data: '5.0.0' }),
       openExternal: vi.fn().mockResolvedValue({ ok: true }),
+      showSaveDialog: vi.fn().mockResolvedValue({ ok: true, data: '/test.pdf' }),
     },
     file: {
       read: vi.fn(),
       write: vi.fn(),
+      writeBuffer: vi.fn().mockResolvedValue({ ok: true }),
       list: vi.fn(),
       pickFolder: vi.fn(),
       pickFile: vi.fn(),
       onChange: vi.fn(),
     },
+    print: vi.fn().mockResolvedValue({ ok: true }),
     menu: {
       on: vi.fn(() => () => {}),
     },
@@ -90,7 +93,7 @@ describe('Phase 8 toasts integration', () => {
   });
 
   it('exporting a file calls toast.success on success', async () => {
-    (ipc.export.pdf as any).mockResolvedValue({ ok: true, data: { outputPath: '/test.pdf', bytes: 100, durationMs: 50 } });
+    (ipc.print as any).mockResolvedValue({ ok: true });
     registerMenuCommands();
     render(<App />);
 
@@ -102,8 +105,10 @@ describe('Phase 8 toasts integration', () => {
     const exportBtn = await screen.findByRole('button', { name: /^export$/i });
     await userEvent.click(exportBtn);
 
+    // The PDF flow hands the rendered HTML to the main process for print.
     await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Exported test.md'));
+      expect(ipc.print).toHaveBeenCalledTimes(1);
     });
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Sent test.md'));
   });
 });

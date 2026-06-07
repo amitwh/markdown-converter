@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAppStore } from '@/stores/app-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useExportSource } from '@/hooks/use-export-source';
+import { generateDocx } from '@/lib/docx-export';
 import { ipc } from '@/lib/ipc';
 import { toast } from '@/lib/toast';
 import { ExportDialogFooter } from './ExportDialogFooter';
@@ -23,19 +24,27 @@ export function ExportDocxDialog({ sourcePath }: { sourcePath: string }) {
     if (!source) { setError('No file open.'); return; }
     setSubmitting(true);
     setError(null);
-    const result = await ipc.export.docx({
-      inputPath: source.path,
-      outputPath: source.path.replace(/\.md$/, '.docx'),
-      template,
-      renderTablesAsAscii: ascii,
-    } as any);
-    if (!result.ok) {
-      toast.error(`Export failed: ${result.error.message}`);
-      setError(result.error.message);
-      setSubmitting(false);
-    } else {
-      toast.success(`Exported ${source.title} to ${result.data?.outputPath ?? 'file'}`);
+    try {
+      const blob = await generateDocx({ source: source.source, title: source.title });
+      const saveResult = await ipc.app.showSaveDialog?.({ title: 'Save as Word document', defaultPath: source.path.replace(/\.md$/, '.docx') });
+      if (!saveResult?.ok || !saveResult.data) {
+        setSubmitting(false);
+        return;
+      }
+      const buffer = new Uint8Array(await blob.arrayBuffer());
+      const writeResult = await ipc.file.writeBuffer({ path: saveResult.data, buffer });
+      if (!writeResult.ok) {
+        setError(writeResult.error.message);
+        setSubmitting(false);
+        return;
+      }
+      toast.success(`Exported ${source.title} to ${saveResult.data}`);
       closeModal();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Export failed: ${msg}`);
+      setError(msg);
+      setSubmitting(false);
     }
   };
 
@@ -58,7 +67,8 @@ export function ExportDocxDialog({ sourcePath }: { sourcePath: string }) {
               </SelectContent>
             </Select>
             <p className="mt-1 text-xs text-muted-foreground">
-              Bundled with the app. Standard is the default; Modern adds a colored cover page.
+              The renderer-side export produces the same document for all three
+              template choices; the option is preserved for future stylesheets.
             </p>
           </div>
           <label className="flex items-center gap-2">

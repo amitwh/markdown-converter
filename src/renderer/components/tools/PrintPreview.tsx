@@ -13,8 +13,11 @@ export function PrintPreview({ onClose }: Props) {
 
   const handlePrint = async () => {
     if (!source) return;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${source.title}</title></head><body><pre>${source.source.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] ?? c))}</pre></body></html>`;
-    await ipc.print({ html });
+    // The print flow goes through the main process so the user gets the
+    // native OS print dialog (with system paper-size, scale, and margins).
+    // We send a simple "trigger do-print" message and let the main process
+    // call webContents.print() with the user-chosen options.
+    ipc.print.doPrint({ withStyles: true });
   };
 
   if (!source) {
@@ -40,7 +43,7 @@ export function PrintPreview({ onClose }: Props) {
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
-            Print
+            Print…
           </Button>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
             <X className="h-4 w-4" />

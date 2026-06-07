@@ -7,7 +7,7 @@ import { useEditorStore } from '@/stores/editor-store';
 
 vi.mock('@/lib/ipc', () => ({
   ipc: {
-    print: vi.fn().mockResolvedValue({ ok: true }),
+    print: { doPrint: vi.fn() },
   },
 }));
 
@@ -33,11 +33,11 @@ describe('PrintPreview', () => {
     expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
   });
 
-  it('Print button calls ipc.print', async () => {
+  it('Print button calls ipc.print.doPrint', async () => {
     const onClose = vi.fn();
     render(<PrintPreview onClose={onClose} />);
     await userEvent.click(screen.getByRole('button', { name: /print/i }));
-    expect(ipc.print).toHaveBeenCalledTimes(1);
+    expect(ipc.print.doPrint).toHaveBeenCalledTimes(1);
   });
 
   it('Close button calls onClose', async () => {

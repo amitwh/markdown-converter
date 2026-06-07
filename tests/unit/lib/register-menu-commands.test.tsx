@@ -135,10 +135,11 @@ describe('useRegisterMenuCommands + useBridgeNativeMenu', () => {
 
   it('load-template-menu IPC event forwards the template name as args', () => {
     let captured: unknown;
+    render(<Harness />);
+    // Re-register after the harness so our capturing handler is the live one.
     useCommandStore.getState().register('template.load', (args) => {
       captured = args;
     });
-    render(<Harness />);
     act(() => fireMenu('load-template-menu', 'blog-post.md'));
     expect(captured).toBe('blog-post.md');
   });

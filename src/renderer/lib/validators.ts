@@ -19,6 +19,8 @@ export const settingsSchema = z.object({
   htmlHighlightStyle: z.enum(['github', 'monokai', 'nord', 'none']).default('github'),
   renderTablesAsAscii: z.boolean().default(false),
   welcomeDismissed: z.boolean().default(false),
+  editorFontSize: z.number().min(10).max(28).default(14),
+  customCssPath: z.string().nullable().default(null),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 

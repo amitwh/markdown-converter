@@ -6,9 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAppStore } from '@/stores/app-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useExportSource } from '@/hooks/use-export-source';
-import { ipc } from '@/lib/ipc';
 import { toast } from '@/lib/toast';
 import { ExportDialogFooter } from './ExportDialogFooter';
+import { ipc } from '@/lib/ipc';
+import { generateHtml } from '@/lib/html-export';
 
 const MARGIN_MAP = {
   normal: { top: 25, right: 25, bottom: 25, left: 25 },
@@ -25,7 +26,6 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
   const [ascii, setAscii] = useState(renderTablesAsAscii);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const source = useExportSource();
 
   const handleSubmit = async () => {
@@ -35,22 +35,37 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
     }
     setSubmitting(true);
     setError(null);
-    const result = await ipc.export.pdf({
-      inputPath: source.path,
-      outputPath: source.path.replace(/\.md$/, '.pdf'),
-      format,
-      margins: MARGIN_MAP[margins],
-      embedFonts: embed,
-      renderTablesAsAscii: ascii,
-      fontSize,
-    } as any);
-    if (!result.ok) {
-      toast.error(`Export failed: ${result.error?.message ?? 'Export failed'}`);
-      setError(result.error?.message ?? 'Export failed');
-      setSubmitting(false);
-    } else {
-      toast.success(`Exported ${source.title} to ${result.data?.outputPath ?? 'file'}`);
+    try {
+      // Renderer-side: build the standalone HTML and hand it to the main
+      // process for native print-to-PDF.
+      const html = generateHtml({
+        source: source.source,
+        title: source.title,
+        standalone: true,
+        highlightStyle: 'github',
+        renderTablesAsAscii: ascii,
+      });
+      const fmt = format === 'a4' ? { width: '210mm', height: '297mm' }
+                : format === 'legal' ? { width: '8.5in', height: '14in' }
+                : { width: '8.5in', height: '11in' };
+      const m = MARGIN_MAP[margins];
+      const pageCss = `@page { size: ${fmt.width} ${fmt.height}; margin: ${m.top}mm ${m.right}mm ${m.bottom}mm ${m.left}mm; }`;
+      const finalHtml = html.replace('</style>', `${pageCss}</style>`);
+      const result = await ipc.print({ html: finalHtml, withStyles: embed });
+      if (!result.ok) {
+        const msg = result.error?.message ?? 'PDF export failed';
+        toast.error(`Export failed: ${msg}`);
+        setError(msg);
+        setSubmitting(false);
+        return;
+      }
+      toast.success(`Sent ${source.title} to printer`);
       closeModal();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Export failed: ${msg}`);
+      setError(msg);
+      setSubmitting(false);
     }
   };
 

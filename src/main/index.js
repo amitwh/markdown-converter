@@ -2249,6 +2249,27 @@ function setTheme(theme) {
 }
 
 // IPC handlers
+ipcMain.on('app:quit', () => {
+  app.quit();
+});
+
+ipcMain.on('app:open-external', (_event, url) => {
+  if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
+    shell.openExternal(url).catch((e) => console.error('[app:open-external]', e));
+  }
+});
+
+ipcMain.handle('app:show-save-dialog', async (_event, args) => {
+  const opts = {
+    title: args?.title ?? 'Save file',
+    defaultPath: args?.defaultPath,
+    filters: args?.filters,
+  };
+  const result = await dialog.showSaveDialog(mainWindow, opts);
+  if (result.canceled || !result.filePath) return null;
+  return result.filePath;
+});
+
 ipcMain.on('save-file', (event, { path, content }) => {
   fs.writeFileSync(path, content, 'utf-8');
   currentFile = path;

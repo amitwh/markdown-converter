@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAppStore } from '@/stores/app-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useExportSource } from '@/hooks/use-export-source';
+import { generateHtml } from '@/lib/html-export';
 import { ipc } from '@/lib/ipc';
 import { toast } from '@/lib/toast';
 import { ExportDialogFooter } from './ExportDialogFooter';
@@ -24,20 +25,33 @@ export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
     if (!source) { setError('No file open.'); return; }
     setSubmitting(true);
     setError(null);
-    const result = await ipc.export.html({
-      inputPath: source.path,
-      outputPath: source.path.replace(/\.md$/, '.html'),
-      standalone,
-      highlightStyle: highlight,
-      renderTablesAsAscii: ascii,
-    } as any);
-    if (!result.ok) {
-      toast.error(`Export failed: ${result.error.message}`);
-      setError(result.error.message);
-      setSubmitting(false);
-    } else {
-      toast.success(`Exported ${source.title} to ${result.data?.outputPath ?? 'file'}`);
+    try {
+      const html = generateHtml({
+        source: source.source,
+        title: source.title,
+        standalone,
+        highlightStyle: highlight,
+        renderTablesAsAscii: ascii,
+      });
+      const saveResult = await ipc.app.showSaveDialog?.({ title: 'Save as HTML', defaultPath: source.path.replace(/\.md$/, '.html') });
+      if (!saveResult?.ok || !saveResult.data) {
+        setSubmitting(false);
+        return;
+      }
+      const buffer = new TextEncoder().encode(html);
+      const writeResult = await ipc.file.writeBuffer({ path: saveResult.data, buffer });
+      if (!writeResult.ok) {
+        setError(writeResult.error.message);
+        setSubmitting(false);
+        return;
+      }
+      toast.success(`Exported ${source.title} to ${saveResult.data}`);
       closeModal();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Export failed: ${msg}`);
+      setError(msg);
+      setSubmitting(false);
     }
   };
 

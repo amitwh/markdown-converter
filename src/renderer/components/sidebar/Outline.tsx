@@ -1,36 +1,11 @@
 import { useEditorStore } from '@/stores/editor-store';
-
-const HEADING_RE = /^(#{1,6})\s+(.+)$/gm;
-
-interface HeadingItem {
-  level: number;
-  text: string;
-  line: number;
-}
-
-function extractHeadings(content: string): HeadingItem[] {
-  const headings: HeadingItem[] = [];
-  let match: RegExpExecArray | null;
-  const re = new RegExp(HEADING_RE.source, 'gm');
-  let lineNum = 1;
-  for (const line of content.split('\n')) {
-    re.lastIndex = 0;
-    match = re.exec(line);
-    if (match) {
-      headings.push({
-        level: match[1].length,
-        text: match[2].trim(),
-        line: lineNum,
-      });
-    }
-    lineNum++;
-  }
-  return headings;
-}
+import { useCommandStore } from '@/stores/command-store';
+import { extractHeadings } from '@/lib/headings';
 
 export function Outline() {
   const activeId = useEditorStore((s) => s.activeId);
   const buffers = useEditorStore((s) => s.buffers);
+  const dispatch = useCommandStore((s) => s.dispatch);
 
   if (!activeId) {
     return (
@@ -64,7 +39,7 @@ export function Outline() {
       {headings.map((h, i) => (
         <button
           key={i}
-          onClick={() => {}}
+          onClick={() => dispatch('editor.gotoHeading', h.line)}
           className="flex items-center gap-1 rounded px-2 py-0.5 text-left text-xs hover:bg-accent"
           style={{ paddingLeft: `${(h.level - 1) * 16 + 8}px` }}
         >

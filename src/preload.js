@@ -98,6 +98,7 @@ const ALLOWED_SEND_CHANNELS = [
   'list-directory',
   'read-file',
   'write-file',
+  'write-buffer',
   'delete-file',
   'ensure-directory',
   'path-exists',
@@ -128,6 +129,11 @@ const ALLOWED_SEND_CHANNELS = [
   // Menu triggers
   'menu-open',
   'export',
+
+  // App lifecycle
+  'app:quit',
+  'app:open-external',
+  'app:show-save-dialog',
 
   // Git diff
   'git-diff',
@@ -221,6 +227,9 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'load-template-menu',
   'toggle-sidebar-panel',
   'toggle-bottom-panel',
+  'print-preview',
+  'print-preview-styled',
+  'clear-recent-files',
 
   // File dialog / directory listing
   'list-directory',
@@ -345,7 +354,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Print Operations
   print: {
-    doPrint: (options) => ipcRenderer.send('do-print', options)
+    doPrint: (options) => ipcRenderer.send('do-print', options),
+    show: (payload) => ipcRenderer.send('do-print', payload),
   },
 
   // Export Operations
@@ -423,7 +433,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     toGif: (data) => ipcRenderer.send('video-gif', data)
   },
 
-  getAppVersion: () => ipcRenderer.invoke('get-app-version')
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+
+  app: {
+    quit: () => ipcRenderer.send('app:quit'),
+    openExternal: (url) => ipcRenderer.send('app:open-external', url),
+    showSaveDialog: (args) => ipcRenderer.invoke('app:show-save-dialog', args),
+  }
 });
 
 // Log successful preload initialization
