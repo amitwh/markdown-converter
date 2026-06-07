@@ -36,6 +36,7 @@ interface FileState {
   loadChildren: (dirPath: string) => Promise<void>;
   toggleExpanded: (dirPath: string) => void;
   openFile: (filePath: string) => Promise<void>;
+  openFileFromMain: (filePath: string, content: string) => Promise<void>;
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
   markTabClean: (id: string) => void;
@@ -159,6 +160,25 @@ export const useFileStore = create<FileState>()(
       // Open in editor store
       useEditorStore.getState().openBuffer(filePath, filePath, content);
 
+      set((s) => {
+        s.openTabs.push({ id: filePath, path: filePath, title, dirty: false });
+        s.activeTabId = filePath;
+      });
+    },
+
+    // Used when the main process has already read the file (e.g. file-opened
+    // IPC from File → Open menu). Skips the renderer-side IPC read since main
+    // already has the content. Preserves the editor's current buffer content
+    // if the file is already open.
+    openFileFromMain: async (filePath, content) => {
+      const existing = useFileStore.getState().openTabs.find((t) => t.id === filePath);
+      if (existing) {
+        set((s) => { s.activeTabId = filePath; });
+        return;
+      }
+
+      const title = filePath.split('/').pop() ?? filePath;
+      useEditorStore.getState().openBuffer(filePath, filePath, content);
       set((s) => {
         s.openTabs.push({ id: filePath, path: filePath, title, dirty: false });
         s.activeTabId = filePath;

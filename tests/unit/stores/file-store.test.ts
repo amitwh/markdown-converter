@@ -232,6 +232,37 @@ describe('useFileStore', () => {
     expect(useEditorStore.getState().buffers.size).toBe(0);
   });
 
+  // --- openFileFromMain ---
+
+  it('openFileFromMain does NOT call ipc.file.read (main already sent content)', async () => {
+    await useFileStore.getState().openFileFromMain('/root/from-menu.md', '# from menu');
+
+    expect(fakeRead).not.toHaveBeenCalled();
+    const buf = useEditorStore.getState().buffers.get('/root/from-menu.md');
+    expect(buf).not.toBeUndefined();
+    expect(buf!.content).toBe('# from menu');
+    const tabs = useFileStore.getState().openTabs;
+    expect(tabs).toHaveLength(1);
+    expect(tabs[0].path).toBe('/root/from-menu.md');
+    expect(tabs[0].title).toBe('from-menu.md');
+    expect(useFileStore.getState().activeTabId).toBe('/root/from-menu.md');
+  });
+
+  it('openFileFromMain on an already-open file does not overwrite the editor buffer', async () => {
+    // Open once via the menu path
+    await useFileStore.getState().openFileFromMain('/root/x.md', '# menu version');
+    // User then types something in the editor (simulated via updateContent)
+    useEditorStore.getState().updateContent('/root/x.md', '# user edited');
+
+    // Menu sends the same file again (e.g. user picks it from Recent Files)
+    await useFileStore.getState().openFileFromMain('/root/x.md', '# menu version');
+
+    // Buffer keeps the user's edits — the menu re-open must not clobber them
+    expect(useEditorStore.getState().buffers.get('/root/x.md')!.content).toBe('# user edited');
+    expect(useFileStore.getState().openTabs).toHaveLength(1);
+    expect(useFileStore.getState().activeTabId).toBe('/root/x.md');
+  });
+
   // --- closeTab ---
 
   it('closeTab removes the tab and updates activeTabId to the previous neighbor', async () => {

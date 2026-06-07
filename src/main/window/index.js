@@ -16,8 +16,15 @@ function createMainWindow() {
     y: bounds.y,
     show: true,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      // The preload script exposes `window.electronAPI` — the only IPC
+      // bridge the renderer uses. Without this, every renderer call returns
+      // CHANNEL_MISSING and file/folder/save all silently no-op.
+      preload: path.join(__dirname, '../../preload.js'),
+      // contextIsolation MUST be true for the preload's contextBridge
+      // exposeInMainWorld call to succeed. Without it, the preload throws
+      // on load and the renderer never gets the IPC bridge.
+      contextIsolation: true,
+      nodeIntegration: false,
       spellcheck: true
     },
     icon: path.join(__dirname, '../../../assets/icon.png')

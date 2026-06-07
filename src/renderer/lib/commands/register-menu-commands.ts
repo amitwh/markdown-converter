@@ -102,6 +102,10 @@ export function registerMenuCommands(): void {
   });
   register('view.toggleSidebar', () => useAppStore.getState().toggleSidebar());
   register('view.togglePreview', () => useAppStore.getState().togglePreview());
+  register('file.opened', (payload?: { path?: string; content?: string }) => {
+    if (!payload?.path) return;
+    void useFileStore.getState().openFileFromMain(payload.path, payload.content ?? '');
+  });
 }
 
 export function useRegisterMenuCommands(): void {
@@ -118,7 +122,6 @@ export function useRegisterMenuCommands(): void {
 export function useBridgeNativeMenu(): void {
   useMenuAction('file-save', 'file.save');
   useMenuAction('toggle-preview', 'view.togglePreview');
-  useMenuAction('toggle-command-palette', 'command.palette');
   useMenuAction('toggle-sidebar-panel', 'view.sidebarPanel', (panel) => panel as string);
   useMenuAction('toggle-bottom-panel', 'view.bottomPanel');
   useMenuAction('toggle-find', 'find.toggle');
