@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [master, react-electron]
   pull_request:
-    branches: [master]
+    branches: [master, react-electron]
 
 jobs:
   test:
@@ -23,6 +23,9 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Run renderer tests
+        run: npm run test:renderer
 
       - name: Run linter
         run: npm run lint
