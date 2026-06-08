@@ -117,4 +117,26 @@ export const ipc = {
       return window.electronAPI.on(channel, callback as (...a: any[]) => void);
     },
   },
+  updater: {
+    check: (): Promise<IpcResult<void | ChannelMissing>> =>
+      safeCall('updater', 'check'),
+    install: (): Promise<IpcResult<void | ChannelMissing>> =>
+      safeCall('updater', 'install'),
+    getState: (): Promise<IpcResult<unknown | ChannelMissing>> =>
+      safeCall('updater', 'getState'),
+    onStatus: (cb: (payload: unknown) => void): (() => void) => {
+      if (typeof window === 'undefined' || !window.electronAPI?.updater?.onStatus) {
+        return () => {};
+      }
+      return window.electronAPI.updater.onStatus(cb);
+    },
+  },
+  crash: {
+    read: (): Promise<IpcResult<unknown | ChannelMissing>> =>
+      safeCall('crash', 'read'),
+    openDir: (): Promise<IpcResult<void | ChannelMissing>> =>
+      safeCall('crash', 'openDir'),
+    delete: (filename: string): Promise<IpcResult<void | ChannelMissing>> =>
+      safeCall('crash', 'delete', filename),
+  },
 };

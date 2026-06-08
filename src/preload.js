@@ -135,6 +135,16 @@ const ALLOWED_SEND_CHANNELS = [
   'app:open-external',
   'app:show-save-dialog',
 
+  // Updater
+  'updater:check',
+  'updater:install',
+  'updater:get-state',
+
+  // Crash reporter
+  'crash:read',
+  'crash:open-dir',
+  'crash:delete',
+
   // Git diff
   'git-diff',
 
@@ -230,6 +240,9 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'print-preview',
   'print-preview-styled',
   'clear-recent-files',
+
+  // Updater
+  'updater:status',
 
   // File dialog / directory listing
   'list-directory',
@@ -439,7 +452,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     quit: () => ipcRenderer.send('app:quit'),
     openExternal: (url) => ipcRenderer.send('app:open-external', url),
     showSaveDialog: (args) => ipcRenderer.invoke('app:show-save-dialog', args),
-  }
+  },
+
+  updater: {
+    check: () => ipcRenderer.invoke('updater:check'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    getState: () => ipcRenderer.invoke('updater:get-state'),
+    onStatus: (cb) => {
+      const subscription = (_event, payload) => cb(payload);
+      ipcRenderer.on('updater:status', subscription);
+      return () => ipcRenderer.removeListener('updater:status', subscription);
+    },
+  },
+
+  crash: {
+    read: () => ipcRenderer.invoke('crash:read'),
+    openDir: () => ipcRenderer.send('crash:open-dir'),
+    delete: (filename) => ipcRenderer.invoke('crash:delete', filename),
+  },
 });
 
 // Log successful preload initialization
