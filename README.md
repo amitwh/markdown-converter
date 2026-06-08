@@ -140,6 +140,21 @@ Open PDF files directly in MarkdownConverter:
 - Rotate pages left or right
 - Close PDF to return to editor
 
+## Distribution & Updates
+
+v5.x uses `electron-updater` against two feeds:
+
+- **GitHub Releases** (default, public): the public release at `https://github.com/amitwh/markdown-converter/releases`. The CI workflow publishes `latest-{mac,linux,windows}.yml` on every tag.
+- **ConcreteInfo self-hosted** (opt-in for enterprise deployments): `https://updates.concreteinfo.co.in/v5/`. CI mirrors artifacts on every release when `CONCRETEINFO_DEPLOY_HOOK` is set as a repository secret.
+
+Users switch the feed in **Settings → Updates → Update channel**. Auto-check is enabled by default; disable it in the same panel.
+
+### Manual mirror
+
+```bash
+CONCRETEINFO_DEPLOY_HOOK=... npm run publish:concreteinfo -- 5.1.0
+```
+
 ## Open Source
 
 MarkdownConverter is 100% open-source. All dependencies are permissively licensed:
