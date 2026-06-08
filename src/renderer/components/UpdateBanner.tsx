@@ -18,6 +18,17 @@ export function UpdateBanner() {
     );
   }
 
+  if (state === 'available') {
+    return (
+      <div data-testid="update-banner" className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-sm">
+        A new version (v{version}) is available.{' '}
+        <button onClick={() => useUpdaterStore.getState().check()} className="underline">
+          Download now
+        </button>
+      </div>
+    );
+  }
+
   if (state === 'downloading') {
     return (
       <div data-testid="update-banner" className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-sm">

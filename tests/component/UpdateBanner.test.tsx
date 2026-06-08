@@ -40,6 +40,13 @@ describe('UpdateBanner', () => {
     expect(screen.getByText(/couldn.?t check/i)).toBeInTheDocument();
   });
 
+  test('shows download CTA when state is available', () => {
+    useUpdaterStore.setState({ state: 'available', version: '5.0.2' });
+    render(<UpdateBanner />);
+    expect(screen.getByText(/5\.0\.2/)).toBeInTheDocument();
+    expect(screen.getByText(/download/i)).toBeInTheDocument();
+  });
+
   test('restart button calls ipc.updater.install', () => {
     useUpdaterStore.setState({ state: 'ready', version: '5.0.2' });
     render(<UpdateBanner />);

@@ -2260,7 +2260,7 @@ ipcMain.on('app:quit', () => {
 });
 
 ipcMain.on('app:open-external', (_event, url) => {
-  if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
+  if (typeof url === 'string' && /^https:\/\//i.test(url)) {
     shell.openExternal(url).catch((e) => console.error('[app:open-external]', e));
   }
 });

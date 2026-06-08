@@ -10,10 +10,10 @@ export function ThemeSettings() {
     <div className="space-y-5 text-sm">
       <div>
         <Label>Mode</Label>
-        <RadioGroup value={theme} onValueChange={(v) => setSetting('theme', v as 'light' | 'dark' | 'auto')}>
+        <RadioGroup value={theme} onValueChange={(v) => setSetting('theme', v as 'light' | 'dark' | 'system')}>
           <div className="flex items-center gap-2"><RadioGroupItem value="light" id="theme-light" /><Label htmlFor="theme-light">Light</Label></div>
           <div className="flex items-center gap-2"><RadioGroupItem value="dark" id="theme-dark" /><Label htmlFor="theme-dark">Dark</Label></div>
-          <div className="flex items-center gap-2"><RadioGroupItem value="auto" id="theme-auto" /><Label htmlFor="theme-auto">Auto (system)</Label></div>
+          <div className="flex items-center gap-2"><RadioGroupItem value="system" id="theme-system" /><Label htmlFor="theme-system">System</Label></div>
         </RadioGroup>
       </div>
       <div>
