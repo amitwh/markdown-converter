@@ -22,6 +22,9 @@ export const settingsSchema = z.object({
   editorFontSize: z.number().min(10).max(28).default(14),
   customCssPath: z.string().nullable().default(null),
   userBindings: z.record(z.string(), z.string()).default({}),
+  updateChannel: z.enum(['github', 'concreteinfo']).default('github'),
+  autoCheckUpdates: z.boolean().default(true),
+  firstRun: z.boolean().default(true),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
