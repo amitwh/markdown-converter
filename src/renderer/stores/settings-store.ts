@@ -25,18 +25,22 @@ export const useSettingsStore = create<SettingsState>()(
         const { setSetting, resetToDefaults, ...rest } = state;
         return rest;
       },
+      // onRehydrateStorage must NOT call useSettingsStore.setState() — at the
+      // moment the callback runs the store is still being constructed, and
+      // setState can hit a TDZ ReferenceError. Instead, return a normalized
+      // state object from this callback. Zustand's persist middleware will
+      // merge it into the store *after* construction completes.
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        try {
-          const result = settingsSchema.safeParse(state);
-          if (!result.success) {
-            console.warn('[settings-store] invalid persisted state, resetting to defaults', result.error);
-            useSettingsStore.setState({ ...DEFAULTS } as any);
-          }
-        } catch (err) {
-          console.warn('[settings-store] rehydration failed, resetting to defaults', err);
-          useSettingsStore.setState({ ...DEFAULTS } as any);
+        const result = settingsSchema.safeParse(state);
+        if (!result.success) {
+          console.warn(
+            '[settings-store] invalid persisted state, replacing with defaults',
+            result.error.issues.map((i) => i.path.join('.') + ': ' + i.message).join('; '),
+          );
+          return { ...DEFAULTS } as Partial<SettingsState>;
         }
+        return result.data as Partial<SettingsState>;
       },
     }
   )

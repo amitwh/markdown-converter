@@ -26,6 +26,16 @@ describe('migrateV4ToV5', () => {
     expect(a).toEqual(b);
   });
 
+  test('normalizes legacy theme names like "ayu-light" to a v5 value', () => {
+    // A previously-shipped v4 build wrote theme: 'ayu-light' (and similar).
+    // When an already-v5-marker file has such a value, isAlreadyV5 used to
+    // short-circuit and return the file as-is — which then failed the v5
+    // schema and reset user settings on every launch. The transform must
+    // normalize unknown theme values to the schema's default.
+    const out = migrateV4ToV5({ 'migration.version': 5, theme: 'ayu-light' });
+    expect(['light', 'dark', 'system']).toContain(out.theme);
+  });
+
   test('exposes the v4 schema for use by main', () => {
     expect(v4SettingsSchema).toBeDefined();
   });
