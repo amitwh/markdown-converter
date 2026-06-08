@@ -34,12 +34,20 @@ describe('MigrationRunner', () => {
     fs.rmSync(dir, { recursive: true });
   });
 
-  test('returns failed and preserves v4 on transform throw', () => {
+  test('returns failed and writes v5 marker so subsequent runs skip migration', () => {
     const dir = tmpDir();
     fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ theme: 'light' }));
     const r = new MigrationRunner({ dir, transform: () => { throw new Error('boom'); } });
     expect(r.run()).toBe('failed');
+    // v5 marker is written so next launch skips migration
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'settings.json'), 'utf-8'))['migration.version']).toBe(5);
+    // Original data is preserved (theme: light is still there)
     expect(fs.readFileSync(path.join(dir, 'settings.json'), 'utf-8')).toContain('light');
+    // Backup exists
+    expect(fs.existsSync(path.join(dir, 'settings.v4.bak.json'))).toBe(true);
+    // Subsequent run skips
+    const r2 = new MigrationRunner({ dir, transform: () => { throw new Error('should not be called'); } });
+    expect(r2.run()).toBe('skipped');
     fs.rmSync(dir, { recursive: true });
   });
 });

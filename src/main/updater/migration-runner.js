@@ -25,6 +25,10 @@ class MigrationRunner {
       return 'migrated';
     } catch (err) {
       console.error('[migration-runner] transform failed:', err.message);
+      // Back up the original and write v5 marker so future launches skip migration.
+      // Without this, every launch would fail again and the user stays on defaults.
+      fs.copyFileSync(this.file, this.backup);
+      fs.writeFileSync(this.file, JSON.stringify({ ...raw, 'migration.version': 5 }, null, 2));
       return 'failed';
     }
   }

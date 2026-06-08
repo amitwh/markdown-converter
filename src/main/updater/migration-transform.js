@@ -11,6 +11,15 @@ const v4SettingsSchema = z.object({
   snippets: z.array(z.unknown()).default([]),
 }).passthrough();
 
+const v5OnlyFields = ['updateChannel', 'autoCheckUpdates', 'firstRun'];
+
+function isAlreadyV5(data) {
+  if (!data || typeof data !== 'object') return false;
+  if (data['migration.version'] === 5) return true;
+  // Check for v5-only fields — a v4 file would never have these
+  return v5OnlyFields.some((f) => f in data);
+}
+
 const v5SettingsShape = {
   fontSize: 14,
   tabSize: 4,
@@ -39,6 +48,12 @@ const v5SettingsShape = {
 };
 
 function migrateV4ToV5(v4) {
+  // If data already looks like v5 (has migration.version=5 or v5-only fields),
+  // return it as-is so the runner can mark it done without re-migrating.
+  // This handles the case where a buggy v5 run wrote v5 fields without the marker.
+  if (isAlreadyV5(v4)) {
+    return v4;
+  }
   const parsed = v4SettingsSchema.parse(v4 || {});
   return {
     ...v5SettingsShape,
