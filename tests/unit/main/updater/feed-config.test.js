@@ -1,4 +1,4 @@
-const { resolveFeedUrl, FEEDS } = require('../../../../src/main/updater/feed-config');
+const { resolveFeedUrl, feedConfigFor, FEEDS } = require('../../../../src/main/updater/feed-config');
 
 describe('feed-config', () => {
   test('resolves github channel to GitHub Releases feed', () => {
@@ -29,5 +29,21 @@ describe('feed-config', () => {
   test('exports both feeds as constants', () => {
     expect(FEEDS.github).toBeDefined();
     expect(FEEDS.concreteinfo).toBeDefined();
+  });
+});
+describe('feedConfigFor', () => {
+  test('returns github provider config for github channel', () => {
+    const config = feedConfigFor('github');
+    expect(config).toEqual({ provider: 'github', owner: 'amitwh', repo: 'markdown-converter' });
+  });
+
+  test('returns generic provider config for concreteinfo channel', () => {
+    const config = feedConfigFor('concreteinfo');
+    expect(config).toEqual({ provider: 'generic', url: 'https://updates.concreteinfo.co.in/v5' });
+  });
+
+  test('falls back to generic provider on unknown channel', () => {
+    const config = feedConfigFor('something-weird');
+    expect(config).toEqual({ provider: 'generic', url: 'https://updates.concreteinfo.co.in/v5' });
   });
 });

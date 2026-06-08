@@ -1,13 +1,10 @@
 const { ipcMain } = require('electron');
-const { resolveFeedUrl } = require('../updater/feed-config');
+const { feedConfigFor } = require('../updater/feed-config');
 
 function register({ updater, getMainWindow, getChannel }) {
   ipcMain.handle('updater:check', async () => {
     const channel = getChannel();
-    const version = require('electron').app.getVersion();
-    const platform = process.platform;
-    const feed = resolveFeedUrl(channel, version, platform);
-    updater.autoUpdater.setFeedURL({ url: feed.replace(/\/latest-[^/]+\.yml$/, '') });
+    updater.autoUpdater.setFeedURL(feedConfigFor(channel));
     await updater.check();
     return { state: updater.state };
   });

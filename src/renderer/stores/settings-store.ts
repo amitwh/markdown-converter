@@ -27,9 +27,14 @@ export const useSettingsStore = create<SettingsState>()(
       },
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        const result = settingsSchema.safeParse(state);
-        if (!result.success) {
-          console.warn('[settings-store] invalid persisted state, resetting to defaults', result.error);
+        try {
+          const result = settingsSchema.safeParse(state);
+          if (!result.success) {
+            console.warn('[settings-store] invalid persisted state, resetting to defaults', result.error);
+            useSettingsStore.setState({ ...DEFAULTS } as any);
+          }
+        } catch (err) {
+          console.warn('[settings-store] rehydration failed, resetting to defaults', err);
           useSettingsStore.setState({ ...DEFAULTS } as any);
         }
       },
