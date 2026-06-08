@@ -8,6 +8,7 @@ import { ThemeSettings } from './ThemeSettings';
 import { ExportSettings } from './ExportSettings';
 import { PluginsSettings } from './PluginsSettings';
 import { AboutSettings } from './AboutSettings';
+import { UpdatesSettings } from './UpdatesSettings';
 
 export function SettingsSheet() {
   const closeModal = useAppStore((s) => s.closeModal);
@@ -21,11 +22,12 @@ export function SettingsSheet() {
           <SheetDescription>Editor, theme, and export preferences</SheetDescription>
         </SheetHeader>
         <Tabs defaultValue="editor" className="mt-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="theme">Theme</TabsTrigger>
             <TabsTrigger value="export">Export</TabsTrigger>
             <TabsTrigger value="plugins">Plugins</TabsTrigger>
+            <TabsTrigger value="updates">Updates</TabsTrigger>
             <TabsTrigger value="about">About</TabsTrigger>
           </TabsList>
           <div className="mt-4 max-h-[70vh] overflow-y-auto pr-2">
@@ -33,6 +35,7 @@ export function SettingsSheet() {
             <TabsContent value="theme"><ThemeSettings /></TabsContent>
             <TabsContent value="export"><ExportSettings /></TabsContent>
             <TabsContent value="plugins"><PluginsSettings /></TabsContent>
+            <TabsContent value="updates"><UpdatesSettings /></TabsContent>
             <TabsContent value="about"><AboutSettings /></TabsContent>
           </div>
         </Tabs>
