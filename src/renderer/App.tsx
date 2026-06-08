@@ -7,9 +7,11 @@ import { PrintPreview } from './components/tools/PrintPreview';
 import { UpdateBanner } from './components/UpdateBanner';
 import { FirstRunWizard } from './components/FirstRunWizard';
 import { useWelcomeTrigger } from './hooks/use-welcome-trigger';
+import { useAutoUpdateCheck } from './hooks/useAutoUpdateCheck';
 
 function App() {
   useWelcomeTrigger();
+  useAutoUpdateCheck();
   const [printOpen, setPrintOpen] = useState(false);
 
   useEffect(() => {
