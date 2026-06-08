@@ -4,6 +4,8 @@ import { ModalLayer } from './components/modals/ModalLayer';
 import { Toaster } from './components/ui/sonner';
 import { ReplPanel } from './components/tools/ReplPanel';
 import { PrintPreview } from './components/tools/PrintPreview';
+import { UpdateBanner } from './components/UpdateBanner';
+import { FirstRunWizard } from './components/FirstRunWizard';
 import { useWelcomeTrigger } from './hooks/use-welcome-trigger';
 
 function App() {
@@ -21,6 +23,8 @@ function App() {
       <AppShell />
       <ModalLayer />
       <Toaster />
+      <UpdateBanner />
+      <FirstRunWizard />
       <ReplPanel />
       {printOpen && <PrintPreview onClose={() => setPrintOpen(false)} />}
     </>

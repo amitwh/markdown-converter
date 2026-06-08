@@ -2,6 +2,7 @@ import { useAppStore } from '@/stores/app-store';
 import { AboutDialog } from './AboutDialog';
 import { AsciiGeneratorDialog } from './AsciiGeneratorDialog';
 import { ConfirmDialog } from './ConfirmDialog';
+import { CrashReportModal } from './CrashReportModal';
 import { ExportBatchDialog } from './ExportBatchDialog';
 import { ExportDocxDialog } from './ExportDocxDialog';
 import { ExportHtmlDialog } from './ExportHtmlDialog';
@@ -41,5 +42,7 @@ export function ModalLayer() {
       return <TableGeneratorDialog />;
     case 'find-in-files':
       return <FindInFilesDialog />;
+    case 'crashReports':
+      return <CrashReportModal onClose={useAppStore.getState().closeModal} />;
   }
 }

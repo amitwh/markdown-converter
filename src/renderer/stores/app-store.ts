@@ -30,7 +30,8 @@ export type ModalState =
   | { kind: 'export-word'; props: { sourcePath: string } }
   | { kind: 'ascii-generator' }
   | { kind: 'table-generator' }
-  | { kind: 'find-in-files' };
+  | { kind: 'find-in-files' }
+  | { kind: 'crashReports' };
 
 export type ModalKind = ModalState['kind'];
 
@@ -40,6 +41,7 @@ interface AppState {
   zenMode: boolean;
   paneSizes: PaneSizes;
   modal: ModalState;
+  firstRun: boolean;
   toggleSidebar: () => void;
   togglePreview: () => void;
   setZenMode: (value: boolean) => void;
@@ -49,6 +51,8 @@ interface AppState {
     ...args: Extract<ModalState, { kind: K }> extends { props: infer P } ? [props?: P] : []
   ) => void;
   closeModal: () => void;
+  setFirstRun: (value: boolean) => void;
+  newBuffer: (content?: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -59,6 +63,7 @@ export const useAppStore = create<AppState>()(
       zenMode: false,
       paneSizes: { sidebar: 20, editor: 50, preview: 30 },
       modal: { kind: null },
+      firstRun: true,
       toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),
       togglePreview: () => set((s) => ({ previewVisible: !s.previewVisible })),
       setZenMode: (value) => set({ zenMode: value }),
@@ -69,6 +74,8 @@ export const useAppStore = create<AppState>()(
           return { modal: candidate };
         }),
       closeModal: () => set({ modal: { kind: null } }),
+      setFirstRun: (value) => set({ firstRun: value }),
+      newBuffer: (_content?: string) => set({ firstRun: false }),
     }),
     {
       name: 'mc-app-store',
