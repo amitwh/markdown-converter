@@ -6,7 +6,7 @@ export const settingsSchema = z.object({
   lineNumbers: z.boolean().default(true),
   wordWrap: z.boolean().default(true),
   minimap: z.boolean().default(true),
-  theme: z.enum(['light', 'dark', 'auto']).default('auto'),
+  theme: z.enum(['light', 'dark', 'system']).default('system'),
   accentColor: z.enum(['brand', 'blue', 'green', 'purple', 'orange']).default('brand'),
   fontFamily: z.enum(['system', 'jetbrains', 'fira']).default('system'),
   pdfFormat: z.enum(['letter', 'a4', 'legal']).default('a4'),
@@ -21,6 +21,7 @@ export const settingsSchema = z.object({
   welcomeDismissed: z.boolean().default(false),
   editorFontSize: z.number().min(10).max(28).default(14),
   customCssPath: z.string().nullable().default(null),
+  userBindings: z.record(z.string(), z.string()).default({}),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
