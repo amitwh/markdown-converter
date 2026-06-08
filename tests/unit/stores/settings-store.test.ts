@@ -10,7 +10,7 @@ describe('useSettingsStore', () => {
   it('has sensible defaults', () => {
     const s = useSettingsStore.getState();
     expect(s.fontSize).toBe(14);
-    expect(s.theme).toBe('auto');
+    expect(s.theme).toBe('system');
     expect(s.pdfFormat).toBe('a4');
     expect(s.docxTemplate).toBe('standard');
     expect(s.renderTablesAsAscii).toBe(false);
@@ -27,7 +27,7 @@ describe('useSettingsStore', () => {
     useSettingsStore.getState().setSetting('theme', 'dark');
     useSettingsStore.getState().resetToDefaults();
     expect(useSettingsStore.getState().fontSize).toBe(14);
-    expect(useSettingsStore.getState().theme).toBe('auto');
+    expect(useSettingsStore.getState().theme).toBe('system');
   });
 
   it('persists only leaf settings (partialize), not actions', () => {
