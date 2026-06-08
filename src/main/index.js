@@ -1,4 +1,10 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
+const { UpdaterService } = require('./updater/updater-service');
+const { CrashWriter } = require('./updater/crash-writer');
+const { MigrationRunner } = require('./updater/migration-runner');
+const updaterHandlers = require('./ipc/updater-handlers');
+const crashHandlers = require('./ipc/crash-handlers');
 const path = require('path');
 const fs = require('fs');
 const { exec, execFile, spawn } = require('child_process');
@@ -3065,6 +3071,37 @@ app.whenReady().then(() => {
 
   mainWindow = createMainWindow();
   mainWindow.on('closed', () => { mainWindow = null; });
+
+  // --- Updater, crash writer, migration (must run before any settings read) ---
+  const userData = app.getPath('userData');
+
+  // Migration
+  const migration = new MigrationRunner({
+    dir: userData,
+    transform: (v4) => {
+      const { migrateV4ToV5 } = require('./updater/migration-transform');
+      return migrateV4ToV5(v4);
+    },
+  });
+  migration.run();
+
+  // Crash writer
+  const crash = new CrashWriter(path.join(userData, 'crashDumps'));
+  process.on('uncaughtException', (err) => crash.handleUncaught(err, 'uncaughtException'));
+  process.on('unhandledRejection', (err) => crash.handleUncaught(err, 'unhandledRejection'));
+
+  // Updater
+  const updater = new UpdaterService(autoUpdater);
+  updaterHandlers.register({
+    updater,
+    getMainWindow: () => mainWindow,
+    getChannel: () => store.get('updateChannel') || 'github',
+  });
+  crashHandlers.register({
+    crash,
+    getMainWindow: () => mainWindow,
+  });
+  // --------------------------------------------------------------------
 
   // Register file ops IPC handlers
   fileOps.register({
