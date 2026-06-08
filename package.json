@@ -33,7 +33,8 @@
     "dist:all": "electron-builder -mwl",
     "download-tools": "node scripts/download-tools.js",
     "generate-icons": "node scripts/generate-icons.js",
-    "build:icon-icns": "node scripts/build-icon-icns.js"
+    "build:icon-icns": "node scripts/build-icon-icns.js",
+    "publish:concreteinfo": "node scripts/publish-concreteinfo.js"
   },
   "keywords": [
     "markdown",

@@ -29,7 +29,7 @@ jobs:
         run: npm test
 
       - name: Build Linux packages
-        run: npm run build:linux-ci -- --publish=never
+        run: npm run build:linux-ci -- --publish=always
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -77,13 +77,13 @@ jobs:
         env:
           CSC_LINK: code-signing-cert.pfx
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        run: npm run build:win-signed -- --publish=never
+        run: npm run build:win-signed -- --publish=always
 
       - name: Build Windows packages (unsigned)
         if: ${{ env.CERT_AVAILABLE != 'true' }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npm run build:win-unsigned -- --publish=never
+        run: npm run build:win-unsigned -- --publish=always
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -117,7 +117,7 @@ jobs:
       - name: Build macOS packages (unsigned)
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npm run build:mac -- --publish=never
+        run: npm run build:mac -- --publish=always
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -161,3 +161,16 @@ jobs:
         with:
           generate_release_notes: true
           files: dist/*
+
+      - name: Mirror artifacts to ConcreteInfo update feed
+        if: env.CONCRETEINFO_DEPLOY_HOOK != ''
+        env:
+          CONCRETEINFO_DEPLOY_HOOK: ${{ secrets.CONCRETEINFO_DEPLOY_HOOK }}
+        run: |
+          curl -fsSL -X POST \
+            -H "Authorization: Bearer ${{ secrets.CONCRETEINFO_DEPLOY_HOOK }}" \
+            -F "version=${GITHUB_REF_NAME#v}" \
+            -F "artifacts=@dist/latest-mac.yml" \
+            -F "artifacts=@dist/latest-linux.yml" \
+            -F "artifacts=@dist/latest-windows.yml" \
+            https://updates.concreteinfo.co.in/api/v1/ingest
