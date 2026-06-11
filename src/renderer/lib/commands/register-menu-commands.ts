@@ -170,7 +170,7 @@ export function registerMenuCommands(): void {
         useAppStore.getState().toggleSidebar();
       }
       const target = document.querySelector(
-        `[data-testid="sidebar-jump-${panel}"]`,
+        `[data-testid="sidebar-jump-${panel}"]`
       ) as HTMLButtonElement | null;
       target?.click();
     },
@@ -184,7 +184,11 @@ export function registerMenuCommands(): void {
       const settings = useSettingsStore.getState();
       const cur = settings.editorFontSize ?? 14;
       const next =
-        direction === 'increase' ? Math.min(28, cur + 1) : direction === 'decrease' ? Math.max(10, cur - 1) : 14;
+        direction === 'increase'
+          ? Math.min(28, cur + 1)
+          : direction === 'decrease'
+            ? Math.max(10, cur - 1)
+            : 14;
       settings.setSetting('editorFontSize', next);
     },
 
@@ -202,16 +206,24 @@ export function registerMenuCommands(): void {
     'template.load': (name?: string) => {
       if (!name) return;
       const templates: Record<string, string> = {
-        'blog-post.md': '# Blog Post\n\n_Author • Date_\n\n## Introduction\n\n## Body\n\n## Conclusion\n',
-        'meeting-notes.md': '# Meeting Notes\n\n**Date:** \n**Attendees:** \n\n## Agenda\n\n## Discussion\n\n## Action items\n',
-        'technical-spec.md': '# Technical Specification\n\n## Overview\n\n## Goals\n\n## Design\n\n## Implementation\n\n## Testing\n',
-        'changelog.md': '# Changelog\n\n## [Unreleased]\n\n### Added\n- \n\n### Changed\n- \n\n### Fixed\n- \n',
+        'blog-post.md':
+          '# Blog Post\n\n_Author • Date_\n\n## Introduction\n\n## Body\n\n## Conclusion\n',
+        'meeting-notes.md':
+          '# Meeting Notes\n\n**Date:** \n**Attendees:** \n\n## Agenda\n\n## Discussion\n\n## Action items\n',
+        'technical-spec.md':
+          '# Technical Specification\n\n## Overview\n\n## Goals\n\n## Design\n\n## Implementation\n\n## Testing\n',
+        'changelog.md':
+          '# Changelog\n\n## [Unreleased]\n\n### Added\n- \n\n### Changed\n- \n\n### Fixed\n- \n',
         'readme.md': '# Project\n\n## Description\n\n## Installation\n\n## Usage\n\n## License\n',
         'project-plan.md': '# Project Plan\n\n## Goals\n\n## Milestones\n\n## Risks\n\n## Status\n',
-        'api-docs.md': '# API Documentation\n\n## Authentication\n\n## Endpoints\n\n### `GET /resource`\n\n### `POST /resource`\n',
-        'tutorial.md': '# Tutorial\n\n## Prerequisites\n\n## Step 1\n\n## Step 2\n\n## Conclusion\n',
-        'release-notes.md': '# Release Notes\n\n## New features\n\n## Improvements\n\n## Bug fixes\n',
-        'comparison.md': '# Comparison\n\n| Option | A | B |\n|---|---|---|\n| Cost |  |  |\n| Speed |  |  |\n',
+        'api-docs.md':
+          '# API Documentation\n\n## Authentication\n\n## Endpoints\n\n### `GET /resource`\n\n### `POST /resource`\n',
+        'tutorial.md':
+          '# Tutorial\n\n## Prerequisites\n\n## Step 1\n\n## Step 2\n\n## Conclusion\n',
+        'release-notes.md':
+          '# Release Notes\n\n## New features\n\n## Improvements\n\n## Bug fixes\n',
+        'comparison.md':
+          '# Comparison\n\n| Option | A | B |\n|---|---|---|\n| Cost |  |  |\n| Speed |  |  |\n',
       };
       const snippet = templates[name];
       if (!snippet) {
@@ -240,9 +252,7 @@ export function registerMenuCommands(): void {
         }
         return;
       }
-      toast.info(
-        `${type.charAt(0).toUpperCase() + type.slice(1)} batch conversion — coming soon!`,
-      );
+      toast.info(`${type.charAt(0).toUpperCase() + type.slice(1)} batch conversion — coming soon!`);
     },
 
     // Document compare — no modal yet, acknowledge with toast.

@@ -22,11 +22,7 @@ export function EditorPane() {
 
   return (
     <div className="h-full">
-      <CodeMirrorEditor
-        key={buf.id}
-        bufferId={buf.id}
-        initialContent={buf.content}
-      />
+      <CodeMirrorEditor key={buf.id} bufferId={buf.id} initialContent={buf.content} />
     </div>
   );
 }

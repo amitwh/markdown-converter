@@ -59,11 +59,24 @@ describe('Phase 8 toasts integration', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
-    useAppStore.setState({ modal: { kind: null }, sidebarVisible: true, previewVisible: true, zenMode: false, paneSizes: { sidebar: 20, editor: 50, preview: 30 } } as any);
+    useAppStore.setState({
+      modal: { kind: null },
+      sidebarVisible: true,
+      previewVisible: true,
+      zenMode: false,
+      paneSizes: { sidebar: 20, editor: 50, preview: 30 },
+    } as any);
     useCommandStore.setState({ handlers: {}, userBindings: {} } as any);
     useSettingsStore.setState({ ...useSettingsStore.getInitialState(), welcomeDismissed: true });
-    useFileStore.setState({ activeTabId: '/test.md', openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }] } as any);
-    useEditorStore.setState({ buffers: new Map([['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: true }]]) } as any);
+    useFileStore.setState({
+      activeTabId: '/test.md',
+      openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }],
+    } as any);
+    useEditorStore.setState({
+      buffers: new Map([
+        ['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: true }],
+      ]),
+    } as any);
   });
 
   it('saving a file calls toast.success with "Saved test.md"', async () => {
@@ -77,7 +90,10 @@ describe('Phase 8 toasts integration', () => {
   });
 
   it('saving with IPC error calls toast.error', async () => {
-    (ipc.file.write as any).mockResolvedValue({ ok: false, error: { code: 'EACCES', message: 'Permission denied' } });
+    (ipc.file.write as any).mockResolvedValue({
+      ok: false,
+      error: { code: 'EACCES', message: 'Permission denied' },
+    });
     registerMenuCommands();
     render(<App />);
 
@@ -87,7 +103,10 @@ describe('Phase 8 toasts integration', () => {
   });
 
   it('opening a missing file calls toast.error', async () => {
-    (ipc.file.read as any).mockResolvedValue({ ok: false, error: { code: 'ENOENT', message: 'No such file' } });
+    (ipc.file.read as any).mockResolvedValue({
+      ok: false,
+      error: { code: 'ENOENT', message: 'No such file' },
+    });
     registerMenuCommands();
     render(<App />);
 
@@ -102,7 +121,10 @@ describe('Phase 8 toasts integration', () => {
 
     // Open the export-pdf modal via command dispatch
     useCommandStore.getState().dispatch('file.exportPdf');
-    expect(useAppStore.getState().modal).toEqual({ kind: 'export-pdf', props: { sourcePath: '/test.md' } });
+    expect(useAppStore.getState().modal).toEqual({
+      kind: 'export-pdf',
+      props: { sourcePath: '/test.md' },
+    });
 
     // Click the Export button
     const exportBtn = await screen.findByRole('button', { name: /^export$/i });

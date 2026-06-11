@@ -39,7 +39,7 @@ describe('toAsciiTable', () => {
     expect(out).toContain('|    X | 100 |');
     // Right-aligned: "YY" padStart(4) -> "  YY", "25" padStart(3) -> " 25"
     expect(out).toContain('|   YY |  25 |');
- });
+  });
 });
 
 describe('applyAsciiTransform', () => {

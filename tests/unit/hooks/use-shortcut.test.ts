@@ -95,7 +95,12 @@ describe('useShortcut', () => {
   it('calls preventDefault when the shortcut matches', () => {
     const cb = vi.fn();
     renderHook(() => useShortcut('mod+s', cb));
-    const event = new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true });
+    const event = new KeyboardEvent('keydown', {
+      key: 's',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
     window.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
   });
@@ -103,7 +108,12 @@ describe('useShortcut', () => {
   it('does NOT call preventDefault when the shortcut does NOT match', () => {
     const cb = vi.fn();
     renderHook(() => useShortcut('mod+s', cb));
-    const event = new KeyboardEvent('keydown', { key: 'x', ctrlKey: true, bubbles: true, cancelable: true });
+    const event = new KeyboardEvent('keydown', {
+      key: 'x',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
     window.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
   });

@@ -2,7 +2,13 @@ import { ChevronRight, Folder, FolderOpen, File, FileText } from 'lucide-react';
 import { useFileStore } from '@/stores/file-store';
 import { cn } from '@/lib/utils';
 
-function FileTreeNode({ node, depth }: { node: import('@/stores/file-store').FileNode; depth: number }) {
+function FileTreeNode({
+  node,
+  depth,
+}: {
+  node: import('@/stores/file-store').FileNode;
+  depth: number;
+}) {
   const { expanded, activeTabId, loadChildren, toggleExpanded, openFile } = useFileStore();
   const isExpanded = expanded.has(node.path);
   const isActive = activeTabId === node.path;

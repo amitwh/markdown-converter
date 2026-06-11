@@ -36,7 +36,7 @@ export const useSettingsStore = create<SettingsState>()(
         if (!result.success) {
           console.warn(
             '[settings-store] invalid persisted state, replacing with defaults',
-            result.error.issues.map((i) => i.path.join('.') + ': ' + i.message).join('; '),
+            result.error.issues.map((i) => i.path.join('.') + ': ' + i.message).join('; ')
           );
           return { ...DEFAULTS } as Partial<SettingsState>;
         }

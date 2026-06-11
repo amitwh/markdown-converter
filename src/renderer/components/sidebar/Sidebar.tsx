@@ -35,7 +35,11 @@ export function Sidebar() {
             {!tree ? (
               <div className="flex flex-col items-center gap-2 p-4 text-xs text-muted-foreground">
                 <span>No folder opened</span>
-                <Button size="sm" variant="outline" onClick={() => useFileStore.getState().openFolderDialog()}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => useFileStore.getState().openFolderDialog()}
+                >
                   <FolderOpen className="mr-1" /> Open Folder
                 </Button>
               </div>
@@ -114,11 +118,21 @@ export function Sidebar() {
           matching section into view. The hidden elements expose a hook for
           Playwright tests and the menu handler. */}
       <div className="sr-only" aria-hidden="true">
-        <button data-testid="sidebar-jump-explorer" onClick={() => scrollToSection('Files')}>jump-explorer</button>
-        <button data-testid="sidebar-jump-outline" onClick={() => scrollToSection('Outline')}>jump-outline</button>
-        <button data-testid="sidebar-jump-snippets" onClick={() => scrollToSection('Snippets')}>jump-snippets</button>
-        <button data-testid="sidebar-jump-templates" onClick={() => scrollToSection('Templates')}>jump-templates</button>
-        <button data-testid="sidebar-jump-git" onClick={() => scrollToSection('Git')}>jump-git</button>
+        <button data-testid="sidebar-jump-explorer" onClick={() => scrollToSection('Files')}>
+          jump-explorer
+        </button>
+        <button data-testid="sidebar-jump-outline" onClick={() => scrollToSection('Outline')}>
+          jump-outline
+        </button>
+        <button data-testid="sidebar-jump-snippets" onClick={() => scrollToSection('Snippets')}>
+          jump-snippets
+        </button>
+        <button data-testid="sidebar-jump-templates" onClick={() => scrollToSection('Templates')}>
+          jump-templates
+        </button>
+        <button data-testid="sidebar-jump-git" onClick={() => scrollToSection('Git')}>
+          jump-git
+        </button>
       </div>
     </ScrollArea>
   );

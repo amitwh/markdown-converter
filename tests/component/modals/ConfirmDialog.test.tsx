@@ -34,9 +34,7 @@ describe('ConfirmDialog', () => {
   });
 
   it('destructive variant uses destructive button class', () => {
-    render(
-      <ConfirmDialog title="T" body="B" destructive onConfirm={() => {}} />
-    );
+    render(<ConfirmDialog title="T" body="B" destructive onConfirm={() => {}} />);
     const btn = screen.getByRole('button', { name: /confirm/i });
     expect(btn.className).toContain('bg-destructive');
   });

@@ -8,7 +8,9 @@ describe('GoalTracker', () => {
     store = {};
     tracker = new GoalTracker({
       get: (key) => store[key],
-      set: (key, value) => { store[key] = value; }
+      set: (key, value) => {
+        store[key] = value;
+      },
     });
   });
 

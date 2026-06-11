@@ -1,10 +1,25 @@
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useAppStore, type ConfirmProps } from '@/stores/app-store';
 
 export function ConfirmDialog(props: ConfirmProps) {
   const closeModal = useAppStore((s) => s.closeModal);
-  const { title, body, confirmLabel = 'Confirm', cancelLabel = 'Cancel', destructive, onConfirm, onCancel } = props;
+  const {
+    title,
+    body,
+    confirmLabel = 'Confirm',
+    cancelLabel = 'Cancel',
+    destructive,
+    onConfirm,
+    onCancel,
+  } = props;
 
   const handleConfirm = async () => {
     await onConfirm();

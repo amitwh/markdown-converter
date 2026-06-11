@@ -69,7 +69,8 @@ function renderManuscriptPanel(container, { engines, editor, settings }) {
   const row = document.createElement('div');
   row.className = 'ws-stat-row';
   const label = document.createElement('span');
-  label.textContent = stats.totalWords.toLocaleString() + ' / ' + stats.targetWords.toLocaleString() + ' words';
+  label.textContent =
+    stats.totalWords.toLocaleString() + ' / ' + stats.targetWords.toLocaleString() + ' words';
   const pct = document.createElement('span');
   pct.className = 'ws-pct';
   pct.textContent = stats.pctComplete + '%';

@@ -1,4 +1,10 @@
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/stores/app-store';
@@ -31,16 +37,30 @@ export function SettingsSheet() {
             <TabsTrigger value="about">About</TabsTrigger>
           </TabsList>
           <div className="mt-4 max-h-[70vh] overflow-y-auto pr-2">
-            <TabsContent value="editor"><EditorSettings /></TabsContent>
-            <TabsContent value="theme"><ThemeSettings /></TabsContent>
-            <TabsContent value="export"><ExportSettings /></TabsContent>
-            <TabsContent value="plugins"><PluginsSettings /></TabsContent>
-            <TabsContent value="updates"><UpdatesSettings /></TabsContent>
-            <TabsContent value="about"><AboutSettings /></TabsContent>
+            <TabsContent value="editor">
+              <EditorSettings />
+            </TabsContent>
+            <TabsContent value="theme">
+              <ThemeSettings />
+            </TabsContent>
+            <TabsContent value="export">
+              <ExportSettings />
+            </TabsContent>
+            <TabsContent value="plugins">
+              <PluginsSettings />
+            </TabsContent>
+            <TabsContent value="updates">
+              <UpdatesSettings />
+            </TabsContent>
+            <TabsContent value="about">
+              <AboutSettings />
+            </TabsContent>
           </div>
         </Tabs>
         <div className="mt-4 flex justify-end border-t border-border pt-4">
-          <Button variant="ghost" onClick={resetToDefaults}>Reset to defaults</Button>
+          <Button variant="ghost" onClick={resetToDefaults}>
+            Reset to defaults
+          </Button>
         </div>
       </SheetContent>
     </Sheet>

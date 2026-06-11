@@ -14,10 +14,11 @@ export function toAsciiTable(rows: string[][]): string {
   const pad = rightAlign
     ? (s: string, w: number) => s.padStart(w)
     : (s: string, w: number) => s.padEnd(w);
-  const lines = rows.map((row) =>
-    '| ' +
-    Array.from({ length: numCols }, (_, c) => pad(row[c] ?? '', widths[c])).join(' | ') +
-    ' |'
+  const lines = rows.map(
+    (row) =>
+      '| ' +
+      Array.from({ length: numCols }, (_, c) => pad(row[c] ?? '', widths[c])).join(' | ') +
+      ' |'
   );
   // Insert separator after first row
   const sep =
@@ -35,9 +36,15 @@ const TABLE_RE = /^\|.+\|\n^\|[\s:|-]+\|\n((?:^\|.+\|\n?)+)/gm;
 export function applyAsciiTransform(source: string): string {
   return source.replace(TABLE_RE, (block) => {
     const lines = block.trim().split('\n');
-    const header = lines[0].slice(1, -1).split('|').map((s) => s.trim());
+    const header = lines[0]
+      .slice(1, -1)
+      .split('|')
+      .map((s) => s.trim());
     const body = lines.slice(2).map((l) =>
-      l.slice(1, -1).split('|').map((s) => s.trim())
+      l
+        .slice(1, -1)
+        .split('|')
+        .map((s) => s.trim())
     );
     return '```\n' + toAsciiTable([header, ...body]) + '\n```';
   });

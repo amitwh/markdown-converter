@@ -16,10 +16,14 @@ export async function generateDocx(options: DocxOptions): Promise<Blob> {
   // Headings (# ## ###) get heading styles
   const lines = transformed.split('\n');
   const children = lines.map((line) => {
-    if (line.startsWith('### ')) return new Paragraph({ text: line.slice(4), heading: HeadingLevel.HEADING_3 });
-    if (line.startsWith('## ')) return new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 });
-    if (line.startsWith('# ')) return new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 });
-    if (line.startsWith('```')) return new Paragraph({ text: line, alignment: AlignmentType.CENTER });
+    if (line.startsWith('### '))
+      return new Paragraph({ text: line.slice(4), heading: HeadingLevel.HEADING_3 });
+    if (line.startsWith('## '))
+      return new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 });
+    if (line.startsWith('# '))
+      return new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 });
+    if (line.startsWith('```'))
+      return new Paragraph({ text: line, alignment: AlignmentType.CENTER });
     return new Paragraph({ children: [new TextRun(line)] });
   });
 

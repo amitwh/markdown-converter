@@ -12,7 +12,12 @@ vi.mock('@/components/ui/resizable', () => ({
     </div>
   ),
   ResizablePanel: ({ children, defaultSize, minSize, maxSize }: any) => (
-    <div data-testid="resizable-panel" data-size={defaultSize} data-min={minSize} data-max={maxSize}>
+    <div
+      data-testid="resizable-panel"
+      data-size={defaultSize}
+      data-min={minSize}
+      data-max={maxSize}
+    >
       {children}
     </div>
   ),

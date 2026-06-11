@@ -129,5 +129,5 @@
  */
 
 module.exports = {
-    // Type definitions are JSDoc only, no runtime exports needed
+  // Type definitions are JSDoc only, no runtime exports needed
 };

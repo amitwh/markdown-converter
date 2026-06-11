@@ -132,7 +132,13 @@ describe('Phase 5 integration', () => {
       activeTabId: '/a.md',
     });
     // Use a buffer content that won't conflict with tab title in breadcrumb symbols
-    useEditorStore.setState({ buffers: new Map([['/a.md', { id: '/a.md', path: '/a.md', content: '# Hello', dirty: false }], ['/b.md', { id: '/b.md', path: '/b.md', content: '# World', dirty: false }]]), activeId: '/a.md' });
+    useEditorStore.setState({
+      buffers: new Map([
+        ['/a.md', { id: '/a.md', path: '/a.md', content: '# Hello', dirty: false }],
+        ['/b.md', { id: '/b.md', path: '/b.md', content: '# World', dirty: false }],
+      ]),
+      activeId: '/a.md',
+    });
     render(<AppShell />);
     // Use role="tab" to find tabs specifically, avoiding breadcrumb "a.md" text
     const tabs = screen.getAllByRole('tab');

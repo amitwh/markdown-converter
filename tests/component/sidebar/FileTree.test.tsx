@@ -15,7 +15,13 @@ vi.mock('@/lib/ipc', () => ({
 
 describe('FileTree', () => {
   beforeEach(() => {
-    useFileStore.setState({ tree: null, rootPath: null, expanded: new Set(), openTabs: [], activeTabId: null });
+    useFileStore.setState({
+      tree: null,
+      rootPath: null,
+      expanded: new Set(),
+      openTabs: [],
+      activeTabId: null,
+    });
   });
 
   it('renders nothing when tree is null', () => {
@@ -66,7 +72,12 @@ describe('FileTree', () => {
             isDirectory: true,
             loaded: true,
             children: [
-              { name: 'index.ts', path: '/project/src/index.ts', isDirectory: false, children: null },
+              {
+                name: 'index.ts',
+                path: '/project/src/index.ts',
+                isDirectory: false,
+                children: null,
+              },
             ],
           },
         ],

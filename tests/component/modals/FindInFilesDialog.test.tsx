@@ -64,7 +64,10 @@ describe('FindInFilesDialog', () => {
   });
 
   it('shows an error banner when search fails', async () => {
-    (ipc.file.search as any).mockResolvedValueOnce({ ok: false, error: { code: 'E', message: 'regex invalid' } });
+    (ipc.file.search as any).mockResolvedValueOnce({
+      ok: false,
+      error: { code: 'E', message: 'regex invalid' },
+    });
     render(<FindInFilesDialog />);
     await userEvent.paste('[invalid', { initialSelectionStart: 0, initialSelectionEnd: 0 });
     await userEvent.click(screen.getByRole('button', { name: /search/i }));

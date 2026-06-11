@@ -7,11 +7,7 @@ import {
   closestCenter,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  horizontalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
+import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useFileStore, type OpenTab } from '@/stores/file-store';
 import { cn } from '@/lib/utils';

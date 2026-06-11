@@ -22,7 +22,9 @@ export interface ElectronAPI {
 
   // Conversion status
   onConversionStatus: (callback: (message: string) => void) => () => void;
-  onConversionComplete: (callback: (data: { format: string; outputPath: string }) => void) => () => void;
+  onConversionComplete: (
+    callback: (data: { format: string; outputPath: string }) => void
+  ) => () => void;
 
   // Dialogs
   showExportDialog: (format: string) => void;
@@ -54,7 +56,10 @@ export interface ElectronAPI {
 
   // Images
   selectFolder: () => Promise<string | null>;
-  savePastedImage: (data: { base64: string; ext: string }) => Promise<{ relativePath: string } | null>;
+  savePastedImage: (data: {
+    base64: string;
+    ext: string;
+  }) => Promise<{ relativePath: string } | null>;
 
   // Templates
   loadTemplate: (file: string) => Promise<string>;

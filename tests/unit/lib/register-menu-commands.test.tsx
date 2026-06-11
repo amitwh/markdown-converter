@@ -3,18 +3,19 @@ import { render, act } from '@testing-library/react';
 import { useCommandStore } from '@/stores/command-store';
 import { useFileStore } from '@/stores/file-store';
 import { useAppStore } from '@/stores/app-store';
-import { useRegisterMenuCommands, useBridgeNativeMenu } from '@/lib/commands/register-menu-commands';
+import {
+  useRegisterMenuCommands,
+  useBridgeNativeMenu,
+} from '@/lib/commands/register-menu-commands';
 
 type Cleanup = () => void;
 const menuListeners = new Map<string, (...args: unknown[]) => void>();
-const menuOn = vi.fn(
-  (channel: string, callback: (...args: unknown[]) => void): Cleanup => {
-    menuListeners.set(channel, callback);
-    return () => {
-      if (menuListeners.get(channel) === callback) menuListeners.delete(channel);
-    };
-  }
-);
+const menuOn = vi.fn((channel: string, callback: (...args: unknown[]) => void): Cleanup => {
+  menuListeners.set(channel, callback);
+  return () => {
+    if (menuListeners.get(channel) === callback) menuListeners.delete(channel);
+  };
+});
 
 vi.mock('@/lib/ipc', () => ({
   ipc: {
@@ -146,9 +147,7 @@ describe('useRegisterMenuCommands + useBridgeNativeMenu', () => {
 
   it('file.clearRecent does NOT clear openTabs', () => {
     useFileStore.setState({
-      openTabs: [
-        { id: '/a.md', path: '/a.md', title: 'a.md', dirty: false },
-      ],
+      openTabs: [{ id: '/a.md', path: '/a.md', title: 'a.md', dirty: false }],
       activeTabId: '/a.md',
     });
     render(<Harness />);

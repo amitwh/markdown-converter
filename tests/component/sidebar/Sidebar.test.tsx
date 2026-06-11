@@ -20,7 +20,13 @@ vi.mock('@/lib/ipc', () => ({
 
 describe('Sidebar', () => {
   beforeEach(() => {
-    useFileStore.setState({ tree: null, rootPath: null, expanded: new Set(), openTabs: [], activeTabId: null });
+    useFileStore.setState({
+      tree: null,
+      rootPath: null,
+      expanded: new Set(),
+      openTabs: [],
+      activeTabId: null,
+    });
     useEditorStore.setState({ buffers: new Map(), activeId: null });
   });
 
@@ -46,7 +52,9 @@ describe('Sidebar', () => {
         path: '/project',
         isDirectory: true,
         loaded: true,
-        children: [{ name: 'README.md', path: '/project/README.md', isDirectory: false, children: null }],
+        children: [
+          { name: 'README.md', path: '/project/README.md', isDirectory: false, children: null },
+        ],
       },
       rootPath: '/project',
     });

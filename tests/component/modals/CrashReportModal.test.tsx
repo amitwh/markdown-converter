@@ -18,7 +18,12 @@ describe('CrashReportModal', () => {
 
   test('lists crashes returned by ipc', async () => {
     (ipc.crash.read as any).mockResolvedValue([
-      { filename: '1700000000000-1-uncaughtException.json', kind: 'uncaughtException', message: 'boom', timestamp: '2026-01-01T00:00:00.000Z' },
+      {
+        filename: '1700000000000-1-uncaughtException.json',
+        kind: 'uncaughtException',
+        message: 'boom',
+        timestamp: '2026-01-01T00:00:00.000Z',
+      },
     ]);
     render(<CrashReportModal onClose={() => {}} />);
     expect(await screen.findByText(/boom/)).toBeInTheDocument();
@@ -26,12 +31,19 @@ describe('CrashReportModal', () => {
 
   test('delete button calls ipc.crash.delete', async () => {
     (ipc.crash.read as any).mockResolvedValue([
-      { filename: '1700000000000-1-uncaughtException.json', kind: 'uncaughtException', message: 'boom', timestamp: '2026-01-01T00:00:00.000Z' },
+      {
+        filename: '1700000000000-1-uncaughtException.json',
+        kind: 'uncaughtException',
+        message: 'boom',
+        timestamp: '2026-01-01T00:00:00.000Z',
+      },
     ]);
     render(<CrashReportModal onClose={() => {}} />);
     const btn = await screen.findByText(/delete/i);
     fireEvent.click(btn);
-    await waitFor(() => expect(ipc.crash.delete).toHaveBeenCalledWith('1700000000000-1-uncaughtException.json'));
+    await waitFor(() =>
+      expect(ipc.crash.delete).toHaveBeenCalledWith('1700000000000-1-uncaughtException.json')
+    );
   });
 
   test('open folder button calls ipc.crash.openDir', async () => {

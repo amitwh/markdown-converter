@@ -1,8 +1,20 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAppStore } from '@/stores/app-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useExportSource } from '@/hooks/use-export-source';
@@ -19,7 +31,8 @@ const MARGIN_MAP = {
 
 export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
   const closeModal = useAppStore((s) => s.closeModal);
-  const { fontSize, pdfFormat, pdfMargins, pdfEmbedFonts, renderTablesAsAscii } = useSettingsStore();
+  const { fontSize, pdfFormat, pdfMargins, pdfEmbedFonts, renderTablesAsAscii } =
+    useSettingsStore();
   const [format, setFormat] = useState<'letter' | 'a4' | 'legal'>(pdfFormat);
   const [margins, setMargins] = useState<'normal' | 'narrow' | 'wide'>(pdfMargins);
   const [embed, setEmbed] = useState(pdfEmbedFonts);
@@ -45,9 +58,12 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
         highlightStyle: 'github',
         renderTablesAsAscii: ascii,
       });
-      const fmt = format === 'a4' ? { width: '210mm', height: '297mm' }
-                : format === 'legal' ? { width: '8.5in', height: '14in' }
-                : { width: '8.5in', height: '11in' };
+      const fmt =
+        format === 'a4'
+          ? { width: '210mm', height: '297mm' }
+          : format === 'legal'
+            ? { width: '8.5in', height: '14in' }
+            : { width: '8.5in', height: '11in' };
       const m = MARGIN_MAP[margins];
       const pageCss = `@page { size: ${fmt.width} ${fmt.height}; margin: ${m.top}mm ${m.right}mm ${m.bottom}mm ${m.left}mm; }`;
       const finalHtml = html.replace('</style>', `${pageCss}</style>`);
@@ -80,7 +96,9 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
           <div>
             <Label htmlFor="pdf-format">Format</Label>
             <Select value={format} onValueChange={(v) => setFormat(v as typeof format)}>
-              <SelectTrigger id="pdf-format" aria-label="Format"><SelectValue /></SelectTrigger>
+              <SelectTrigger id="pdf-format" aria-label="Format">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="letter">Letter</SelectItem>
                 <SelectItem value="a4">A4</SelectItem>
@@ -91,7 +109,9 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
           <div>
             <Label htmlFor="pdf-margins">Margins</Label>
             <Select value={margins} onValueChange={(v) => setMargins(v as typeof margins)}>
-              <SelectTrigger id="pdf-margins" aria-label="Margins"><SelectValue /></SelectTrigger>
+              <SelectTrigger id="pdf-margins" aria-label="Margins">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="narrow">Narrow</SelectItem>
                 <SelectItem value="normal">Normal</SelectItem>
@@ -100,20 +120,36 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
             </Select>
           </div>
           <label className="flex items-center gap-2">
-            <Checkbox checked={embed} onCheckedChange={(c) => setEmbed(!!c)} aria-label="Embed fonts" />
+            <Checkbox
+              checked={embed}
+              onCheckedChange={(c) => setEmbed(!!c)}
+              aria-label="Embed fonts"
+            />
             Embed fonts
           </label>
           <label className="flex items-center gap-2">
-            <Checkbox checked={ascii} onCheckedChange={(c) => setAscii(!!c)} aria-label="ASCII tables" />
+            <Checkbox
+              checked={ascii}
+              onCheckedChange={(c) => setAscii(!!c)}
+              aria-label="ASCII tables"
+            />
             Render tables as ASCII
           </label>
           {error && (
-            <div role="alert" className="rounded border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+            <div
+              role="alert"
+              className="rounded border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive"
+            >
               {error}
             </div>
           )}
         </div>
-        <ExportDialogFooter onCancel={closeModal} onSubmit={handleSubmit} submitting={submitting} submitLabel="Export" />
+        <ExportDialogFooter
+          onCancel={closeModal}
+          onSubmit={handleSubmit}
+          submitting={submitting}
+          submitLabel="Export"
+        />
       </DialogContent>
     </Dialog>
   );

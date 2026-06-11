@@ -25,7 +25,10 @@ function normalizeAlreadyV5(data: Record<string, unknown>): Record<string, unkno
   // zod schema on every launch. Always normalize theme against the v5 enum
   // before returning, so persisted files are always valid v5.
   const out = { ...data };
-  if (typeof out.theme !== 'string' || !v5ThemeValues.includes(out.theme as (typeof v5ThemeValues)[number])) {
+  if (
+    typeof out.theme !== 'string' ||
+    !v5ThemeValues.includes(out.theme as (typeof v5ThemeValues)[number])
+  ) {
     out.theme = 'system';
   }
   return out;

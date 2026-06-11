@@ -12,7 +12,7 @@ class ProjectManager {
       type: opts.type || 'manuscript',
       target: { words: opts.targetWords || 0, deadline: opts.deadline || null },
       chapters: [],
-      metadata: opts.metadata || {}
+      metadata: opts.metadata || {},
     };
     this.fs.writeFile(dir + '/.project.json', JSON.stringify(project, null, 2));
     return project;
@@ -66,7 +66,7 @@ class ProjectManager {
       totalWords,
       chapterCount: project.chapters.length,
       targetWords: target,
-      pctComplete: target > 0 ? Math.min(100, Math.round((totalWords / target) * 100)) : 0
+      pctComplete: target > 0 ? Math.min(100, Math.round((totalWords / target) * 100)) : 0,
     };
   }
 }

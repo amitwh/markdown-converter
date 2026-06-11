@@ -10,7 +10,7 @@ const {
   convertItems,
   pdfEditorItems,
   toolsItems,
-  helpItems
+  helpItems,
 } = require('./items');
 
 function buildMenu(mainWindow) {
@@ -22,7 +22,7 @@ function buildMenu(mainWindow) {
     { label: '&Convert', submenu: convertItems(mainWindow) },
     { label: 'PDF Editor', submenu: pdfEditorItems(mainWindow) },
     { label: '&Tools', submenu: toolsItems(mainWindow) },
-    { label: '&Help', submenu: helpItems(mainWindow) }
+    { label: '&Help', submenu: helpItems(mainWindow) },
   ];
   return Menu.buildFromTemplate(template);
 }

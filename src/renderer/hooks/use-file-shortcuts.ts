@@ -59,8 +59,12 @@ export function useFileShortcuts(): void {
         const idx = activeTabId ? openTabs.findIndex((t) => t.id === activeTabId) : 0;
         const safeIdx = idx === -1 ? 0 : idx;
         const nextIdx = e.shiftKey
-          ? (safeIdx <= 0 ? openTabs.length - 1 : safeIdx - 1)
-          : (safeIdx >= openTabs.length - 1 ? 0 : safeIdx + 1);
+          ? safeIdx <= 0
+            ? openTabs.length - 1
+            : safeIdx - 1
+          : safeIdx >= openTabs.length - 1
+            ? 0
+            : safeIdx + 1;
         setActiveTab(openTabs[nextIdx].id);
         return;
       }

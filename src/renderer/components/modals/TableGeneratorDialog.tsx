@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -11,7 +18,13 @@ function pad(s: string, w: number) {
   return s.padEnd(w);
 }
 
-function generateTable(rows: number, cols: number, hasHeader: boolean, headers: string[], data: string[][]): string {
+function generateTable(
+  rows: number,
+  cols: number,
+  hasHeader: boolean,
+  headers: string[],
+  data: string[][]
+): string {
   const width = cols;
   const colWidths: number[] = Array.from({ length: width }, (_, c) => {
     const all = [headers[c] ?? '', ...data.map((r) => r[c] ?? '')];
@@ -19,11 +32,21 @@ function generateTable(rows: number, cols: number, hasHeader: boolean, headers: 
   });
   const lines: string[] = [];
   if (hasHeader) {
-    lines.push('| ' + Array.from({ length: width }, (_, c) => pad(headers[c] ?? `Col ${c + 1}`, colWidths[c])).join(' | ') + ' |');
+    lines.push(
+      '| ' +
+        Array.from({ length: width }, (_, c) =>
+          pad(headers[c] ?? `Col ${c + 1}`, colWidths[c])
+        ).join(' | ') +
+        ' |'
+    );
     lines.push('| ' + colWidths.map((w) => '-'.repeat(w)).join(' | ') + ' |');
   }
   for (const row of data) {
-    lines.push('| ' + Array.from({ length: width }, (_, c) => pad(row[c] ?? '', colWidths[c])).join(' | ') + ' |');
+    lines.push(
+      '| ' +
+        Array.from({ length: width }, (_, c) => pad(row[c] ?? '', colWidths[c])).join(' | ') +
+        ' |'
+    );
   }
   // Add empty rows if data has fewer
   for (let i = data.length; i < rows; i++) {
@@ -53,7 +76,13 @@ export function TableGeneratorDialog() {
   const updateHeadersCount = (newCols: number) => {
     setCols(newCols);
     setHeaders((prev) => {
-      if (prev.length < newCols) return [...prev, ...Array(newCols - prev.length).fill('').map((_, i) => `Col ${prev.length + i + 1}`)];
+      if (prev.length < newCols)
+        return [
+          ...prev,
+          ...Array(newCols - prev.length)
+            .fill('')
+            .map((_, i) => `Col ${prev.length + i + 1}`),
+        ];
       return prev.slice(0, newCols);
     });
   };
@@ -88,18 +117,27 @@ export function TableGeneratorDialog() {
                 min={1}
                 max={20}
                 value={cols}
-                onChange={(e) => updateHeadersCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                onChange={(e) =>
+                  updateHeadersCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))
+                }
               />
             </div>
           </div>
           <label className="flex items-center gap-2">
-            <Checkbox checked={hasHeader} onCheckedChange={(c) => setHasHeader(!!c)} aria-label="Header" />
+            <Checkbox
+              checked={hasHeader}
+              onCheckedChange={(c) => setHasHeader(!!c)}
+              aria-label="Header"
+            />
             Include header row
           </label>
           {hasHeader && (
             <div>
               <Label>Header names</Label>
-              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+              <div
+                className="grid gap-2"
+                style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+              >
                 {Array.from({ length: cols }, (_, i) => (
                   <Input
                     key={i}
@@ -117,13 +155,18 @@ export function TableGeneratorDialog() {
           )}
           <div>
             <Label>Output</Label>
-            <pre className="overflow-auto rounded border border-border bg-card/30 p-3 text-xs" data-testid="table-output">
+            <pre
+              className="overflow-auto rounded border border-border bg-card/30 p-3 text-xs"
+              data-testid="table-output"
+            >
               {output}
             </pre>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={closeModal}>Close</Button>
+          <Button variant="ghost" onClick={closeModal}>
+            Close
+          </Button>
           <Button onClick={handleCopy}>Copy</Button>
         </DialogFooter>
       </DialogContent>

@@ -2,6 +2,7 @@
 
 **Date:** {{DATE}}
 **Attendees:**
+
 - Name 1
 - Name 2
 

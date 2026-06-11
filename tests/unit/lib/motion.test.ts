@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  fadeIn,
-  slideInRight,
-  modalPop,
-  toastSpring,
-  sidebarToggle,
-} from '@/lib/motion';
+import { fadeIn, slideInRight, modalPop, toastSpring, sidebarToggle } from '@/lib/motion';
 
 describe('motion presets', () => {
   it('fadeIn is a valid transition object', () => {

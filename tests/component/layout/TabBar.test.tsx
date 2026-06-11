@@ -81,9 +81,7 @@ describe('TabBar', () => {
 
   it('renders a dirty indicator when dirty === true', () => {
     useFileStore.setState({
-      openTabs: [
-        { id: '/tmp/foo.md', path: '/tmp/foo.md', title: 'foo.md', dirty: true },
-      ],
+      openTabs: [{ id: '/tmp/foo.md', path: '/tmp/foo.md', title: 'foo.md', dirty: true }],
       activeTabId: '/tmp/foo.md',
     });
     render(<TabBar />);

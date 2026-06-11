@@ -22,8 +22,15 @@ describe('ExportPdfDialog', () => {
     localStorage.clear();
     vi.clearAllMocks();
     useSettingsStore.setState(useSettingsStore.getInitialState());
-    useFileStore.setState({ activeTabId: '/test.md', openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }] } as any);
-    useEditorStore.setState({ buffers: new Map([['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: false }]]) } as any);
+    useFileStore.setState({
+      activeTabId: '/test.md',
+      openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }],
+    } as any);
+    useEditorStore.setState({
+      buffers: new Map([
+        ['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: false }],
+      ]),
+    } as any);
   });
 
   it('renders with default PDF options from settings', () => {

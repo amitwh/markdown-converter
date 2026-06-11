@@ -8,7 +8,9 @@ describe('SnapshotManager', () => {
     store = {};
     manager = new SnapshotManager({
       get: (key) => store[key],
-      set: (key, value) => { store[key] = value; }
+      set: (key, value) => {
+        store[key] = value;
+      },
     });
   });
 

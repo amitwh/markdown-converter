@@ -65,7 +65,9 @@ export function GitStatusPanel() {
       <div className="p-3 text-xs">
         <div className="text-destructive">Error: {error}</div>
         <p className="mt-1 text-muted-foreground">Not a git repository, or git not installed.</p>
-        <Button size="sm" variant="ghost" onClick={load} className="mt-2">Retry</Button>
+        <Button size="sm" variant="ghost" onClick={load} className="mt-2">
+          Retry
+        </Button>
       </div>
     );
   }
@@ -77,7 +79,9 @@ export function GitStatusPanel() {
   return (
     <div className="p-2 text-xs">
       <div className="flex items-center justify-between px-1 py-1">
-        <span className="font-semibold">{status.length} changed file{status.length === 1 ? '' : 's'}</span>
+        <span className="font-semibold">
+          {status.length} changed file{status.length === 1 ? '' : 's'}
+        </span>
         <Button size="sm" variant="ghost" onClick={load} aria-label="Refresh">
           <RefreshCw className="h-3 w-3" />
         </Button>

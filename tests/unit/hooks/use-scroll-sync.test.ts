@@ -13,7 +13,9 @@ describe('useScrollSync', () => {
   it('throttles editor scroll events to 60fps', () => {
     const onScroll = vi.fn();
     const { result } = renderHook(() => useScrollSync({ onEditorScroll: onScroll }));
-    const mockEvt = { currentTarget: { scrollTop: 100, scrollHeight: 1000, clientHeight: 200 } } as any;
+    const mockEvt = {
+      currentTarget: { scrollTop: 100, scrollHeight: 1000, clientHeight: 200 },
+    } as any;
     // All calls within the same act() - performance.now() stays at 0
     // First call passes, subsequent calls within FRAME_MS are throttled
     act(() => {

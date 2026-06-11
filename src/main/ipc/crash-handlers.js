@@ -10,7 +10,10 @@ function register({ crash, getMainWindow }) {
   });
 
   ipcMain.handle('crash:delete', (_event, filename) => {
-    if (typeof filename === 'string' && /^\d+(-\d+)?-(uncaughtException|unhandledRejection)\.json$/.test(filename)) {
+    if (
+      typeof filename === 'string' &&
+      /^\d+(-\d+)?-(uncaughtException|unhandledRejection)\.json$/.test(filename)
+    ) {
       crash.delete(filename);
       return true;
     }

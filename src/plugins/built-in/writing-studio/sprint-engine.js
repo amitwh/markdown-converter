@@ -40,7 +40,9 @@ class SprintEngine {
     }
   }
 
-  isActive() { return this._active; }
+  isActive() {
+    return this._active;
+  }
 
   getRemaining() {
     if (!this._active) return 0;

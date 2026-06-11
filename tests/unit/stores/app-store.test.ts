@@ -53,7 +53,10 @@ describe('useAppStore (modal)', () => {
 
   it('openModal with kind requiring props passes them through', () => {
     useAppStore.getState().openModal('export-pdf', { sourcePath: '/a.md' });
-    expect(useAppStore.getState().modal).toEqual({ kind: 'export-pdf', props: { sourcePath: '/a.md' } });
+    expect(useAppStore.getState().modal).toEqual({
+      kind: 'export-pdf',
+      props: { sourcePath: '/a.md' },
+    });
   });
 
   it('closeModal clears the modal state', () => {

@@ -9,7 +9,13 @@ interface Props {
   submitDisabled?: boolean;
 }
 
-export function ExportDialogFooter({ onCancel, onSubmit, submitting, submitLabel, submitDisabled }: Props) {
+export function ExportDialogFooter({
+  onCancel,
+  onSubmit,
+  submitting,
+  submitLabel,
+  submitDisabled,
+}: Props) {
   return (
     <DialogFooter>
       <Button variant="ghost" onClick={onCancel} disabled={submitting}>

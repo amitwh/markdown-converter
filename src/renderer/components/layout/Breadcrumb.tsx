@@ -27,7 +27,9 @@ export function Breadcrumb() {
           className="flex items-center gap-1 hover:text-foreground"
         >
           <span aria-hidden="true">›</span>
-          <span className="truncate">{'#'.repeat(h.level)} {h.text}</span>
+          <span className="truncate">
+            {'#'.repeat(h.level)} {h.text}
+          </span>
         </button>
       ))}
     </nav>

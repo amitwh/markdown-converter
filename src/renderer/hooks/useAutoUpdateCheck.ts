@@ -7,7 +7,9 @@ export function useAutoUpdateCheck() {
   const check = useUpdaterStore((s) => s.check);
   useEffect(() => {
     if (auto) {
-      const t = setTimeout(() => { check(); }, 5_000);
+      const t = setTimeout(() => {
+        check();
+      }, 5_000);
       return () => clearTimeout(t);
     }
   }, [auto, check]);

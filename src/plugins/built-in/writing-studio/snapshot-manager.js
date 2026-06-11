@@ -24,7 +24,7 @@ class SnapshotManager {
       timestamp: new Date().toISOString(),
       content,
       wordCount: content.split(/\s+/).filter(Boolean).length,
-      label
+      label,
     };
     snaps.unshift(snap);
     this._saveAll(snaps);
@@ -36,7 +36,7 @@ class SnapshotManager {
   }
 
   getById(id) {
-    return this._getAll().find(s => s.id === id) || null;
+    return this._getAll().find((s) => s.id === id) || null;
   }
 
   restore(id) {
@@ -46,7 +46,7 @@ class SnapshotManager {
   }
 
   delete(id) {
-    const snaps = this._getAll().filter(s => s.id !== id);
+    const snaps = this._getAll().filter((s) => s.id !== id);
     this._saveAll(snaps);
   }
 
@@ -59,8 +59,12 @@ class SnapshotManager {
     const newSet = new Set(newLines);
     let added = 0;
     let removed = 0;
-    for (const line of newLines) { if (!oldSet.has(line)) added++; }
-    for (const line of oldLines) { if (!newSet.has(line)) removed++; }
+    for (const line of newLines) {
+      if (!oldSet.has(line)) added++;
+    }
+    for (const line of oldLines) {
+      if (!newSet.has(line)) removed++;
+    }
     return { added, removed };
   }
 

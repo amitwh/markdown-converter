@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -67,22 +74,35 @@ export function FindInFilesDialog() {
           </div>
           <div className="flex gap-4">
             <label className="flex items-center gap-2">
-              <Checkbox checked={isRegex} onCheckedChange={(c) => setIsRegex(!!c)} aria-label="Regex" />
+              <Checkbox
+                checked={isRegex}
+                onCheckedChange={(c) => setIsRegex(!!c)}
+                aria-label="Regex"
+              />
               Regex
             </label>
             <label className="flex items-center gap-2">
-              <Checkbox checked={caseSensitive} onCheckedChange={(c) => setCaseSensitive(!!c)} aria-label="Case sensitive" />
+              <Checkbox
+                checked={caseSensitive}
+                onCheckedChange={(c) => setCaseSensitive(!!c)}
+                aria-label="Case sensitive"
+              />
               Case sensitive
             </label>
           </div>
           {error && (
-            <div role="alert" className="rounded border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+            <div
+              role="alert"
+              className="rounded border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive"
+            >
               {error}
             </div>
           )}
           {results.length > 0 && (
             <div>
-              <Label>{results.length} result{results.length === 1 ? '' : 's'}</Label>
+              <Label>
+                {results.length} result{results.length === 1 ? '' : 's'}
+              </Label>
               <div className="max-h-64 overflow-auto rounded border border-border bg-card/20 text-xs">
                 {results.map((r, i) => (
                   <button
@@ -91,7 +111,9 @@ export function FindInFilesDialog() {
                     className="block w-full truncate border-b border-border/30 px-2 py-1 text-left hover:bg-card/50"
                     data-testid="find-result"
                   >
-                    <span className="font-mono text-muted-foreground">{r.filePath}:{r.line}</span>
+                    <span className="font-mono text-muted-foreground">
+                      {r.filePath}:{r.line}
+                    </span>
                     <span className="ml-2">{r.content}</span>
                   </button>
                 ))}
@@ -100,7 +122,9 @@ export function FindInFilesDialog() {
           )}
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={closeModal} disabled={submitting}>Close</Button>
+          <Button variant="ghost" onClick={closeModal} disabled={submitting}>
+            Close
+          </Button>
           <Button onClick={handleSearch} disabled={submitting || !query}>
             {submitting ? 'Searching…' : 'Search'}
           </Button>

@@ -6,7 +6,9 @@ describe('generateDocx', () => {
     const blob = await generateDocx({ source: '# Hello\n\nWorld' });
     expect(blob).toBeInstanceOf(Blob);
     expect(blob.size).toBeGreaterThan(0);
-    expect(blob.type).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    expect(blob.type).toBe(
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    );
   });
 
   it('converts headings to docx heading styles', async () => {

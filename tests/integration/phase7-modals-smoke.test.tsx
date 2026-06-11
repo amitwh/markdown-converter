@@ -17,18 +17,29 @@ vi.mock('@/lib/ipc', () => ({
     },
     menu: {
       on: vi.fn().mockReturnValue(vi.fn()),
- },
+    },
   },
 }));
 
 describe('Phase 7 modals integration', () => {
   beforeEach(() => {
     localStorage.clear();
-    useAppStore.setState({ modal: { kind: null }, sidebarVisible: true, previewVisible: true, zenMode: false, paneSizes: { sidebar: 20, editor: 50, preview: 30 } } as any);
+    useAppStore.setState({
+      modal: { kind: null },
+      sidebarVisible: true,
+      previewVisible: true,
+      zenMode: false,
+      paneSizes: { sidebar: 20, editor: 50, preview: 30 },
+    } as any);
     useCommandStore.setState({ handlers: {}, userBindings: {} } as any);
     useSettingsStore.setState(useSettingsStore.getInitialState());
-    useFileStore.setState({ activeTabId: '/x.md', openTabs: [{ id: '/x.md', path: '/x.md', title: 'x.md', dirty: false }] } as any);
-    useEditorStore.setState({ buffers: new Map([['/x.md', { id: '/x.md', path: '/x.md', content: '# hi', dirty: false }]]) } as any);
+    useFileStore.setState({
+      activeTabId: '/x.md',
+      openTabs: [{ id: '/x.md', path: '/x.md', title: 'x.md', dirty: false }],
+    } as any);
+    useEditorStore.setState({
+      buffers: new Map([['/x.md', { id: '/x.md', path: '/x.md', content: '# hi', dirty: false }]]),
+    } as any);
   });
 
   it('dispatching settings.open from command store opens SettingsSheet', () => {

@@ -42,7 +42,7 @@ function renderProofreadPanel(container, { events, editor }) {
         if (result && result.issues) {
           renderIssues(issuesList, result.issues);
         }
-      }
+      },
     });
   });
 }
@@ -80,7 +80,10 @@ function renderIssues(container, issues) {
 
     const actions = document.createElement('div');
     actions.className = 'ws-issue-actions';
-    for (const [action, label] of [['accept', 'Accept'], ['dismiss', 'Dismiss']]) {
+    for (const [action, label] of [
+      ['accept', 'Accept'],
+      ['dismiss', 'Dismiss'],
+    ]) {
       const actionBtn = document.createElement('button');
       actionBtn.className = 'ws-btn ws-btn-sm';
       actionBtn.textContent = label;

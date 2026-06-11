@@ -25,7 +25,7 @@ const store = {
     } catch {}
     settings[key] = value;
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-  }
+  },
 };
 
 module.exports = store;

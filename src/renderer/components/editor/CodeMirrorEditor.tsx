@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { EditorState, Compartment } from '@codemirror/state';
-import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view';
+import {
+  EditorView,
+  keymap,
+  lineNumbers,
+  highlightActiveLine,
+  drawSelection,
+} from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
@@ -46,8 +52,16 @@ export function CodeMirrorEditor({ bufferId, initialContent, onChange, onCursorC
         drawSelection(),
         markdown({ base: markdownLanguage, codeLanguages: [] }),
         autocompletion(),
-        keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...completionKeymap, indentWithTab]),
-        themeCompartment.current.of(resolvedTheme === 'dark' ? [oneDark] : [lightTheme, lightHighlight]),
+        keymap.of([
+          ...defaultKeymap,
+          ...historyKeymap,
+          ...searchKeymap,
+          ...completionKeymap,
+          indentWithTab,
+        ]),
+        themeCompartment.current.of(
+          resolvedTheme === 'dark' ? [oneDark] : [lightTheme, lightHighlight]
+        ),
         EditorView.lineWrapping,
         EditorView.updateListener.of((v) => {
           if (v.docChanged) {
@@ -73,7 +87,7 @@ export function CodeMirrorEditor({ bufferId, initialContent, onChange, onCursorC
             const denom = el.scrollHeight - el.clientHeight;
             setScrollRatio(denom > 0 ? el.scrollTop / denom : 0);
             setVisibleRatio(
-              el.clientHeight > 0 ? Math.min(1, el.clientHeight / el.scrollHeight) : 1,
+              el.clientHeight > 0 ? Math.min(1, el.clientHeight / el.scrollHeight) : 1
             );
             return false;
           },
@@ -104,7 +118,9 @@ export function CodeMirrorEditor({ bufferId, initialContent, onChange, onCursorC
   return (
     <div className="relative h-full overflow-hidden">
       <div ref={ref} className="h-full overflow-hidden" />
-      {minimap && <Minimap content={initialContent} scrollRatio={scrollRatio} visibleRatio={visibleRatio} />}
+      {minimap && (
+        <Minimap content={initialContent} scrollRatio={scrollRatio} visibleRatio={visibleRatio} />
+      )}
     </div>
   );
 }

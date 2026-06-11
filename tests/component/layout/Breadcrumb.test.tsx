@@ -9,8 +9,15 @@ describe('Breadcrumb', () => {
   beforeEach(() => {
     localStorage.clear();
     useSettingsStore.setState({ ...useSettingsStore.getInitialState(), breadcrumbSymbols: true });
-    useFileStore.setState({ activeTabId: '/test.md', openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }] } as any);
-    useEditorStore.setState({ buffers: new Map([['/test.md', { id: '/test.md', path: '/test.md', content: '# H1\n## H2', dirty: false }]]) } as any);
+    useFileStore.setState({
+      activeTabId: '/test.md',
+      openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }],
+    } as any);
+    useEditorStore.setState({
+      buffers: new Map([
+        ['/test.md', { id: '/test.md', path: '/test.md', content: '# H1\n## H2', dirty: false }],
+      ]),
+    } as any);
   });
 
   it('shows "No file selected" when no tab is active', () => {
@@ -38,8 +45,23 @@ describe('Breadcrumb', () => {
   });
 
   it('limits heading symbols to 3', () => {
-    useFileStore.setState({ activeTabId: '/test.md', openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }] } as any);
-    useEditorStore.setState({ buffers: new Map([['/test.md', { id: '/test.md', path: '/test.md', content: '# H1\n## H2\n### H3\n#### H4', dirty: false }]]) } as any);
+    useFileStore.setState({
+      activeTabId: '/test.md',
+      openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }],
+    } as any);
+    useEditorStore.setState({
+      buffers: new Map([
+        [
+          '/test.md',
+          {
+            id: '/test.md',
+            path: '/test.md',
+            content: '# H1\n## H2\n### H3\n#### H4',
+            dirty: false,
+          },
+        ],
+      ]),
+    } as any);
     render(<Breadcrumb />);
     // Should show H1, H2, H3 but not H4
     expect(screen.getByText(/# H1/)).toBeInTheDocument();

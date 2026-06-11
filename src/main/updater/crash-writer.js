@@ -29,13 +29,18 @@ class CrashWriter {
     const files = fs.readdirSync(this.dir).sort();
     while (files.length > MAX_DUMPS) {
       const oldest = files.shift();
-      try { fs.unlinkSync(path.join(this.dir, oldest)); } catch (_) { /* ignore */ }
+      try {
+        fs.unlinkSync(path.join(this.dir, oldest));
+      } catch (_) {
+        /* ignore */
+      }
     }
   }
 
   list() {
     if (!fs.existsSync(this.dir)) return [];
-    return fs.readdirSync(this.dir)
+    return fs
+      .readdirSync(this.dir)
       .filter((f) => f.endsWith('.json'))
       .sort()
       .reverse()

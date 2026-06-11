@@ -5,7 +5,11 @@ import { insertSnippet } from '@/lib/editor-commands';
 const TEMPLATES = [
   { name: 'Blog Post', file: 'blog-post.md', description: 'Article with frontmatter' },
   { name: 'Meeting Notes', file: 'meeting-notes.md', description: 'Agenda, notes, action items' },
-  { name: 'Technical Spec', file: 'technical-spec.md', description: 'Requirements and architecture' },
+  {
+    name: 'Technical Spec',
+    file: 'technical-spec.md',
+    description: 'Requirements and architecture',
+  },
   { name: 'Changelog', file: 'changelog.md', description: 'Keep a Changelog format' },
   { name: 'README', file: 'readme.md', description: 'Project documentation' },
   { name: 'Project Plan', file: 'project-plan.md', description: 'Goals, milestones, timeline' },
@@ -50,7 +54,9 @@ export function Templates() {
                 <span className="font-semibold text-foreground truncate">{t.name}</span>
                 <Download className="h-3 w-3 opacity-0 group-hover:opacity-100 text-muted-foreground/80 hover:text-brand transition-opacity" />
               </div>
-              <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{t.description}</p>
+              <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                {t.description}
+              </p>
             </div>
           </div>
         ))}

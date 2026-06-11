@@ -5,9 +5,7 @@
   "description": "Demonstrates the plugin system. Safe to delete.",
   "icon": "puzzle",
   "extensionPoints": {
-    "commands": [
-      { "id": "hello", "label": "Sample: Hello World", "shortcut": "" }
-    ]
+    "commands": [{ "id": "hello", "label": "Sample: Hello World", "shortcut": "" }]
   },
   "settings": []
 }

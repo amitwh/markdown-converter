@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -16,7 +23,9 @@ export function WordExportDialog({ sourcePath }: { sourcePath: string }) {
   const docxCustomTemplatePath = useSettingsStore((s) => s.docxCustomTemplatePath);
   const source = useExportSource();
 
-  const [templateMode, setTemplateMode] = useState<'standard' | 'custom'>(docxCustomTemplatePath ? 'custom' : 'standard');
+  const [templateMode, setTemplateMode] = useState<'standard' | 'custom'>(
+    docxCustomTemplatePath ? 'custom' : 'standard'
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +41,10 @@ export function WordExportDialog({ sourcePath }: { sourcePath: string }) {
   };
 
   const handleSubmit = async () => {
-    if (!source) { setError('No file open.'); return; }
+    if (!source) {
+      setError('No file open.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -41,7 +53,10 @@ export function WordExportDialog({ sourcePath }: { sourcePath: string }) {
         title: source.title,
         customTemplatePath: templateMode === 'custom' ? docxCustomTemplatePath : null,
       });
-      const saveResult = await ipc.app.showSaveDialog?.({ title: 'Save as Word document', defaultPath: source.path.replace(/\.md$/, '.docx') });
+      const saveResult = await ipc.app.showSaveDialog?.({
+        title: 'Save as Word document',
+        defaultPath: source.path.replace(/\.md$/, '.docx'),
+      });
       if (!saveResult?.ok || !saveResult.data) {
         setSubmitting(false);
         return;
@@ -73,7 +88,10 @@ export function WordExportDialog({ sourcePath }: { sourcePath: string }) {
         <div className="space-y-3 text-sm">
           <div>
             <Label>Template</Label>
-            <RadioGroup value={templateMode} onValueChange={(v) => setTemplateMode(v as 'standard' | 'custom')}>
+            <RadioGroup
+              value={templateMode}
+              onValueChange={(v) => setTemplateMode(v as 'standard' | 'custom')}
+            >
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="standard" id="template-standard" />
                 <Label htmlFor="template-standard">Standard (bundled)</Label>
@@ -87,9 +105,13 @@ export function WordExportDialog({ sourcePath }: { sourcePath: string }) {
           {templateMode === 'custom' && (
             <div className="rounded border border-border bg-card/20 p-2 text-xs">
               {docxCustomTemplatePath ? (
-                <span>Template path: <code>{docxCustomTemplatePath}</code></span>
+                <span>
+                  Template path: <code>{docxCustomTemplatePath}</code>
+                </span>
               ) : (
-                <span className="text-muted-foreground">No template selected. Click "Choose template..." to pick a .dotx file.</span>
+                <span className="text-muted-foreground">
+                  No template selected. Click "Choose template..." to pick a .dotx file.
+                </span>
               )}
               <Button variant="ghost" size="sm" onClick={handleChooseTemplate} className="ml-2">
                 Choose template...
@@ -97,13 +119,18 @@ export function WordExportDialog({ sourcePath }: { sourcePath: string }) {
             </div>
           )}
           {error && (
-            <div role="alert" className="rounded border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+            <div
+              role="alert"
+              className="rounded border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive"
+            >
               {error}
             </div>
           )}
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={closeModal} disabled={submitting}>Cancel</Button>
+          <Button variant="ghost" onClick={closeModal} disabled={submitting}>
+            Cancel
+          </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting ? 'Exporting…' : 'Export'}
           </Button>

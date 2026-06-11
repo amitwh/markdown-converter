@@ -18,7 +18,8 @@ class UpdaterService extends EventEmitter {
     au.on('update-downloaded', (info) => this._emit({ state: 'ready', version: info.version }));
     au.on('update-not-available', () => this._emit({ state: 'idle' }));
     au.on('error', (err) => {
-      const code = err && /ENOTFOUND|ETIMEDOUT|ECONNREFUSED/.test(err.message) ? 'NETWORK' : 'UNKNOWN';
+      const code =
+        err && /ENOTFOUND|ETIMEDOUT|ECONNREFUSED/.test(err.message) ? 'NETWORK' : 'UNKNOWN';
       this._emit({ state: 'error', code });
     });
   }

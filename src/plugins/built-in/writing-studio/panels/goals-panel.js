@@ -29,7 +29,8 @@ function renderGoalsPanel(container, { engines, settings }) {
   const row = document.createElement('div');
   row.className = 'ws-stat-row';
   const label = document.createElement('span');
-  label.textContent = progress.written.toLocaleString() + ' / ' + dailyGoal.toLocaleString() + ' words';
+  label.textContent =
+    progress.written.toLocaleString() + ' / ' + dailyGoal.toLocaleString() + ' words';
   const pct = document.createElement('span');
   pct.className = 'ws-pct';
   pct.textContent = progress.pct + '%';
@@ -81,7 +82,7 @@ function renderGoalsPanel(container, { engines, settings }) {
 
   const chart = document.createElement('div');
   chart.className = 'ws-chart';
-  const maxWords = Math.max(...last30.map(d => d.words), 1);
+  const maxWords = Math.max(...last30.map((d) => d.words), 1);
   for (const day of last30) {
     const barEl = document.createElement('div');
     const height = Math.max(2, (day.words / maxWords) * 60);

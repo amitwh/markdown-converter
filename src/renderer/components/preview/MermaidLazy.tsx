@@ -39,7 +39,12 @@ export function MermaidLazy({ code }: Props) {
     };
   }, [code]);
 
-  if (error) return <div className="rounded border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">{error}</div>;
+  if (error)
+    return (
+      <div className="rounded border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+        {error}
+      </div>
+    );
   if (!svg) return <div className="text-xs text-muted-foreground">Loading diagram…</div>;
   return <div data-testid="mermaid-output" dangerouslySetInnerHTML={{ __html: svg }} />;
 }

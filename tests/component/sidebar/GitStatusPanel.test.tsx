@@ -55,7 +55,9 @@ describe('GitStatusPanel', () => {
     useFileStore.setState({ rootPath: '/project' } as any);
     render(<GitStatusPanel />);
     // The helper text appears in a <p> element distinct from the error heading
-    expect(await screen.findByText('Not a git repository, or git not installed.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Not a git repository, or git not installed.')
+    ).toBeInTheDocument();
   });
 
   it('opens file on click', async () => {

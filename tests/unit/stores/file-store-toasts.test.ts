@@ -54,7 +54,9 @@ describe('file-store toasts', () => {
         openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }],
       } as any);
       useEditorStore.setState({
-        buffers: new Map([['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: true }]]),
+        buffers: new Map([
+          ['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: true }],
+        ]),
         activeId: '/test.md',
       } as any);
 
@@ -64,13 +66,18 @@ describe('file-store toasts', () => {
     });
 
     it('calls toast.error when save fails', async () => {
-      fakeWrite.mockResolvedValue({ ok: false, error: { code: 'EACCES', message: 'Permission denied' } });
+      fakeWrite.mockResolvedValue({
+        ok: false,
+        error: { code: 'EACCES', message: 'Permission denied' },
+      });
       useFileStore.setState({
         activeTabId: '/test.md',
         openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }],
       } as any);
       useEditorStore.setState({
-        buffers: new Map([['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: true }]]),
+        buffers: new Map([
+          ['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: true }],
+        ]),
         activeId: '/test.md',
       } as any);
 
@@ -91,7 +98,10 @@ describe('file-store toasts', () => {
 
   describe('openFolder', () => {
     it('calls toast.error when IPC list fails', async () => {
-      fakeList.mockResolvedValue({ ok: false, error: { code: 'EACCES', message: 'Permission denied' } });
+      fakeList.mockResolvedValue({
+        ok: false,
+        error: { code: 'EACCES', message: 'Permission denied' },
+      });
 
       await useFileStore.getState().openFolder('/forbidden');
       expect(toast.error).toHaveBeenCalledWith('Failed to open folder: Permission denied');

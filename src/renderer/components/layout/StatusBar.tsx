@@ -17,7 +17,9 @@ export function StatusBar() {
         <span>UTF-8</span>
       </div>
       <div className="flex items-center gap-4">
-        <span>Ln {cursor.line}, Col {cursor.column}</span>
+        <span>
+          Ln {cursor.line}, Col {cursor.column}
+        </span>
         <span>Markdown</span>
       </div>
     </footer>

@@ -18,7 +18,12 @@ vi.mock('@/lib/ipc', () => ({
     },
     app: { getVersion: vi.fn().mockResolvedValue({ ok: true, data: '5.0.1' }) },
     menu: { on: vi.fn(() => () => {}) },
-    updater: { check: vi.fn(), install: vi.fn(), getState: vi.fn(), onStatus: vi.fn(() => () => {}) },
+    updater: {
+      check: vi.fn(),
+      install: vi.fn(),
+      getState: vi.fn(),
+      onStatus: vi.fn(() => () => {}),
+    },
     crash: { read: vi.fn(), openDir: vi.fn(), delete: vi.fn() },
   },
 }));
@@ -35,7 +40,13 @@ describe('App — print preview event listeners', () => {
   beforeEach(() => {
     useCommandStore.setState({ handlers: {} } as any);
     useAppStore.setState({ modal: { kind: null } } as any);
-    useFileStore.setState({ tree: null, rootPath: null, expanded: new Set(), openTabs: [], activeTabId: null });
+    useFileStore.setState({
+      tree: null,
+      rootPath: null,
+      expanded: new Set(),
+      openTabs: [],
+      activeTabId: null,
+    });
     useSettingsStore.getState().resetToDefaults?.();
     useEditorStore.setState({ buffers: new Map(), activeId: null });
     localStorage.clear();

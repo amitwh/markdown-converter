@@ -25,9 +25,9 @@ function createMainWindow() {
       // on load and the renderer never gets the IPC bridge.
       contextIsolation: true,
       nodeIntegration: false,
-      spellcheck: true
+      spellcheck: true,
     },
-    icon: path.join(__dirname, '../../../assets/icon.png')
+    icon: path.join(__dirname, '../../../assets/icon.png'),
   });
 
   // Dev (Vite): load the running dev server so .tsx is transformed on the fly.
@@ -54,7 +54,7 @@ function createMainWindow() {
         console.error(
           '[WINDOW] Renderer not found at',
           rendererIndex,
-          '— did you run `npm run build:renderer` before packaging?',
+          '— did you run `npm run build:renderer` before packaging?'
         );
       }
     }
@@ -84,18 +84,23 @@ function createMainWindow() {
     // Add spell check suggestions
     if (params.misspelledWord) {
       for (const suggestion of params.dictionarySuggestions) {
-        ctxMenu.append(new MenuItem({
-          label: suggestion,
-          click: () => win.webContents.replaceMisspelling(suggestion)
-        }));
+        ctxMenu.append(
+          new MenuItem({
+            label: suggestion,
+            click: () => win.webContents.replaceMisspelling(suggestion),
+          })
+        );
       }
       if (params.dictionarySuggestions.length > 0) {
         ctxMenu.append(new MenuItem({ type: 'separator' }));
       }
-      ctxMenu.append(new MenuItem({
-        label: 'Add to Dictionary',
-        click: () => win.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord)
-      }));
+      ctxMenu.append(
+        new MenuItem({
+          label: 'Add to Dictionary',
+          click: () =>
+            win.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
+        })
+      );
       ctxMenu.append(new MenuItem({ type: 'separator' }));
     }
 

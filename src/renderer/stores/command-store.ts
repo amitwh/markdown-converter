@@ -30,10 +30,8 @@ export const useCommandStore = create<CommandState>()(
     (set, get) => ({
       handlers: {},
       userBindings: {},
-      register: (id, handler) =>
-        set((s) => ({ handlers: { ...s.handlers, [id]: handler } })),
-      registerMany: (handlers) =>
-        set((s) => ({ handlers: { ...s.handlers, ...handlers } })),
+      register: (id, handler) => set((s) => ({ handlers: { ...s.handlers, [id]: handler } })),
+      registerMany: (handlers) => set((s) => ({ handlers: { ...s.handlers, ...handlers } })),
       unregister: (id) =>
         set((s) => {
           const next = { ...s.handlers };

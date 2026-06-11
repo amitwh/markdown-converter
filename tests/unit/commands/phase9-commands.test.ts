@@ -10,7 +10,10 @@ describe('Phase 9 commands', () => {
     localStorage.clear();
     useCommandStore.setState({ handlers: {}, userBindings: {} } as any);
     useAppStore.setState({ modal: { kind: null } } as any);
-    useFileStore.setState({ activeTabId: '/x.md', openTabs: [{ id: '/x.md', path: '/x.md', title: 'x.md', dirty: false }] } as any);
+    useFileStore.setState({
+      activeTabId: '/x.md',
+      openTabs: [{ id: '/x.md', path: '/x.md', title: 'x.md', dirty: false }],
+    } as any);
     // Use resetToDefaults to restore store methods (setSetting/resetToDefaults)
     useSettingsStore.getState().resetToDefaults();
   });
@@ -36,7 +39,10 @@ describe('Phase 9 commands', () => {
   it('tools.exportWord opens export-word modal with active path', () => {
     registerMenuCommands();
     useCommandStore.getState().dispatch('tools.exportWord');
-    expect(useAppStore.getState().modal).toEqual({ kind: 'export-word', props: { sourcePath: '/x.md' } });
+    expect(useAppStore.getState().modal).toEqual({
+      kind: 'export-word',
+      props: { sourcePath: '/x.md' },
+    });
   });
 
   it('tools.repl toggles replOpen setting', () => {

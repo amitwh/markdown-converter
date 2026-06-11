@@ -4,11 +4,11 @@ const { PDFDocument, rgb, degrees, StandardFonts } = require('pdf-lib');
 
 function parsePageRanges(rangeString, totalPages) {
   const pages = [];
-  const ranges = rangeString.split(',').map(r => r.trim());
+  const ranges = rangeString.split(',').map((r) => r.trim());
 
   for (const range of ranges) {
     if (range.includes('-')) {
-      const [start, end] = range.split('-').map(n => parseInt(n.trim()));
+      const [start, end] = range.split('-').map((n) => parseInt(n.trim()));
       for (let i = start; i <= end && i <= totalPages; i++) {
         if (i > 0 && !pages.includes(i - 1)) {
           pages.push(i - 1);
@@ -27,11 +27,13 @@ function parsePageRanges(rangeString, totalPages) {
 
 function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16) / 255,
-    g: parseInt(result[2], 16) / 255,
-    b: parseInt(result[3], 16) / 255
-  } : { r: 0, g: 0, b: 0 };
+  return result
+    ? {
+        r: parseInt(result[1], 16) / 255,
+        g: parseInt(result[2], 16) / 255,
+        b: parseInt(result[3], 16) / 255,
+      }
+    : { r: 0, g: 0, b: 0 };
 }
 
 async function pdfMerge(data) {
@@ -42,7 +44,7 @@ async function pdfMerge(data) {
       const pdfBytes = fs.readFileSync(filePath);
       const pdf = await PDFDocument.load(pdfBytes);
       const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-      copiedPages.forEach(page => mergedPdf.addPage(page));
+      copiedPages.forEach((page) => mergedPdf.addPage(page));
     }
 
     const pdfBytes = await mergedPdf.save();
@@ -63,13 +65,13 @@ async function pdfSplit(data) {
     const splits = [];
 
     if (data.splitMode === 'pages') {
-      const ranges = data.pageRanges.split(',').map(r => r.trim());
+      const ranges = data.pageRanges.split(',').map((r) => r.trim());
       for (let i = 0; i < ranges.length; i++) {
         const range = ranges[i];
         const pages = [];
 
         if (range.includes('-')) {
-          const [start, end] = range.split('-').map(n => parseInt(n.trim()));
+          const [start, end] = range.split('-').map((n) => parseInt(n.trim()));
           for (let p = start; p <= end && p <= totalPages; p++) {
             pages.push(p - 1);
           }
@@ -108,7 +110,7 @@ async function pdfSplit(data) {
     for (const split of splits) {
       const newPdf = await PDFDocument.create();
       const copiedPages = await newPdf.copyPages(pdf, split.pages);
-      copiedPages.forEach(page => newPdf.addPage(page));
+      copiedPages.forEach((page) => newPdf.addPage(page));
 
       const outputPath = path.join(data.outputFolder, `${baseName}_${split.name}.pdf`);
       const newPdfBytes = await newPdf.save();
@@ -129,18 +131,18 @@ async function pdfCompress(data) {
     const compressedPdfBytes = await pdf.save({
       useObjectStreams: true,
       addDefaultPage: false,
-      objectsPerTick: 50
+      objectsPerTick: 50,
     });
 
     fs.writeFileSync(data.outputPath, compressedPdfBytes);
 
     const originalSize = fs.statSync(data.inputPath).size;
     const compressedSize = fs.statSync(data.outputPath).size;
-    const savings = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+    const savings = (((originalSize - compressedSize) / originalSize) * 100).toFixed(1);
 
     return {
       success: true,
-      message: `PDF compressed. Size reduced by ${savings}% (${(originalSize / 1024).toFixed(1)}KB → ${(compressedSize / 1024).toFixed(1)}KB)`
+      message: `PDF compressed. Size reduced by ${savings}% (${(originalSize / 1024).toFixed(1)}KB → ${(compressedSize / 1024).toFixed(1)}KB)`,
     };
   } catch (error) {
     return { success: false, error: error.message };
@@ -160,7 +162,7 @@ async function pdfRotate(data) {
       pagesToRotate = Array.from({ length: totalPages }, (_, i) => i);
     }
 
-    pagesToRotate.forEach(pageIndex => {
+    pagesToRotate.forEach((pageIndex) => {
       const page = pdf.getPage(pageIndex);
       page.setRotation(degrees(data.angle));
     });
@@ -170,7 +172,7 @@ async function pdfRotate(data) {
 
     return {
       success: true,
-      message: `Successfully rotated ${pagesToRotate.length} page(s) by ${data.angle}\u00B0`
+      message: `Successfully rotated ${pagesToRotate.length} page(s) by ${data.angle}\u00B0`,
     };
   } catch (error) {
     return { success: false, error: error.message };
@@ -185,16 +187,18 @@ async function pdfDeletePages(data) {
 
     const pagesToDelete = parsePageRanges(data.pages, totalPages);
 
-    pagesToDelete.sort((a, b) => b - a).forEach(pageIndex => {
-      pdf.removePage(pageIndex);
-    });
+    pagesToDelete
+      .sort((a, b) => b - a)
+      .forEach((pageIndex) => {
+        pdf.removePage(pageIndex);
+      });
 
     const newPdfBytes = await pdf.save();
     fs.writeFileSync(data.outputPath, newPdfBytes);
 
     return {
       success: true,
-      message: `Successfully deleted ${pagesToDelete.length} page(s). New PDF has ${totalPages - pagesToDelete.length} pages`
+      message: `Successfully deleted ${pagesToDelete.length} page(s). New PDF has ${totalPages - pagesToDelete.length} pages`,
     };
   } catch (error) {
     return { success: false, error: error.message };
@@ -207,7 +211,7 @@ async function pdfReorder(data) {
     const pdf = await PDFDocument.load(pdfBytes);
     const totalPages = pdf.getPageCount();
 
-    const newOrder = data.newOrder.split(',').map(n => parseInt(n.trim()) - 1);
+    const newOrder = data.newOrder.split(',').map((n) => parseInt(n.trim()) - 1);
 
     if (newOrder.length !== totalPages) {
       return { success: false, error: `New order must include all ${totalPages} pages` };
@@ -215,7 +219,7 @@ async function pdfReorder(data) {
 
     const newPdf = await PDFDocument.create();
     const copiedPages = await newPdf.copyPages(pdf, newOrder);
-    copiedPages.forEach(page => newPdf.addPage(page));
+    copiedPages.forEach((page) => newPdf.addPage(page));
 
     const reorderedPdfBytes = await newPdf.save();
     fs.writeFileSync(data.outputPath, reorderedPdfBytes);
@@ -246,7 +250,9 @@ async function pdfWatermark(data) {
       const page = pdf.getPage(pageIndex);
       const { width, height } = page.getSize();
 
-      let x, y, rotation = 0;
+      let x,
+        y,
+        rotation = 0;
 
       switch (data.position) {
         case 'center':
@@ -294,7 +300,7 @@ async function pdfWatermark(data) {
         font,
         color: rgb(color.r, color.g, color.b),
         opacity: data.opacity,
-        rotate: degrees(rotation)
+        rotate: degrees(rotation),
       });
     }
 
@@ -303,7 +309,7 @@ async function pdfWatermark(data) {
 
     return {
       success: true,
-      message: `Successfully added watermark to ${pagesToWatermark.length} page(s)`
+      message: `Successfully added watermark to ${pagesToWatermark.length} page(s)`,
     };
   } catch (error) {
     return { success: false, error: error.message };
@@ -325,8 +331,8 @@ async function pdfEncrypt(data) {
         annotating: data.permissions.annotating,
         fillingForms: data.permissions.fillingForms,
         contentAccessibility: data.permissions.contentAccessibility,
-        documentAssembly: data.permissions.documentAssembly
-      }
+        documentAssembly: data.permissions.documentAssembly,
+      },
     });
 
     fs.writeFileSync(data.outputPath, encryptedPdfBytes);
@@ -336,7 +342,8 @@ async function pdfEncrypt(data) {
     if (error.message.includes('encrypt') || error.message.includes('password')) {
       return {
         success: false,
-        error: 'PDF encryption requires pdf-lib with encryption support. This feature may not be available in the current version.'
+        error:
+          'PDF encryption requires pdf-lib with encryption support. This feature may not be available in the current version.',
       };
     }
     return { success: false, error: error.message };
@@ -375,8 +382,8 @@ async function pdfSetPermissions(data) {
         annotating: data.permissions.annotating,
         fillingForms: data.permissions.fillingForms,
         contentAccessibility: data.permissions.contentAccessibility,
-        documentAssembly: data.permissions.documentAssembly
-      }
+        documentAssembly: data.permissions.documentAssembly,
+      },
     });
 
     fs.writeFileSync(data.outputPath, newPdfBytes);
@@ -386,7 +393,8 @@ async function pdfSetPermissions(data) {
     if (error.message.includes('encrypt') || error.message.includes('permission')) {
       return {
         success: false,
-        error: 'PDF permissions require pdf-lib with encryption support. This feature may not be available in the current version.'
+        error:
+          'PDF permissions require pdf-lib with encryption support. This feature may not be available in the current version.',
       };
     }
     return { success: false, error: error.message };
@@ -395,17 +403,28 @@ async function pdfSetPermissions(data) {
 
 function executeOperation(operation, data) {
   switch (operation) {
-    case 'merge': return pdfMerge(data);
-    case 'split': return pdfSplit(data);
-    case 'compress': return pdfCompress(data);
-    case 'rotate': return pdfRotate(data);
-    case 'delete': return pdfDeletePages(data);
-    case 'reorder': return pdfReorder(data);
-    case 'watermark': return pdfWatermark(data);
-    case 'encrypt': return pdfEncrypt(data);
-    case 'decrypt': return pdfDecrypt(data);
-    case 'permissions': return pdfSetPermissions(data);
-    default: return Promise.resolve({ success: false, error: `Unknown operation: ${operation}` });
+    case 'merge':
+      return pdfMerge(data);
+    case 'split':
+      return pdfSplit(data);
+    case 'compress':
+      return pdfCompress(data);
+    case 'rotate':
+      return pdfRotate(data);
+    case 'delete':
+      return pdfDeletePages(data);
+    case 'reorder':
+      return pdfReorder(data);
+    case 'watermark':
+      return pdfWatermark(data);
+    case 'encrypt':
+      return pdfEncrypt(data);
+    case 'decrypt':
+      return pdfDecrypt(data);
+    case 'permissions':
+      return pdfSetPermissions(data);
+    default:
+      return Promise.resolve({ success: false, error: `Unknown operation: ${operation}` });
   }
 }
 
@@ -429,5 +448,5 @@ module.exports = {
   pdfDecrypt,
   pdfSetPermissions,
   executeOperation,
-  getPageCount
+  getPageCount,
 };

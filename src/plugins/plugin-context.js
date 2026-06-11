@@ -12,10 +12,11 @@ class PluginContext {
    * @param {object} deps.exportHooks - { preHooks: [], postHooks: [] }
    */
   constructor(deps) {
-    const { pluginId, sidebar, commands, statusBar, eventBus, settings, editor, ipc, exportHooks } = deps;
+    const { pluginId, sidebar, commands, statusBar, eventBus, settings, editor, ipc, exportHooks } =
+      deps;
 
     this.sidebar = {
-      registerPanel: (id, opts) => sidebar.registerPanel(`${pluginId}:${id}`, opts)
+      registerPanel: (id, opts) => sidebar.registerPanel(`${pluginId}:${id}`, opts),
     };
 
     this.commands = {
@@ -28,41 +29,45 @@ class PluginContext {
           }
         };
         commands.register(`${pluginId}:${id}`, label, safeHandler, shortcut);
-      }
+      },
     };
 
     this.statusBar = {
-      registerIndicator: (id, opts) => statusBar.registerIndicator(`${pluginId}:${id}`, opts)
+      registerIndicator: (id, opts) => statusBar.registerIndicator(`${pluginId}:${id}`, opts),
     };
 
     this.settings = {
       get: (key) => settings.get(`plugins.${pluginId}.${key}`),
       set: (key, value) => settings.set(`plugins.${pluginId}.${key}`, value),
-      onChanged: (key, cb) => settings.onChanged(`plugins.${pluginId}.${key}`, cb)
+      onChanged: (key, cb) => settings.onChanged(`plugins.${pluginId}.${key}`, cb),
     };
 
     this.editor = {
       getContent: () => editor.getContent(),
       getSelection: () => editor.getSelection(),
       insertAtCursor: (text) => editor.insertAtCursor(text),
-      onContentChanged: (cb) => editor.onContentChanged(cb)
+      onContentChanged: (cb) => editor.onContentChanged(cb),
     };
 
     this.events = {
       on: (event, handler) => eventBus.on(event, handler),
       off: (event, handler) => eventBus.off(event, handler),
       emit: (event, payload) => eventBus.emit(event, payload),
-      hasHandler: (event) => eventBus.hasHandler(event)
+      hasHandler: (event) => eventBus.hasHandler(event),
     };
 
     this.ipc = {
       invoke: (channel, ...args) => ipc.invoke(channel, ...args),
-      on: (channel, handler) => ipc.on(channel, handler)
+      on: (channel, handler) => ipc.on(channel, handler),
     };
 
     this.exports = {
-      registerPreHook: (handler) => { if (exportHooks) exportHooks.preHooks.push(handler); },
-      registerPostHook: (handler) => { if (exportHooks) exportHooks.postHooks.push(handler); }
+      registerPreHook: (handler) => {
+        if (exportHooks) exportHooks.preHooks.push(handler);
+      },
+      registerPostHook: (handler) => {
+        if (exportHooks) exportHooks.postHooks.push(handler);
+      },
     };
   }
 }

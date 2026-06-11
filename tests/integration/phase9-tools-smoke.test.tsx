@@ -36,11 +36,22 @@ describe('Phase 9 tools integration', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
-    useAppStore.setState({ modal: { kind: null }, sidebarVisible: true, previewVisible: true, zenMode: false, paneSizes: { sidebar: 20, editor: 50, preview: 30 } } as any);
+    useAppStore.setState({
+      modal: { kind: null },
+      sidebarVisible: true,
+      previewVisible: true,
+      zenMode: false,
+      paneSizes: { sidebar: 20, editor: 50, preview: 30 },
+    } as any);
     useCommandStore.setState({ handlers: {}, userBindings: {} } as any);
     useSettingsStore.setState({ ...useSettingsStore.getInitialState(), welcomeDismissed: true });
-    useFileStore.setState({ activeTabId: '/x.md', openTabs: [{ id: '/x.md', path: '/x.md', title: 'x.md', dirty: false }] } as any);
-    useEditorStore.setState({ buffers: new Map([['/x.md', { id: '/x.md', path: '/x.md', content: '# hi', dirty: false }]]) } as any);
+    useFileStore.setState({
+      activeTabId: '/x.md',
+      openTabs: [{ id: '/x.md', path: '/x.md', title: 'x.md', dirty: false }],
+    } as any);
+    useEditorStore.setState({
+      buffers: new Map([['/x.md', { id: '/x.md', path: '/x.md', content: '# hi', dirty: false }]]),
+    } as any);
   });
 
   it('tools.ascii opens ascii-generator modal', () => {
@@ -68,7 +79,10 @@ describe('Phase 9 tools integration', () => {
     registerMenuCommands();
     render(<App />);
     useCommandStore.getState().dispatch('tools.exportWord');
-    expect(useAppStore.getState().modal).toEqual({ kind: 'export-word', props: { sourcePath: '/x.md' } });
+    expect(useAppStore.getState().modal).toEqual({
+      kind: 'export-word',
+      props: { sourcePath: '/x.md' },
+    });
   });
 
   it('tools.repl toggles replOpen setting', () => {

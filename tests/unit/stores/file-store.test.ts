@@ -49,10 +49,7 @@ describe('useFileStore', () => {
   it('openFolder calls ipc.file.list and sets tree with root node and mapped children', async () => {
     fakeList.mockResolvedValue({
       ok: true,
-      data: [
-        fakeFileEntry('README.md', false),
-        fakeFileEntry('src', true),
-      ],
+      data: [fakeFileEntry('README.md', false), fakeFileEntry('src', true)],
     });
 
     await useFileStore.getState().openFolder('/root');
@@ -139,7 +136,9 @@ describe('useFileStore', () => {
       path: '/root',
       isDirectory: true,
       loaded: true,
-      children: [{ name: 'src', path: '/root/src', isDirectory: true, children: null, loaded: true }],
+      children: [
+        { name: 'src', path: '/root/src', isDirectory: true, children: null, loaded: true },
+      ],
     };
     useFileStore.setState({ tree });
 

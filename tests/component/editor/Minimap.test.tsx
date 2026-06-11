@@ -11,9 +11,7 @@ describe('Minimap', () => {
   });
 
   it('renders a viewport indicator', () => {
-    render(
-      <Minimap content={'line 1\nline 2\nline 3'} scrollRatio={0.5} visibleRatio={0.5} />
-    );
+    render(<Minimap content={'line 1\nline 2\nline 3'} scrollRatio={0.5} visibleRatio={0.5} />);
     const indicator = screen.getByTestId('minimap-viewport');
     expect(indicator).toBeInTheDocument();
   });

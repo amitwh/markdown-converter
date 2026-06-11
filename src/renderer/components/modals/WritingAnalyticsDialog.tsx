@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAppStore } from '@/stores/app-store';
@@ -32,7 +38,8 @@ export function WritingAnalyticsDialog() {
   }, [isGoalReached, celebrated]);
 
   // Find max count for word cloud scaling
-  const maxWordCount = metrics.topWords.length > 0 ? Math.max(...metrics.topWords.map((w) => w.count)) : 1;
+  const maxWordCount =
+    metrics.topWords.length > 0 ? Math.max(...metrics.topWords.map((w) => w.count)) : 1;
 
   // Helper to determine color coding for Flesch Readability Ease
   const getReadabilityColor = (score: number) => {
@@ -50,7 +57,8 @@ export function WritingAnalyticsDialog() {
             <DialogTitle className="text-xl font-bold font-display">Writing Analytics</DialogTitle>
           </div>
           <DialogDescription>
-            Real-time readability metrics, vocabulary analysis, and progress towards your daily word goal.
+            Real-time readability metrics, vocabulary analysis, and progress towards your daily word
+            goal.
           </DialogDescription>
         </DialogHeader>
 
@@ -75,9 +83,7 @@ export function WritingAnalyticsDialog() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Grade Level</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {metrics.fleschGrade}
-                  </p>
+                  <p className="text-2xl font-bold text-foreground">{metrics.fleschGrade}</p>
                   <p className="text-xs text-muted-foreground">US school grade</p>
                 </div>
               </div>
@@ -225,12 +231,19 @@ export function WritingAnalyticsDialog() {
               </div>
 
               <div className="text-xs text-muted-foreground mb-4">
-                Unique words: <span className="font-semibold text-foreground">{metrics.uniqueWordCount}</span> /{' '}
-                {metrics.wordCount} ({metrics.wordCount > 0 ? Math.round((metrics.uniqueWordCount / metrics.wordCount) * 100) : 0}%)
+                Unique words:{' '}
+                <span className="font-semibold text-foreground">{metrics.uniqueWordCount}</span> /{' '}
+                {metrics.wordCount} (
+                {metrics.wordCount > 0
+                  ? Math.round((metrics.uniqueWordCount / metrics.wordCount) * 100)
+                  : 0}
+                %)
               </div>
 
               <div className="mt-4">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Word Frequency Cloud</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">
+                  Word Frequency Cloud
+                </p>
                 {metrics.topWords.length === 0 ? (
                   <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-border bg-card/10 text-xs text-muted-foreground">
                     Add more words to see vocabulary statistics

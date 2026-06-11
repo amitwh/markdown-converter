@@ -22,7 +22,9 @@ describe('PrintPreview', () => {
       openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }],
     } as any);
     useEditorStore.setState({
-      buffers: new Map([['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: false }]]),
+      buffers: new Map([
+        ['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: false }],
+      ]),
     } as any);
   });
 

@@ -25,7 +25,7 @@ function wrap<T>(fn: () => Promise<T>): Promise<IpcResult<T | ChannelMissing>> {
     (err: Error) => ({
       ok: false as const,
       error: { code: err.name || 'IPC_ERROR', message: err.message || String(err) },
-    }),
+    })
   );
 }
 
@@ -58,8 +58,7 @@ function safeCall<T extends (...args: any[]) => Promise<any>>(
 
 export const ipc = {
   file: {
-    open: (): Promise<IpcResult<FileResult | ChannelMissing>> =>
-      safeCall('file', 'open'),
+    open: (): Promise<IpcResult<FileResult | ChannelMissing>> => safeCall('file', 'open'),
     read: (path: string): Promise<IpcResult<string | ChannelMissing>> =>
       safeCall('file', 'read', path),
     write: (path: string, content: string): Promise<IpcResult<void | ChannelMissing>> =>
@@ -76,12 +75,26 @@ export const ipc = {
       }
       return window.electronAPI.file.onChange(cb);
     },
-    search: (args: { rootPath: string; query: string; isRegex: boolean; caseSensitive: boolean }): Promise<IpcResult<Array<{ filePath: string; line: number; content: string }> | ChannelMissing>> =>
-      safeCall('file', 'search', args),
-    gitStatus: (args: { rootPath: string }): Promise<IpcResult<Array<{ filePath: string; status: 'modified' | 'added' | 'deleted' | 'untracked' }> | ChannelMissing>> =>
-      safeCall('file', 'gitStatus', args),
-    writeBuffer: (args: { path: string; buffer: Uint8Array }): Promise<IpcResult<void | ChannelMissing>> =>
-      safeCall('file', 'writeBuffer', args),
+    search: (args: {
+      rootPath: string;
+      query: string;
+      isRegex: boolean;
+      caseSensitive: boolean;
+    }): Promise<
+      IpcResult<Array<{ filePath: string; line: number; content: string }> | ChannelMissing>
+    > => safeCall('file', 'search', args),
+    gitStatus: (args: {
+      rootPath: string;
+    }): Promise<
+      IpcResult<
+        | Array<{ filePath: string; status: 'modified' | 'added' | 'deleted' | 'untracked' }>
+        | ChannelMissing
+      >
+    > => safeCall('file', 'gitStatus', args),
+    writeBuffer: (args: {
+      path: string;
+      buffer: Uint8Array;
+    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('file', 'writeBuffer', args),
     setCurrent: (path: string | null): void => {
       if (typeof window !== 'undefined' && (window.electronAPI as any)?.file?.setCurrent) {
         (window.electronAPI as any).file.setCurrent(path);
@@ -101,17 +114,21 @@ export const ipc = {
       safeCall('export', 'docx', opts),
     html: (opts: HtmlOptions): Promise<IpcResult<ExportResult | ChannelMissing>> =>
       safeCall('export', 'html', opts),
-    batch: (items: BatchItem[], opts: BatchOptions): Promise<IpcResult<BatchResult | ChannelMissing>> =>
-      safeCall('export', 'batch', items, opts),
+    batch: (
+      items: BatchItem[],
+      opts: BatchOptions
+    ): Promise<IpcResult<BatchResult | ChannelMissing>> => safeCall('export', 'batch', items, opts),
   },
   app: {
-    getVersion: (): Promise<IpcResult<string | ChannelMissing>> =>
-      safeCall('app', 'getVersion'),
+    getVersion: (): Promise<IpcResult<string | ChannelMissing>> => safeCall('app', 'getVersion'),
     openExternal: (url: string): Promise<IpcResult<void | ChannelMissing>> =>
       safeCall('app', 'openExternal', url),
     showItemInFolder: (path: string): Promise<IpcResult<void | ChannelMissing>> =>
       safeCall('app', 'showItemInFolder', path),
-    showSaveDialog: (args?: { title?: string; defaultPath?: string }): Promise<IpcResult<string | null | ChannelMissing>> =>
+    showSaveDialog: (args?: {
+      title?: string;
+      defaultPath?: string;
+    }): Promise<IpcResult<string | null | ChannelMissing>> =>
       safeCall('app', 'showSaveDialog', args),
   },
   menu: {
@@ -127,12 +144,9 @@ export const ipc = {
     },
   },
   updater: {
-    check: (): Promise<IpcResult<void | ChannelMissing>> =>
-      safeCall('updater', 'check'),
-    install: (): Promise<IpcResult<void | ChannelMissing>> =>
-      safeCall('updater', 'install'),
-    getState: (): Promise<IpcResult<unknown | ChannelMissing>> =>
-      safeCall('updater', 'getState'),
+    check: (): Promise<IpcResult<void | ChannelMissing>> => safeCall('updater', 'check'),
+    install: (): Promise<IpcResult<void | ChannelMissing>> => safeCall('updater', 'install'),
+    getState: (): Promise<IpcResult<unknown | ChannelMissing>> => safeCall('updater', 'getState'),
     onStatus: (cb: (payload: unknown) => void): (() => void) => {
       if (typeof window === 'undefined' || !window.electronAPI?.updater?.onStatus) {
         return () => {};
@@ -141,10 +155,8 @@ export const ipc = {
     },
   },
   crash: {
-    read: (): Promise<IpcResult<unknown | ChannelMissing>> =>
-      safeCall('crash', 'read'),
-    openDir: (): Promise<IpcResult<void | ChannelMissing>> =>
-      safeCall('crash', 'openDir'),
+    read: (): Promise<IpcResult<unknown | ChannelMissing>> => safeCall('crash', 'read'),
+    openDir: (): Promise<IpcResult<void | ChannelMissing>> => safeCall('crash', 'openDir'),
     delete: (filename: string): Promise<IpcResult<void | ChannelMissing>> =>
       safeCall('crash', 'delete', filename),
   },

@@ -2,42 +2,46 @@
 // Kept in sync manually; if the renderer transform changes, update this too.
 const { z } = require('zod');
 
-const v4SettingsSchema = z.object({
-  theme: z.enum(['light', 'dark', 'auto']).default('auto'),
-  customCss: z.string().optional().nullable(),
-  recentFiles: z.array(z.string()).default([]),
-  editorFontSize: z.number().min(10).max(28).default(14),
-  keyBindings: z.record(z.string(), z.string()).optional(),
-  snippets: z.array(z.unknown()).default([]),
-}).passthrough();
+const v4SettingsSchema = z
+  .object({
+    theme: z.enum(['light', 'dark', 'auto']).default('auto'),
+    customCss: z.string().optional().nullable(),
+    recentFiles: z.array(z.string()).default([]),
+    editorFontSize: z.number().min(10).max(28).default(14),
+    keyBindings: z.record(z.string(), z.string()).optional(),
+    snippets: z.array(z.unknown()).default([]),
+  })
+  .passthrough();
 
-const v5SettingsSchema = z.object({
-  fontSize: z.number().default(14),
-  tabSize: z.number().default(4),
-  lineNumbers: z.boolean().default(true),
-  wordWrap: z.boolean().default(true),
-  minimap: z.boolean().default(true),
-  theme: z.enum(['light', 'dark', 'system']).default('system'),
-  accentColor: z.string().default('brand'),
-  fontFamily: z.string().default('system'),
-  pdfFormat: z.string().default('a4'),
-  pdfMargins: z.string().default('normal'),
-  pdfEmbedFonts: z.boolean().default(true),
-  docxTemplate: z.string().default('standard'),
-  docxCustomTemplatePath: z.string().nullable().default(null),
-  replOpen: z.boolean().default(false),
-  breadcrumbSymbols: z.boolean().default(true),
-  htmlHighlightStyle: z.string().default('github'),
-  renderTablesAsAscii: z.boolean().default(false),
-  welcomeDismissed: z.boolean().default(false),
-  editorFontSize: z.number().default(14),
-  customCssPath: z.string().nullable().default(null),
-  userBindings: z.record(z.string(), z.string()).default({}),
-  updateChannel: z.enum(['github', 'concreteinfo']).default('github'),
-  autoCheckUpdates: z.boolean().default(true),
-  firstRun: z.boolean().default(true),
-  'migration.version': z.literal(5).optional(),
-}).passthrough();
+const v5SettingsSchema = z
+  .object({
+    fontSize: z.number().default(14),
+    tabSize: z.number().default(4),
+    lineNumbers: z.boolean().default(true),
+    wordWrap: z.boolean().default(true),
+    minimap: z.boolean().default(true),
+    theme: z.enum(['light', 'dark', 'system']).default('system'),
+    accentColor: z.string().default('brand'),
+    fontFamily: z.string().default('system'),
+    pdfFormat: z.string().default('a4'),
+    pdfMargins: z.string().default('normal'),
+    pdfEmbedFonts: z.boolean().default(true),
+    docxTemplate: z.string().default('standard'),
+    docxCustomTemplatePath: z.string().nullable().default(null),
+    replOpen: z.boolean().default(false),
+    breadcrumbSymbols: z.boolean().default(true),
+    htmlHighlightStyle: z.string().default('github'),
+    renderTablesAsAscii: z.boolean().default(false),
+    welcomeDismissed: z.boolean().default(false),
+    editorFontSize: z.number().default(14),
+    customCssPath: z.string().nullable().default(null),
+    userBindings: z.record(z.string(), z.string()).default({}),
+    updateChannel: z.enum(['github', 'concreteinfo']).default('github'),
+    autoCheckUpdates: z.boolean().default(true),
+    firstRun: z.boolean().default(true),
+    'migration.version': z.literal(5).optional(),
+  })
+  .passthrough();
 
 const v5OnlyFields = ['updateChannel', 'autoCheckUpdates', 'firstRun'];
 const v5ThemeValues = ['light', 'dark', 'system'];

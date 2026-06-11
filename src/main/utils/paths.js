@@ -10,7 +10,7 @@ function getAllowedDirectories() {
     app.getPath('desktop'),
     app.getPath('downloads'),
     app.getPath('home'),
-    process.cwd() // Current working directory
+    process.cwd(), // Current working directory
   ].filter(Boolean); // Remove any undefined paths
   return dirs;
 }
@@ -88,9 +88,13 @@ function resolveWritablePath(filePath) {
 function isPathAccessible(resolvedPath) {
   // Block access to sensitive system directories
   const blockedPaths = [
-    '/etc/passwd', '/etc/shadow', '/root',
-    'C:\\Windows\\System32', 'C:\\Windows\\System',
-    '/System', '/private/etc'
+    '/etc/passwd',
+    '/etc/shadow',
+    '/root',
+    'C:\\Windows\\System32',
+    'C:\\Windows\\System',
+    '/System',
+    '/private/etc',
   ];
 
   const normalizedPath = resolvedPath.toLowerCase();

@@ -1,5 +1,5 @@
 function renderSnippetsPanel(container, { getSnippets, saveSnippet, deleteSnippet, onInsert }) {
-    container.innerHTML = `
+  container.innerHTML = `
         <div class="snippets-panel">
             <div class="snippets-toolbar">
                 <input type="text" class="snippets-search" id="snippets-search" placeholder="Search snippets...">
@@ -9,22 +9,29 @@ function renderSnippetsPanel(container, { getSnippets, saveSnippet, deleteSnippe
         </div>
     `;
 
-    let snippets = [];
+  let snippets = [];
 
-    async function loadSnippets() {
-        snippets = await getSnippets() || [];
-        renderList(document.getElementById('snippets-search')?.value || '');
-    }
+  async function loadSnippets() {
+    snippets = (await getSnippets()) || [];
+    renderList(document.getElementById('snippets-search')?.value || '');
+  }
 
-    function renderList(query) {
-        const list = document.getElementById('snippets-list');
-        if (!list) return;
+  function renderList(query) {
+    const list = document.getElementById('snippets-list');
+    if (!list) return;
 
-        const filtered = query
-            ? snippets.filter(s => s.name.toLowerCase().includes(query.toLowerCase()) || (s.language || '').toLowerCase().includes(query.toLowerCase()))
-            : snippets;
+    const filtered = query
+      ? snippets.filter(
+          (s) =>
+            s.name.toLowerCase().includes(query.toLowerCase()) ||
+            (s.language || '').toLowerCase().includes(query.toLowerCase())
+        )
+      : snippets;
 
-        list.innerHTML = filtered.length ? filtered.map(s => `
+    list.innerHTML = filtered.length
+      ? filtered
+          .map(
+            (s) => `
             <div class="snippet-item" data-id="${s.id}">
                 <div class="snippet-header">
                     <span class="snippet-name">${s.name}</span>
@@ -36,36 +43,41 @@ function renderSnippetsPanel(container, { getSnippets, saveSnippet, deleteSnippe
                     <button class="snippet-delete" data-id="${s.id}" title="Delete">&times;</button>
                 </div>
             </div>
-        `).join('') : '<p class="git-info">No snippets yet. Click + to add one.</p>';
+        `
+          )
+          .join('')
+      : '<p class="git-info">No snippets yet. Click + to add one.</p>';
 
-        list.querySelectorAll('.snippet-insert').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const s = snippets.find(sn => sn.id === btn.dataset.id);
-                if (s) onInsert(s.code);
-            });
-        });
-
-        list.querySelectorAll('.snippet-delete').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                await deleteSnippet(btn.dataset.id);
-                loadSnippets();
-            });
-        });
-    }
-
-    document.getElementById('snippets-search')?.addEventListener('input', (e) => renderList(e.target.value));
-
-    document.getElementById('snippets-add')?.addEventListener('click', () => {
-        const name = prompt('Snippet name:');
-        if (!name) return;
-        const language = prompt('Language (e.g., javascript, python, html):') || 'text';
-        const code = prompt('Paste your code snippet:');
-        if (!code) return;
-
-        saveSnippet({ id: Date.now().toString(), name, language, code }).then(() => loadSnippets());
+    list.querySelectorAll('.snippet-insert').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const s = snippets.find((sn) => sn.id === btn.dataset.id);
+        if (s) onInsert(s.code);
+      });
     });
 
-    loadSnippets();
+    list.querySelectorAll('.snippet-delete').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        await deleteSnippet(btn.dataset.id);
+        loadSnippets();
+      });
+    });
+  }
+
+  document
+    .getElementById('snippets-search')
+    ?.addEventListener('input', (e) => renderList(e.target.value));
+
+  document.getElementById('snippets-add')?.addEventListener('click', () => {
+    const name = prompt('Snippet name:');
+    if (!name) return;
+    const language = prompt('Language (e.g., javascript, python, html):') || 'text';
+    const code = prompt('Paste your code snippet:');
+    if (!code) return;
+
+    saveSnippet({ id: Date.now().toString(), name, language, code }).then(() => loadSnippets());
+  });
+
+  loadSnippets();
 }
 
 module.exports = { renderSnippetsPanel };

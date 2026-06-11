@@ -30,10 +30,7 @@ describe('UpdaterService', () => {
       emitter.emit('update-available', { version: '5.0.2' });
     });
     await service.check();
-    expect(states).toEqual([
-      { state: 'checking' },
-      { state: 'available', version: '5.0.2' },
-    ]);
+    expect(states).toEqual([{ state: 'checking' }, { state: 'available', version: '5.0.2' }]);
   });
 
   test('check() emits error on network failure', async () => {

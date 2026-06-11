@@ -1,7 +1,7 @@
 interface Props {
   content: string;
-  scrollRatio?: number;       // 0-1, where the viewport is
-  visibleRatio?: number;      // 0-1, what fraction of content is visible
+  scrollRatio?: number; // 0-1, where the viewport is
+  visibleRatio?: number; // 0-1, what fraction of content is visible
 }
 
 export function Minimap({ content, scrollRatio = 0, visibleRatio = 1 }: Props) {

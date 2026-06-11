@@ -22,10 +22,10 @@ GET /resources
 
 **Query Parameters:**
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| page | integer | No | Page number (default: 1) |
-| limit | integer | No | Items per page (default: 20) |
+| Parameter | Type    | Required | Description                  |
+| --------- | ------- | -------- | ---------------------------- |
+| page      | integer | No       | Page number (default: 1)     |
+| limit     | integer | No       | Items per page (default: 20) |
 
 **Response:**
 
@@ -82,9 +82,9 @@ DELETE /resources/:id
 
 ## Error Codes
 
-| Code | Description |
-|------|-------------|
-| 400 | Bad Request |
-| 401 | Unauthorized |
-| 404 | Not Found |
-| 500 | Internal Server Error |
+| Code | Description           |
+| ---- | --------------------- |
+| 400  | Bad Request           |
+| 401  | Unauthorized          |
+| 404  | Not Found             |
+| 500  | Internal Server Error |

@@ -47,7 +47,7 @@ describe('WelcomeDialog', () => {
       // Effects that fire the warning run in a microtask; one tick is enough.
       await Promise.resolve();
       const offending = warnings.filter((w) =>
-        /Missing\s+`?Description`?|aria-describedby=\{undefined\}/.test(w),
+        /Missing\s+`?Description`?|aria-describedby=\{undefined\}/.test(w)
       );
       expect(offending).toEqual([]);
     } finally {

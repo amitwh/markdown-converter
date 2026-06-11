@@ -11,7 +11,12 @@ const { exec, execFile, spawn } = require('child_process');
 const WordTemplateExporter = require('./word-template');
 const PDFOperations = require('./PDFOperations');
 const GitOperations = require('./GitOperations');
-const { getAllowedDirectories, validatePath, resolveWritablePath, isPathAccessible } = require('./utils/paths');
+const {
+  getAllowedDirectories,
+  validatePath,
+  resolveWritablePath,
+  isPathAccessible,
+} = require('./utils/paths');
 const fileOps = require('./files');
 const menu = require('./menu');
 const { createMainWindow } = require('./window');
@@ -37,7 +42,7 @@ function getPandocPath() {
     '../..',
     'bin',
     process.platform,
-    process.platform === 'win32' ? 'pandoc.exe' : 'pandoc',
+    process.platform === 'win32' ? 'pandoc.exe' : 'pandoc'
   );
   if (fs.existsSync(devBin)) return devBin;
   return 'pandoc';
@@ -77,13 +82,18 @@ function checkPandocAvailable() {
  */
 function safeExecFile(command, args, options = {}) {
   return new Promise((resolve, reject) => {
-    execFile(command, args, { maxBuffer: 10 * 1024 * 1024, ...options }, (error, stdout, stderr) => {
-      if (error) {
-        reject({ error, stdout, stderr });
-      } else {
-        resolve({ stdout, stderr });
+    execFile(
+      command,
+      args,
+      { maxBuffer: 10 * 1024 * 1024, ...options },
+      (error, stdout, stderr) => {
+        if (error) {
+          reject({ error, stdout, stderr });
+        } else {
+          resolve({ stdout, stderr });
+        }
       }
-    });
+    );
   });
 }
 
@@ -93,40 +103,40 @@ const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 // Sanitize error messages to strip absolute file paths
 function sanitizeErrorMessage(message) {
-    if (typeof message !== 'string') return String(message);
-    // Strip absolute Windows paths, keeping only filename
-    return message
-        .replace(/[A-Z]:\\[^\s"']+\\([^\s"'\\]+)/gi, '$1')
-        .replace(/\/[^\s"']+\/([^\s"'/]+)/g, '$1');
+  if (typeof message !== 'string') return String(message);
+  // Strip absolute Windows paths, keeping only filename
+  return message
+    .replace(/[A-Z]:\\[^\s"']+\\([^\s"'\\]+)/gi, '$1')
+    .replace(/\/[^\s"']+\/([^\s"'/]+)/g, '$1');
 }
 
 // Rate limiter for conversions
 function createRateLimiter(minIntervalMs = 2000) {
-    let lastCall = 0;
-    return function canProceed() {
-        const now = Date.now();
-        if (now - lastCall < minIntervalMs) return false;
-        lastCall = now;
-        return true;
-    };
+  let lastCall = 0;
+  return function canProceed() {
+    const now = Date.now();
+    if (now - lastCall < minIntervalMs) return false;
+    lastCall = now;
+    return true;
+  };
 }
 const conversionLimiter = createRateLimiter(2000);
 
 // Convert structured data formats to markdown code blocks
 function convertDataToMarkdown(content, format) {
-    switch (format) {
-        case 'json':
-            return '```json\n' + content + '\n```';
-        case 'yaml':
-        case 'yml':
-            return '```yaml\n' + content + '\n```';
-        case 'xml':
-            return '```xml\n' + content + '\n```';
-        case 'toml':
-            return '```toml\n' + content + '\n```';
-        default:
-            return '```\n' + content + '\n```';
-    }
+  switch (format) {
+    case 'json':
+      return '```json\n' + content + '\n```';
+    case 'yaml':
+    case 'yml':
+      return '```yaml\n' + content + '\n```';
+    case 'xml':
+      return '```xml\n' + content + '\n```';
+    case 'toml':
+      return '```toml\n' + content + '\n```';
+    default:
+      return '```\n' + content + '\n```';
+  }
 }
 
 /**
@@ -191,7 +201,7 @@ function parseCommand(cmdString) {
 
   return {
     command: parts[0],
-    args: parts.slice(1)
+    args: parts.slice(1),
   };
 }
 
@@ -214,10 +224,7 @@ ipcMain.handle('get-app-version', () => app.getVersion());
 // Allow: clipboard-read, clipboard-write (user expects these)
 app.on('web-contents-created', (event, contents) => {
   contents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-    const ALLOWED_PERMISSIONS = [
-      'clipboard-read',
-      'clipboard-write'
-    ];
+    const ALLOWED_PERMISSIONS = ['clipboard-read', 'clipboard-write'];
 
     if (ALLOWED_PERMISSIONS.includes(permission)) {
       callback(true);
@@ -246,14 +253,14 @@ let headerFooterSettings = {
     left: '',
     center: '',
     right: '',
-    logo: null // Will store image file path
+    logo: null, // Will store image file path
   },
   footer: {
     left: '',
     center: '$PAGE$ of $TOTAL$',
     right: '',
-    logo: null
-  }
+    logo: null,
+  },
 };
 
 // Page Size Definitions (in twentieths of a point for Word, mm/inches for Pandoc)
@@ -262,50 +269,50 @@ const PAGE_SIZES = {
     name: 'A4',
     pandoc: 'a4',
     word: { width: 11906, height: 16838 }, // 210×297mm
-    dimensions: '210×297mm'
+    dimensions: '210×297mm',
   },
   a3: {
     name: 'A3',
     pandoc: 'a3',
     word: { width: 16838, height: 23811 }, // 297×420mm
-    dimensions: '297×420mm'
+    dimensions: '297×420mm',
   },
   a5: {
     name: 'A5',
     pandoc: 'a5',
     word: { width: 8391, height: 11906 }, // 148×210mm
-    dimensions: '148×210mm'
+    dimensions: '148×210mm',
   },
   b4: {
     name: 'B4',
     pandoc: 'b4',
     word: { width: 14170, height: 20015 }, // 250×353mm
-    dimensions: '250×353mm'
+    dimensions: '250×353mm',
   },
   b5: {
     name: 'B5',
     pandoc: 'b5',
     word: { width: 9979, height: 14170 }, // 176×250mm
-    dimensions: '176×250mm'
+    dimensions: '176×250mm',
   },
   letter: {
     name: 'Letter',
     pandoc: 'letter',
     word: { width: 12240, height: 15840 }, // 8.5×11in
-    dimensions: '8.5×11in'
+    dimensions: '8.5×11in',
   },
   legal: {
     name: 'Legal',
     pandoc: 'legal',
     word: { width: 12240, height: 20160 }, // 8.5×14in
-    dimensions: '8.5×14in'
+    dimensions: '8.5×14in',
   },
   tabloid: {
     name: 'Tabloid',
     pandoc: 'tabloid',
     word: { width: 15840, height: 24480 }, // 11×17in
-    dimensions: '11×17in'
-  }
+    dimensions: '11×17in',
+  },
 };
 
 // Default page settings
@@ -313,7 +320,7 @@ let pageSettings = {
   size: 'a4',
   orientation: 'portrait',
   customWidth: null,
-  customHeight: null
+  customHeight: null,
 };
 
 // Handle single instance lock for Windows file association
@@ -341,7 +348,7 @@ if (!gotTheLock) {
     const fileArgs = commandLine.slice(startIndex);
     console.log('[MAIN] Second instance file args:', fileArgs);
     for (const arg of fileArgs) {
-      if ((arg.endsWith('.md') || arg.endsWith('.markdown'))) {
+      if (arg.endsWith('.md') || arg.endsWith('.markdown')) {
         const resolvedPath = path.isAbsolute(arg) ? arg : path.resolve(workingDirectory, arg);
         console.log('[MAIN] Second instance resolved path:', resolvedPath);
         if (fs.existsSync(resolvedPath)) {
@@ -373,8 +380,6 @@ function checkPandocAvailability() {
   });
 }
 
-
-
 // Show About Dialog with logo
 function showAboutDialog() {
   const aboutWindow = new BrowserWindow({
@@ -387,9 +392,9 @@ function showAboutDialog() {
     maximizable: false,
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
     },
-    icon: path.join(__dirname, '../assets/icon.png')
+    icon: path.join(__dirname, '../assets/icon.png'),
   });
 
   // Convert images to base64 for data URL compatibility
@@ -488,9 +493,9 @@ function showDependenciesDialog() {
     resizable: true,
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
     },
-    icon: path.join(__dirname, '../assets/icon.png')
+    icon: path.join(__dirname, '../assets/icon.png'),
   });
 
   const depsHTML = `
@@ -596,16 +601,14 @@ function showDependenciesDialog() {
 function openPDFFile() {
   const files = dialog.showOpenDialogSync(mainWindow, {
     properties: ['openFile'],
-    filters: [
-      { name: 'PDF Files', extensions: ['pdf'] }
-    ]
+    filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
   });
 
   if (files && files[0]) {
     const stats = fs.statSync(files[0]);
     if (stats.size > MAX_FILE_SIZE) {
-        dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
-        return;
+      dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+      return;
     }
     mainWindow.webContents.send('open-pdf-viewer', files[0]);
   }
@@ -617,15 +620,15 @@ function openFile() {
     filters: [
       { name: 'Markdown', extensions: ['md', 'markdown'] },
       { name: 'Developer Formats', extensions: ['json', 'yaml', 'yml', 'xml', 'toml'] },
-      { name: 'All Files', extensions: ['*'] }
-    ]
+      { name: 'All Files', extensions: ['*'] },
+    ],
   });
 
   if (files && files[0]) {
     const stats = fs.statSync(files[0]);
     if (stats.size > MAX_FILE_SIZE) {
-        dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
-        return;
+      dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+      return;
     }
     currentFile = files[0];
     const ext = path.extname(currentFile).toLowerCase().slice(1);
@@ -646,15 +649,15 @@ function openPdfFile() {
     properties: ['openFile'],
     filters: [
       { name: 'PDF Files', extensions: ['pdf'] },
-      { name: 'All Files', extensions: ['*'] }
-    ]
+      { name: 'All Files', extensions: ['*'] },
+    ],
   });
 
   if (files && files[0]) {
     const stats = fs.statSync(files[0]);
     if (stats.size > MAX_FILE_SIZE) {
-        dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
-        return;
+      dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+      return;
     }
     mainWindow.webContents.send('open-pdf-file', files[0]);
   }
@@ -665,8 +668,8 @@ function saveAsFile() {
     defaultExt: '.md',
     filters: [
       { name: 'Markdown', extensions: ['md', 'markdown'] },
-      { name: 'All Files', extensions: ['*'] }
-    ]
+      { name: 'All Files', extensions: ['*'] },
+    ],
   });
 
   if (file) {
@@ -698,7 +701,7 @@ async function selectWordTemplate() {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: 'Select Word Template',
     filters: [{ name: 'Word Document', extensions: ['docx'] }],
-    properties: ['openFile']
+    properties: ['openFile'],
   });
 
   if (!result.canceled && result.filePaths.length > 0) {
@@ -709,7 +712,7 @@ async function selectWordTemplate() {
       type: 'info',
       title: 'Template Selected',
       message: 'Word template has been updated',
-      detail: `Template: ${path.basename(wordTemplatePath)}`
+      detail: `Template: ${path.basename(wordTemplatePath)}`,
     });
   }
 }
@@ -723,13 +726,14 @@ async function showTemplateSettings() {
     detail: `Current template: ${wordTemplatePath ? path.basename(wordTemplatePath) : 'Default template'}\nContent starts from page: ${templateStartPage}\n\nWhich page should content start from?\n(Templates usually have cover pages, TOC, etc.)`,
     buttons: ['Page 1', 'Page 2', 'Page 3', 'Page 4', 'Page 5', 'Custom...', 'Cancel'],
     defaultId: templateStartPage - 1,
-    cancelId: 6
+    cancelId: 6,
   });
 
   if (result.response === 6) return; // Cancel
 
   let newStartPage;
-  if (result.response === 5) { // Custom
+  if (result.response === 5) {
+    // Custom
     // Show input dialog for custom page number
     mainWindow.webContents.send('show-custom-start-page-dialog', templateStartPage);
   } else {
@@ -741,7 +745,7 @@ async function showTemplateSettings() {
       type: 'info',
       title: 'Settings Updated',
       message: 'Template settings have been updated',
-      detail: `Content will now start from page ${templateStartPage}`
+      detail: `Content will now start from page ${templateStartPage}`,
     });
   }
 }
@@ -757,7 +761,7 @@ ipcMain.on('set-custom-start-page', (event, pageNumber) => {
       type: 'info',
       title: 'Settings Updated',
       message: 'Template settings have been updated',
-      detail: `Content will now start from page ${templateStartPage}`
+      detail: `Content will now start from page ${templateStartPage}`,
     });
   } else {
     dialog.showErrorBox('Invalid Page Number', 'Please enter a page number between 1 and 100');
@@ -780,7 +784,7 @@ ipcMain.on('save-header-footer-settings', (event, settings) => {
     type: 'info',
     title: 'Settings Saved',
     message: 'Header and footer settings have been saved successfully!',
-    buttons: ['OK']
+    buttons: ['OK'],
   });
 });
 
@@ -803,9 +807,9 @@ ipcMain.on('browse-header-footer-logo', async (event, position) => {
     const result = await dialog.showOpenDialog(mainWindow, {
       title: `Select ${position.charAt(0).toUpperCase() + position.slice(1)} Logo/Image`,
       filters: [
-        { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'webp'] }
+        { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'webp'] },
       ],
-      properties: ['openFile']
+      properties: ['openFile'],
     });
 
     if (!result.canceled && result.filePaths.length > 0) {
@@ -839,14 +843,20 @@ ipcMain.on('browse-header-footer-logo', async (event, position) => {
     }
   } catch (error) {
     console.error('Logo browse error:', error);
-    dialog.showErrorBox('Logo Error', sanitizeErrorMessage(`Failed to select logo: ${error.message}`));
+    dialog.showErrorBox(
+      'Logo Error',
+      sanitizeErrorMessage(`Failed to select logo: ${error.message}`)
+    );
   }
 });
 
 ipcMain.on('save-header-footer-logo', async (event, { position, filePath }) => {
   try {
     if (!filePath) {
-      dialog.showErrorBox('Logo Error', 'Failed to save logo: The "path" argument must be of type string. Received undefined');
+      dialog.showErrorBox(
+        'Logo Error',
+        'Failed to save logo: The "path" argument must be of type string. Received undefined'
+      );
       return;
     }
 
@@ -883,7 +893,10 @@ ipcMain.on('save-header-footer-logo', async (event, { position, filePath }) => {
     event.reply('header-footer-logo-saved', { position, path: destPath });
   } catch (error) {
     console.error('Logo save error:', error);
-    dialog.showErrorBox('Logo Error', sanitizeErrorMessage(`Failed to save logo: ${error.message}`));
+    dialog.showErrorBox(
+      'Logo Error',
+      sanitizeErrorMessage(`Failed to save logo: ${error.message}`)
+    );
   }
 });
 
@@ -973,7 +986,6 @@ async function setDocxPageSize(docxPath) {
     // Write modified DOCX
     const newDocxBuffer = zip.generate({ type: 'nodebuffer' });
     fs.writeFileSync(docxPath, newDocxBuffer);
-
   } catch (error) {
     console.error('Failed to set DOCX page size:', error);
   }
@@ -1024,15 +1036,17 @@ async function addHeaderFooterToDocx(docxPath, metadata = {}) {
         // Handle $PAGE$ and $TOTAL$ in footer
         if (footerCenter.includes('$PAGE$') || footerCenter.includes('$TOTAL$')) {
           const parts = footerCenter.split(/(\$PAGE\$|\$TOTAL\$)/);
-          footerCenterXml = parts.map(part => {
-            if (part === '$PAGE$') {
-              return '<w:fldSimple w:instr="PAGE"/>';
-            } else if (part === '$TOTAL$') {
-              return '<w:fldSimple w:instr="NUMPAGES"/>';
-            } else {
-              return `<w:r><w:t>${part}</w:t></w:r>`;
-            }
-          }).join('');
+          footerCenterXml = parts
+            .map((part) => {
+              if (part === '$PAGE$') {
+                return '<w:fldSimple w:instr="PAGE"/>';
+              } else if (part === '$TOTAL$') {
+                return '<w:fldSimple w:instr="NUMPAGES"/>';
+              } else {
+                return `<w:r><w:t>${part}</w:t></w:r>`;
+              }
+            })
+            .join('');
         } else {
           footerCenterXml = `<w:r><w:t>${footerCenter}</w:t></w:r>`;
         }
@@ -1077,16 +1091,22 @@ async function addHeaderFooterToDocx(docxPath, metadata = {}) {
 
     // Update document.xml to use header/footer in sections
     let documentXml = zip.file('word/document.xml').asText();
-    if ((headerLeft || headerCenter || headerRight || footerLeft || footerCenter || footerRight)) {
+    if (headerLeft || headerCenter || headerRight || footerLeft || footerCenter || footerRight) {
       // Find all section properties and add header/footer references
       const sectPrRegex = /<w:sectPr[^>]*>[\s\S]*?<\/w:sectPr>/g;
       documentXml = documentXml.replace(sectPrRegex, (match) => {
         let updated = match;
         if ((headerLeft || headerCenter || headerRight) && !match.includes('headerReference')) {
-          updated = updated.replace('</w:sectPr>', '<w:headerReference w:type="default" r:id="rId100"/></w:sectPr>');
+          updated = updated.replace(
+            '</w:sectPr>',
+            '<w:headerReference w:type="default" r:id="rId100"/></w:sectPr>'
+          );
         }
         if ((footerLeft || footerCenter || footerRight) && !match.includes('footerReference')) {
-          updated = updated.replace('</w:sectPr>', '<w:footerReference w:type="default" r:id="rId101"/></w:sectPr>');
+          updated = updated.replace(
+            '</w:sectPr>',
+            '<w:footerReference w:type="default" r:id="rId101"/></w:sectPr>'
+          );
         }
         return updated;
       });
@@ -1097,7 +1117,6 @@ async function addHeaderFooterToDocx(docxPath, metadata = {}) {
     // Write modified DOCX
     const newDocxBuffer = zip.generate({ type: 'nodebuffer' });
     fs.writeFileSync(docxPath, newDocxBuffer);
-
   } catch (error) {
     console.error('Failed to add headers/footers to DOCX:', error);
     // Don't fail the export, just log the error
@@ -1119,7 +1138,7 @@ async function exportWordWithTemplate() {
     const result = await dialog.showSaveDialog(mainWindow, {
       title: 'Export to Word (Enhanced)',
       defaultPath: currentFile.replace(/\.md$/, '.docx'),
-      filters: [{ name: 'Word Document', extensions: ['docx'] }]
+      filters: [{ name: 'Word Document', extensions: ['docx'] }],
     });
 
     if (result.canceled) return;
@@ -1134,11 +1153,13 @@ async function exportWordWithTemplate() {
       type: 'info',
       title: 'Export Successful',
       message: 'Document exported successfully!',
-      detail: `Saved to: ${result.filePath}`
+      detail: `Saved to: ${result.filePath}`,
     });
-
   } catch (error) {
-    dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export document: ${error.message}`));
+    dialog.showErrorBox(
+      'Export Error',
+      sanitizeErrorMessage(`Failed to export document: ${error.message}`)
+    );
   }
 }
 
@@ -1157,7 +1178,7 @@ async function exportPDFViaWordTemplate() {
     const result = await dialog.showSaveDialog(mainWindow, {
       title: 'Export to PDF (Enhanced)',
       defaultPath: currentFile.replace(/\.md$/, '.pdf'),
-      filters: [{ name: 'PDF Document', extensions: ['pdf'] }]
+      filters: [{ name: 'PDF Document', extensions: ['pdf'] }],
     });
 
     if (result.canceled) return;
@@ -1169,9 +1190,10 @@ async function exportPDFViaWordTemplate() {
     await exporter.convert(content, tempDocxPath);
 
     // Step 2: Convert DOCX to PDF using LibreOffice (using execFile for safety)
-    const soffice = process.platform === 'win32'
-      ? 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
-      : 'soffice';
+    const soffice =
+      process.platform === 'win32'
+        ? 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
+        : 'soffice';
 
     const outputDir = path.dirname(result.filePath);
     const sofficeArgs = ['--headless', '--convert-to', 'pdf', '--outdir', outputDir, tempDocxPath];
@@ -1185,8 +1207,12 @@ async function exportPDFViaWordTemplate() {
       }
 
       if (error) {
-        dialog.showErrorBox('PDF Conversion Error',
-          sanitizeErrorMessage(`Failed to convert to PDF. Please ensure LibreOffice is installed.\n\nError: ${error.message}`));
+        dialog.showErrorBox(
+          'PDF Conversion Error',
+          sanitizeErrorMessage(
+            `Failed to convert to PDF. Please ensure LibreOffice is installed.\n\nError: ${error.message}`
+          )
+        );
         return;
       }
 
@@ -1206,12 +1232,14 @@ async function exportPDFViaWordTemplate() {
         type: 'info',
         title: 'Export Successful',
         message: 'PDF exported successfully using Word template!',
-        detail: `Saved to: ${result.filePath}`
+        detail: `Saved to: ${result.filePath}`,
       });
     });
-
   } catch (error) {
-    dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export PDF: ${error.message}`));
+    dialog.showErrorBox(
+      'Export Error',
+      sanitizeErrorMessage(`Failed to export PDF: ${error.message}`)
+    );
   }
 }
 
@@ -1304,7 +1332,7 @@ ipcMain.on('universal-convert', async (event, { tool, fromFormat, toFormat, file
       if (error) {
         mainWindow.webContents.send('conversion-complete', {
           success: false,
-          error: error.message
+          error: error.message,
         });
 
         dialog.showMessageBox(mainWindow, {
@@ -1312,12 +1340,12 @@ ipcMain.on('universal-convert', async (event, { tool, fromFormat, toFormat, file
           title: 'Conversion Failed',
           message: `${tool} conversion failed`,
           detail: stderr || error.message,
-          buttons: ['OK']
+          buttons: ['OK'],
         });
       } else {
         mainWindow.webContents.send('conversion-complete', {
           success: true,
-          outputPath: outputPath
+          outputPath: outputPath,
         });
 
         dialog.showMessageBox(mainWindow, {
@@ -1325,14 +1353,14 @@ ipcMain.on('universal-convert', async (event, { tool, fromFormat, toFormat, file
           title: 'Conversion Complete',
           message: 'File converted successfully!',
           detail: `Saved to: ${outputPath}`,
-          buttons: ['OK']
+          buttons: ['OK'],
         });
       }
     });
   } catch (error) {
     mainWindow.webContents.send('conversion-complete', {
       success: false,
-      error: error.message
+      error: error.message,
     });
 
     dialog.showMessageBox(mainWindow, {
@@ -1340,119 +1368,148 @@ ipcMain.on('universal-convert', async (event, { tool, fromFormat, toFormat, file
       title: 'Conversion Failed',
       message: 'Universal conversion failed',
       detail: error.message,
-      buttons: ['OK']
+      buttons: ['OK'],
     });
   }
 });
 
 // Handle universal batch file conversion
-ipcMain.on('universal-convert-batch', async (event, { tool, fromFormat, toFormat, inputFolder, outputFolder, includeSubfolders, advancedOptions }) => {
-  if (!conversionLimiter()) {
-    mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
-    return;
-  }
-  try {
-    const toolAvailable = await checkConverterAvailable(tool);
-    if (!toolAvailable) {
-      throw new Error(`${tool} is not installed or not found in PATH. Please install it first.`);
-    }
-
-    // Collect matching files
-    const files = [];
-    function collectFiles(dir) {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory() && includeSubfolders) {
-          collectFiles(fullPath);
-        } else if (entry.isFile() && entry.name.toLowerCase().endsWith(`.${fromFormat}`)) {
-          files.push(fullPath);
-        }
-      }
-    }
-    collectFiles(inputFolder);
-
-    if (files.length === 0) {
-      mainWindow.webContents.send('conversion-complete', { success: false, error: `No .${fromFormat} files found in the selected folder.` });
+ipcMain.on(
+  'universal-convert-batch',
+  async (
+    event,
+    { tool, fromFormat, toFormat, inputFolder, outputFolder, includeSubfolders, advancedOptions }
+  ) => {
+    if (!conversionLimiter()) {
+      mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
       return;
     }
-
-    let completed = 0;
-    let failed = 0;
-
-    for (const filePath of files) {
-      const relativePath = path.relative(inputFolder, filePath);
-      const outputPath = path.join(outputFolder, relativePath.replace(/\.[^/.]+$/, `.${toFormat}`));
-
-      // Ensure output subdirectory exists
-      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-
-      mainWindow.webContents.send('conversion-status', `Converting ${completed + 1}/${files.length}: ${path.basename(filePath)}`);
-
-      let conversionInfo;
-      switch (tool) {
-        case 'libreoffice': conversionInfo = convertWithLibreOffice(filePath, toFormat, outputPath); break;
-        case 'imagemagick': conversionInfo = convertWithImageMagick(filePath, outputPath); break;
-        case 'ffmpeg': conversionInfo = convertWithFFmpeg(filePath, outputPath); break;
-        case 'pandoc': conversionInfo = convertWithPandoc(filePath, outputPath); break;
-        default: throw new Error(`Unknown conversion tool: ${tool}`);
+    try {
+      const toolAvailable = await checkConverterAvailable(tool);
+      if (!toolAvailable) {
+        throw new Error(`${tool} is not installed or not found in PATH. Please install it first.`);
       }
 
-      await new Promise((resolve) => {
-        execFile(conversionInfo.command, conversionInfo.args, (error) => {
-          if (error) { failed++; } else { completed++; }
-          resolve();
+      // Collect matching files
+      const files = [];
+      function collectFiles(dir) {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory() && includeSubfolders) {
+            collectFiles(fullPath);
+          } else if (entry.isFile() && entry.name.toLowerCase().endsWith(`.${fromFormat}`)) {
+            files.push(fullPath);
+          }
+        }
+      }
+      collectFiles(inputFolder);
+
+      if (files.length === 0) {
+        mainWindow.webContents.send('conversion-complete', {
+          success: false,
+          error: `No .${fromFormat} files found in the selected folder.`,
         });
+        return;
+      }
+
+      let completed = 0;
+      let failed = 0;
+
+      for (const filePath of files) {
+        const relativePath = path.relative(inputFolder, filePath);
+        const outputPath = path.join(
+          outputFolder,
+          relativePath.replace(/\.[^/.]+$/, `.${toFormat}`)
+        );
+
+        // Ensure output subdirectory exists
+        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+
+        mainWindow.webContents.send(
+          'conversion-status',
+          `Converting ${completed + 1}/${files.length}: ${path.basename(filePath)}`
+        );
+
+        let conversionInfo;
+        switch (tool) {
+          case 'libreoffice':
+            conversionInfo = convertWithLibreOffice(filePath, toFormat, outputPath);
+            break;
+          case 'imagemagick':
+            conversionInfo = convertWithImageMagick(filePath, outputPath);
+            break;
+          case 'ffmpeg':
+            conversionInfo = convertWithFFmpeg(filePath, outputPath);
+            break;
+          case 'pandoc':
+            conversionInfo = convertWithPandoc(filePath, outputPath);
+            break;
+          default:
+            throw new Error(`Unknown conversion tool: ${tool}`);
+        }
+
+        await new Promise((resolve) => {
+          execFile(conversionInfo.command, conversionInfo.args, (error) => {
+            if (error) {
+              failed++;
+            } else {
+              completed++;
+            }
+            resolve();
+          });
+        });
+      }
+
+      mainWindow.webContents.send('conversion-complete', {
+        success: true,
+        outputPath: outputFolder,
+      });
+
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Batch Conversion Complete',
+        message: `Batch conversion finished!`,
+        detail: `Converted: ${completed}/${files.length} files${failed > 0 ? ` (${failed} failed)` : ''}\nOutput: ${outputFolder}`,
+        buttons: ['OK'],
+      });
+    } catch (error) {
+      mainWindow.webContents.send('conversion-complete', { success: false, error: error.message });
+      dialog.showMessageBox(mainWindow, {
+        type: 'error',
+        title: 'Batch Conversion Failed',
+        message: 'Batch conversion failed',
+        detail: error.message,
+        buttons: ['OK'],
       });
     }
-
-    mainWindow.webContents.send('conversion-complete', {
-      success: true,
-      outputPath: outputFolder
-    });
-
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Batch Conversion Complete',
-      message: `Batch conversion finished!`,
-      detail: `Converted: ${completed}/${files.length} files${failed > 0 ? ` (${failed} failed)` : ''}\nOutput: ${outputFolder}`,
-      buttons: ['OK']
-    });
-  } catch (error) {
-    mainWindow.webContents.send('conversion-complete', { success: false, error: error.message });
-    dialog.showMessageBox(mainWindow, {
-      type: 'error',
-      title: 'Batch Conversion Failed',
-      message: 'Batch conversion failed',
-      detail: error.message,
-      buttons: ['OK']
-    });
   }
-});
+);
 
 // LibreOffice conversion - returns {command, args} for execFile (safer than exec)
 function convertWithLibreOffice(inputFile, outputFormat, outputPath) {
   const outputDir = path.dirname(outputPath);
-  const soffice = process.platform === 'win32'
-    ? 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
-    : 'soffice';
+  const soffice =
+    process.platform === 'win32'
+      ? 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
+      : 'soffice';
 
   // LibreOffice conversion format mapping
   const formatMap = {
-    'pdf': 'pdf',
-    'docx': 'docx',
-    'doc': 'doc',
-    'odt': 'odt',
-    'rtf': 'rtf',
-    'txt': 'txt',
-    'html': 'html',
-    'xlsx': 'xlsx',
-    'xls': 'xls',
-    'ods': 'ods',
-    'csv': 'csv',
-    'pptx': 'pptx',
-    'ppt': 'ppt',
-    'odp': 'odp'
+    pdf: 'pdf',
+    docx: 'docx',
+    doc: 'doc',
+    odt: 'odt',
+    rtf: 'rtf',
+    txt: 'txt',
+    html: 'html',
+    xlsx: 'xlsx',
+    xls: 'xls',
+    ods: 'ods',
+    csv: 'csv',
+    pptx: 'pptx',
+    ppt: 'ppt',
+    odp: 'odp',
   };
 
   const format = formatMap[outputFormat] || outputFormat;
@@ -1460,7 +1517,7 @@ function convertWithLibreOffice(inputFile, outputFormat, outputPath) {
   // Return command and args for execFile
   return {
     command: soffice,
-    args: ['--headless', '--convert-to', format, '--outdir', outputDir, inputFile]
+    args: ['--headless', '--convert-to', format, '--outdir', outputDir, inputFile],
   };
 }
 
@@ -1469,7 +1526,7 @@ function convertWithImageMagick(inputFile, outputPath) {
   const magick = process.platform === 'win32' ? 'magick' : 'convert';
   return {
     command: magick,
-    args: [inputFile, outputPath]
+    args: [inputFile, outputPath],
   };
 }
 
@@ -1485,7 +1542,7 @@ function convertWithFFmpeg(inputFile, outputPath) {
 function convertWithPandoc(inputFile, outputPath) {
   return {
     command: 'pandoc',
-    args: [inputFile, '-o', outputPath]
+    args: [inputFile, '-o', outputPath],
   };
 }
 
@@ -1501,9 +1558,7 @@ function performExportWithOptions(format, options) {
 
   const outputFile = dialog.showSaveDialogSync(mainWindow, {
     defaultPath: currentFile.replace(/\.[^/.]+$/, `.${fileExt}`),
-    filters: [
-      { name: format.toUpperCase(), extensions: [fileExt] }
-    ]
+    filters: [{ name: format.toUpperCase(), extensions: [fileExt] }],
   });
 
   if (!outputFile) return; // User cancelled
@@ -1511,88 +1566,92 @@ function performExportWithOptions(format, options) {
   console.log(`Attempting to export ${format} to:`, outputFile);
 
   // Check pandoc availability first
-  checkPandocAvailability().then((hasPandoc) => {
-    console.log('Pandoc available:', hasPandoc);
-    
-    if (!hasPandoc) {
-      // Handle formats that don't require pandoc
-      if (format === 'html') {
-        console.log('Using built-in HTML export');
-        exportToHTML(outputFile);
-        return;
-      } else if (format === 'pdf') {
-        console.log('Using built-in PDF export');
-        exportToPDFElectron(outputFile);
-        return;
-      } else {
-        dialog.showErrorBox('Export Error', 
-          `Pandoc is required for ${format.toUpperCase()} export but is not installed or not found in PATH.\n\n` +
-          `Please install Pandoc from: https://pandoc.org/installing.html\n\n` +
-          `Alternatively, you can export to HTML or PDF using the built-in converters.`
-        );
-        return;
-      }
-    }
+  checkPandocAvailability()
+    .then((hasPandoc) => {
+      console.log('Pandoc available:', hasPandoc);
 
-    // Use pandoc for export with advanced options
-    console.log('Using Pandoc for export');
-    let pandocCmd = `${getPandocPath()} "${currentFile}" -o "${outputFile}"`;
-
-    // Add template if specified
-    if (options.template && options.template !== 'default') {
-      pandocCmd += ` --template="${options.template}"`;
-    }
-
-    // Add metadata
-    if (options.metadata) {
-      for (const [key, value] of Object.entries(options.metadata)) {
-        if (value.trim()) {
-          pandocCmd += ` -M ${key}="${value.replace(/"/g, '\\"')}"`;
+      if (!hasPandoc) {
+        // Handle formats that don't require pandoc
+        if (format === 'html') {
+          console.log('Using built-in HTML export');
+          exportToHTML(outputFile);
+          return;
+        } else if (format === 'pdf') {
+          console.log('Using built-in PDF export');
+          exportToPDFElectron(outputFile);
+          return;
+        } else {
+          dialog.showErrorBox(
+            'Export Error',
+            `Pandoc is required for ${format.toUpperCase()} export but is not installed or not found in PATH.\n\n` +
+              `Please install Pandoc from: https://pandoc.org/installing.html\n\n` +
+              `Alternatively, you can export to HTML or PDF using the built-in converters.`
+          );
+          return;
         }
       }
-    }
 
-    // Add variables
-    if (options.variables) {
-      for (const [key, value] of Object.entries(options.variables)) {
-        if (value.trim()) {
-          pandocCmd += ` -V ${key}="${value.replace(/"/g, '\\"')}"`;
+      // Use pandoc for export with advanced options
+      console.log('Using Pandoc for export');
+      let pandocCmd = `${getPandocPath()} "${currentFile}" -o "${outputFile}"`;
+
+      // Add template if specified
+      if (options.template && options.template !== 'default') {
+        pandocCmd += ` --template="${options.template}"`;
+      }
+
+      // Add metadata
+      if (options.metadata) {
+        for (const [key, value] of Object.entries(options.metadata)) {
+          if (value.trim()) {
+            pandocCmd += ` -M ${key}="${value.replace(/"/g, '\\"')}"`;
+          }
         }
       }
-    }
 
-    // Add other options
-    if (options.toc) pandocCmd += ' --toc';
-    if (options.tocDepth) pandocCmd += ` --toc-depth=${options.tocDepth}`;
-    if (options.numberSections) pandocCmd += ' --number-sections';
-    if (options.citeproc) pandocCmd += ' --citeproc';
-    if (options.bibliography) pandocCmd += ` --bibliography="${options.bibliography}"`;
-    if (options.csl) pandocCmd += ` --csl="${options.csl}"`;
+      // Add variables
+      if (options.variables) {
+        for (const [key, value] of Object.entries(options.variables)) {
+          if (value.trim()) {
+            pandocCmd += ` -V ${key}="${value.replace(/"/g, '\\"')}"`;
+          }
+        }
+      }
 
-    // Add specific options for PDF export to ensure proper generation
-    if (format === 'pdf') {
-      const pdfEngine = options.pdfEngine || 'xelatex'; // Default to xelatex
-      pandocCmd += ` --pdf-engine="${pdfEngine}"`;
-      if (options.geometry) pandocCmd += ` -V geometry:"${options.geometry}"`;
+      // Add other options
+      if (options.toc) pandocCmd += ' --toc';
+      if (options.tocDepth) pandocCmd += ` --toc-depth=${options.tocDepth}`;
+      if (options.numberSections) pandocCmd += ' --number-sections';
+      if (options.citeproc) pandocCmd += ' --citeproc';
+      if (options.bibliography) pandocCmd += ` --bibliography="${options.bibliography}"`;
+      if (options.csl) pandocCmd += ` --csl="${options.csl}"`;
 
-      // Add monospace font settings for code blocks (ASCII art preservation)
-      pandocCmd += ' -V monofont="Consolas"';
-      pandocCmd += ' --highlight-style=tango';
+      // Add specific options for PDF export to ensure proper generation
+      if (format === 'pdf') {
+        const pdfEngine = options.pdfEngine || 'xelatex'; // Default to xelatex
+        pandocCmd += ` --pdf-engine="${pdfEngine}"`;
+        if (options.geometry) pandocCmd += ` -V geometry:"${options.geometry}"`;
 
-      // Add header/footer if enabled
-      if (headerFooterSettings.enabled) {
-        const filename = currentFile ? path.basename(currentFile, path.extname(currentFile)) : 'document';
-        const metadata = { filename, title: filename, author: '' };
+        // Add monospace font settings for code blocks (ASCII art preservation)
+        pandocCmd += ' -V monofont="Consolas"';
+        pandocCmd += ' --highlight-style=tango';
 
-        const headerLeft = processDynamicFields(headerFooterSettings.header.left, metadata);
-        const headerCenter = processDynamicFields(headerFooterSettings.header.center, metadata);
-        const headerRight = processDynamicFields(headerFooterSettings.header.right, metadata);
-        const footerLeft = processDynamicFields(headerFooterSettings.footer.left, metadata);
-        const footerCenter = processDynamicFields(headerFooterSettings.footer.center, metadata);
-        const footerRight = processDynamicFields(headerFooterSettings.footer.right, metadata);
+        // Add header/footer if enabled
+        if (headerFooterSettings.enabled) {
+          const filename = currentFile
+            ? path.basename(currentFile, path.extname(currentFile))
+            : 'document';
+          const metadata = { filename, title: filename, author: '' };
 
-        // Create LaTeX header
-        const latexHeader = `
+          const headerLeft = processDynamicFields(headerFooterSettings.header.left, metadata);
+          const headerCenter = processDynamicFields(headerFooterSettings.header.center, metadata);
+          const headerRight = processDynamicFields(headerFooterSettings.header.right, metadata);
+          const footerLeft = processDynamicFields(headerFooterSettings.footer.left, metadata);
+          const footerCenter = processDynamicFields(headerFooterSettings.footer.center, metadata);
+          const footerRight = processDynamicFields(headerFooterSettings.footer.right, metadata);
+
+          // Create LaTeX header
+          const latexHeader = `
 \\usepackage{fancyhdr}
 \\pagestyle{fancy}
 \\fancyhf{}
@@ -1600,117 +1659,142 @@ function performExportWithOptions(format, options) {
 \\chead{${headerCenter.replace(/\\/g, '\\\\')}}
 \\rhead{${headerRight.replace(/\\/g, '\\\\')}}
 \\lfoot{${footerLeft.replace(/\\/g, '\\\\')}}
-\\cfoot{${footerCenter.replace(/[$]PAGE[$]/g, '\\\\thepage').replace(/[$]TOTAL[$]/g, '\\\\pageref{LastPage}').replace(/\\/g, '\\\\')}}
+\\cfoot{${footerCenter
+            .replace(/[$]PAGE[$]/g, '\\\\thepage')
+            .replace(/[$]TOTAL[$]/g, '\\\\pageref{LastPage}')
+            .replace(/\\/g, '\\\\')}}
 \\rfoot{${footerRight.replace(/\\/g, '\\\\')}}
 \\renewcommand{\\headrulewidth}{0.4pt}
 \\renewcommand{\\footrulewidth}{0.4pt}
 `;
-        const headerFile = path.join(require('os').tmpdir(), `header_export_${Date.now()}.tex`);
-        fs.writeFileSync(headerFile, latexHeader, 'utf-8');
-        pandocCmd += ` --include-in-header="${headerFile}"`;
-        pandocCmd += ' --variable header-includes="\\\\usepackage{lastpage}"';
-      }
+          const headerFile = path.join(require('os').tmpdir(), `header_export_${Date.now()}.tex`);
+          fs.writeFileSync(headerFile, latexHeader, 'utf-8');
+          pandocCmd += ` --include-in-header="${headerFile}"`;
+          pandocCmd += ' --variable header-includes="\\\\usepackage{lastpage}"';
+        }
 
-      // Try with specified PDF engine (using runPandocCmd for safety)
-      runPandocCmd(pandocCmd, (error) => {
-        if (error) {
-          // Try fallback engines if the specified one fails
-          const fallbackEngines = ['pdflatex', 'lualatex'];
-          tryPdfFallback(currentFile, outputFile, fallbackEngines, 0, options, error);
-        } else {
-          showExportSuccess(outputFile);
-        }
-      });
-    } else if (format === 'docx') {
-      pandocCmd += ' -t docx';
-      exportWithPandoc(pandocCmd, outputFile, format);
-    } else if (format === 'pptx') {
-      // Add PowerPoint footer if enabled
-      if (headerFooterSettings.enabled && headerFooterSettings.footer.center) {
-        const filename = currentFile ? path.basename(currentFile, path.extname(currentFile)) : 'document';
-        const metadata = { filename, title: filename, author: '' };
-        const footerText = processDynamicFields(headerFooterSettings.footer.center, metadata);
-        pandocCmd += ` --variable footer="${footerText}"`;
-      }
-      exportWithPandoc(pandocCmd, outputFile, format);
-    } else if (format === 'json') {
-      pandocCmd = `${getPandocPath()} "${currentFile}" -t json -o "${outputFile}"`;
-      exportWithPandoc(pandocCmd, outputFile, format);
-    } else if (format === 'yaml' || format === 'xml' || format === 'toml') {
-      // For YAML/XML/TOML, save the raw markdown content with the new extension
-      try {
-        const content = fs.readFileSync(currentFile, 'utf-8');
-        fs.writeFileSync(outputFile, content, 'utf-8');
-        showExportSuccess(outputFile);
-      } catch (err) {
-        dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export: ${err.message}`));
-      }
-    } else if (format === 'revealjs') {
-      let revealCmd = `${getPandocPath()} "${currentFile}" -t revealjs -s -o "${outputFile}" --slide-level=2`;
-      if (options) {
-        if (options.revealTheme) revealCmd += ` -V theme="${options.revealTheme}"`;
-        if (options.revealTransition) revealCmd += ` -V transition="${options.revealTransition}"`;
-        if (options.revealTransitionSpeed) revealCmd += ` -V transitionSpeed="${options.revealTransitionSpeed}"`;
-        if (options.revealControls !== undefined) revealCmd += ` -V controls="${options.revealControls}"`;
-        if (options.revealSlideNumber !== undefined) revealCmd += ` -V slideNumber="${options.revealSlideNumber}"`;
-        if (options.revealProgress !== undefined) revealCmd += ` -V progress="${options.revealProgress}"`;
-        if (options.revealHistory !== undefined) revealCmd += ` -V history="${options.revealHistory}"`;
-        if (options.revealCenter !== undefined) revealCmd += ` -V center="${options.revealCenter}"`;
-
-        // Support for templates, metadata, bibliography
-        if (options.template && options.template !== 'default') {
-          revealCmd += ` --template="${options.template}"`;
-        }
-        if (options.metadata) {
-          for (const [key, value] of Object.entries(options.metadata)) {
-            if (value.trim()) {
-              revealCmd += ` -M ${key}="${value.replace(/"/g, '\\"')}"`;
-            }
-          }
-        }
-        if (options.bibliography) revealCmd += ` --bibliography="${options.bibliography}"`;
-        if (options.csl) revealCmd += ` --csl="${options.csl}"`;
-      }
-      exportWithPandoc(revealCmd, outputFile, format);
-    } else if (format === 'beamer') {
-      pandocCmd = `${getPandocPath()} "${currentFile}" -t beamer -o "${outputFile}"`;
-      exportWithPandoc(pandocCmd, outputFile, format);
-    } else if (format === 'confluence' || format === 'jira') {
-      pandocCmd = `${getPandocPath()} "${currentFile}" -t jira -o "${outputFile}"`;
-      exportWithPandoc(pandocCmd, outputFile, format);
-    } else if (format === 'mobi') {
-      // First export to EPUB, then try ebook-convert if available
-      const epubFile = outputFile.replace(/\.mobi$/i, '.epub');
-      pandocCmd = `${getPandocPath()} "${currentFile}" -o "${epubFile}"`;
-      runPandocCmd(pandocCmd, (error) => {
-        if (error) {
-          dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export EPUB intermediate: ${error.message}`));
-          return;
-        }
-        // Try ebook-convert (Calibre) for MOBI
-        execFile('ebook-convert', [epubFile, outputFile], (ebookError) => {
-          if (ebookError) {
-            dialog.showMessageBox(mainWindow, {
-              type: 'warning',
-              title: 'MOBI Export - Partial',
-              message: `Calibre's ebook-convert was not found. The file has been exported as EPUB instead.\n\nEPUB saved to: ${epubFile}\n\nTo get MOBI output, install Calibre from: https://calibre-ebook.com/`,
-              buttons: ['OK']
-            });
+        // Try with specified PDF engine (using runPandocCmd for safety)
+        runPandocCmd(pandocCmd, (error) => {
+          if (error) {
+            // Try fallback engines if the specified one fails
+            const fallbackEngines = ['pdflatex', 'lualatex'];
+            tryPdfFallback(currentFile, outputFile, fallbackEngines, 0, options, error);
           } else {
-            // Clean up intermediate EPUB
-            try { fs.unlinkSync(epubFile); } catch (e) { /* ignore */ }
             showExportSuccess(outputFile);
           }
         });
-      });
-    } else {
-      // Generic export for other formats
-      exportWithPandoc(pandocCmd, outputFile, format);
-    }
-  }).catch((error) => {
-    console.error('Error checking pandoc availability:', error);
-    dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Error checking system requirements: ${error.message}`));
-  });
+      } else if (format === 'docx') {
+        pandocCmd += ' -t docx';
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'pptx') {
+        // Add PowerPoint footer if enabled
+        if (headerFooterSettings.enabled && headerFooterSettings.footer.center) {
+          const filename = currentFile
+            ? path.basename(currentFile, path.extname(currentFile))
+            : 'document';
+          const metadata = { filename, title: filename, author: '' };
+          const footerText = processDynamicFields(headerFooterSettings.footer.center, metadata);
+          pandocCmd += ` --variable footer="${footerText}"`;
+        }
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'json') {
+        pandocCmd = `${getPandocPath()} "${currentFile}" -t json -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'yaml' || format === 'xml' || format === 'toml') {
+        // For YAML/XML/TOML, save the raw markdown content with the new extension
+        try {
+          const content = fs.readFileSync(currentFile, 'utf-8');
+          fs.writeFileSync(outputFile, content, 'utf-8');
+          showExportSuccess(outputFile);
+        } catch (err) {
+          dialog.showErrorBox(
+            'Export Error',
+            sanitizeErrorMessage(`Failed to export: ${err.message}`)
+          );
+        }
+      } else if (format === 'revealjs') {
+        let revealCmd = `${getPandocPath()} "${currentFile}" -t revealjs -s -o "${outputFile}" --slide-level=2`;
+        if (options) {
+          if (options.revealTheme) revealCmd += ` -V theme="${options.revealTheme}"`;
+          if (options.revealTransition) revealCmd += ` -V transition="${options.revealTransition}"`;
+          if (options.revealTransitionSpeed)
+            revealCmd += ` -V transitionSpeed="${options.revealTransitionSpeed}"`;
+          if (options.revealControls !== undefined)
+            revealCmd += ` -V controls="${options.revealControls}"`;
+          if (options.revealSlideNumber !== undefined)
+            revealCmd += ` -V slideNumber="${options.revealSlideNumber}"`;
+          if (options.revealProgress !== undefined)
+            revealCmd += ` -V progress="${options.revealProgress}"`;
+          if (options.revealHistory !== undefined)
+            revealCmd += ` -V history="${options.revealHistory}"`;
+          if (options.revealCenter !== undefined)
+            revealCmd += ` -V center="${options.revealCenter}"`;
+
+          // Support for templates, metadata, bibliography
+          if (options.template && options.template !== 'default') {
+            revealCmd += ` --template="${options.template}"`;
+          }
+          if (options.metadata) {
+            for (const [key, value] of Object.entries(options.metadata)) {
+              if (value.trim()) {
+                revealCmd += ` -M ${key}="${value.replace(/"/g, '\\"')}"`;
+              }
+            }
+          }
+          if (options.bibliography) revealCmd += ` --bibliography="${options.bibliography}"`;
+          if (options.csl) revealCmd += ` --csl="${options.csl}"`;
+        }
+        exportWithPandoc(revealCmd, outputFile, format);
+      } else if (format === 'beamer') {
+        pandocCmd = `${getPandocPath()} "${currentFile}" -t beamer -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'confluence' || format === 'jira') {
+        pandocCmd = `${getPandocPath()} "${currentFile}" -t jira -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'mobi') {
+        // First export to EPUB, then try ebook-convert if available
+        const epubFile = outputFile.replace(/\.mobi$/i, '.epub');
+        pandocCmd = `${getPandocPath()} "${currentFile}" -o "${epubFile}"`;
+        runPandocCmd(pandocCmd, (error) => {
+          if (error) {
+            dialog.showErrorBox(
+              'Export Error',
+              sanitizeErrorMessage(`Failed to export EPUB intermediate: ${error.message}`)
+            );
+            return;
+          }
+          // Try ebook-convert (Calibre) for MOBI
+          execFile('ebook-convert', [epubFile, outputFile], (ebookError) => {
+            if (ebookError) {
+              dialog.showMessageBox(mainWindow, {
+                type: 'warning',
+                title: 'MOBI Export - Partial',
+                message: `Calibre's ebook-convert was not found. The file has been exported as EPUB instead.\n\nEPUB saved to: ${epubFile}\n\nTo get MOBI output, install Calibre from: https://calibre-ebook.com/`,
+                buttons: ['OK'],
+              });
+            } else {
+              // Clean up intermediate EPUB
+              try {
+                fs.unlinkSync(epubFile);
+              } catch (e) {
+                /* ignore */
+              }
+              showExportSuccess(outputFile);
+            }
+          });
+        });
+      } else {
+        // Generic export for other formats
+        exportWithPandoc(pandocCmd, outputFile, format);
+      }
+    })
+    .catch((error) => {
+      console.error('Error checking pandoc availability:', error);
+      dialog.showErrorBox(
+        'Export Error',
+        sanitizeErrorMessage(`Error checking system requirements: ${error.message}`)
+      );
+    });
 }
 
 function tryPdfFallback(inputFile, outputFile, engines, index, options, lastError) {
@@ -1729,7 +1813,8 @@ function tryPdfFallback(inputFile, outputFile, engines, index, options, lastErro
   pandocCmd += ' --highlight-style=tango';
 
   // Add geometry if specified
-  if (options.geometry) pandocCmd = pandocCmd.replace(` -o `, ` -V geometry:"${options.geometry}" -o `);
+  if (options.geometry)
+    pandocCmd = pandocCmd.replace(` -o `, ` -V geometry:"${options.geometry}" -o `);
 
   // Add header/footer if enabled
   if (headerFooterSettings.enabled) {
@@ -1753,7 +1838,10 @@ function tryPdfFallback(inputFile, outputFile, engines, index, options, lastErro
 \\chead{${headerCenter.replace(/\\/g, '\\\\')}}
 \\rhead{${headerRight.replace(/\\/g, '\\\\')}}
 \\lfoot{${footerLeft.replace(/\\/g, '\\\\')}}
-\\cfoot{${footerCenter.replace(/\$PAGE\$/g, '\\\\thepage').replace(/\$TOTAL\$/g, '\\\\pageref{LastPage}').replace(/\\/g, '\\\\')}}
+\\cfoot{${footerCenter
+      .replace(/\$PAGE\$/g, '\\\\thepage')
+      .replace(/\$TOTAL\$/g, '\\\\pageref{LastPage}')
+      .replace(/\\/g, '\\\\')}}
 \\rfoot{${footerRight.replace(/\\/g, '\\\\')}}
 \\renewcommand{\\headrulewidth}{0.4pt}
 \\renewcommand{\\footrulewidth}{0.4pt}
@@ -1791,7 +1879,7 @@ function showExportSuccess(outputFile) {
     type: 'info',
     title: 'Export Complete',
     message: `File exported successfully to ${outputFile}`,
-    buttons: ['OK']
+    buttons: ['OK'],
   });
 }
 
@@ -1840,11 +1928,13 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
       // Add headers/footers to DOCX if enabled
       if (format === 'docx' && headerFooterSettings.enabled) {
         try {
-          const filename = currentFile ? path.basename(currentFile, path.extname(currentFile)) : 'document';
+          const filename = currentFile
+            ? path.basename(currentFile, path.extname(currentFile))
+            : 'document';
           const metadata = {
             filename: filename,
             title: filename,
-            author: ''
+            author: '',
           };
           await addHeaderFooterToDocx(outputFile, metadata);
           console.log('Headers/footers added to DOCX');
@@ -2011,7 +2101,10 @@ function exportToHTML(outputFile) {
     showExportSuccess(outputFile);
   } catch (error) {
     console.error('HTML export error:', error);
-    dialog.showErrorBox('HTML Export Error', sanitizeErrorMessage(`Failed to export HTML: ${error.message}`));
+    dialog.showErrorBox(
+      'HTML Export Error',
+      sanitizeErrorMessage(`Failed to export HTML: ${error.message}`)
+    );
   }
 }
 
@@ -2122,34 +2215,44 @@ function exportToPDFElectron(outputFile) {
       show: false,
       webPreferences: {
         nodeIntegration: true,
-        contextIsolation: false
-      }
+        contextIsolation: false,
+      },
     });
-    
-    pdfWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`).then(() => {
-      return pdfWindow.webContents.printToPDF({
-        marginsType: 1, // Use default margins
-        pageSize: 'A4',
-        printBackground: true,
-        printSelectionOnly: false,
-        landscape: false
+
+    pdfWindow
+      .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`)
+      .then(() => {
+        return pdfWindow.webContents.printToPDF({
+          marginsType: 1, // Use default margins
+          pageSize: 'A4',
+          printBackground: true,
+          printSelectionOnly: false,
+          landscape: false,
+        });
+      })
+      .then((pdfData) => {
+        fs.writeFileSync(outputFile, pdfData);
+        pdfWindow.close();
+        console.log('Successfully exported PDF with Electron');
+        showExportSuccess(outputFile);
+      })
+      .catch((error) => {
+        pdfWindow.close();
+        console.error('Electron PDF export error:', error);
+        dialog.showErrorBox(
+          'PDF Export Error',
+          sanitizeErrorMessage(
+            `Failed to export PDF using built-in engine: ${error.message}\n\n` +
+              `For better PDF export, please install Pandoc with LaTeX support.`
+          )
+        );
       });
-    }).then((pdfData) => {
-      fs.writeFileSync(outputFile, pdfData);
-      pdfWindow.close();
-      console.log('Successfully exported PDF with Electron');
-      showExportSuccess(outputFile);
-    }).catch((error) => {
-      pdfWindow.close();
-      console.error('Electron PDF export error:', error);
-      dialog.showErrorBox('PDF Export Error',
-        sanitizeErrorMessage(`Failed to export PDF using built-in engine: ${error.message}\n\n` +
-        `For better PDF export, please install Pandoc with LaTeX support.`)
-      );
-    });
   } catch (error) {
     console.error('PDF export setup error:', error);
-    dialog.showErrorBox('PDF Export Error', sanitizeErrorMessage(`Failed to setup PDF export: ${error.message}`));
+    dialog.showErrorBox(
+      'PDF Export Error',
+      sanitizeErrorMessage(`Failed to setup PDF export: ${error.message}`)
+    );
   }
 }
 
@@ -2167,25 +2270,31 @@ function importDocument() {
   const files = dialog.showOpenDialogSync(mainWindow, {
     properties: ['openFile'],
     filters: [
-      { name: 'Documents', extensions: ['docx', 'odt', 'rtf', 'html', 'htm', 'tex', 'epub', 'pdf', 'txt'] },
+      {
+        name: 'Documents',
+        extensions: ['docx', 'odt', 'rtf', 'html', 'htm', 'tex', 'epub', 'pdf', 'txt'],
+      },
       { name: 'Presentations', extensions: ['pptx', 'odp'] },
-      { name: 'Markup Languages', extensions: ['rst', 'textile', 'mediawiki', 'org', 'asciidoc', 'twiki', 'opml'] },
+      {
+        name: 'Markup Languages',
+        extensions: ['rst', 'textile', 'mediawiki', 'org', 'asciidoc', 'twiki', 'opml'],
+      },
       { name: 'E-book Formats', extensions: ['epub', 'fb2'] },
       { name: 'LaTeX Formats', extensions: ['tex', 'latex', 'ltx'] },
       { name: 'Web Formats', extensions: ['html', 'htm', 'xhtml'] },
       { name: 'Wiki Formats', extensions: ['mediawiki', 'dokuwiki', 'tikiwiki', 'twiki'] },
       { name: 'CSV/TSV', extensions: ['csv', 'tsv'] },
       { name: 'Developer Formats', extensions: ['json', 'yaml', 'yml', 'xml', 'toml'] },
-      { name: 'All Files', extensions: ['*'] }
-    ]
+      { name: 'All Files', extensions: ['*'] },
+    ],
   });
 
   if (files && files[0]) {
     const inputFile = files[0];
     const stats = fs.statSync(inputFile);
     if (stats.size > MAX_FILE_SIZE) {
-        dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
-        return;
+      dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+      return;
     }
     const ext = path.extname(inputFile).toLowerCase().slice(1);
     const outputFile = inputFile.replace(/\.[^/.]+$/, '.md');
@@ -2220,7 +2329,7 @@ function importDocument() {
         type: 'info',
         title: 'Import Complete',
         message: `Document imported successfully as ${path.basename(mdOutputFile)}\n\nOriginal format: ${ext.toUpperCase()}\nConverted to: Markdown`,
-        buttons: ['OK']
+        buttons: ['OK'],
       });
       return;
     }
@@ -2230,7 +2339,12 @@ function importDocument() {
 
     runPandocCmd(pandocCmd, (error, stdout, stderr) => {
       if (error) {
-        dialog.showErrorBox('Import Error', sanitizeErrorMessage(`Failed to import: ${error.message}\n\nMake sure Pandoc is installed.\n\nSupported formats: DOCX, ODT, RTF, HTML, LaTeX, EPUB, PDF, PPTX, ODP, RST, Textile, MediaWiki, Org-mode, AsciiDoc, CSV, and more.`));
+        dialog.showErrorBox(
+          'Import Error',
+          sanitizeErrorMessage(
+            `Failed to import: ${error.message}\n\nMake sure Pandoc is installed.\n\nSupported formats: DOCX, ODT, RTF, HTML, LaTeX, EPUB, PDF, PPTX, ODP, RST, Textile, MediaWiki, Org-mode, AsciiDoc, CSV, and more.`
+          )
+        );
       } else {
         // Open the converted markdown file
         currentFile = outputFile;
@@ -2241,13 +2355,12 @@ function importDocument() {
           type: 'info',
           title: 'Import Complete',
           message: `Document imported successfully as ${path.basename(outputFile)}\n\nOriginal format: ${ext.toUpperCase()}\nConverted to: Markdown`,
-          buttons: ['OK']
+          buttons: ['OK'],
         });
       }
     });
   }
 }
-
 
 function setTheme(theme) {
   store.set('theme', theme);
@@ -2312,7 +2425,7 @@ ipcMain.on('do-print', (event, { withStyles }) => {
       silent: false,
       printBackground: withStyles,
       color: true,
-      margin: { marginType: 'default' }
+      margin: { marginType: 'default' },
     });
   }
 });
@@ -2322,10 +2435,10 @@ ipcMain.on('do-print-with-options', (event, options) => {
   if (!mainWindow) return;
 
   const marginsMap = {
-    'default': { marginType: 'default' },
-    'narrow': { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 },
-    'wide': { top: 1.0, bottom: 1.0, left: 1.0, right: 1.0 },
-    'none': { top: 0, bottom: 0, left: 0, right: 0 },
+    default: { marginType: 'default' },
+    narrow: { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 },
+    wide: { top: 1.0, bottom: 1.0, left: 1.0, right: 1.0 },
+    none: { top: 0, bottom: 0, left: 0, right: 0 },
   };
 
   const printOptions = {
@@ -2347,17 +2460,23 @@ ipcMain.on('do-print-with-options', (event, options) => {
 ipcMain.on('renderer-ready', (event) => {
   console.log('[MAIN] renderer-ready received, rendererReady was:', rendererReady);
   if (mainWindow) {
-    mainWindow.webContents.executeJavaScript(`console.log('[MAIN->RENDERER] renderer-ready received, rendererReady was: ${rendererReady}')`);
+    mainWindow.webContents.executeJavaScript(
+      `console.log('[MAIN->RENDERER] renderer-ready received, rendererReady was: ${rendererReady}')`
+    );
   }
   rendererReady = true;
   console.log('[MAIN] app.pendingFile:', app.pendingFile);
   if (mainWindow) {
-    mainWindow.webContents.executeJavaScript(`console.log('[MAIN->RENDERER] app.pendingFile: ${app.pendingFile}')`);
+    mainWindow.webContents.executeJavaScript(
+      `console.log('[MAIN->RENDERER] app.pendingFile: ${app.pendingFile}')`
+    );
   }
   if (app.pendingFile) {
     console.log('[MAIN] Opening pending file:', app.pendingFile);
     if (mainWindow) {
-      mainWindow.webContents.executeJavaScript(`console.log('[MAIN->RENDERER] Opening pending file: ${app.pendingFile}')`);
+      mainWindow.webContents.executeJavaScript(
+        `console.log('[MAIN->RENDERER] Opening pending file: ${app.pendingFile}')`
+      );
     }
     openFileFromPath(app.pendingFile);
     app.pendingFile = null;
@@ -2385,7 +2504,7 @@ ipcMain.on('batch-convert', (event, { inputFolder, outputFolder, format, options
 // Handle folder selection for batch conversion
 ipcMain.on('select-folder', (event, type) => {
   const folder = dialog.showOpenDialogSync(mainWindow, {
-    properties: ['openDirectory']
+    properties: ['openDirectory'],
   });
 
   if (folder && folder[0]) {
@@ -2396,9 +2515,7 @@ ipcMain.on('select-folder', (event, type) => {
 ipcMain.on('export-spreadsheet', (event, { content, format }) => {
   const outputFile = dialog.showSaveDialogSync(mainWindow, {
     defaultPath: currentFile.replace(/\.[^/.]+$/, `.${format}`),
-    filters: [
-      { name: format.toUpperCase(), extensions: [format] }
-    ]
+    filters: [{ name: format.toUpperCase(), extensions: [format] }],
   });
 
   if (outputFile) {
@@ -2418,13 +2535,18 @@ ipcMain.on('export-spreadsheet', (event, { content, format }) => {
           if (index > 0) csvContent += '\n\n'; // Separate multiple tables
           if (tables.length > 1) csvContent += `"Table ${index + 1}"\n`;
 
-          table.forEach(row => {
-            const csvRow = row.map(cell => {
-              // Escape quotes and wrap in quotes if necessary
-              const cleanCell = cell.replace(/"/g, '""');
-              return cleanCell.includes(',') || cleanCell.includes('"') || cleanCell.includes('\n')
-                ? `"${cleanCell}"` : cleanCell;
-            }).join(',');
+          table.forEach((row) => {
+            const csvRow = row
+              .map((cell) => {
+                // Escape quotes and wrap in quotes if necessary
+                const cleanCell = cell.replace(/"/g, '""');
+                return cleanCell.includes(',') ||
+                  cleanCell.includes('"') ||
+                  cleanCell.includes('\n')
+                  ? `"${cleanCell}"`
+                  : cleanCell;
+              })
+              .join(',');
             csvContent += csvRow + '\n';
           });
         });
@@ -2436,10 +2558,13 @@ ipcMain.on('export-spreadsheet', (event, { content, format }) => {
         type: 'info',
         title: 'Export Complete',
         message: `${format.toUpperCase()} exported successfully to ${outputFile}`,
-        buttons: ['OK']
+        buttons: ['OK'],
       });
     } catch (error) {
-      dialog.showErrorBox('Export Error', sanitizeErrorMessage(`Failed to export: ${error.message}`));
+      dialog.showErrorBox(
+        'Export Error',
+        sanitizeErrorMessage(`Failed to export: ${error.message}`)
+      );
     }
   }
 });
@@ -2450,20 +2575,21 @@ function extractTablesFromMarkdown(markdown) {
   const lines = markdown.split('\n');
   let currentTable = [];
   let inTable = false;
-  
+
   for (const line of lines) {
     if (line.includes('|')) {
       if (!inTable) {
         inTable = true;
         currentTable = [];
       }
-      
+
       // Skip separator lines (|---|---|)
       if (!line.match(/^\s*\|?\s*:?-+:?\s*\|/)) {
-        const cells = line.split('|')
-          .map(cell => cell.trim())
-          .filter(cell => cell !== '');
-        
+        const cells = line
+          .split('|')
+          .map((cell) => cell.trim())
+          .filter((cell) => cell !== '');
+
         if (cells.length > 0) {
           currentTable.push(cells);
         }
@@ -2477,12 +2603,12 @@ function extractTablesFromMarkdown(markdown) {
       inTable = false;
     }
   }
-  
+
   // Add last table if exists
   if (currentTable.length > 0) {
     tables.push(currentTable);
   }
-  
+
   return tables;
 }
 
@@ -2497,7 +2623,10 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
     try {
       fs.mkdirSync(outputFolder, { recursive: true });
     } catch (error) {
-      dialog.showErrorBox('Error', sanitizeErrorMessage(`Failed to create output folder: ${error.message}`));
+      dialog.showErrorBox(
+        'Error',
+        sanitizeErrorMessage(`Failed to create output folder: ${error.message}`)
+      );
       return;
     }
   }
@@ -2539,7 +2668,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
         type: 'info',
         title: 'Batch Conversion Complete',
         message: `Successfully converted ${completedCount} out of ${totalCount} files to ${format.toUpperCase()}.`,
-        buttons: ['OK']
+        buttons: ['OK'],
       });
       return;
     }
@@ -2550,7 +2679,10 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
     let outputExtension = format;
     if (format === 'docx-enhanced') outputExtension = 'docx';
     if (format === 'pdf-enhanced') outputExtension = 'pdf';
-    const outputFile = path.join(outputFolder, relativePath.replace(/\.(md|markdown)$/i, `.${outputExtension}`));
+    const outputFile = path.join(
+      outputFolder,
+      relativePath.replace(/\.(md|markdown)$/i, `.${outputExtension}`)
+    );
 
     // Create subdirectories in output folder if needed
     const outputDir = path.dirname(outputFile);
@@ -2572,7 +2704,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
           completed: index + 1,
           total: totalCount,
           currentFile: path.basename(inputFile),
-          success: true
+          success: true,
         });
 
         // Process next file
@@ -2583,7 +2715,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
           completed: index + 1,
           total: totalCount,
           currentFile: path.basename(inputFile),
-          success: false
+          success: false,
         });
 
         // Process next file even if this one failed
@@ -2603,12 +2735,20 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
         await exporter.convert(content, tempDocxPath);
 
         // Step 2: Convert DOCX to PDF using LibreOffice (using execFile for safety)
-        const soffice = process.platform === 'win32'
-          ? 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
-          : 'soffice';
+        const soffice =
+          process.platform === 'win32'
+            ? 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
+            : 'soffice';
 
         const outputDir = path.dirname(outputFile);
-        const sofficeArgs = ['--headless', '--convert-to', 'pdf', '--outdir', outputDir, tempDocxPath];
+        const sofficeArgs = [
+          '--headless',
+          '--convert-to',
+          'pdf',
+          '--outdir',
+          outputDir,
+          tempDocxPath,
+        ];
 
         execFile(soffice, sofficeArgs, (error, stdout, stderr) => {
           // Clean up temporary DOCX file
@@ -2624,7 +2764,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
               completed: index + 1,
               total: totalCount,
               currentFile: path.basename(inputFile),
-              success: false
+              success: false,
             });
             processNextFile(index + 1);
             return;
@@ -2649,20 +2789,19 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
             completed: index + 1,
             total: totalCount,
             currentFile: path.basename(inputFile),
-            success: true
+            success: true,
           });
 
           // Process next file
           processNextFile(index + 1);
         });
-
       } catch (error) {
         // Update progress with error
         mainWindow.webContents.send('batch-progress', {
           completed: index + 1,
           total: totalCount,
           currentFile: path.basename(inputFile),
-          success: false
+          success: false,
         });
 
         // Process next file even if this one failed
@@ -2736,7 +2875,10 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
 \\chead{${headerCenter.replace(/\\/g, '\\\\')}}
 \\rhead{${headerRight.replace(/\\/g, '\\\\')}}
 \\lfoot{${footerLeft.replace(/\\/g, '\\\\')}}
-\\cfoot{${footerCenter.replace(/[$]PAGE[$]/g, '\\\\thepage').replace(/[$]TOTAL[$]/g, '\\\\pageref{LastPage}').replace(/\\/g, '\\\\')}}
+\\cfoot{${footerCenter
+          .replace(/[$]PAGE[$]/g, '\\\\thepage')
+          .replace(/[$]TOTAL[$]/g, '\\\\pageref{LastPage}')
+          .replace(/\\/g, '\\\\')}}
 \\rfoot{${footerRight.replace(/\\/g, '\\\\')}}
 \\renewcommand{\\headrulewidth}{0.4pt}
 \\renewcommand{\\footrulewidth}{0.4pt}
@@ -2782,7 +2924,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
         completed: index + 1,
         total: totalCount,
         currentFile: path.basename(inputFile),
-        success: !error
+        success: !error,
       });
 
       // Process next file
@@ -2798,7 +2940,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
 function handleCLIConversion(args) {
   const command = args[0];
   const filePath = args[args.length - 1]; // File path is always last argument
-  
+
   if (!fs.existsSync(filePath)) {
     console.error(`Error: File not found: ${filePath}`);
     app.quit();
@@ -2825,14 +2967,14 @@ function handleCLIConversion(args) {
 // Show conversion dialog for CLI
 function showConversionDialog(filePath) {
   const { dialog } = require('electron');
-  
+
   // Create a hidden window for dialog operations
   const hiddenWindow = new BrowserWindow({
     show: false,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
-    }
+      contextIsolation: false,
+    },
   });
 
   const formats = [
@@ -2842,31 +2984,33 @@ function showConversionDialog(filePath) {
     { name: 'LaTeX', value: 'latex' },
     { name: 'RTF', value: 'rtf' },
     { name: 'ODT', value: 'odt' },
-    { name: 'PowerPoint', value: 'pptx' }
+    { name: 'PowerPoint', value: 'pptx' },
   ];
 
   // Create format selection dialog using message box
-  const formatButtons = formats.map(f => f.name);
+  const formatButtons = formats.map((f) => f.name);
   formatButtons.push('Cancel');
 
-  dialog.showMessageBox(hiddenWindow, {
-    type: 'question',
-    title: 'PanConverter - Choose Format',
-    message: `Convert "${path.basename(filePath)}" to:`,
-    detail: 'Select the output format for conversion',
-    buttons: formatButtons,
-    defaultId: 0,
-    cancelId: formatButtons.length - 1
-  }).then(result => {
-    if (result.response < formats.length) {
-      const selectedFormat = formats[result.response].value;
-      performCLIConversion(filePath, selectedFormat);
-    } else {
-      console.log('Conversion cancelled');
-      app.quit();
-    }
-    hiddenWindow.destroy();
-  });
+  dialog
+    .showMessageBox(hiddenWindow, {
+      type: 'question',
+      title: 'PanConverter - Choose Format',
+      message: `Convert "${path.basename(filePath)}" to:`,
+      detail: 'Select the output format for conversion',
+      buttons: formatButtons,
+      defaultId: 0,
+      cancelId: formatButtons.length - 1,
+    })
+    .then((result) => {
+      if (result.response < formats.length) {
+        const selectedFormat = formats[result.response].value;
+        performCLIConversion(filePath, selectedFormat);
+      } else {
+        console.log('Conversion cancelled');
+        app.quit();
+      }
+      hiddenWindow.destroy();
+    });
 }
 
 // Perform CLI conversion
@@ -2874,9 +3018,9 @@ function performCLIConversion(inputPath, format) {
   try {
     const content = fs.readFileSync(inputPath, 'utf-8');
     const outputPath = inputPath.replace(/\.[^/.]+$/, `.${format}`);
-    
+
     console.log(`Converting "${path.basename(inputPath)}" to ${format.toUpperCase()}...`);
-    
+
     // Use existing export functions but with CLI output (using runPandocCmd for safety)
     const pandocCommand = buildPandocCommand(content, format, outputPath);
 
@@ -2893,7 +3037,14 @@ function performCLIConversion(inputPath, format) {
       // Show Windows notification (using exec for PowerShell is acceptable here - hardcoded command)
       if (process.platform === 'win32') {
         const iconPath = path.join(__dirname, '../assets/icon.png');
-        execFile('powershell', ['-Command', `New-BurntToastNotification -Text 'PanConverter', 'File converted to ${format.toUpperCase()}' -AppLogo '${iconPath}'`], () => {});
+        execFile(
+          'powershell',
+          [
+            '-Command',
+            `New-BurntToastNotification -Text 'PanConverter', 'File converted to ${format.toUpperCase()}' -AppLogo '${iconPath}'`,
+          ],
+          () => {}
+        );
       }
 
       app.quit();
@@ -2969,7 +3120,10 @@ function buildPandocCommand(content, format, outputPath) {
 \\chead{${headerCenter.replace(/\\/g, '\\\\')}}
 \\rhead{${headerRight.replace(/\\/g, '\\\\')}}
 \\lfoot{${footerLeft.replace(/\\/g, '\\\\')}}
-\\cfoot{${footerCenter.replace(/[$]PAGE[$]/g, '\\\\thepage').replace(/[$]TOTAL[$]/g, '\\\\pageref{LastPage}').replace(/\\/g, '\\\\')}}
+\\cfoot{${footerCenter
+          .replace(/[$]PAGE[$]/g, '\\\\thepage')
+          .replace(/[$]TOTAL[$]/g, '\\\\pageref{LastPage}')
+          .replace(/\\/g, '\\\\')}}
 \\rfoot{${footerRight.replace(/\\/g, '\\\\')}}
 \\renewcommand{\\headrulewidth}{0.4pt}
 \\renewcommand{\\footrulewidth}{0.4pt}
@@ -3070,7 +3224,9 @@ app.whenReady().then(() => {
   }
 
   mainWindow = createMainWindow();
-  mainWindow.on('closed', () => { mainWindow = null; });
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 
   // --- Updater, crash writer, migration (must run before any settings read) ---
   const userData = app.getPath('userData');
@@ -3108,10 +3264,14 @@ app.whenReady().then(() => {
     validatePath,
     resolveWritablePath,
     isPathAccessible,
-    currentFileRef: { get current() { return currentFile; } },
+    currentFileRef: {
+      get current() {
+        return currentFile;
+      },
+    },
     mainWindow,
   });
-  
+
   // Handle file association on app startup
   // In packaged apps, process.argv structure is different:
   // Development: ['electron', 'app.js', 'file.md'] - need slice(2)
@@ -3127,7 +3287,7 @@ app.whenReady().then(() => {
 
   for (const arg of fileArgs) {
     console.log('[MAIN] Checking arg:', arg);
-    if ((arg.endsWith('.md') || arg.endsWith('.markdown'))) {
+    if (arg.endsWith('.md') || arg.endsWith('.markdown')) {
       // Try to resolve the path (might be relative)
       const resolvedPath = path.isAbsolute(arg) ? arg : path.resolve(process.cwd(), arg);
       console.log('[MAIN] Resolved path:', resolvedPath);
@@ -3153,7 +3313,9 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     mainWindow = createMainWindow();
-    mainWindow.on('closed', () => { mainWindow = null; });
+    mainWindow.on('closed', () => {
+      mainWindow = null;
+    });
   }
 });
 
@@ -3195,17 +3357,31 @@ app.on('open-file', (event, filePath) => {
 // Handle file opening from command line or file association
 function openFileFromPath(filePath) {
   console.log('[MAIN] openFileFromPath called with:', filePath);
-  console.log('[MAIN] rendererReady:', rendererReady, 'mainWindow exists:', !!mainWindow, 'webContents exists:', !!(mainWindow?.webContents));
+  console.log(
+    '[MAIN] rendererReady:',
+    rendererReady,
+    'mainWindow exists:',
+    !!mainWindow,
+    'webContents exists:',
+    !!mainWindow?.webContents
+  );
   if (fs.existsSync(filePath)) {
     const stats = fs.statSync(filePath);
     if (stats.size > MAX_FILE_SIZE) {
-        dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
-        return;
+      dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+      return;
     }
     currentFile = filePath;
     const content = fs.readFileSync(filePath, 'utf-8');
     console.log('[MAIN] File read successfully, content length:', content.length);
-    console.log('[MAIN] About to send file-opened. mainWindow:', !!mainWindow, 'webContents:', !!(mainWindow?.webContents), 'rendererReady:', rendererReady);
+    console.log(
+      '[MAIN] About to send file-opened. mainWindow:',
+      !!mainWindow,
+      'webContents:',
+      !!mainWindow?.webContents,
+      'rendererReady:',
+      rendererReady
+    );
     if (mainWindow && mainWindow.webContents && rendererReady) {
       // Send file immediately - renderer-ready means UI is initialized
       console.log('[MAIN] Sending file-opened to renderer');
@@ -3228,7 +3404,7 @@ ipcMain.on('process-pdf-operation', async (event, data) => {
   try {
     mainWindow.webContents.send('pdf-operation-progress', {
       message: `Processing ${data.operation}...`,
-      progress: 10
+      progress: 10,
     });
 
     const result = await PDFOperations.executeOperation(data.operation, data);
@@ -3236,7 +3412,7 @@ ipcMain.on('process-pdf-operation', async (event, data) => {
   } catch (error) {
     mainWindow.webContents.send('pdf-operation-complete', {
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -3253,7 +3429,7 @@ ipcMain.on('get-pdf-page-count', async (event, filePath) => {
 // IPC Handler for folder selection (for PDF operations)
 ipcMain.on('select-pdf-folder', (event, inputId) => {
   const folder = dialog.showOpenDialogSync(mainWindow, {
-    properties: ['openDirectory']
+    properties: ['openDirectory'],
   });
 
   if (folder && folder[0]) {
@@ -3315,7 +3491,7 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
   try {
     if (!dirPath) {
       const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openDirectory']
+        properties: ['openDirectory'],
       });
       if (result.canceled || !result.filePaths[0]) return null;
       dirPath = result.filePaths[0];
@@ -3332,19 +3508,20 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
       return null;
     }
 
-    const entries = fs.readdirSync(validation.resolved, { withFileTypes: true })
-      .filter(e => !e.name.startsWith('.'))
+    const entries = fs
+      .readdirSync(validation.resolved, { withFileTypes: true })
+      .filter((e) => !e.name.startsWith('.'))
       .sort((a, b) => {
         if (a.isDirectory() && !b.isDirectory()) return -1;
         if (!a.isDirectory() && b.isDirectory()) return 1;
         return a.name.localeCompare(b.name);
       })
-      .map(e => ({
+      .map((e) => ({
         name: e.name,
         isDirectory: e.isDirectory(),
         size: e.isDirectory() ? 0 : fs.statSync(path.join(validation.resolved, e.name)).size,
         modified: fs.statSync(path.join(validation.resolved, e.name)).mtimeMs,
-        path: path.join(validation.resolved, e.name)
+        path: path.join(validation.resolved, e.name),
       }));
     return { path: validation.resolved, entries };
   } catch (err) {
@@ -3357,9 +3534,7 @@ ipcMain.handle('select-custom-css', async (event) => {
   const result = dialog.showOpenDialogSync(mainWindow, {
     title: 'Select Custom Preview CSS',
     properties: ['openFile'],
-    filters: [
-      { name: 'CSS Stylesheets', extensions: ['css'] }
-    ]
+    filters: [{ name: 'CSS Stylesheets', extensions: ['css'] }],
   });
 
   if (result && result[0]) {
@@ -3380,7 +3555,9 @@ function loadSnippets() {
     if (fs.existsSync(snippetsPath)) {
       return JSON.parse(fs.readFileSync(snippetsPath, 'utf-8'));
     }
-  } catch (err) { console.error('Failed to load snippets:', err); }
+  } catch (err) {
+    console.error('Failed to load snippets:', err);
+  }
   return [];
 }
 
@@ -3392,7 +3569,7 @@ ipcMain.handle('get-snippets', async () => loadSnippets());
 
 ipcMain.handle('save-snippet', async (event, snippet) => {
   const snippets = loadSnippets();
-  const existing = snippets.findIndex(s => s.id === snippet.id);
+  const existing = snippets.findIndex((s) => s.id === snippet.id);
   if (existing >= 0) snippets[existing] = snippet;
   else snippets.push(snippet);
   saveSnippetsFile(snippets);
@@ -3400,7 +3577,7 @@ ipcMain.handle('save-snippet', async (event, snippet) => {
 });
 
 ipcMain.handle('delete-snippet', async (event, id) => {
-  const snippets = loadSnippets().filter(s => s.id !== id);
+  const snippets = loadSnippets().filter((s) => s.id !== id);
   saveSnippetsFile(snippets);
   return snippets;
 });
@@ -3431,7 +3608,7 @@ ipcMain.handle('execute-code', async (event, { code, language }) => {
       resolve({
         stdout: stdout || '',
         stderr: stderr || '',
-        error: err?.killed ? 'Execution timed out (10s limit)' : (err?.message || null)
+        error: err?.killed ? 'Execution timed out (10s limit)' : err?.message || null,
       });
     });
   });

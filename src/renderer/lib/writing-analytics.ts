@@ -1,17 +1,115 @@
 const STOP_WORDS = new Set([
-  'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-  'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-  'should', 'may', 'might', 'shall', 'can', 'to', 'of', 'in', 'for',
-  'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during',
-  'before', 'after', 'above', 'below', 'between', 'out', 'off', 'over',
-  'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when',
-  'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more',
-  'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
-  'same', 'so', 'than', 'too', 'very', 'just', 'because', 'but', 'and',
-  'or', 'if', 'while', 'about', 'up', 'it', 'its', 'this', 'that',
-  'these', 'those', 'i', 'me', 'my', 'we', 'our', 'you', 'your', 'he',
-  'him', 'his', 'she', 'her', 'they', 'them', 'their', 'what', 'which',
-  'who', 'whom', 'also'
+  'the',
+  'a',
+  'an',
+  'is',
+  'are',
+  'was',
+  'were',
+  'be',
+  'been',
+  'being',
+  'have',
+  'has',
+  'had',
+  'do',
+  'does',
+  'did',
+  'will',
+  'would',
+  'could',
+  'should',
+  'may',
+  'might',
+  'shall',
+  'can',
+  'to',
+  'of',
+  'in',
+  'for',
+  'on',
+  'with',
+  'at',
+  'by',
+  'from',
+  'as',
+  'into',
+  'through',
+  'during',
+  'before',
+  'after',
+  'above',
+  'below',
+  'between',
+  'out',
+  'off',
+  'over',
+  'under',
+  'again',
+  'further',
+  'then',
+  'once',
+  'here',
+  'there',
+  'when',
+  'where',
+  'why',
+  'how',
+  'all',
+  'each',
+  'every',
+  'both',
+  'few',
+  'more',
+  'most',
+  'other',
+  'some',
+  'such',
+  'no',
+  'nor',
+  'not',
+  'only',
+  'own',
+  'same',
+  'so',
+  'than',
+  'too',
+  'very',
+  'just',
+  'because',
+  'but',
+  'and',
+  'or',
+  'if',
+  'while',
+  'about',
+  'up',
+  'it',
+  'its',
+  'this',
+  'that',
+  'these',
+  'those',
+  'i',
+  'me',
+  'my',
+  'we',
+  'our',
+  'you',
+  'your',
+  'he',
+  'him',
+  'his',
+  'she',
+  'her',
+  'they',
+  'them',
+  'their',
+  'what',
+  'which',
+  'who',
+  'whom',
+  'also',
 ]);
 
 function countSyllables(word: string): number {
@@ -66,17 +164,23 @@ export function analyzeText(text: string): WritingMetrics {
       avgSentenceLength: 0,
       longestSentence: '',
       longestSentenceLength: 0,
-      topWords: []
+      topWords: [],
     };
   }
 
   const words = extractWords(text);
   const wordCount = words.length;
 
-  const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+  const sentences = text
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   const sentenceCount = Math.max(sentences.length, 1);
 
-  const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   const paragraphCount = Math.max(paragraphs.length, 1);
 
   let totalSyllables = 0;
@@ -84,16 +188,27 @@ export function analyzeText(text: string): WritingMetrics {
     totalSyllables += countSyllables(w);
   }
 
-  const fleschEase = wordCount > 0 ? Math.round((206.835 - 1.015 * (wordCount / sentenceCount) - 84.6 * (totalSyllables / wordCount)) * 10) / 10 : 0;
-  const fleschGrade = wordCount > 0 ? Math.round((0.39 * (wordCount / sentenceCount) + 11.8 * (totalSyllables / wordCount) - 15.59) * 10) / 10 : 0;
+  const fleschEase =
+    wordCount > 0
+      ? Math.round(
+          (206.835 - 1.015 * (wordCount / sentenceCount) - 84.6 * (totalSyllables / wordCount)) * 10
+        ) / 10
+      : 0;
+  const fleschGrade =
+    wordCount > 0
+      ? Math.round(
+          (0.39 * (wordCount / sentenceCount) + 11.8 * (totalSyllables / wordCount) - 15.59) * 10
+        ) / 10
+      : 0;
   const readabilityLabel = getReadabilityLabel(fleschEase);
 
   const readingTime = Math.ceil(wordCount / 200);
   const speakingTime = Math.ceil(wordCount / 130);
 
-  const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+  const uniqueWords = new Set(words.map((w) => w.toLowerCase()));
   const uniqueWordCount = uniqueWords.size;
-  const lexicalDiversity = wordCount > 0 ? Math.round((uniqueWordCount / wordCount) * 1000) / 10 : 0;
+  const lexicalDiversity =
+    wordCount > 0 ? Math.round((uniqueWordCount / wordCount) * 1000) / 10 : 0;
 
   const avgSentenceLength = Math.round((wordCount / sentenceCount) * 10) / 10;
 
@@ -138,6 +253,6 @@ export function analyzeText(text: string): WritingMetrics {
     avgSentenceLength,
     longestSentence,
     longestSentenceLength,
-    topWords
+    topWords,
   };
 }

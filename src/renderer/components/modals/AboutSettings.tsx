@@ -18,7 +18,10 @@ export function AboutSettings() {
         <a
           href="https://github.com/amitwh/markdown-converter"
           className="text-brand hover:underline"
-          onClick={(e) => { e.preventDefault(); ipc.app.openExternal('https://github.com/amitwh/markdown-converter'); }}
+          onClick={(e) => {
+            e.preventDefault();
+            ipc.app.openExternal('https://github.com/amitwh/markdown-converter');
+          }}
         >
           GitHub repository
         </a>
@@ -27,7 +30,10 @@ export function AboutSettings() {
         <a
           href="https://concreteinfo.co.in"
           className="text-brand hover:underline"
-          onClick={(e) => { e.preventDefault(); ipc.app.openExternal('https://concreteinfo.co.in'); }}
+          onClick={(e) => {
+            e.preventDefault();
+            ipc.app.openExternal('https://concreteinfo.co.in');
+          }}
         >
           ConcreteInfo
         </a>

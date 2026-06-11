@@ -6,7 +6,13 @@ const path = require('path');
 const { register: registerGit } = require('./git');
 const { register: registerBinary } = require('./binary');
 
-function register({ validatePath, resolveWritablePath, isPathAccessible, currentFileRef, mainWindow }) {
+function register({
+  validatePath,
+  resolveWritablePath,
+  isPathAccessible,
+  currentFileRef,
+  mainWindow,
+}) {
   // pick-folder
   ipcMain.handle('pick-folder', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {

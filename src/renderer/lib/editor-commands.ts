@@ -11,11 +11,7 @@
  */
 import type { EditorView } from '@codemirror/view';
 import { EditorView as CMEditorView } from '@codemirror/view';
-import {
-  undo as cmUndo,
-  redo as cmRedo,
-  selectLine,
-} from '@codemirror/commands';
+import { undo as cmUndo, redo as cmRedo, selectLine } from '@codemirror/commands';
 
 let activeView: EditorView | null = null;
 
