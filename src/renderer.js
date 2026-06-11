@@ -11,15 +11,53 @@ const DOMPurify = createDOMPurify(window);
 const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
+
+// Define a fallback window.electronAPI object for when contextIsolation is disabled
+// and the preload script is not loaded in the main window context.
+if (typeof window !== 'undefined' && !window.electronAPI) {
+    window.electronAPI = {
+        send: (channel, data) => {
+            ipcRenderer.send(channel, data);
+        },
+        invoke: async (channel, data) => {
+            return await ipcRenderer.invoke(channel, data);
+        },
+        on: (channel, callback) => {
+            const subscription = (event, ...args) => callback(...args);
+            ipcRenderer.on(channel, subscription);
+            return () => {
+                ipcRenderer.removeListener(channel, subscription);
+            };
+        },
+        once: (channel, callback) => {
+            ipcRenderer.once(channel, (event, ...args) => callback(...args));
+        },
+        removeAllListeners: (channel) => {
+            ipcRenderer.removeAllListeners(channel);
+        },
+        getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+        file: {
+            read: (filePath) => ipcRenderer.invoke('read-file', filePath),
+            write: (filePath, content) => ipcRenderer.invoke('write-file', { path: filePath, content }),
+            delete: (filePath) => ipcRenderer.invoke('delete-file', filePath),
+            ensureDir: (dirPath) => ipcRenderer.invoke('ensure-directory', dirPath),
+            exists: (filePath) => ipcRenderer.invoke('path-exists', filePath),
+            isDirectory: (filePath) => ipcRenderer.invoke('is-directory', filePath),
+            copy: (source, destination) => ipcRenderer.invoke('copy-path', { source, destination }),
+            move: (source, destination) => ipcRenderer.invoke('move-path', { source, destination })
+        }
+    };
+}
+
 // Use window.ModalManager if already set by script tag, otherwise require it.
 // This prevents "Identifier 'ModalManager' has already been declared" when
 // both the script tag in index.html and CommonJS require() declare it.
-let ModalManager;
+let _ModalManager;
 if (typeof window !== 'undefined' && window.ModalManager) {
-    ModalManager = window.ModalManager;
+    _ModalManager = window.ModalManager;
 } else {
     const result = require('./utils/ModalManager');
-    ModalManager = result.ModalManager || result;
+    _ModalManager = result.ModalManager || result;
 }
 // Lazy-loaded modules — defer heavy imports until first use
 let _SidebarManager, _renderTemplatesPanel, _renderExplorerPanel, _renderGitPanel, _renderSnippetsPanel;
@@ -1543,6 +1581,7 @@ let tabManager;
 let replPanel;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const ModalManager = _ModalManager;
     tabManager = new TabManager();
 
     // Load saved Custom Preview CSS if present
@@ -1675,6 +1714,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const statusBarRight = document.querySelector('.status-bar-right');
+
+    // Initialize command palette
+    const CommandPalette = getCommandPalette();
+    const commandPalette = new CommandPalette();
+
     const pluginRegistry = new PluginRegistry({
         sidebar: sidebarManager,
         commands: commandPalette,
@@ -1810,10 +1854,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             reader.readAsDataURL(file);
         }
     });
-
-    // Initialize command palette
-    const CommandPalette = getCommandPalette();
-    const commandPalette = new CommandPalette();
 
     // Initialize print preview
     const PrintPreview = getPrintPreview();
@@ -2041,6 +2081,8 @@ ipcRenderer.on('redo', () => {
             redo(tab.editorView);
         }
     }
+});
+
 // Custom Preview CSS event handlers and trigger helpers
 function applyCustomPreviewCSS(cssContent) {
     let styleTag = document.getElementById('custom-preview-style');
