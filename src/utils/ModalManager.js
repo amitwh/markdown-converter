@@ -1,6 +1,6 @@
 /**
  * ModalManager - Unified modal system with accessibility support
- * @version 4.4.2
+ * @version 4.4.3
  */
 class ModalManager {
     #modal;

@@ -1,6 +1,6 @@
 /**
  * MarkdownConverter Renderer Process
- * @version 4.4.2
+ * @version 4.4.3
  */
 
 const { ipcRenderer } = require('electron');
