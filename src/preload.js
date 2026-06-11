@@ -246,6 +246,7 @@ const ALLOWED_RECEIVE_CHANNELS = [
 
   // Updater
   'updater:status',
+  'show-analytics-dialog',
 
   // File dialog / directory listing
   'list-directory',

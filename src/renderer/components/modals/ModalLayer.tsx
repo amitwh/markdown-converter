@@ -12,6 +12,7 @@ import { SettingsSheet } from './SettingsSheet';
 import { TableGeneratorDialog } from './TableGeneratorDialog';
 import { WelcomeDialog } from './WelcomeDialog';
 import { WordExportDialog } from './WordExportDialog';
+import { WritingAnalyticsDialog } from './WritingAnalyticsDialog';
 
 export function ModalLayer() {
   const modal = useAppStore((s) => s.modal);
@@ -44,5 +45,7 @@ export function ModalLayer() {
       return <FindInFilesDialog />;
     case 'crashReports':
       return <CrashReportModal onClose={useAppStore.getState().closeModal} />;
+    case 'writing-analytics':
+      return <WritingAnalyticsDialog />;
   }
 }

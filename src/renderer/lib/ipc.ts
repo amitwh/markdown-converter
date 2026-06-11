@@ -82,6 +82,11 @@ export const ipc = {
       safeCall('file', 'gitStatus', args),
     writeBuffer: (args: { path: string; buffer: Uint8Array }): Promise<IpcResult<void | ChannelMissing>> =>
       safeCall('file', 'writeBuffer', args),
+    setCurrent: (path: string | null): void => {
+      if (typeof window !== 'undefined' && (window.electronAPI as any)?.file?.setCurrent) {
+        (window.electronAPI as any).file.setCurrent(path);
+      }
+    },
   },
   print: {
     show: (args: { html: string }): Promise<IpcResult<void | ChannelMissing>> =>

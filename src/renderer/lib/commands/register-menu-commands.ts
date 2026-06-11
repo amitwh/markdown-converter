@@ -130,6 +130,9 @@ export function registerMenuCommands(): void {
       const current = useAppStore.getState().zenMode;
       useAppStore.getState().setZenMode(!current);
     },
+    'view.analytics': () => {
+      useAppStore.getState().openModal('writing-analytics');
+    },
     'file.print': () => {
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('mc:print'));
     },
@@ -296,6 +299,35 @@ export function registerMenuCommands(): void {
   register('file.save', () => {
     void useFileStore.getState().saveActiveBuffer();
   });
+  register('file.saveAs', async (filePath?: string) => {
+    if (!filePath) return;
+    const { activeTabId } = useFileStore.getState();
+    if (!activeTabId) return;
+
+    const buffer = useEditorStore.getState().buffers.get(activeTabId);
+    if (!buffer) return;
+
+    const writeResult = await ipc.file.write(filePath, buffer.content);
+    if (!writeResult.ok) {
+      toast.error(`Failed to save: ${writeResult.error.message}`);
+      return;
+    }
+
+    useEditorStore.getState().renameBuffer(activeTabId, filePath, filePath);
+    useFileStore.setState((s) => {
+      const tab = s.openTabs.find((t) => t.id === activeTabId);
+      if (tab) {
+        tab.id = filePath;
+        tab.path = filePath;
+        tab.title = filePath.split('/').pop() ?? filePath;
+        tab.dirty = false;
+      }
+      s.activeTabId = filePath;
+    });
+
+    const title = filePath.split('/').pop() ?? filePath;
+    toast.success(`Saved ${title}`);
+  });
   register('file.closeTab', () => {
     const { activeTabId, closeTab } = useFileStore.getState();
     if (activeTabId) confirmCloseFlow(closeTab)(activeTabId);
@@ -337,6 +369,7 @@ export function useRegisterMenuCommands(): void {
 export function useBridgeNativeMenu(): void {
   useMenuAction('file-save', 'file.save');
   useMenuAction('toggle-preview', 'view.togglePreview');
+  useMenuAction('show-analytics-dialog', 'view.analytics');
   useMenuAction('toggle-sidebar-panel', 'view.sidebarPanel', (panel) => panel as string);
   useMenuAction('toggle-bottom-panel', 'view.bottomPanel');
   useMenuAction('toggle-find', 'find.toggle');
@@ -349,6 +382,7 @@ export function useBridgeNativeMenu(): void {
   useMenuAction('print-preview', 'print.preview');
   useMenuAction('print-preview-styled', 'print.previewStyled');
   useMenuAction('file-opened', 'file.opened', (payload) => payload);
+  useMenuAction('get-content-for-save', 'file.saveAs', (filePath) => filePath as string);
   useMenuAction('clear-recent-files', 'file.clearRecent');
   useMenuAction('file-new', 'file.new');
   useMenuAction('show-batch-converter', 'batch.showConverter', (type) => type as string);

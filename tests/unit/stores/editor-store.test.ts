@@ -33,4 +33,15 @@ describe('useEditorStore', () => {
     useEditorStore.getState().closeBuffer('file-1');
     expect(useEditorStore.getState().buffers.has('file-1')).toBe(false);
   });
+
+  it('renames a buffer', () => {
+    useEditorStore.getState().openBuffer('file-1', '/foo.md', 'some content');
+    useEditorStore.getState().renameBuffer('file-1', 'file-2', '/bar.md');
+    const oldBuf = useEditorStore.getState().buffers.get('file-1');
+    const newBuf = useEditorStore.getState().buffers.get('file-2');
+    expect(oldBuf).toBeUndefined();
+    expect(newBuf?.content).toBe('some content');
+    expect(newBuf?.path).toBe('/bar.md');
+    expect(useEditorStore.getState().activeId).toBe('file-2');
+  });
 });

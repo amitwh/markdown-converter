@@ -221,13 +221,20 @@ function viewItems(mainWindow) {
       accelerator: 'CmdOrCtrl+Shift+V',
       click: () => mainWindow.webContents.send('toggle-preview')
     },
+    {
+      label: 'Writing Analytics',
+      accelerator: 'CmdOrCtrl+Shift+A',
+      click: () => mainWindow.webContents.send('show-analytics-dialog')
+    },
     // NOTE: Command Palette removed — handled by useCommandStore
     { type: 'separator' },
     {
       label: 'Sidebar',
       submenu: [
         { label: 'Files', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'explorer') },
-        { label: 'Outline', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'snippets') },
+        { label: 'Outline', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'outline') },
+        { label: 'Snippets', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'snippets') },
+        { label: 'Templates', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'templates') },
         { label: 'Git', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'git') }
       ]
     },

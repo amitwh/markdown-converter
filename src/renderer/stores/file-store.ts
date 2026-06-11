@@ -247,15 +247,48 @@ export const useFileStore = create<FileState>()(
       const buffer = useEditorStore.getState().buffers.get(activeTabId);
       if (!buffer) return false;
 
-      const writeResult = await ipc.file.write(activeTabId, buffer.content);
+      let savePath = activeTabId;
+      const isUnsaved = activeTabId.startsWith('untitled-');
+
+      if (isUnsaved) {
+        const dialogResult = await ipc.app.showSaveDialog({
+          title: 'Save Markdown File',
+          defaultPath: 'document.md',
+          filters: [
+            { name: 'Markdown', extensions: ['md', 'markdown'] },
+            { name: 'All Files', extensions: ['*'] }
+          ]
+        });
+        if (!dialogResult.ok || !dialogResult.data) {
+          return false;
+        }
+        savePath = dialogResult.data;
+      }
+
+      const writeResult = await ipc.file.write(savePath, buffer.content);
       if (!writeResult.ok) {
         toast.error(`Failed to save: ${writeResult.error.message}`);
         return false;
       }
 
-      useEditorStore.getState().markSaved(activeTabId);
-      useFileStore.getState().markTabClean(activeTabId);
-      const title = useFileStore.getState().openTabs.find(t => t.id === activeTabId)?.title ?? activeTabId.split('/').pop() ?? activeTabId;
+      if (isUnsaved) {
+        useEditorStore.getState().renameBuffer(activeTabId, savePath, savePath);
+        set((s) => {
+          const tab = s.openTabs.find((t) => t.id === activeTabId);
+          if (tab) {
+            tab.id = savePath;
+            tab.path = savePath;
+            tab.title = savePath.split('/').pop() ?? savePath;
+            tab.dirty = false;
+          }
+          s.activeTabId = savePath;
+        });
+      } else {
+        useEditorStore.getState().markSaved(activeTabId);
+        useFileStore.getState().markTabClean(activeTabId);
+      }
+
+      const title = savePath.split('/').pop() ?? savePath;
       toast.success(`Saved ${title}`);
       return true;
     },
@@ -269,3 +302,16 @@ export const useFileStore = create<FileState>()(
     }
   )
 );
+
+// Synchronize active tab with main process's currentFile tracking
+let lastActiveTabId: string | null = undefined;
+useFileStore.subscribe((state) => {
+  const activeTabId = state.activeTabId;
+  if (activeTabId !== lastActiveTabId) {
+    lastActiveTabId = activeTabId;
+    const isRealFile = activeTabId && !activeTabId.startsWith('untitled-');
+    if (ipc.file && ipc.file.setCurrent) {
+      ipc.file.setCurrent(isRealFile ? activeTabId : null);
+    }
+  }
+});

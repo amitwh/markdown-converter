@@ -7,8 +7,11 @@ declare global {
   }
 }
 
-if (typeof window !== 'undefined' && !window.electronAPI) {
-  window.electronAPI = {};
+if (typeof window !== 'undefined') {
+  window.electronAPI = window.electronAPI || {};
+  if (!window.electronAPI.invoke) {
+    window.electronAPI.invoke = async () => null;
+  }
 }
 
 // Mock matchMedia for next-themes (jsdom doesn't have it)

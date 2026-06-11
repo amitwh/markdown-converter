@@ -24,7 +24,7 @@ describe('Sidebar', () => {
     useEditorStore.setState({ buffers: new Map(), activeId: null });
   });
 
-  it('renders without crashing with empty state in both sections', () => {
+  it('renders without crashing with empty state in all sections', () => {
     render(
       <ThemeProvider defaultTheme="dark" attribute="class">
         <Sidebar />
@@ -32,6 +32,9 @@ describe('Sidebar', () => {
     );
     expect(screen.getByText('Files')).toBeInTheDocument();
     expect(screen.getByText('Outline')).toBeInTheDocument();
+    expect(screen.getByText('Snippets')).toBeInTheDocument();
+    expect(screen.getByText('Templates')).toBeInTheDocument();
+    expect(screen.getByText('Git')).toBeInTheDocument();
     expect(screen.getByText(/no folder opened/i)).toBeInTheDocument();
     expect(screen.getByText(/no file open/i)).toBeInTheDocument();
   });
@@ -56,6 +59,9 @@ describe('Sidebar', () => {
 
     expect(screen.getByText('Files')).toBeInTheDocument();
     expect(screen.getByText('Outline')).toBeInTheDocument();
+    expect(screen.getByText('Snippets')).toBeInTheDocument();
+    expect(screen.getByText('Templates')).toBeInTheDocument();
+    expect(screen.getByText('Git')).toBeInTheDocument();
     expect(screen.getByText('README.md')).toBeInTheDocument();
   });
 

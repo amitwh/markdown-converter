@@ -31,7 +31,8 @@ export type ModalState =
   | { kind: 'ascii-generator' }
   | { kind: 'table-generator' }
   | { kind: 'find-in-files' }
-  | { kind: 'crashReports' };
+  | { kind: 'crashReports' }
+  | { kind: 'writing-analytics' };
 
 export type ModalKind = ModalState['kind'];
 

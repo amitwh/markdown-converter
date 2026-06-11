@@ -21,6 +21,7 @@ interface EditorState {
   setCursor: (id: string, line: number, column: number) => void;
   closeBuffer: (id: string) => void;
   setActive: (id: string) => void;
+  renameBuffer: (oldId: string, newId: string, newPath: string) => void;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -58,6 +59,15 @@ export const useEditorStore = create<EditorState>()(
     setActive: (id) =>
       set((s) => {
         s.activeId = id;
+      }),
+    renameBuffer: (oldId, newId, newPath) =>
+      set((s) => {
+        const buf = s.buffers.get(oldId);
+        if (buf) {
+          s.buffers.delete(oldId);
+          s.buffers.set(newId, { ...buf, id: newId, path: newPath });
+          if (s.activeId === oldId) s.activeId = newId;
+        }
       }),
   }))
 );

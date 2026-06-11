@@ -25,6 +25,7 @@ export const settingsSchema = z.object({
   updateChannel: z.enum(['github', 'concreteinfo']).default('github'),
   autoCheckUpdates: z.boolean().default(true),
   firstRun: z.boolean().default(true),
+  dailyGoal: z.number().int().min(1).default(1000),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
