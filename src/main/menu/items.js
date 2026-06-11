@@ -226,10 +226,9 @@ function viewItems(mainWindow) {
     {
       label: 'Sidebar',
       submenu: [
-        { label: 'File Explorer', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'explorer') },
-        { label: 'Git', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'git') },
-        { label: 'Snippets', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'snippets') },
-        { label: 'Templates', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'templates') }
+        { label: 'Files', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'explorer') },
+        { label: 'Outline', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'snippets') },
+        { label: 'Git', click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'git') }
       ]
     },
     {

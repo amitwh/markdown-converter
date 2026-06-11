@@ -17,7 +17,13 @@ function App() {
   useEffect(() => {
     const handler = () => setPrintOpen(true);
     window.addEventListener('mc:print', handler);
-    return () => window.removeEventListener('mc:print', handler);
+    window.addEventListener('mc:print-preview', handler);
+    window.addEventListener('mc:print-preview-styled', handler);
+    return () => {
+      window.removeEventListener('mc:print', handler);
+      window.removeEventListener('mc:print-preview', handler);
+      window.removeEventListener('mc:print-preview-styled', handler);
+    };
   }, []);
 
   return (

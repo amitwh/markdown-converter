@@ -143,4 +143,49 @@ describe('useRegisterMenuCommands + useBridgeNativeMenu', () => {
     act(() => fireMenu('load-template-menu', 'blog-post.md'));
     expect(captured).toBe('blog-post.md');
   });
+
+  it('file.clearRecent does NOT clear openTabs', () => {
+    useFileStore.setState({
+      openTabs: [
+        { id: '/a.md', path: '/a.md', title: 'a.md', dirty: false },
+      ],
+      activeTabId: '/a.md',
+    });
+    render(<Harness />);
+    const sendSpy = vi.fn();
+    (window as any).electronAPI = { send: sendSpy };
+    act(() => useCommandStore.getState().dispatch('file.clearRecent'));
+    expect(useFileStore.getState().openTabs).toHaveLength(1);
+    expect(sendSpy).toHaveBeenCalledWith('clear-recent-files');
+  });
+
+  it('show-batch-converter IPC event dispatches batch.showConverter', () => {
+    let captured: unknown;
+    render(<Harness />);
+    useCommandStore.getState().register('batch.showConverter', (args) => {
+      captured = args;
+    });
+    act(() => fireMenu('show-batch-converter', 'image'));
+    expect(captured).toBe('image');
+  });
+
+  it('show-document-compare IPC event dispatches tools.documentCompare', () => {
+    let called = false;
+    render(<Harness />);
+    useCommandStore.getState().register('tools.documentCompare', () => {
+      called = true;
+    });
+    act(() => fireMenu('show-document-compare'));
+    expect(called).toBe(true);
+  });
+
+  it('open-header-footer-dialog IPC event dispatches settings.headerFooter', () => {
+    let called = false;
+    render(<Harness />);
+    useCommandStore.getState().register('settings.headerFooter', () => {
+      called = true;
+    });
+    act(() => fireMenu('open-header-footer-dialog'));
+    expect(called).toBe(true);
+  });
 });

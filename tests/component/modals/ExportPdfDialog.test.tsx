@@ -8,7 +8,10 @@ import { useSettingsStore } from '@/stores/settings-store';
 
 vi.mock('@/lib/ipc', () => ({
   ipc: {
-    print: vi.fn().mockResolvedValue({ ok: true }),
+    print: {
+      show: vi.fn().mockResolvedValue({ ok: true }),
+      doPrint: vi.fn().mockResolvedValue({ ok: true }),
+    },
   },
 }));
 
@@ -29,12 +32,12 @@ describe('ExportPdfDialog', () => {
     expect(screen.getByRole('combobox', { name: /format/i })).toBeInTheDocument();
   });
 
-  it('toggles ASCII tables and submits via ipc.print', async () => {
+  it('toggles ASCII tables and submits via ipc.print.show', async () => {
     render(<ExportPdfDialog sourcePath="/test.md" />);
     await userEvent.click(screen.getByRole('checkbox', { name: /ascii/i }));
     await userEvent.click(screen.getByRole('button', { name: /^export$/i }));
-    await waitFor(() => expect(ipc.print).toHaveBeenCalledTimes(1));
-    const [arg] = (ipc.print as any).mock.calls[0];
+    await waitFor(() => expect(ipc.print.show).toHaveBeenCalledTimes(1));
+    const [arg] = (ipc.print.show as any).mock.calls[0];
     expect(arg.html).toContain('<!DOCTYPE html>');
     // The Markdown source is rendered to HTML inside the document body.
     expect(arg.html).toContain('<h1>hi</h1>');
@@ -43,7 +46,7 @@ describe('ExportPdfDialog', () => {
   });
 
   it('renders an error banner when IPC fails', async () => {
-    (ipc.print as any).mockRejectedValueOnce(new Error('Pandoc not found'));
+    (ipc.print.show as any).mockRejectedValueOnce(new Error('Pandoc not found'));
     render(<ExportPdfDialog sourcePath="/test.md" />);
     await userEvent.click(screen.getByRole('button', { name: /^export$/i }));
     expect(await screen.findByText(/pandoc not found/i)).toBeInTheDocument();

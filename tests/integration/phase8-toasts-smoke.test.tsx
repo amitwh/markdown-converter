@@ -27,7 +27,10 @@ vi.mock('@/lib/ipc', () => ({
       pickFile: vi.fn(),
       onChange: vi.fn(),
     },
-    print: vi.fn().mockResolvedValue({ ok: true }),
+    print: {
+      show: vi.fn().mockResolvedValue({ ok: true }),
+      doPrint: vi.fn().mockResolvedValue({ ok: true }),
+    },
     menu: {
       on: vi.fn(() => () => {}),
     },
@@ -93,7 +96,7 @@ describe('Phase 8 toasts integration', () => {
   });
 
   it('exporting a file calls toast.success on success', async () => {
-    (ipc.print as any).mockResolvedValue({ ok: true });
+    (ipc.print.show as any).mockResolvedValue({ ok: true });
     registerMenuCommands();
     render(<App />);
 
@@ -107,7 +110,7 @@ describe('Phase 8 toasts integration', () => {
 
     // The PDF flow hands the rendered HTML to the main process for print.
     await waitFor(() => {
-      expect(ipc.print).toHaveBeenCalledTimes(1);
+      expect(ipc.print.show).toHaveBeenCalledTimes(1);
     });
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Sent test.md'));
   });

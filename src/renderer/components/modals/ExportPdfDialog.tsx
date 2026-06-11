@@ -51,7 +51,7 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
       const m = MARGIN_MAP[margins];
       const pageCss = `@page { size: ${fmt.width} ${fmt.height}; margin: ${m.top}mm ${m.right}mm ${m.bottom}mm ${m.left}mm; }`;
       const finalHtml = html.replace('</style>', `${pageCss}</style>`);
-      const result = await ipc.print({ html: finalHtml, withStyles: embed });
+      const result = await ipc.print.show({ html: finalHtml, withStyles: embed });
       if (!result.ok) {
         const msg = result.error?.message ?? 'PDF export failed';
         toast.error(`Export failed: ${msg}`);

@@ -83,8 +83,12 @@ export const ipc = {
     writeBuffer: (args: { path: string; buffer: Uint8Array }): Promise<IpcResult<void | ChannelMissing>> =>
       safeCall('file', 'writeBuffer', args),
   },
-  print: (args: { html: string }): Promise<IpcResult<void | ChannelMissing>> =>
-    safeCall('print', 'show', args),
+  print: {
+    show: (args: { html: string }): Promise<IpcResult<void | ChannelMissing>> =>
+      safeCall('print', 'show', args),
+    doPrint: (args: { withStyles?: boolean }): Promise<IpcResult<void | ChannelMissing>> =>
+      safeCall('print', 'doPrint', args),
+  },
   export: {
     pdf: (opts: PdfOptions): Promise<IpcResult<ExportResult | ChannelMissing>> =>
       safeCall('export', 'pdf', opts),

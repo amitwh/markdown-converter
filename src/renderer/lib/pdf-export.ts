@@ -41,7 +41,7 @@ export async function generatePdf(options: PdfExportOptions): Promise<void> {
 
   // Hand the rendered HTML to the main process for native print-to-PDF.
   // This avoids the print dialog and works headlessly.
-  const result = await ipc.print({ html: finalHtml });
+  const result = await ipc.print.show({ html: finalHtml });
   if (!result.ok) {
     toast.error(`PDF export failed: ${result.error?.message ?? 'unknown error'}`);
   } else {

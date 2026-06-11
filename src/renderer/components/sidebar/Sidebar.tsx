@@ -3,14 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFileStore } from '@/stores/file-store';
-import { useCommandStore } from '@/stores/command-store';
 import { FileTree } from './FileTree';
 import { Outline } from './Outline';
 import { GitStatusPanel } from './GitStatusPanel';
 
 export function Sidebar() {
   const tree = useFileStore((s) => s.tree);
-  const dispatch = useCommandStore((s) => s.dispatch);
 
   function scrollToSection(label: string) {
     const el = document.querySelector(`[data-sidebar-section="${label}"]`);
@@ -86,10 +84,10 @@ export function Sidebar() {
           matching section into view. The hidden elements expose a hook for
           Playwright tests and the menu handler. */}
       <div className="sr-only" aria-hidden="true">
-        <button data-testid="sidebar-jump-explorer" onClick={() => { scrollToSection('Files'); dispatch('view.toggleSidebar'); }}>jump-explorer</button>
-        <button data-testid="sidebar-jump-git" onClick={() => { scrollToSection('Git'); dispatch('view.toggleSidebar'); }}>jump-git</button>
-        <button data-testid="sidebar-jump-snippets" onClick={() => { scrollToSection('Outline'); dispatch('view.toggleSidebar'); }}>jump-snippets</button>
-        <button data-testid="sidebar-jump-templates" onClick={() => { scrollToSection('Files'); dispatch('view.toggleSidebar'); }}>jump-templates</button>
+        <button data-testid="sidebar-jump-explorer" onClick={() => scrollToSection('Files')}>jump-explorer</button>
+        <button data-testid="sidebar-jump-git" onClick={() => scrollToSection('Git')}>jump-git</button>
+        <button data-testid="sidebar-jump-snippets" onClick={() => scrollToSection('Outline')}>jump-snippets</button>
+        <button data-testid="sidebar-jump-templates" onClick={() => scrollToSection('Files')}>jump-templates</button>
       </div>
     </div>
   );

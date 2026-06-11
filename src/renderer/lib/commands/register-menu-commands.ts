@@ -225,8 +225,35 @@ export function registerMenuCommands(): void {
       window.dispatchEvent(new CustomEvent('mc:print-preview-styled'));
     },
 
+    // Batch converter — PDF batch reuses ExportBatchDialog; others show coming-soon toast.
+    'batch.showConverter': (type?: string) => {
+      if (!type) return;
+      if (type === 'pdf') {
+        const paths = useFileStore.getState().openTabs.map((t) => t.path);
+        if (paths.length > 0) {
+          useAppStore.getState().openModal('export-batch', { sourcePaths: paths });
+        } else {
+          toast.info('Open files first to batch-export as PDF');
+        }
+        return;
+      }
+      toast.info(
+        `${type.charAt(0).toUpperCase() + type.slice(1)} batch conversion — coming soon!`,
+      );
+    },
+
+    // Document compare — no modal yet, acknowledge with toast.
+    'tools.documentCompare': () => {
+      toast.info('Document compare — coming soon!');
+    },
+
+    // Header & footer settings — point users to Settings → Editor.
+    'settings.headerFooter': () => {
+      useAppStore.getState().openModal('settings');
+    },
+
     'file.clearRecent': () => {
-      useFileStore.setState({ openTabs: [] });
+      window.electronAPI?.send?.('clear-recent-files');
     },
 
     // File → New — creates an unsaved buffer with a default name.
@@ -324,4 +351,7 @@ export function useBridgeNativeMenu(): void {
   useMenuAction('file-opened', 'file.opened', (payload) => payload);
   useMenuAction('clear-recent-files', 'file.clearRecent');
   useMenuAction('file-new', 'file.new');
+  useMenuAction('show-batch-converter', 'batch.showConverter', (type) => type as string);
+  useMenuAction('show-document-compare', 'tools.documentCompare');
+  useMenuAction('open-header-footer-dialog', 'settings.headerFooter');
 }
