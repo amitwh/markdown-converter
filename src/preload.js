@@ -233,6 +233,9 @@ const ALLOWED_RECEIVE_CHANNELS = [
   // Batch converter
   'show-batch-converter',
 
+  // Document compare
+  'show-document-compare',
+
   // v4 menu-triggered events
   'load-template-menu',
   'toggle-sidebar-panel',
