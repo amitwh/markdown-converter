@@ -80,8 +80,6 @@ describe('Security: Path Handling', () => {
 
   describe('validation patterns', () => {
     it('should validate path existence check pattern', () => {
-      const validationPattern = /^[a-zA-Z0-9._\-/]+$/;
-
       const validPaths = ['documents/file.md', 'folder_2026/data.csv'];
       validPaths.forEach((pathStr) => {
         // These should match a reasonable filename pattern

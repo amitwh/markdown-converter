@@ -8,7 +8,6 @@ describe('PDFOperations Utilities', () => {
   describe('page range parsing', () => {
     it('should parse single page numbers', () => {
       // Test logic: parsing "1" should extract page index 0
-      const input = '1';
       const pages = [0]; // Parsed result
 
       expect(pages.length).toBe(1);
@@ -17,7 +16,6 @@ describe('PDFOperations Utilities', () => {
 
     it('should parse page ranges', () => {
       // Test logic: parsing "1-3" should extract pages 0, 1, 2
-      const input = '1-3';
       const pages = [0, 1, 2]; // Expected result
 
       expect(pages.length).toBe(3);
@@ -26,7 +24,6 @@ describe('PDFOperations Utilities', () => {
 
     it('should handle multiple ranges', () => {
       // Test logic: parsing "1-2,4-5" should extract pages 0,1,3,4
-      const input = '1-2,4-5';
       const pages = [0, 1, 3, 4]; // Expected result
 
       expect(pages.length).toBe(4);

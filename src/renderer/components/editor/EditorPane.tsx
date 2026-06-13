@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { CodeMirrorEditor } from './CodeMirrorEditor';
+import { FindReplaceBar } from './FindReplaceBar';
 import { useEditorStore } from '@/stores/editor-store';
 import { usePreviewStore } from '@/stores/preview-store';
 
@@ -21,8 +22,11 @@ export function EditorPane() {
   }
 
   return (
-    <div className="h-full">
-      <CodeMirrorEditor key={buf.id} bufferId={buf.id} initialContent={buf.content} />
+    <div className="flex h-full flex-col">
+      <FindReplaceBar />
+      <div className="flex-1 overflow-hidden">
+        <CodeMirrorEditor key={buf.id} bufferId={buf.id} initialContent={buf.content} />
+      </div>
     </div>
   );
 }

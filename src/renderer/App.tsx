@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AppShell } from './components/layout/AppShell';
 import { ModalLayer } from './components/modals/ModalLayer';
+import { CommandPalette } from './components/modals/CommandPalette';
 import { Toaster } from './components/ui/sonner';
 import { ReplPanel } from './components/tools/ReplPanel';
 import { PrintPreview } from './components/tools/PrintPreview';
@@ -30,6 +31,7 @@ function App() {
     <>
       <AppShell />
       <ModalLayer />
+      <CommandPalette />
       <Toaster />
       <UpdateBanner />
       <FirstRunWizard />

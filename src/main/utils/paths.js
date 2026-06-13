@@ -29,7 +29,7 @@ function validatePath(filePath) {
   let resolved;
   try {
     resolved = path.resolve(filePath);
-  } catch (err) {
+  } catch (_err) {
     return { valid: false, resolved: '', error: 'Invalid path format' };
   }
 
@@ -63,7 +63,7 @@ function resolveWritablePath(filePath) {
   let resolved;
   try {
     resolved = path.normalize(path.resolve(filePath));
-  } catch (err) {
+  } catch (_err2) {
     return { valid: false, resolved: '', error: 'Invalid path format' };
   }
 

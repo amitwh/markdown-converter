@@ -14,44 +14,63 @@ vi.mock('@/lib/ipc', () => ({
 }));
 
 vi.mock('@/lib/docx-export', () => ({
-  generateDocx: vi
-    .fn()
-    .mockResolvedValue(
-      new Blob([new Uint8Array(8)], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      })
-    ),
+  generateDocx: vi.fn().mockResolvedValue(
+    new Blob([new Uint8Array(8)], {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    })
+  ),
 }));
 
 import { ipc } from '@/lib/ipc';
 
-describe('ExportDocxDialog', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    vi.clearAllMocks();
-    // The dialog passes the source path with .docx extension as the default
-    // path, and the test mock returns that same path (echoing the default).
-    (ipc.app.showSaveDialog as any).mockImplementation(async (args) => ({
-      ok: true,
-      data: args?.defaultPath ?? '/out.docx',
-    }));
-    (ipc.file.writeBuffer as any).mockResolvedValue({ ok: true });
-    useSettingsStore.setState(useSettingsStore.getInitialState());
-    useFileStore.setState({
-      activeTabId: '/test.md',
-      openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }],
-    } as any);
-    useEditorStore.setState({
-      buffers: new Map([
-        ['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: false }],
-      ]),
-    } as any);
-  });
+beforeEach(() => {
+  localStorage.clear();
+  vi.clearAllMocks();
+  (window.electronAPI as any) = {};
+  (ipc.app.showSaveDialog as any).mockImplementation(async (args) => ({
+    ok: true,
+    data: args?.defaultPath ?? '/out.docx',
+  }));
+  (ipc.file.writeBuffer as any).mockResolvedValue({ ok: true });
+  useSettingsStore.setState(useSettingsStore.getInitialState());
+  useFileStore.setState({
+    activeTabId: '/test.md',
+    openTabs: [{ id: '/test.md', path: '/test.md', title: 'test.md', dirty: false }],
+  } as any);
+  useEditorStore.setState({
+    buffers: new Map([
+      ['/test.md', { id: '/test.md', path: '/test.md', content: '# hi', dirty: false }],
+    ]),
+  } as any);
+});
 
+describe('ExportDocxDialog', () => {
   it('renders with standard template selected by default', () => {
     render(<ExportDocxDialog sourcePath="/test.md" />);
     expect(screen.getByText(/export to docx/i)).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: /template/i })).toBeInTheDocument();
+  });
+
+  it('shows reference doc input', () => {
+    render(<ExportDocxDialog sourcePath="/test.md" />);
+    expect(screen.getByLabelText(/reference document path/i)).toBeInTheDocument();
+  });
+
+  it('shows TOC toggle and number sections toggle', () => {
+    render(<ExportDocxDialog sourcePath="/test.md" />);
+    expect(screen.getByRole('switch', { name: /table of contents/i })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: /number sections/i })).toBeInTheDocument();
+  });
+
+  it('shows TOC depth when TOC is enabled', async () => {
+    render(<ExportDocxDialog sourcePath="/test.md" />);
+    await userEvent.click(screen.getByRole('switch', { name: /table of contents/i }));
+    expect(screen.getByLabelText(/toc depth/i)).toBeInTheDocument();
+  });
+
+  it('shows bibliography input', () => {
+    render(<ExportDocxDialog sourcePath="/test.md" />);
+    expect(screen.getByLabelText(/bibliography file path/i)).toBeInTheDocument();
   });
 
   it('submitting with default options writes a docx buffer', async () => {
@@ -70,5 +89,17 @@ describe('ExportDocxDialog', () => {
     await userEvent.click(screen.getByRole('combobox', { name: /template/i }));
     await userEvent.click(screen.getByRole('option', { name: /modern/i }));
     expect(screen.getByRole('combobox', { name: /template/i })).toHaveTextContent(/modern/i);
+  });
+
+  it('sends options via electronAPI.export.withOptions when available', async () => {
+    const mockWithOptions = vi.fn().mockResolvedValue({ ok: true });
+    (window.electronAPI as any) = {
+      export: { withOptions: mockWithOptions },
+    };
+    render(<ExportDocxDialog sourcePath="/test.md" />);
+    await userEvent.click(screen.getByRole('button', { name: /^export$/i }));
+    await waitFor(() => expect(mockWithOptions).toHaveBeenCalledWith('docx', expect.any(Object)));
+    expect(mockWithOptions.mock.calls[0][1].toc).toBe(false);
+    expect(mockWithOptions.mock.calls[0][1].numberSections).toBe(false);
   });
 });

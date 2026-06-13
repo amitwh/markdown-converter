@@ -1,6 +1,6 @@
 const { ipcMain, shell } = require('electron');
 
-function register({ crash, getMainWindow }) {
+function register({ crash, getMainWindow: _getMainWindow }) {
   ipcMain.handle('crash:read', () => {
     return crash.list();
   });

@@ -29,4 +29,10 @@ describe('ModalLayer', () => {
     expect(screen.queryByText(/about markdownconverter/i)).not.toBeInTheDocument();
     expect(screen.getByText(/settings/i)).toBeInTheDocument();
   });
+
+  it('renders BatchMediaConverterDialog when kind is "batch-media-converter"', () => {
+    useAppStore.getState().openModal('batch-media-converter');
+    render(<ModalLayer />);
+    expect(screen.getByText(/batch media converter/i)).toBeInTheDocument();
+  });
 });

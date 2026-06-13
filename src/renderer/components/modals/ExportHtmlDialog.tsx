@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { useAppStore } from '@/stores/app-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useExportSource } from '@/hooks/use-export-source';
@@ -30,6 +32,11 @@ export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
   const [standalone, setStandalone] = useState(true);
   const [highlight, setHighlight] = useState(htmlHighlightStyle);
   const [ascii, setAscii] = useState(renderTablesAsAscii);
+  const [selfContained, setSelfContained] = useState(false);
+  const [toc, setToc] = useState(false);
+  const [tocDepth, setTocDepth] = useState(3);
+  const [numberSections, setNumberSections] = useState(false);
+  const [cssPath, setCssPath] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +55,19 @@ export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
         highlightStyle: highlight,
         renderTablesAsAscii: ascii,
       });
+
+      const options = {
+        standalone,
+        highlightStyle: highlight,
+        selfContained,
+        toc,
+        tocDepth,
+        numberSections,
+        css: cssPath || undefined,
+      };
+
+      await window.electronAPI?.export?.withOptions?.('html', options);
+
       const saveResult = await ipc.app.showSaveDialog?.({
         title: 'Save as HTML',
         defaultPath: source.path.replace(/\.md$/, '.html'),
@@ -75,7 +95,7 @@ export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Export to HTML</DialogTitle>
           <DialogDescription>{sourcePath}</DialogDescription>
@@ -103,6 +123,10 @@ export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
               </SelectContent>
             </Select>
           </div>
+          <div className="flex items-center gap-3">
+            <Switch checked={selfContained} onCheckedChange={setSelfContained} id="html-self-contained" />
+            <Label htmlFor="html-self-contained">Self-contained (embed all CSS inline)</Label>
+          </div>
           <label className="flex items-center gap-2">
             <Checkbox
               checked={ascii}
@@ -111,6 +135,39 @@ export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
             />
             Render tables as ASCII
           </label>
+          <div className="flex items-center gap-3">
+            <Switch checked={toc} onCheckedChange={setToc} id="html-toc" />
+            <Label htmlFor="html-toc">Table of Contents</Label>
+          </div>
+          {toc && (
+            <div className="pl-9">
+              <Label htmlFor="html-toc-depth">TOC Depth</Label>
+              <Input
+                id="html-toc-depth"
+                type="number"
+                min={1}
+                max={6}
+                value={tocDepth}
+                onChange={(e) => setTocDepth(Math.min(6, Math.max(1, Number(e.target.value))))}
+                className="w-20"
+                aria-label="TOC depth"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <Switch checked={numberSections} onCheckedChange={setNumberSections} id="html-number-sections" />
+            <Label htmlFor="html-number-sections">Number sections</Label>
+          </div>
+          <div>
+            <Label htmlFor="html-css">Custom CSS file</Label>
+            <Input
+              id="html-css"
+              value={cssPath}
+              onChange={(e) => setCssPath(e.target.value)}
+              placeholder="/path/to/custom.css"
+              aria-label="Custom CSS file path"
+            />
+          </div>
           {error && (
             <div
               role="alert"

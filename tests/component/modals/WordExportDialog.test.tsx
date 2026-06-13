@@ -7,13 +7,11 @@ import { useEditorStore } from '@/stores/editor-store';
 import { useSettingsStore } from '@/stores/settings-store';
 
 vi.mock('@/lib/docx-export', () => ({
-  generateDocx: vi
-    .fn()
-    .mockResolvedValue(
-      new Blob([new Uint8Array([1, 2, 3])], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      })
-    ),
+  generateDocx: vi.fn().mockResolvedValue(
+    new Blob([new Uint8Array([1, 2, 3])], {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    })
+  ),
 }));
 
 vi.mock('@/lib/toast', () => ({

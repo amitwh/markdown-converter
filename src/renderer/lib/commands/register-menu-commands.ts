@@ -51,23 +51,7 @@ export function registerMenuCommands(): void {
     'help.welcome': () => useAppStore.getState().openModal('welcome'),
     'shortcuts.show': () => {
       const open: OpenModal = useAppStore.getState().openModal;
-      open('confirm', {
-        title: 'Keyboard shortcuts',
-        body: [
-          'Open file — ⌘/Ctrl+O',
-          'Open folder — ⌘/Ctrl+Shift+O',
-          'Save — ⌘/Ctrl+S',
-          'Close tab — ⌘/Ctrl+W',
-          'Next/prev tab — ⌘/Ctrl+Tab / +Shift+Tab',
-          'Toggle sidebar — ⌘/Ctrl+B',
-          'Toggle preview — ⌘/Ctrl+Shift+P',
-          'Zen mode — ⌘/Ctrl+K then Z',
-          'Find — ⌘/Ctrl+F',
-        ].join('\n'),
-        confirmLabel: 'Got it',
-        cancelLabel: 'Close',
-        onConfirm: () => undefined,
-      });
+      window.dispatchEvent(new CustomEvent('mc:command-palette-toggle'));
     },
     'file.exportPdf': () => {
       const activeTabId = useFileStore.getState().activeTabId;
@@ -259,10 +243,20 @@ export function registerMenuCommands(): void {
     'tools.documentCompare': () => {
       toast.info('Document compare — coming soon!');
     },
+    'tools.pdfEditor': () => useAppStore.getState().openModal('pdf-editor'),
 
-    // Header & footer settings — point users to Settings → Editor.
+    // Header & footer settings — dedicated dialog.
     'settings.headerFooter': () => {
-      useAppStore.getState().openModal('settings');
+      useAppStore.getState().openModal('header-footer');
+    },
+
+    // Universal converter — single file or batch.
+    'tools.universalConverter': () => {
+      useAppStore.getState().openModal('universal-converter');
+    },
+
+    'tools.batchMediaConverter': () => {
+      useAppStore.getState().openModal('batch-media-converter');
     },
 
     'file.clearRecent': () => {

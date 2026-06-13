@@ -31,7 +31,7 @@ class CrashWriter {
       const oldest = files.shift();
       try {
         fs.unlinkSync(path.join(this.dir, oldest));
-      } catch (_) {
+      } catch (_unlinkErr) {
         /* ignore */
       }
     }

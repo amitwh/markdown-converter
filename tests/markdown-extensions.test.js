@@ -135,7 +135,7 @@ describe('Markdown Extensions', () => {
         tokens: [{ type: 'text', text: 'Be careful!' }],
       };
       const mockParser = {
-        parse: jest.fn((tokens) => '<p>Be careful!</p>'),
+        parse: jest.fn((_tokens) => '<p>Be careful!</p>'),
       };
       const context = { parser: mockParser };
       const html = extension.renderer.call(context, token);

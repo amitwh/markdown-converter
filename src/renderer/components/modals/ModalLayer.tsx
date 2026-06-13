@@ -1,5 +1,6 @@
 import { useAppStore } from '@/stores/app-store';
 import { AboutDialog } from './AboutDialog';
+import { BatchMediaConverterDialog } from './BatchMediaConverterDialog';
 import { AsciiGeneratorDialog } from './AsciiGeneratorDialog';
 import { ConfirmDialog } from './ConfirmDialog';
 import { CrashReportModal } from './CrashReportModal';
@@ -8,11 +9,14 @@ import { ExportDocxDialog } from './ExportDocxDialog';
 import { ExportHtmlDialog } from './ExportHtmlDialog';
 import { ExportPdfDialog } from './ExportPdfDialog';
 import { FindInFilesDialog } from './FindInFilesDialog';
+import { HeaderFooterDialog } from './HeaderFooterDialog';
 import { SettingsSheet } from './SettingsSheet';
 import { TableGeneratorDialog } from './TableGeneratorDialog';
+import { UniversalConverterDialog } from './UniversalConverterDialog';
 import { WelcomeDialog } from './WelcomeDialog';
 import { WordExportDialog } from './WordExportDialog';
 import { WritingAnalyticsDialog } from './WritingAnalyticsDialog';
+import { PdfEditorDialog } from './PdfEditorDialog';
 
 export function ModalLayer() {
   const modal = useAppStore((s) => s.modal);
@@ -47,5 +51,18 @@ export function ModalLayer() {
       return <CrashReportModal onClose={useAppStore.getState().closeModal} />;
     case 'writing-analytics':
       return <WritingAnalyticsDialog />;
+    case 'pdf-editor':
+      return (
+        <PdfEditorDialog
+          onClose={useAppStore.getState().closeModal}
+          initialFilePath={modal.props?.filePath}
+        />
+      );
+    case 'universal-converter':
+      return <UniversalConverterDialog />;
+    case 'header-footer':
+      return <HeaderFooterDialog />;
+    case 'batch-media-converter':
+      return <BatchMediaConverterDialog />;
   }
 }

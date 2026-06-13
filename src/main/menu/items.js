@@ -1,7 +1,7 @@
 // src/main/menu/items.js
 // Individual menu items — pure functions that take (mainWindow) and return menu item arrays
 
-const { app, dialog, shell } = require('electron');
+const { app, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -32,7 +32,7 @@ function buildRecentFilesMenu(mainWindow) {
       }
     );
     return items;
-  } catch (e) {
+  } catch (_e) {
     return [{ label: 'No Recent Files', enabled: false }];
   }
 }
@@ -628,7 +628,7 @@ function batchItems(mainWindow) {
   ];
 }
 
-function convertItems(mainWindow) {
+function convertItems(_mainWindow) {
   return [
     {
       label: 'Universal File Converter...',
@@ -641,7 +641,7 @@ function convertItems(mainWindow) {
   ];
 }
 
-function pdfEditorItems(mainWindow) {
+function pdfEditorItems(_mainWindow) {
   return [
     {
       label: 'Open PDF File...',
@@ -754,7 +754,7 @@ function toolsItems(mainWindow) {
   ];
 }
 
-function helpItems(mainWindow) {
+function helpItems(_mainWindow) {
   return [
     {
       label: 'About MarkdownConverter',

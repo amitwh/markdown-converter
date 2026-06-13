@@ -7,7 +7,6 @@
 const fs = require('fs');
 const path = require('path');
 const PizZip = require('pizzip');
-const Docx = require('docx4js').default;
 
 class WordTemplateExporter {
   constructor(templatePath, startPage = 3, pageSettings = null) {
@@ -432,7 +431,7 @@ class WordTemplateExporter {
         rowCells.push('');
       }
 
-      rowCells.forEach((cellText, colIndex) => {
+      rowCells.forEach((cellText, _colIndex) => {
         tableXml += '<w:tc>';
         tableXml += '<w:tcPr>';
 
@@ -715,7 +714,7 @@ class WordTemplateExporter {
    */
   parseInlineFormatting(text) {
     let xml = '';
-    const pos = 0;
+    const _pos = 0;
 
     // Patterns for inline formatting
     const patterns = [

@@ -80,7 +80,7 @@ function renderIssues(container, issues) {
 
     const actions = document.createElement('div');
     actions.className = 'ws-issue-actions';
-    for (const [action, label] of [
+    for (const [_action, label] of [
       ['accept', 'Accept'],
       ['dismiss', 'Dismiss'],
     ]) {

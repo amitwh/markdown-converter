@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const { UpdaterService } = require('./updater/updater-service');
 const { CrashWriter } = require('./updater/crash-writer');
@@ -7,16 +7,10 @@ const updaterHandlers = require('./ipc/updater-handlers');
 const crashHandlers = require('./ipc/crash-handlers');
 const path = require('path');
 const fs = require('fs');
-const { exec, execFile, spawn } = require('child_process');
+const { execFile } = require('child_process');
 const WordTemplateExporter = require('./word-template');
 const PDFOperations = require('./PDFOperations');
-const GitOperations = require('./GitOperations');
-const {
-  getAllowedDirectories,
-  validatePath,
-  resolveWritablePath,
-  isPathAccessible,
-} = require('./utils/paths');
+const { validatePath, resolveWritablePath, isPathAccessible } = require('./utils/paths');
 const fileOps = require('./files');
 const menu = require('./menu');
 const { createMainWindow } = require('./window');
@@ -57,13 +51,13 @@ function getFFmpegPath() {
       ffmpegPath = ffmpegPath.replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
     }
     if (fs.existsSync(ffmpegPath)) return ffmpegPath;
-  } catch (_) {
+  } catch (_ffmpegErr) {
     /* ffmpeg-static not available */
   }
   return process.platform === 'win32' ? 'ffmpeg' : 'ffmpeg';
 }
 
-// Check if Pandoc is available
+// eslint-disable-next-line no-unused-vars
 function checkPandocAvailable() {
   return new Promise((resolve) => {
     const pandocPath = getPandocPath();
@@ -80,6 +74,7 @@ function checkPandocAvailable() {
  * @param {object} options - Options for execFile
  * @returns {Promise<{stdout: string, stderr: string}>}
  */
+// eslint-disable-next-line no-unused-vars
 function safeExecFile(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     execFile(
@@ -144,6 +139,7 @@ function convertDataToMarkdown(content, format) {
  * @param {string[]} args - Pandoc arguments array
  * @param {Function} callback - Callback function (error, stdout, stderr)
  */
+// eslint-disable-next-line no-unused-vars
 function runPandoc(args, callback) {
   const pandocPath = getPandocPath();
   execFile(pandocPath, args, { maxBuffer: 10 * 1024 * 1024 }, callback);
@@ -373,7 +369,7 @@ function checkPandocAvailability() {
       return;
     }
 
-    execFile('pandoc', ['--version'], (error, stdout, stderr) => {
+    execFile('pandoc', ['--version'], (error, _stdout, _stderr) => {
       pandocAvailable = !error;
       resolve(pandocAvailable);
     });
@@ -597,7 +593,7 @@ function showDependenciesDialog() {
   depsWindow.setMenuBarVisibility(false);
 }
 
-// Open PDF File for viewing/editing
+// eslint-disable-next-line no-unused-vars
 function openPDFFile() {
   const files = dialog.showOpenDialogSync(mainWindow, {
     properties: ['openFile'],
@@ -1198,7 +1194,7 @@ async function exportPDFViaWordTemplate() {
     const outputDir = path.dirname(result.filePath);
     const sofficeArgs = ['--headless', '--convert-to', 'pdf', '--outdir', outputDir, tempDocxPath];
 
-    execFile(soffice, sofficeArgs, (error, stdout, stderr) => {
+    execFile(soffice, sofficeArgs, (error, _stdout, _stderr) => {
       // Clean up temporary DOCX file
       try {
         fs.unlinkSync(tempDocxPath);
@@ -1290,7 +1286,7 @@ function checkConverterAvailable(tool) {
 }
 
 // Handle universal file conversion
-ipcMain.on('universal-convert', async (event, { tool, fromFormat, toFormat, filePath }) => {
+ipcMain.on('universal-convert', async (_event, { tool, _fromFormat, toFormat, filePath }) => {
   if (!conversionLimiter()) {
     mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
     return;
@@ -1378,7 +1374,15 @@ ipcMain.on(
   'universal-convert-batch',
   async (
     event,
-    { tool, fromFormat, toFormat, inputFolder, outputFolder, includeSubfolders, advancedOptions }
+    {
+      tool,
+      fromFormat,
+      toFormat,
+      inputFolder,
+      outputFolder,
+      includeSubfolders,
+      advancedOptions: _advancedOptions,
+    }
   ) => {
     if (!conversionLimiter()) {
       mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
@@ -1776,7 +1780,7 @@ function performExportWithOptions(format, options) {
               // Clean up intermediate EPUB
               try {
                 fs.unlinkSync(epubFile);
-              } catch (e) {
+              } catch (_e) {
                 /* ignore */
               }
               showExportSuccess(outputFile);
@@ -1797,7 +1801,7 @@ function performExportWithOptions(format, options) {
     });
 }
 
-function tryPdfFallback(inputFile, outputFile, engines, index, options, lastError) {
+function tryPdfFallback(inputFile, outputFile, engines, index, options, _lastError) {
   if (index >= engines.length) {
     // All Pandoc PDF engines failed, fallback to Electron's built-in PDF export
     console.log('All Pandoc PDF engines failed, falling back to Electron PDF export');
@@ -1966,13 +1970,14 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
 }
 
 // Helper function to export PDF with pandoc (with fallbacks) - uses runPandocCmd for safety
+// eslint-disable-next-line no-unused-vars
 function exportWithPandocPDF(pandocCmd, outputFile) {
-  runPandocCmd(pandocCmd, (error, stdout, stderr) => {
+  runPandocCmd(pandocCmd, (error, _stdout, _stderr) => {
     if (error) {
       console.log('XeLaTeX failed, trying PDFLaTeX...');
       // Fallback to pdflatex
       const fallbackCmd = pandocCmd.replace('--pdf-engine=xelatex', '--pdf-engine=pdflatex');
-      runPandocCmd(fallbackCmd, (fallbackError, fallbackStdout, fallbackStderr) => {
+      runPandocCmd(fallbackCmd, (fallbackError, _fallbackStdout, _fallbackStderr) => {
         if (fallbackError) {
           console.log('PDFLaTeX failed, trying Electron PDF...');
           // Final fallback to Electron PDF
@@ -2337,7 +2342,7 @@ function importDocument() {
     // Convert to markdown using pandoc (using runPandocCmd for safety)
     const pandocCmd = `${getPandocPath()} "${inputFile}" -t markdown ${additionalOptions} -o "${outputFile}"`;
 
-    runPandocCmd(pandocCmd, (error, stdout, stderr) => {
+    runPandocCmd(pandocCmd, (error, _stdout, _stderr) => {
       if (error) {
         dialog.showErrorBox(
           'Import Error',
@@ -2457,7 +2462,7 @@ ipcMain.on('do-print-with-options', (event, options) => {
 });
 
 // Handle renderer ready for file association
-ipcMain.on('renderer-ready', (event) => {
+ipcMain.on('renderer-ready', (_event) => {
   console.log('[MAIN] renderer-ready received, rendererReady was:', rendererReady);
   if (mainWindow) {
     mainWindow.webContents.executeJavaScript(
@@ -2675,7 +2680,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
 
     const inputFile = markdownFiles[index];
     const relativePath = path.relative(inputFolder, inputFile);
-    const baseName = path.basename(relativePath, path.extname(relativePath));
+    const _baseName = path.basename(relativePath, path.extname(relativePath));
     let outputExtension = format;
     if (format === 'docx-enhanced') outputExtension = 'docx';
     if (format === 'pdf-enhanced') outputExtension = 'pdf';
@@ -2709,7 +2714,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
 
         // Process next file
         processNextFile(index + 1);
-      } catch (error) {
+      } catch (_error) {
         // Update progress with error
         mainWindow.webContents.send('batch-progress', {
           completed: index + 1,
@@ -2750,7 +2755,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
           tempDocxPath,
         ];
 
-        execFile(soffice, sofficeArgs, (error, stdout, stderr) => {
+        execFile(soffice, sofficeArgs, (error, _stdout, _stderr) => {
           // Clean up temporary DOCX file
           try {
             fs.unlinkSync(tempDocxPath);
@@ -2795,7 +2800,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
           // Process next file
           processNextFile(index + 1);
         });
-      } catch (error) {
+      } catch (_error) {
         // Update progress with error
         mainWindow.webContents.send('batch-progress', {
           completed: index + 1,
@@ -2904,7 +2909,7 @@ function performBatchConversion(inputFolder, outputFolder, format, options) {
     }
 
     // Execute conversion (using runPandocCmd for safety)
-    runPandocCmd(pandocCmd, async (error, stdout, stderr) => {
+    runPandocCmd(pandocCmd, async (error, _stdout, _stderr) => {
       if (!error) {
         // Add headers/footers to DOCX if enabled
         if (format === 'docx' && headerFooterSettings.enabled) {
@@ -3530,7 +3535,7 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
   }
 });
 
-ipcMain.handle('select-custom-css', async (event) => {
+ipcMain.handle('select-custom-css', async (_event) => {
   const result = dialog.showOpenDialogSync(mainWindow, {
     title: 'Select Custom Preview CSS',
     properties: ['openFile'],

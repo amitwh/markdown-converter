@@ -8,7 +8,7 @@ async function getStatus(dir) {
   try {
     const git = getGitInstance(dir);
     return await git.status();
-  } catch (err) {
+  } catch (_err) {
     return { error: 'Not a git repository' };
   }
 }

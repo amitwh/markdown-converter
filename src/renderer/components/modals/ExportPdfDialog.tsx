@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { useAppStore } from '@/stores/app-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useExportSource } from '@/hooks/use-export-source';
@@ -37,6 +39,15 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
   const [margins, setMargins] = useState<'normal' | 'narrow' | 'wide'>(pdfMargins);
   const [embed, setEmbed] = useState(pdfEmbedFonts);
   const [ascii, setAscii] = useState(renderTablesAsAscii);
+  const [engine, setEngine] = useState<'pdflatex' | 'xelatex' | 'lualatex'>('pdflatex');
+  const [toc, setToc] = useState(false);
+  const [tocDepth, setTocDepth] = useState(3);
+  const [numberSections, setNumberSections] = useState(false);
+  const [pageGeometry, setPageGeometry] = useState<'margin' | 'crop' | 'bleed'>('margin');
+  const [bibliography, setBibliography] = useState('');
+  const [mainFont, setMainFont] = useState('');
+  const [cjkFont, setCjkFont] = useState('');
+  const [highlightStyle, setHighlightStyle] = useState('tango');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const source = useExportSource();
@@ -49,8 +60,6 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
     setSubmitting(true);
     setError(null);
     try {
-      // Renderer-side: build the standalone HTML and hand it to the main
-      // process for native print-to-PDF.
       const html = generateHtml({
         source: source.source,
         title: source.title,
@@ -67,7 +76,24 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
       const m = MARGIN_MAP[margins];
       const pageCss = `@page { size: ${fmt.width} ${fmt.height}; margin: ${m.top}mm ${m.right}mm ${m.bottom}mm ${m.left}mm; }`;
       const finalHtml = html.replace('</style>', `${pageCss}</style>`);
-      const result = await ipc.print.show({ html: finalHtml, withStyles: embed });
+
+      const options = {
+        html: finalHtml,
+        withStyles: embed,
+        engine,
+        toc,
+        tocDepth,
+        numberSections,
+        pageGeometry,
+        bibliography: bibliography || undefined,
+        mainFont: mainFont || undefined,
+        cjkFont: cjkFont || undefined,
+        highlightStyle,
+      };
+
+      const result = await (window.electronAPI?.export?.withOptions?.('pdf', options) ??
+        ipc.print.show({ html: finalHtml, withStyles: embed }));
+
       if (!result.ok) {
         const msg = result.error?.message ?? 'PDF export failed';
         toast.error(`Export failed: ${msg}`);
@@ -87,7 +113,7 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Export to PDF</DialogTitle>
           <DialogDescription>{sourcePath}</DialogDescription>
@@ -135,6 +161,99 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
             />
             Render tables as ASCII
           </label>
+          <div>
+            <Label htmlFor="pdf-engine">PDF Engine</Label>
+            <Select value={engine} onValueChange={(v) => setEngine(v as typeof engine)}>
+              <SelectTrigger id="pdf-engine" aria-label="PDF Engine">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pdflatex">pdflatex</SelectItem>
+                <SelectItem value="xelatex">xelatex</SelectItem>
+                <SelectItem value="lualatex">lualatex</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch checked={toc} onCheckedChange={setToc} id="pdf-toc" />
+            <Label htmlFor="pdf-toc">Table of Contents</Label>
+          </div>
+          {toc && (
+            <div className="pl-9">
+              <Label htmlFor="pdf-toc-depth">TOC Depth</Label>
+              <Input
+                id="pdf-toc-depth"
+                type="number"
+                min={1}
+                max={6}
+                value={tocDepth}
+                onChange={(e) => setTocDepth(Math.min(6, Math.max(1, Number(e.target.value))))}
+                className="w-20"
+                aria-label="TOC depth"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <Switch checked={numberSections} onCheckedChange={setNumberSections} id="pdf-number-sections" />
+            <Label htmlFor="pdf-number-sections">Number sections</Label>
+          </div>
+          <div>
+            <Label htmlFor="pdf-page-geometry">Page Geometry</Label>
+            <Select value={pageGeometry} onValueChange={(v) => setPageGeometry(v as typeof pageGeometry)}>
+              <SelectTrigger id="pdf-page-geometry" aria-label="Page geometry">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="margin">Margin</SelectItem>
+                <SelectItem value="crop">Crop</SelectItem>
+                <SelectItem value="bleed">Bleed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="pdf-bibliography">Bibliography file</Label>
+            <Input
+              id="pdf-bibliography"
+              value={bibliography}
+              onChange={(e) => setBibliography(e.target.value)}
+              placeholder="/path/to/references.bib"
+              aria-label="Bibliography file path"
+            />
+          </div>
+          <div>
+            <Label htmlFor="pdf-main-font">Main font</Label>
+            <Input
+              id="pdf-main-font"
+              value={mainFont}
+              onChange={(e) => setMainFont(e.target.value)}
+              placeholder="e.g. Latin Modern"
+              aria-label="Main font"
+            />
+          </div>
+          <div>
+            <Label htmlFor="pdf-cjk-font">CJK font</Label>
+            <Input
+              id="pdf-cjk-font"
+              value={cjkFont}
+              onChange={(e) => setCjkFont(e.target.value)}
+              placeholder="e.g. Noto Sans CJK SC"
+              aria-label="CJK font"
+            />
+          </div>
+          <div>
+            <Label htmlFor="pdf-highlight">Highlight style</Label>
+            <Select value={highlightStyle} onValueChange={setHighlightStyle}>
+              <SelectTrigger id="pdf-highlight" aria-label="Highlight style">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tango">Tango</SelectItem>
+                <SelectItem value="pygments">Pygments</SelectItem>
+                <SelectItem value="kateks">Kate (Kateks)</SelectItem>
+                <SelectItem value="monochrome">Monochrome</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {error && (
             <div
               role="alert"

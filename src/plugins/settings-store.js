@@ -14,7 +14,7 @@ class SettingsStore {
     this.backend.set(key, value);
   }
 
-  onChanged(key, callback) {
+  onChanged(_key, _callback) {
     // Deferred: plugins read settings on init/activate for MVP.
     // Full change notification requires IPC watcher in main process.
   }

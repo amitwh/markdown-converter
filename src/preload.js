@@ -134,6 +134,7 @@ const ALLOWED_SEND_CHANNELS = [
   'app:quit',
   'app:open-external',
   'app:show-save-dialog',
+  'get-app-version',
 
   // Updater
   'updater:check',

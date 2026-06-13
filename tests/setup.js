@@ -77,7 +77,7 @@ global.window.DOMPurify = {
 
 // Mock highlight.js
 global.window.hljs = {
-  highlight: jest.fn((code, options) => ({ value: code })),
+  highlight: jest.fn((code, _options) => ({ value: code })),
   highlightAuto: jest.fn((code) => ({ value: code })),
   getLanguage: jest.fn(() => true),
 };

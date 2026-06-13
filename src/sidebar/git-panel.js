@@ -1,4 +1,4 @@
-function renderGitPanel(container, { gitStatus, gitDiff, gitStage, gitCommit, gitLog }) {
+function renderGitPanel(container, { gitStatus, gitDiff: _gitDiff, gitStage, gitCommit, gitLog }) {
   container.innerHTML = `
         <div class="git-panel">
             <div class="git-section">

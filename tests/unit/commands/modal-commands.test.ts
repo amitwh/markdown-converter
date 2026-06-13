@@ -70,4 +70,25 @@ describe('modal commands', () => {
       props: { sourcePaths: ['/x.md', '/y.md'] },
     });
   });
+
+  it('settings.headerFooter opens header-footer modal', () => {
+    registerMenuCommands();
+    useCommandStore.getState().dispatch('settings.headerFooter');
+    expect(useAppStore.getState().modal).toEqual({ kind: 'header-footer' });
+  });
+
+  it('tools.universalConverter opens universal-converter modal', () => {
+    registerMenuCommands();
+    useCommandStore.getState().dispatch('tools.universalConverter');
+    expect(useAppStore.getState().modal).toEqual({ kind: 'universal-converter' });
+  });
+
+  it('shortcuts.show dispatches command palette toggle event', () => {
+    const listener = vi.fn();
+    window.addEventListener('mc:command-palette-toggle', listener);
+    registerMenuCommands();
+    useCommandStore.getState().dispatch('shortcuts.show');
+    expect(listener).toHaveBeenCalled();
+    window.removeEventListener('mc:command-palette-toggle', listener);
+  });
 });

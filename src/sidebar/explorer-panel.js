@@ -1,5 +1,3 @@
-const path = require('path');
-
 function renderExplorerPanel(container, { listDirectory, onFileOpen, currentDir }) {
   container.innerHTML = `
         <div class="explorer-panel">
@@ -39,7 +37,7 @@ function renderExplorerPanel(container, { listDirectory, onFileOpen, currentDir 
   }
 }
 
-function renderTree(container, entries, listDirectory, onFileOpen, basePath) {
+function renderTree(container, entries, listDirectory, onFileOpen, _basePath) {
   container.innerHTML = entries
     .map((entry) => {
       if (entry.isDirectory) {

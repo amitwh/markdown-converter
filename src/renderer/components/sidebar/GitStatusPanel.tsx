@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, FileX, FilePlus, FileEdit, FileQuestion } from 'lucide-react';
+import {
+  RefreshCw,
+  FileX,
+  FilePlus,
+  FileEdit,
+  FileQuestion,
+  GitCommitHorizontal,
+  CheckSquare,
+  Square,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useFileStore } from '@/stores/file-store';
 import { ipc } from '@/lib/ipc';
+import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 
 interface GitStatus {
   filePath: string;
@@ -29,6 +41,10 @@ export function GitStatusPanel() {
   const [status, setStatus] = useState<GitStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [commitMsg, setCommitMsg] = useState('');
+  const [committing, setCommitting] = useState(false);
+  const [staging, setStaging] = useState(false);
 
   const load = async () => {
     if (!rootPath) {
@@ -50,11 +66,58 @@ export function GitStatusPanel() {
 
   useEffect(() => {
     load();
-    // Listen for git.refresh command via custom event
     const handler = () => load();
     window.addEventListener('mc:git-refresh', handler);
     return () => window.removeEventListener('mc:git-refresh', handler);
   }, [rootPath]);
+
+  const toggleSelect = (filePath: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(filePath)) next.delete(filePath);
+      else next.add(filePath);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === status.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(status.map((s) => s.filePath)));
+    }
+  };
+
+  const stageFiles = async (files: string[]) => {
+    if (!rootPath || files.length === 0) return;
+    setStaging(true);
+    try {
+      await window.electronAPI.gitStage(files);
+      toast.success(`Staged ${files.length} file${files.length === 1 ? '' : 's'}`);
+      setSelected(new Set());
+      window.dispatchEvent(new CustomEvent('mc:git-refresh'));
+    } catch {
+      toast.error('Failed to stage files');
+    } finally {
+      setStaging(false);
+    }
+  };
+
+  const commit = async () => {
+    if (!rootPath || !commitMsg.trim()) return;
+    setCommitting(true);
+    try {
+      await window.electronAPI.gitCommit(commitMsg.trim());
+      toast.success('Changes committed');
+      setCommitMsg('');
+      setSelected(new Set());
+      window.dispatchEvent(new CustomEvent('mc:git-refresh'));
+    } catch {
+      toast.error('Failed to commit changes');
+    } finally {
+      setCommitting(false);
+    }
+  };
 
   if (!rootPath) {
     return <div className="p-3 text-xs text-muted-foreground">No folder open</div>;
@@ -77,7 +140,7 @@ export function GitStatusPanel() {
   }
 
   return (
-    <div className="p-2 text-xs">
+    <div className="flex flex-col p-2 text-xs">
       <div className="flex items-center justify-between px-1 py-1">
         <span className="font-semibold">
           {status.length} changed file{status.length === 1 ? '' : 's'}
@@ -86,19 +149,96 @@ export function GitStatusPanel() {
           <RefreshCw className="h-3 w-3" />
         </Button>
       </div>
-      <div className="space-y-0.5">
-        {status.map((s) => (
-          <button
-            key={s.filePath}
-            onClick={() => openFile(s.filePath)}
-            className="flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-card/50"
-            data-testid="git-status-row"
-          >
-            {STATUS_ICON[s.status]}
-            <span className="w-3 font-mono text-xs">{STATUS_LABEL[s.status]}</span>
-            <span className="truncate font-mono">{s.filePath.replace(rootPath + '/', '')}</span>
-          </button>
-        ))}
+
+      <div className="mb-1 flex gap-1 px-1">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-[10px]"
+          onClick={toggleSelectAll}
+          data-testid="git-select-all"
+        >
+          {selected.size === status.length ? 'Deselect All' : 'Select All'}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-[10px]"
+          disabled={selected.size === 0 || staging}
+          onClick={() => stageFiles(Array.from(selected))}
+          data-testid="git-stage-selected"
+        >
+          Stage Selected
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-[10px]"
+          disabled={staging}
+          onClick={() => stageFiles(status.map((s) => s.filePath))}
+          data-testid="git-stage-all"
+        >
+          Stage All
+        </Button>
+      </div>
+
+      <div className="flex-1 space-y-0.5 overflow-y-auto">
+        {status.map((s) => {
+          const isSelected = selected.has(s.filePath);
+          return (
+            <button
+              key={s.filePath}
+              onClick={() => openFile(s.filePath)}
+              className={cn(
+                'flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-card/50',
+                isSelected && 'bg-accent/40'
+              )}
+              data-testid="git-status-row"
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSelect(s.filePath);
+                }}
+                className="flex-shrink-0"
+                aria-label={isSelected ? 'Deselect' : 'Select'}
+                data-testid="git-status-checkbox"
+              >
+                {isSelected ? (
+                  <CheckSquare className="h-3 w-3 text-primary" />
+                ) : (
+                  <Square className="h-3 w-3 text-muted-foreground" />
+                )}
+              </button>
+              {STATUS_ICON[s.status]}
+              <span className="w-3 font-mono text-xs">{STATUS_LABEL[s.status]}</span>
+              <span className="truncate font-mono">{s.filePath.replace(rootPath + '/', '')}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-2 space-y-1.5 border-t border-border pt-2">
+        <Input
+          placeholder="Commit message..."
+          className="h-7 text-xs"
+          value={commitMsg}
+          onChange={(e) => setCommitMsg(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commit();
+          }}
+          data-testid="git-commit-input"
+        />
+        <Button
+          size="sm"
+          className="h-7 w-full text-xs"
+          disabled={!commitMsg.trim() || committing}
+          onClick={commit}
+          data-testid="git-commit-button"
+        >
+          <GitCommitHorizontal className="h-3 w-3" />
+          Commit
+        </Button>
       </div>
     </div>
   );

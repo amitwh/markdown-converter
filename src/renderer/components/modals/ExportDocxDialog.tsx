@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { useAppStore } from '@/stores/app-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useExportSource } from '@/hooks/use-export-source';
@@ -29,6 +31,11 @@ export function ExportDocxDialog({ sourcePath }: { sourcePath: string }) {
   const source = useExportSource();
   const [template, setTemplate] = useState<'standard' | 'minimal' | 'modern'>(docxTemplate);
   const [ascii, setAscii] = useState(renderTablesAsAscii);
+  const [referenceDoc, setReferenceDoc] = useState('');
+  const [toc, setToc] = useState(false);
+  const [tocDepth, setTocDepth] = useState(3);
+  const [numberSections, setNumberSections] = useState(false);
+  const [bibliography, setBibliography] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +56,17 @@ export function ExportDocxDialog({ sourcePath }: { sourcePath: string }) {
         setSubmitting(false);
         return;
       }
+
+      const options = {
+        referenceDoc: referenceDoc || undefined,
+        toc,
+        tocDepth,
+        numberSections,
+        bibliography: bibliography || undefined,
+      };
+
+      await window.electronAPI?.export?.withOptions?.('docx', options);
+
       const buffer = new Uint8Array(await blob.arrayBuffer());
       const writeResult = await ipc.file.writeBuffer({ path: saveResult.data, buffer });
       if (!writeResult.ok) {
@@ -68,7 +86,7 @@ export function ExportDocxDialog({ sourcePath }: { sourcePath: string }) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Export to DOCX</DialogTitle>
           <DialogDescription>{sourcePath}</DialogDescription>
@@ -99,6 +117,49 @@ export function ExportDocxDialog({ sourcePath }: { sourcePath: string }) {
             />
             Render tables as ASCII
           </label>
+          <div>
+            <Label htmlFor="docx-reference">Reference doc / template</Label>
+            <Input
+              id="docx-reference"
+              value={referenceDoc}
+              onChange={(e) => setReferenceDoc(e.target.value)}
+              placeholder="/path/to/reference.docx"
+              aria-label="Reference document path"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch checked={toc} onCheckedChange={setToc} id="docx-toc" />
+            <Label htmlFor="docx-toc">Table of Contents</Label>
+          </div>
+          {toc && (
+            <div className="pl-9">
+              <Label htmlFor="docx-toc-depth">TOC Depth</Label>
+              <Input
+                id="docx-toc-depth"
+                type="number"
+                min={1}
+                max={6}
+                value={tocDepth}
+                onChange={(e) => setTocDepth(Math.min(6, Math.max(1, Number(e.target.value))))}
+                className="w-20"
+                aria-label="TOC depth"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <Switch checked={numberSections} onCheckedChange={setNumberSections} id="docx-number-sections" />
+            <Label htmlFor="docx-number-sections">Number sections</Label>
+          </div>
+          <div>
+            <Label htmlFor="docx-bibliography">Bibliography file</Label>
+            <Input
+              id="docx-bibliography"
+              value={bibliography}
+              onChange={(e) => setBibliography(e.target.value)}
+              placeholder="/path/to/references.bib"
+              aria-label="Bibliography file path"
+            />
+          </div>
           {error && (
             <div
               role="alert"

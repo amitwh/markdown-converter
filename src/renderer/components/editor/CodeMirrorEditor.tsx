@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { EditorState, Compartment } from '@codemirror/state';
 import {
   EditorView,
@@ -16,14 +16,73 @@ import { useTheme } from 'next-themes';
 import { lightTheme, lightHighlight } from './themes/light';
 import { useEditorStore } from '@/stores/editor-store';
 import { useSettingsStore } from '@/stores/settings-store';
-import { setActiveView } from '@/lib/editor-commands';
+import { setActiveView, insertSnippet } from '@/lib/editor-commands';
 import { Minimap } from './Minimap';
+import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 
 interface Props {
   bufferId: string;
   initialContent: string;
   onChange?: (content: string) => void;
   onCursorChange?: (line: number, column: number) => void;
+}
+
+const IMAGE_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml',
+  'image/bmp',
+  'image/avif',
+]);
+
+function guessExt(mimeType: string): string {
+  const map: Record<string, string> = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/svg+xml': 'svg',
+    'image/bmp': 'bmp',
+    'image/avif': 'avif',
+  };
+  return map[mimeType] ?? 'png';
+}
+
+async function handleImageFile(file: File): Promise<void> {
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64 = (reader.result as string).split(',')[1];
+    if (!base64) return;
+    const ext = guessExt(file.type);
+    const result = await window.electronAPI.savePastedImage({ base64, ext });
+    if (result) {
+      insertSnippet(`![${file.name}](${result.relativePath})`);
+      toast.success('Image pasted');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function createPasteHandler() {
+  return EditorView.domEventHandlers({
+    paste(event: ClipboardEvent, _view: EditorView) {
+      const items = event.clipboardData?.items;
+      if (!items) return false;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (IMAGE_TYPES.has(item.type)) {
+          event.preventDefault();
+          const file = item.getAsFile();
+          if (file) handleImageFile(file);
+          return true;
+        }
+      }
+      return false;
+    },
+  });
 }
 
 export function CodeMirrorEditor({ bufferId, initialContent, onChange, onCursorChange }: Props) {
@@ -35,10 +94,11 @@ export function CodeMirrorEditor({ bufferId, initialContent, onChange, onCursorC
   const setCursor = useEditorStore((s) => s.setCursor);
   const minimap = useSettingsStore((s) => s.minimap);
   const editorFontSize = useSettingsStore((s) => s.editorFontSize);
-  // Live scroll metrics for the minimap. `0..1` ratios; defaults match
-  // Minimap's static defaults so it renders before any scroll event.
+  const buffer = useEditorStore((s) => s.buffers.get(bufferId));
+  const content = buffer?.content ?? initialContent;
   const [scrollRatio, setScrollRatio] = useState(0);
   const [visibleRatio, setVisibleRatio] = useState(1);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -92,6 +152,7 @@ export function CodeMirrorEditor({ bufferId, initialContent, onChange, onCursorC
             return false;
           },
         }),
+        createPasteHandler(),
       ],
     });
     const view = new EditorView({ state, parent: ref.current });
@@ -115,11 +176,42 @@ export function CodeMirrorEditor({ bufferId, initialContent, onChange, onCursorC
     });
   }, [resolvedTheme]);
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      setIsDragOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter((f) => IMAGE_TYPES.has(f.type));
+    for (const file of imageFiles) {
+      await handleImageFile(file);
+    }
+  }, []);
+
   return (
     <div className="relative h-full overflow-hidden">
-      <div ref={ref} className="h-full overflow-hidden" />
+      <div
+        ref={ref}
+        className={cn(
+          'h-full overflow-hidden transition-colors duration-150',
+          isDragOver && 'ring-2 ring-primary bg-primary/5'
+        )}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      />
       {minimap && (
-        <Minimap content={initialContent} scrollRatio={scrollRatio} visibleRatio={visibleRatio} />
+        <Minimap content={content} scrollRatio={scrollRatio} visibleRatio={visibleRatio} />
       )}
     </div>
   );

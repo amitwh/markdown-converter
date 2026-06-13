@@ -8,12 +8,10 @@ describe('ExportBatchDialog', () => {
     localStorage.clear();
     window.electronAPI = {
       export: {
-        batch: vi
-          .fn()
-          .mockResolvedValue({
-            ok: true,
-            data: { total: 2, succeeded: 2, failed: 0, results: [] },
-          }),
+        batch: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { total: 2, succeeded: 2, failed: 0, results: [] },
+        }),
       },
     } as any;
   });

@@ -1,6 +1,3 @@
-const fs = require('fs');
-const path = require('path');
-
 const templates = [
   { name: 'Blog Post', file: 'blog-post.md', description: 'Article with frontmatter' },
   { name: 'Meeting Notes', file: 'meeting-notes.md', description: 'Agenda, notes, action items' },

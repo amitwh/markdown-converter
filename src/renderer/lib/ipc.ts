@@ -95,6 +95,14 @@ export const ipc = {
       path: string;
       buffer: Uint8Array;
     }): Promise<IpcResult<void | ChannelMissing>> => safeCall('file', 'writeBuffer', args),
+    gitStage: (args: {
+      rootPath: string;
+      files: string[];
+    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('file', 'gitStage', args),
+    gitCommit: (args: {
+      rootPath: string;
+      message: string;
+    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('file', 'gitCommit', args),
     setCurrent: (path: string | null): void => {
       if (typeof window !== 'undefined' && (window.electronAPI as any)?.file?.setCurrent) {
         (window.electronAPI as any).file.setCurrent(path);

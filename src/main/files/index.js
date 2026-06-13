@@ -1,6 +1,6 @@
 // src/main/files/index.js
 // File ops facade — registers all file-related IPC handlers
-const { ipcMain, dialog, shell } = require('electron');
+const { ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { register: registerGit } = require('./git');

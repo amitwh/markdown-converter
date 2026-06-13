@@ -32,7 +32,11 @@ export type ModalState =
   | { kind: 'table-generator' }
   | { kind: 'find-in-files' }
   | { kind: 'crashReports' }
-  | { kind: 'writing-analytics' };
+  | { kind: 'writing-analytics' }
+  | { kind: 'pdf-editor'; props?: { filePath?: string } }
+  | { kind: 'universal-converter' }
+  | { kind: 'header-footer' }
+  | { kind: 'batch-media-converter' };
 
 export type ModalKind = ModalState['kind'];
 
@@ -43,10 +47,12 @@ interface AppState {
   paneSizes: PaneSizes;
   modal: ModalState;
   firstRun: boolean;
+  findBarOpen: boolean;
   toggleSidebar: () => void;
   togglePreview: () => void;
   setZenMode: (value: boolean) => void;
   setPaneSizes: (sizes: PaneSizes) => void;
+  toggleFindBar: () => void;
   openModal: <K extends NonNullable<ModalKind>>(
     kind: K,
     ...args: Extract<ModalState, { kind: K }> extends { props: infer P } ? [props?: P] : []
@@ -65,8 +71,10 @@ export const useAppStore = create<AppState>()(
       paneSizes: { sidebar: 20, editor: 50, preview: 30 },
       modal: { kind: null },
       firstRun: true,
+      findBarOpen: false,
       toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),
       togglePreview: () => set((s) => ({ previewVisible: !s.previewVisible })),
+      toggleFindBar: () => set((s) => ({ findBarOpen: !s.findBarOpen })),
       setZenMode: (value) => set({ zenMode: value }),
       setPaneSizes: (sizes) => set({ paneSizes: sizes }),
       openModal: (kind, ...args) =>

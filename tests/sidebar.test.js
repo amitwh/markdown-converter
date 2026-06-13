@@ -30,7 +30,7 @@ describe('SidebarManager', () => {
   });
 
   test('starts collapsed', () => {
-    const mgr = new SidebarManager();
+    new SidebarManager();
     expect(document.getElementById('sidebar').classList.contains('collapsed')).toBe(true);
   });
 
