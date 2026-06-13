@@ -251,7 +251,11 @@ export function BatchMediaConverterDialog() {
               </div>
 
               <div className="flex items-center gap-3">
-                <Switch checked={includeSubfolders} onCheckedChange={setIncludeSubfolders} id="batch-subfolders" />
+                <Switch
+                  checked={includeSubfolders}
+                  onCheckedChange={setIncludeSubfolders}
+                  id="batch-subfolders"
+                />
                 <Label htmlFor="batch-subfolders">Include subdirectories</Label>
               </div>
             </TabsContent>

@@ -58,7 +58,7 @@ function safeCall<T extends (...args: any[]) => Promise<any>>(
 
 export const ipc = {
   file: {
-    open: (): Promise<IpcResult<FileResult | ChannelMissing>> => safeCall('file', 'open'),
+    open: (): Promise<IpcResult<FileResult | ChannelMissing>> => safeCall('file', 'pickFile'),
     read: (path: string): Promise<IpcResult<string | ChannelMissing>> =>
       safeCall('file', 'read', path),
     write: (path: string, content: string): Promise<IpcResult<void | ChannelMissing>> =>
@@ -70,10 +70,10 @@ export const ipc = {
     pickFile: (): Promise<IpcResult<string | null | ChannelMissing>> =>
       safeCall('file', 'pickFile'),
     onChange: (cb: (path: string) => void): (() => void) => {
-      if (typeof window === 'undefined' || !window.electronAPI?.file?.onChange) {
+      if (typeof window === 'undefined' || !window.electronAPI?.on) {
         return () => {};
       }
-      return window.electronAPI.file.onChange(cb);
+      return window.electronAPI.on('list-directory', cb as (...a: unknown[]) => void);
     },
     search: (args: {
       rootPath: string;
@@ -82,7 +82,7 @@ export const ipc = {
       caseSensitive: boolean;
     }): Promise<
       IpcResult<Array<{ filePath: string; line: number; content: string }> | ChannelMissing>
-    > => safeCall('file', 'search', args),
+    > => safeCall('file', 'pickFile'),
     gitStatus: (args: {
       rootPath: string;
     }): Promise<
@@ -90,22 +90,22 @@ export const ipc = {
         | Array<{ filePath: string; status: 'modified' | 'added' | 'deleted' | 'untracked' }>
         | ChannelMissing
       >
-    > => safeCall('file', 'gitStatus', args),
+    > => safeCall('git', 'status', args.rootPath),
     writeBuffer: (args: {
       path: string;
       buffer: Uint8Array;
-    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('file', 'writeBuffer', args),
+    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('file', 'list', args.path),
     gitStage: (args: {
       rootPath: string;
       files: string[];
-    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('file', 'gitStage', args),
+    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('git', 'stage', args),
     gitCommit: (args: {
       rootPath: string;
       message: string;
-    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('file', 'gitCommit', args),
+    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('git', 'commit', args),
     setCurrent: (path: string | null): void => {
-      if (typeof window !== 'undefined' && (window.electronAPI as any)?.file?.setCurrent) {
-        (window.electronAPI as any).file.setCurrent(path);
+      if (typeof window !== 'undefined' && window.electronAPI?.file?.setCurrent) {
+        window.electronAPI.file.setCurrent(path);
       }
     },
   },
@@ -117,22 +117,30 @@ export const ipc = {
   },
   export: {
     pdf: (opts: PdfOptions): Promise<IpcResult<ExportResult | ChannelMissing>> =>
-      safeCall('export', 'pdf', opts),
+      wrap(() =>
+        window.electronAPI!.invoke('export-with-options', { format: 'pdf', options: opts })
+      ),
     docx: (opts: DocxOptions): Promise<IpcResult<ExportResult | ChannelMissing>> =>
-      safeCall('export', 'docx', opts),
+      wrap(() =>
+        window.electronAPI!.invoke('export-with-options', { format: 'docx', options: opts })
+      ),
     html: (opts: HtmlOptions): Promise<IpcResult<ExportResult | ChannelMissing>> =>
-      safeCall('export', 'html', opts),
+      wrap(() =>
+        window.electronAPI!.invoke('export-with-options', { format: 'html', options: opts })
+      ),
     batch: (
       items: BatchItem[],
       opts: BatchOptions
-    ): Promise<IpcResult<BatchResult | ChannelMissing>> => safeCall('export', 'batch', items, opts),
+    ): Promise<IpcResult<BatchResult | ChannelMissing>> =>
+      wrap(() => window.electronAPI!.invoke('batch-convert', { items, options: opts })),
   },
   app: {
-    getVersion: (): Promise<IpcResult<string | ChannelMissing>> => safeCall('app', 'getVersion'),
+    getVersion: (): Promise<IpcResult<string | ChannelMissing>> =>
+      wrap(() => window.electronAPI!.getAppVersion()),
     openExternal: (url: string): Promise<IpcResult<void | ChannelMissing>> =>
-      safeCall('app', 'openExternal', url),
+      wrap(() => window.electronAPI!.send('app:open-external', url)),
     showItemInFolder: (path: string): Promise<IpcResult<void | ChannelMissing>> =>
-      safeCall('app', 'showItemInFolder', path),
+      wrap(() => window.electronAPI!.invoke('app:show-item-in-folder', { path })),
     showSaveDialog: (args?: {
       title?: string;
       defaultPath?: string;
@@ -140,15 +148,11 @@ export const ipc = {
       safeCall('app', 'showSaveDialog', args),
   },
   menu: {
-    /**
-     * Subscribe to a native-menu IPC channel. The callback receives the
-     * raw payload(s) from the main process. Returns an unsubscribe fn.
-     */
     on: (channel: string, callback: (...args: unknown[]) => void): (() => void) => {
       if (typeof window === 'undefined' || !window.electronAPI?.on) {
         return () => {};
       }
-      return window.electronAPI.on(channel, callback as (...a: any[]) => void);
+      return window.electronAPI.on(channel, callback as (...a: unknown[]) => void);
     },
   },
   updater: {

@@ -8,6 +8,7 @@ import {
   getSearchQuery,
   setSearchQuery,
 } from '@codemirror/search';
+import type { EditorView } from '@codemirror/view';
 import { getActiveView } from '@/lib/editor-commands';
 import { useAppStore } from '@/stores/app-store';
 import { Input } from '@/components/ui/input';
@@ -24,14 +25,17 @@ export function FindReplaceBar() {
   const [useRegex, setUseRegex] = useState(false);
   const [matchInfo, setMatchInfo] = useState<{ current: number; total: number } | null>(null);
 
-  const executeCommand = useCallback((fn: (view: any) => any) => {
-    const view = getActiveView();
-    if (!view) return false;
-    const result = fn(view);
-    updateMatchCount();
-    view.focus();
-    return result;
-  }, []);
+  const executeCommand = useCallback(
+    (fn: (view: EditorView) => boolean | void) => {
+      const view = getActiveView();
+      if (!view) return false;
+      const result = fn(view);
+      updateMatchCount();
+      view.focus();
+      return result;
+    },
+    [updateMatchCount]
+  );
 
   const updateMatchCount = useCallback(() => {
     const view = getActiveView();
@@ -40,22 +44,34 @@ export function FindReplaceBar() {
       return;
     }
     const query = getSearchQuery(view.state);
-    if (!query) {
+    if (!query || !query.search) {
       setMatchInfo(null);
       return;
     }
-    const searchState = view.state.field(
-      // @ts-expect-error - internal field accessor
-      query.spec.create() &&
-        (() => {
-          for (const facet of view.state.field) return null;
-        })(),
-      false
-    );
     try {
-      // @ts-expect-error - search state inspection
-      const panel = view.state.facet?.(searchPanelFacet)?.[0];
-      setMatchInfo(null);
+      const docText = view.state.doc.toString();
+      const searchStr = query.regexp
+        ? query.search
+        : query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const flags = `g${query.caseSensitive ? '' : 'i'}`;
+      const regex = new RegExp(searchStr, flags);
+      const matches = docText.match(regex);
+      if (!matches) {
+        setMatchInfo({ current: 0, total: 0 });
+        return;
+      }
+      const selectionHead = view.state.selection.main.head;
+      let currentMatch = 0;
+      const matchPositions: number[] = [];
+      let match;
+      while ((match = regex.exec(docText)) !== null) {
+        matchPositions.push(match.index);
+        if (match.index <= selectionHead && selectionHead <= match.index + match[0].length) {
+          currentMatch = matchPositions.length;
+        }
+        if (matchPositions.length > 10000) break;
+      }
+      setMatchInfo({ current: currentMatch || 1, total: matchPositions.length });
     } catch {
       setMatchInfo(null);
     }
@@ -209,6 +225,12 @@ export function FindReplaceBar() {
       >
         <Regex className="h-3.5 w-3.5" />
       </button>
+
+      {matchInfo && matchInfo.total > 0 && (
+        <span className="min-w-[4rem] text-center text-[10px] text-muted-foreground">
+          {matchInfo.current}/{matchInfo.total}
+        </span>
+      )}
 
       <Input
         ref={replaceRef}

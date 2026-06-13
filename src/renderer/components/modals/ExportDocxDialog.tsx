@@ -147,7 +147,11 @@ export function ExportDocxDialog({ sourcePath }: { sourcePath: string }) {
             </div>
           )}
           <div className="flex items-center gap-3">
-            <Switch checked={numberSections} onCheckedChange={setNumberSections} id="docx-number-sections" />
+            <Switch
+              checked={numberSections}
+              onCheckedChange={setNumberSections}
+              id="docx-number-sections"
+            />
             <Label htmlFor="docx-number-sections">Number sections</Label>
           </div>
           <div>

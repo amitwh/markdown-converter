@@ -41,4 +41,14 @@ async function log(dir, maxCount = 20) {
   }
 }
 
-module.exports = { getStatus, stage, commit, log };
+async function diff(dir, filePath) {
+  try {
+    const git = getGitInstance(dir);
+    const args = filePath ? ['--', filePath] : [];
+    return await git.diff(args);
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+module.exports = { getStatus, stage, commit, log, diff };

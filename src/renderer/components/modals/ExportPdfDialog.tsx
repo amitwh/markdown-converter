@@ -194,12 +194,19 @@ export function ExportPdfDialog({ sourcePath }: { sourcePath: string }) {
             </div>
           )}
           <div className="flex items-center gap-3">
-            <Switch checked={numberSections} onCheckedChange={setNumberSections} id="pdf-number-sections" />
+            <Switch
+              checked={numberSections}
+              onCheckedChange={setNumberSections}
+              id="pdf-number-sections"
+            />
             <Label htmlFor="pdf-number-sections">Number sections</Label>
           </div>
           <div>
             <Label htmlFor="pdf-page-geometry">Page Geometry</Label>
-            <Select value={pageGeometry} onValueChange={(v) => setPageGeometry(v as typeof pageGeometry)}>
+            <Select
+              value={pageGeometry}
+              onValueChange={(v) => setPageGeometry(v as typeof pageGeometry)}
+            >
               <SelectTrigger id="pdf-page-geometry" aria-label="Page geometry">
                 <SelectValue />
               </SelectTrigger>

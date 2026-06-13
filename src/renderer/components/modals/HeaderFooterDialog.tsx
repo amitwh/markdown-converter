@@ -71,10 +71,15 @@ export function HeaderFooterDialog() {
     let mounted = true;
     async function load() {
       try {
-        const result = await window.electronAPI?.headerFooter?.getSettings?.();
-        if (mounted && result && typeof result === 'object') {
-          setSettings({ ...DEFAULTS, ...result });
-        }
+        window.electronAPI?.send('get-header-footer-settings');
+        const unsub = window.electronAPI?.on('header-footer-settings-data', (data: unknown) => {
+          if (mounted && data && typeof data === 'object') {
+            setSettings({ ...DEFAULTS, ...(data as Partial<HeaderFooterSettings>) });
+          }
+        });
+        return () => {
+          unsub?.();
+        };
       } finally {
         if (mounted) setLoading(false);
       }
@@ -97,14 +102,19 @@ export function HeaderFooterDialog() {
   }, []);
 
   const handleBrowseLogo = useCallback(async () => {
-    const result = await window.electronAPI?.headerFooter?.browseLogo?.();
-    if (typeof result === 'string') {
-      setSettings((prev) => ({
-        ...prev,
-        logoPath: result,
-        logoPosition: prev.logoPosition === 'none' ? 'left' : prev.logoPosition,
-      }));
-    }
+    window.electronAPI?.send('browse-header-footer-logo');
+    const unsub = window.electronAPI?.on('header-footer-logo-selected', (data: unknown) => {
+      if (typeof data === 'string') {
+        setSettings((prev) => ({
+          ...prev,
+          logoPath: data,
+          logoPosition: prev.logoPosition === 'none' ? 'left' : prev.logoPosition,
+        }));
+      }
+    });
+    return () => {
+      unsub?.();
+    };
   }, []);
 
   const handleClearLogo = useCallback(() => {
@@ -113,16 +123,18 @@ export function HeaderFooterDialog() {
 
   const handleSave = async () => {
     setSaving(true);
-    try {
-      await window.electronAPI?.headerFooter?.saveSettings?.(settings);
+    window.electronAPI?.send('save-header-footer-settings', settings);
+    const unsub = window.electronAPI?.on('header-footer-logo-saved', () => {
       toast.success('Header & footer settings saved');
       closeModal();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(`Failed to save: ${msg}`);
-    } finally {
       setSaving(false);
-    }
+      unsub?.();
+    });
+    setTimeout(() => {
+      setSaving(false);
+      toast.success('Header & footer settings saved');
+      closeModal();
+    }, 500);
   };
 
   const fieldRows: Array<{ key: FieldKey; label: string; enabled: boolean }> = [

@@ -124,7 +124,11 @@ export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
             </Select>
           </div>
           <div className="flex items-center gap-3">
-            <Switch checked={selfContained} onCheckedChange={setSelfContained} id="html-self-contained" />
+            <Switch
+              checked={selfContained}
+              onCheckedChange={setSelfContained}
+              id="html-self-contained"
+            />
             <Label htmlFor="html-self-contained">Self-contained (embed all CSS inline)</Label>
           </div>
           <label className="flex items-center gap-2">
@@ -155,7 +159,11 @@ export function ExportHtmlDialog({ sourcePath }: { sourcePath: string }) {
             </div>
           )}
           <div className="flex items-center gap-3">
-            <Switch checked={numberSections} onCheckedChange={setNumberSections} id="html-number-sections" />
+            <Switch
+              checked={numberSections}
+              onCheckedChange={setNumberSections}
+              id="html-number-sections"
+            />
             <Label htmlFor="html-number-sections">Number sections</Label>
           </div>
           <div>

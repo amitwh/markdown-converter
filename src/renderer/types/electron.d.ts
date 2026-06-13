@@ -1,91 +1,133 @@
 export interface ElectronAPI {
-  // App info
   getAppVersion: () => Promise<string>;
 
-  // File operations
-  openFile: () => Promise<{ canceled: boolean; filePaths: string[] }>;
-  saveFile: (data: { path: string; content: string }) => Promise<void>;
-  readFile: (path: string) => Promise<string>;
-  setCurrentFile: (path: string | null) => void;
+  send: (channel: string, data?: unknown) => void;
+  invoke: (channel: string, data?: unknown) => Promise<unknown>;
+  on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
+  once: (channel: string, callback: (...args: unknown[]) => void) => void;
+  removeAllListeners: (channel: string) => void;
 
-  // Export
-  exportDocument: (format: string, options?: Record<string, any>) => Promise<void>;
+  file: {
+    save: (filePath: string, content: string) => void;
+    saveCurrent: (content: string) => void;
+    setCurrent: (filePath: string) => void;
+    saveRecent: (recentFiles: string[]) => void;
+    clearRecent: () => void;
+    rendererReady: () => void;
+    read: (filePath: string) => Promise<string>;
+    write: (filePath: string, content: string) => Promise<{ path: string }>;
+    delete: (filePath: string) => Promise<boolean>;
+    ensureDir: (dirPath: string) => Promise<string>;
+    exists: (filePath: string) => Promise<boolean>;
+    isDirectory: (filePath: string) => Promise<boolean>;
+    copy: (source: string, destination: string) => Promise<{ source: string; destination: string }>;
+    move: (source: string, destination: string) => Promise<{ source: string; destination: string }>;
+    list: (dirPath: string) => Promise<unknown>;
+    pickFolder: () => Promise<string | null>;
+    pickFile: () => Promise<string | null>;
+  };
 
-  // Theme
-  getTheme: () => void;
-  onThemeChanged: (callback: (theme: string) => void) => () => void;
+  theme: {
+    get: () => void;
+  };
 
-  // File events
-  onFileOpened: (callback: (data: { path: string; content: string }) => void) => () => void;
-  onFileNew: (callback: () => void) => () => void;
-  onFileSave: (callback: () => void) => () => void;
+  print: {
+    doPrint: (options?: unknown) => void;
+    show: (payload?: unknown) => void;
+  };
 
-  // Conversion status
-  onConversionStatus: (callback: (message: string) => void) => () => void;
-  onConversionComplete: (
-    callback: (data: { format: string; outputPath: string }) => void
-  ) => () => void;
+  export: {
+    withOptions: (format: string, options?: unknown) => void;
+    spreadsheet: (content: string, format: string) => void;
+  };
 
-  // Dialogs
-  showExportDialog: (format: string) => void;
-  showBatchDialog: () => void;
-  showUniversalConverterDialog: () => void;
-  showTableGenerator: () => void;
-  showPdfEditorDialog: () => void;
-  showHeaderFooterDialog: () => void;
-  showFieldPickerDialog: () => void;
+  batch: {
+    convert: (inputFolder: string, outputFolder: string, format: string, options?: unknown) => void;
+    selectFolder: (type?: string) => void;
+  };
 
-  // Settings
-  getSettings: (key: string) => Promise<any>;
-  setSettings: (key: string, value: any) => Promise<void>;
+  converter: {
+    convert: (tool: string, fromFormat: string, toFormat: string, filePath: string) => void;
+    convertBatch: (
+      tool: string,
+      fromFormat: string,
+      toFormat: string,
+      inputFolder: string,
+      outputFolder: string
+    ) => void;
+  };
 
-  // Plugin settings
-  getPluginSetting: (key: string) => Promise<any>;
-  setPluginSetting: (key: string, value: any) => Promise<void>;
+  headerFooter: {
+    getSettings: () => void;
+    saveSettings: (settings: unknown) => void;
+    browseLogo: (position?: string) => void;
+    saveLogo: (position: string, filePath: string) => void;
+    clearLogo: (position?: string) => void;
+  };
 
-  // Sidebar
-  toggleSidebar: () => void;
-  toggleBottomPanel: () => void;
+  page: {
+    getSettings: () => void;
+    updateSettings: (settings: unknown) => void;
+    setCustomStartPage: (pageNumber: number) => void;
+  };
 
-  // Print
-  doPrint: (options?: any) => void;
+  pdf: {
+    processOperation: (data: unknown) => void;
+    getPageCount: (filePath: string) => void;
+    selectFolder: (inputId?: string) => void;
+  };
 
-  // PDF
-  openPdfViewer: (filePath: string) => void;
-  processPdfOperation: (data: any) => void;
+  image: {
+    convert: (data: unknown) => void;
+    batchConvert: (data: unknown) => void;
+    resize: (data: unknown) => void;
+    compress: (data: unknown) => void;
+    rotate: (data: unknown) => void;
+  };
 
-  // Images
-  selectFolder: () => Promise<string | null>;
-  savePastedImage: (data: {
-    base64: string;
-    ext: string;
-  }) => Promise<{ relativePath: string } | null>;
+  audio: {
+    convert: (data: unknown) => void;
+    batchConvert: (data: unknown) => void;
+    extract: (data: unknown) => void;
+    trim: (data: unknown) => void;
+    merge: (data: unknown) => void;
+  };
 
-  // Templates
-  loadTemplate: (file: string) => Promise<string>;
-  getSnippets: () => Promise<any[]>;
-  saveSnippet: (snippet: any) => Promise<void>;
-  deleteSnippet: (id: string) => Promise<void>;
+  video: {
+    convert: (data: unknown) => void;
+    batchConvert: (data: unknown) => void;
+    compress: (data: unknown) => void;
+    trim: (data: unknown) => void;
+    extractFrames: (data: unknown) => void;
+    toGif: (data: unknown) => void;
+  };
 
-  // Git
-  gitStatus: () => Promise<any>;
-  gitDiff: (file: string) => Promise<any>;
-  gitStage: (files: string[]) => Promise<void>;
-  gitCommit: (message: string) => Promise<void>;
-  gitLog: () => Promise<any[]>;
+  git: {
+    status: (rootPath?: string) => Promise<unknown>;
+    stage: (args: { rootPath?: string; files: string[] }) => Promise<unknown>;
+    commit: (args: { rootPath?: string; message: string }) => Promise<unknown>;
+    log: (rootPath?: string) => Promise<unknown>;
+    diff: (filePath: string) => Promise<unknown>;
+  };
 
-  // Directory
-  listDirectory: (dir: string) => Promise<any[] | null>;
-  openFilePath: (path: string) => void;
+  app: {
+    quit: () => void;
+    openExternal: (url: string) => void;
+    showSaveDialog: (args?: { title?: string; defaultPath?: string }) => Promise<unknown>;
+  };
 
-  // Custom CSS
-  selectCustomCSS: () => Promise<string | null>;
-  loadCustomCSS: () => void;
-  clearCustomCSS: () => void;
+  updater: {
+    check: () => Promise<unknown>;
+    install: () => Promise<unknown>;
+    getState: () => Promise<unknown>;
+    onStatus: (cb: (payload: unknown) => void) => () => void;
+  };
 
-  // Generic invoke/on
-  invoke: (channel: string, data?: any) => Promise<any>;
-  on: (channel: string, callback: (...args: any[]) => void) => () => void;
+  crash: {
+    read: () => Promise<unknown>;
+    openDir: () => void;
+    delete: (filename: string) => Promise<unknown>;
+  };
 }
 
 declare global {

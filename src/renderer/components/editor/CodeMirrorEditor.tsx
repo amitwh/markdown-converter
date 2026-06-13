@@ -57,7 +57,7 @@ async function handleImageFile(file: File): Promise<void> {
     const base64 = (reader.result as string).split(',')[1];
     if (!base64) return;
     const ext = guessExt(file.type);
-    const result = await window.electronAPI.savePastedImage({ base64, ext });
+    const result = await window.electronAPI.invoke('save-pasted-image', { base64, ext });
     if (result) {
       insertSnippet(`![${file.name}](${result.relativePath})`);
       toast.success('Image pasted');

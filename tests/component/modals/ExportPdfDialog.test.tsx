@@ -100,7 +100,10 @@ describe('ExportPdfDialog', () => {
 
   it('renders an error banner when IPC fails', async () => {
     (window as any).electronAPI = undefined;
-    (ipc.print.show as any).mockReturnValueOnce({ ok: false, error: { message: 'Pandoc not found' } });
+    (ipc.print.show as any).mockReturnValueOnce({
+      ok: false,
+      error: { message: 'Pandoc not found' },
+    });
     render(<ExportPdfDialog sourcePath="/test.md" />);
     await userEvent.click(screen.getByRole('button', { name: /^export$/i }));
     await waitFor(() => {

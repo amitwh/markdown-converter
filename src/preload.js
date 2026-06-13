@@ -105,6 +105,8 @@ const ALLOWED_SEND_CHANNELS = [
   'is-directory',
   'copy-path',
   'move-path',
+  'pick-folder',
+  'pick-file',
 
   // Git
   'git-status',
@@ -459,6 +461,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+
+  // Git Operations
+  git: {
+    status: (rootPath) => ipcRenderer.invoke('git-status', rootPath),
+    stage: (args) => ipcRenderer.invoke('git-stage', args),
+    commit: (args) => ipcRenderer.invoke('git-commit', args),
+    log: (rootPath) => ipcRenderer.invoke('git-log', rootPath),
+    diff: (filePath) => ipcRenderer.invoke('git-diff', filePath),
+  },
 
   app: {
     quit: () => ipcRenderer.send('app:quit'),

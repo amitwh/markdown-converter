@@ -57,41 +57,6 @@ function getFFmpegPath() {
   return process.platform === 'win32' ? 'ffmpeg' : 'ffmpeg';
 }
 
-// eslint-disable-next-line no-unused-vars
-function checkPandocAvailable() {
-  return new Promise((resolve) => {
-    const pandocPath = getPandocPath();
-    execFile(pandocPath, ['--version'], (error) => {
-      resolve(!error);
-    });
-  });
-}
-
-/**
- * Safe command execution using execFile (no shell injection risk)
- * @param {string} command - The command to execute
- * @param {string[]} args - Array of arguments
- * @param {object} options - Options for execFile
- * @returns {Promise<{stdout: string, stderr: string}>}
- */
-// eslint-disable-next-line no-unused-vars
-function safeExecFile(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    execFile(
-      command,
-      args,
-      { maxBuffer: 10 * 1024 * 1024, ...options },
-      (error, stdout, stderr) => {
-        if (error) {
-          reject({ error, stdout, stderr });
-        } else {
-          resolve({ stdout, stderr });
-        }
-      }
-    );
-  });
-}
-
 // File size validation
 const MAX_FILE_SIZE_MB = 50;
 const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -132,17 +97,6 @@ function convertDataToMarkdown(content, format) {
     default:
       return '```\n' + content + '\n```';
   }
-}
-
-/**
- * Run Pandoc command safely with execFile
- * @param {string[]} args - Pandoc arguments array
- * @param {Function} callback - Callback function (error, stdout, stderr)
- */
-// eslint-disable-next-line no-unused-vars
-function runPandoc(args, callback) {
-  const pandocPath = getPandocPath();
-  execFile(pandocPath, args, { maxBuffer: 10 * 1024 * 1024 }, callback);
 }
 
 /**
@@ -591,23 +545,6 @@ function showDependenciesDialog() {
 
   depsWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(depsHTML));
   depsWindow.setMenuBarVisibility(false);
-}
-
-// eslint-disable-next-line no-unused-vars
-function openPDFFile() {
-  const files = dialog.showOpenDialogSync(mainWindow, {
-    properties: ['openFile'],
-    filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
-  });
-
-  if (files && files[0]) {
-    const stats = fs.statSync(files[0]);
-    if (stats.size > MAX_FILE_SIZE) {
-      dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
-      return;
-    }
-    mainWindow.webContents.send('open-pdf-viewer', files[0]);
-  }
 }
 
 function openFile() {
@@ -1958,37 +1895,9 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
         }
       }
 
-      // Add headers/footers to ODT if enabled
-      if (format === 'odt' && headerFooterSettings.enabled) {
-        // ODT format is similar to DOCX in structure, we could implement this
-        console.log('ODT header/footer support not yet implemented');
-      }
+      // ODT header/footer is not supported by Pandoc's ODT output
+      // Headers/footers are applied only for DOCX format
 
-      showExportSuccess(outputFile);
-    }
-  });
-}
-
-// Helper function to export PDF with pandoc (with fallbacks) - uses runPandocCmd for safety
-// eslint-disable-next-line no-unused-vars
-function exportWithPandocPDF(pandocCmd, outputFile) {
-  runPandocCmd(pandocCmd, (error, _stdout, _stderr) => {
-    if (error) {
-      console.log('XeLaTeX failed, trying PDFLaTeX...');
-      // Fallback to pdflatex
-      const fallbackCmd = pandocCmd.replace('--pdf-engine=xelatex', '--pdf-engine=pdflatex');
-      runPandocCmd(fallbackCmd, (fallbackError, _fallbackStdout, _fallbackStderr) => {
-        if (fallbackError) {
-          console.log('PDFLaTeX failed, trying Electron PDF...');
-          // Final fallback to Electron PDF
-          exportToPDFElectron(outputFile);
-        } else {
-          console.log('Successfully exported PDF with PDFLaTeX');
-          showExportSuccess(outputFile);
-        }
-      });
-    } else {
-      console.log('Successfully exported PDF with XeLaTeX');
       showExportSuccess(outputFile);
     }
   });
@@ -2219,8 +2128,9 @@ function exportToPDFElectron(outputFile) {
     const pdfWindow = new BrowserWindow({
       show: false,
       webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true,
       },
     });
 

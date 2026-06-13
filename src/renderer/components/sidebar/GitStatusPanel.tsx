@@ -91,31 +91,29 @@ export function GitStatusPanel() {
   const stageFiles = async (files: string[]) => {
     if (!rootPath || files.length === 0) return;
     setStaging(true);
-    try {
-      await window.electronAPI.gitStage(files);
+    const result = await ipc.file.gitStage({ rootPath, files });
+    setStaging(false);
+    if (result.ok) {
       toast.success(`Staged ${files.length} file${files.length === 1 ? '' : 's'}`);
       setSelected(new Set());
       window.dispatchEvent(new CustomEvent('mc:git-refresh'));
-    } catch {
-      toast.error('Failed to stage files');
-    } finally {
-      setStaging(false);
+    } else {
+      toast.error(`Failed to stage: ${result.error.message}`);
     }
   };
 
   const commit = async () => {
     if (!rootPath || !commitMsg.trim()) return;
     setCommitting(true);
-    try {
-      await window.electronAPI.gitCommit(commitMsg.trim());
+    const result = await ipc.file.gitCommit({ rootPath, message: commitMsg.trim() });
+    setCommitting(false);
+    if (result.ok) {
       toast.success('Changes committed');
       setCommitMsg('');
       setSelected(new Set());
       window.dispatchEvent(new CustomEvent('mc:git-refresh'));
-    } catch {
-      toast.error('Failed to commit changes');
-    } finally {
-      setCommitting(false);
+    } else {
+      toast.error(`Failed to commit: ${result.error.message}`);
     }
   };
 
