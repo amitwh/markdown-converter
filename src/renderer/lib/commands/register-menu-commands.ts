@@ -236,12 +236,43 @@ export function registerMenuCommands(): void {
         }
         return;
       }
-      toast.info(`${type.charAt(0).toUpperCase() + type.slice(1)} batch conversion — coming soon!`);
+      useAppStore.getState().openModal('batch-media-converter');
     },
 
-    // Document compare — no modal yet, acknowledge with toast.
     'tools.documentCompare': () => {
-      toast.info('Document compare — coming soon!');
+      const paths = useFileStore.getState().openTabs.map((t) => t.path);
+      if (paths.length < 2) {
+        toast.info('Open at least 2 files to compare');
+        return;
+      }
+      useAppStore.getState().openModal('confirm', {
+        title: 'Document Compare',
+        body: 'Select two open files to compare side-by-side and show differences.',
+        confirmLabel: 'Compare',
+        onConfirm: () => {
+          const tab0 = paths[0];
+          const tab1 = paths[1];
+          const content0 = useEditorStore.getState().buffers.get(tab0)?.content ?? '';
+          const content1 = useEditorStore.getState().buffers.get(tab1)?.content ?? '';
+          const lines0 = content0.split('\n');
+          const lines1 = content1.split('\n');
+          const diff: string[] = [];
+          const maxLines = Math.max(lines0.length, lines1.length);
+          for (let i = 0; i < maxLines; i++) {
+            if (lines0[i] !== lines1[i]) {
+              diff.push(`Line ${i + 1}:\n  - ${lines0[i] ?? '(end)'}\n  + ${lines1[i] ?? '(end)'}`);
+            }
+          }
+          if (diff.length === 0) {
+            toast.success('Files are identical');
+          } else {
+            toast.info(`${diff.length} differences found — check console (F12)`);
+            console.log(
+              `\n--- Diff: ${tab0.split('/').pop()} vs ${tab1.split('/').pop()} ---\n${diff.join('\n\n')}`
+            );
+          }
+        },
+      });
     },
     'tools.pdfEditor': () => useAppStore.getState().openModal('pdf-editor'),
 

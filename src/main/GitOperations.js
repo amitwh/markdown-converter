@@ -12,10 +12,14 @@ async function getStatus(dir) {
     for (const [filePath, status] of Object.entries(result.files || {})) {
       files.push({
         filePath,
-        status: status.working_dir === 'M' ? 'modified'
-          : status.working_dir === 'A' || status.index === 'A' ? 'added'
-          : status.working_dir === 'D' || status.index === 'D' ? 'deleted'
-          : 'untracked',
+        status:
+          status.working_dir === 'M'
+            ? 'modified'
+            : status.working_dir === 'A' || status.index === 'A'
+              ? 'added'
+              : status.working_dir === 'D' || status.index === 'D'
+                ? 'deleted'
+                : 'untracked',
       });
     }
     return { files };
@@ -33,7 +37,14 @@ async function stage(dir, files) {
     for (const [filePath, status] of Object.entries(result.files || {})) {
       staged.push({
         filePath,
-        status: status.index === 'A' ? 'added' : status.index === 'M' ? 'modified' : status.index === 'D' ? 'deleted' : 'untracked',
+        status:
+          status.index === 'A'
+            ? 'added'
+            : status.index === 'M'
+              ? 'modified'
+              : status.index === 'D'
+                ? 'deleted'
+                : 'untracked',
       });
     }
     return { files: staged };
