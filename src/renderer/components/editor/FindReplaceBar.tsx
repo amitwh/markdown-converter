@@ -25,18 +25,6 @@ export function FindReplaceBar() {
   const [useRegex, setUseRegex] = useState(false);
   const [matchInfo, setMatchInfo] = useState<{ current: number; total: number } | null>(null);
 
-  const executeCommand = useCallback(
-    (fn: (view: EditorView) => boolean | void) => {
-      const view = getActiveView();
-      if (!view) return false;
-      const result = fn(view);
-      updateMatchCount();
-      view.focus();
-      return result;
-    },
-    [updateMatchCount]
-  );
-
   const updateMatchCount = useCallback(() => {
     const view = getActiveView();
     if (!view) {
@@ -76,6 +64,18 @@ export function FindReplaceBar() {
       setMatchInfo(null);
     }
   }, []);
+
+  const executeCommand = useCallback(
+    (fn: (view: EditorView) => boolean | void) => {
+      const view = getActiveView();
+      if (!view) return false;
+      const result = fn(view);
+      updateMatchCount();
+      view.focus();
+      return result;
+    },
+    [updateMatchCount]
+  );
 
   const handleFindNext = useCallback(() => {
     executeCommand(findNext);

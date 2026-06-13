@@ -16,6 +16,10 @@ function App() {
   const [printOpen, setPrintOpen] = useState(false);
 
   useEffect(() => {
+    window.electronAPI?.file?.rendererReady?.();
+  }, []);
+
+  useEffect(() => {
     const handler = () => setPrintOpen(true);
     window.addEventListener('mc:print', handler);
     window.addEventListener('mc:print-preview', handler);
