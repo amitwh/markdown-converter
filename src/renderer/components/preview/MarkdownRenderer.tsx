@@ -32,7 +32,7 @@ export function MarkdownRenderer({ source }: Props) {
   }, [source]);
 
   return (
-    <div className="prose prose-neutral dark:prose-invert max-w-none p-6" ref={containerRef}>
+    <div className="prose prose-neutral dark:prose-invert max-w-none p-6 preview-content" ref={containerRef}>
       <div dangerouslySetInnerHTML={{ __html: html }} />
       {mermaidCodes.map((code, i) => (
         <div key={i} className="my-4">

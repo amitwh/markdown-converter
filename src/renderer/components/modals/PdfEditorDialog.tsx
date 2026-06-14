@@ -1,4 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set up the worker for pdfjs-dist
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.mjs',
+  import.meta.url
+).toString();
+
 import {
   Dialog,
   DialogContent,
@@ -37,6 +45,129 @@ import {
   File,
   X,
 } from 'lucide-react';
+
+interface PdfPageState {
+  originalPageNum: number;
+  rotation: number;
+  isDeleted: boolean;
+}
+
+function PdfPageThumbnail({
+  pdfDoc,
+  pageState,
+  onRotate,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
+}: {
+  pdfDoc: any;
+  pageState: PdfPageState;
+  onRotate: () => void;
+  onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const renderPage = async () => {
+      if (!canvasRef.current || !pdfDoc) return;
+      setLoading(true);
+      try {
+        const page = await pdfDoc.getPage(pageState.originalPageNum);
+        if (!active) return;
+        const viewport = page.getViewport({ scale: 0.25 });
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        if (!context) return;
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({
+          canvasContext: context,
+          viewport: viewport,
+        }).promise;
+      } catch (err) {
+        console.error('Error rendering thumbnail:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    renderPage();
+    return () => {
+      active = false;
+    };
+  }, [pdfDoc, pageState.originalPageNum]);
+
+  return (
+    <div
+      className={`relative flex flex-col items-center p-2 border rounded bg-card text-card-foreground ${
+        pageState.isDeleted ? 'opacity-40' : ''
+      }`}
+    >
+      <div className="relative border bg-white flex items-center justify-center overflow-hidden w-24 h-32">
+        {loading && <Loader2 className="absolute animate-spin size-4 text-primary" />}
+        <canvas
+          ref={canvasRef}
+          style={{ transform: `rotate(${pageState.rotation}deg)` }}
+          className="max-w-full max-h-full transition-transform duration-200"
+        />
+      </div>
+      <div className="text-[10px] mt-1 font-semibold text-foreground">Page {pageState.originalPageNum}</div>
+      <div className="flex gap-1 mt-1.5">
+        <Button
+          variant="outline"
+          size="icon"
+          className="size-6"
+          onClick={onRotate}
+          title="Rotate 90°"
+          type="button"
+        >
+          <RotateCw className="size-3" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className={`size-6 ${pageState.isDeleted ? 'bg-destructive/10 text-destructive border-destructive/30' : ''}`}
+          onClick={onDelete}
+          title={pageState.isDeleted ? 'Restore' : 'Delete'}
+          type="button"
+        >
+          <Trash2 className="size-3" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="size-6"
+          onClick={onMoveUp}
+          disabled={isFirst}
+          title="Move Up"
+          type="button"
+        >
+          <ArrowUpDown className="size-3 rotate-90" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="size-6"
+          onClick={onMoveDown}
+          disabled={isLast}
+          title="Move Down"
+          type="button"
+        >
+          <ArrowUpDown className="size-3 -rotate-90" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 type Operation =
   | 'merge'
@@ -224,6 +355,76 @@ export function PdfEditorDialog({ onClose, initialFilePath }: Props) {
 
   const [permissionsPassword, setPermissionsPassword] = useState('');
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+
+  const [pdfDoc, setPdfDoc] = useState<any>(null);
+  const [pdfPages, setPdfPages] = useState<PdfPageState[]>([]);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!inputPath || !['rotate', 'delete', 'reorder'].includes(activeTab)) {
+      setPdfDoc(null);
+      setPdfPages([]);
+      return;
+    }
+
+    const loadPdf = async () => {
+      setPdfLoading(true);
+      setPdfDoc(null);
+      setPdfPages([]);
+      try {
+        const readBufferFn = window.electronAPI?.file?.readBuffer;
+        if (!readBufferFn) {
+          console.warn('readBuffer function is not available on window.electronAPI.file');
+          return;
+        }
+        const res = await readBufferFn(inputPath);
+        if (!active) return;
+        if (res && res.ok && res.data) {
+          const doc = await pdfjsLib.getDocument({ data: res.data }).promise;
+          if (!active) return;
+          setPdfDoc(doc);
+          const count = doc.numPages;
+          const initialPages = Array.from({ length: count }, (_, i) => ({
+            originalPageNum: i + 1,
+            rotation: 0,
+            isDeleted: false,
+          }));
+          setPdfPages(initialPages);
+        }
+      } catch (err) {
+        console.error('Error loading PDF in sidebar:', err);
+      } finally {
+        if (active) setPdfLoading(false);
+      }
+    };
+
+    loadPdf();
+    return () => {
+      active = false;
+    };
+  }, [inputPath, activeTab]);
+
+  useEffect(() => {
+    if (pdfPages.length === 0) return;
+    if (activeTab === 'rotate') {
+      const rotated = pdfPages.filter((p) => p.rotation > 0);
+      const pagesStr = rotated.map((p) => p.originalPageNum).join(',');
+      setPages(pagesStr);
+      if (rotated.length > 0) {
+        setRotateAngle(String(rotated[rotated.length - 1].rotation % 360));
+      }
+    } else if (activeTab === 'delete') {
+      const deletedStr = pdfPages
+        .filter((p) => p.isDeleted)
+        .map((p) => p.originalPageNum)
+        .join(',');
+      setPages(deletedStr);
+    } else if (activeTab === 'reorder') {
+      const orderStr = pdfPages.map((p) => p.originalPageNum).join(',');
+      setNewOrder(orderStr);
+    }
+  }, [pdfPages, activeTab]);
 
   useEffect(() => {
     if (initialFilePath) setInputPath(initialFilePath);
@@ -470,7 +671,11 @@ export function PdfEditorDialog({ onClose, initialFilePath }: Props) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="flex max-h-[85vh] max-w-2xl flex-col">
+      <DialogContent className={`flex max-h-[85vh] flex-col transition-all duration-300 ${
+        ['rotate', 'delete', 'reorder'].includes(activeTab) && (pdfPages.length > 0 || pdfLoading)
+          ? 'max-w-5xl w-[90vw]'
+          : 'max-w-2xl'
+      }`}>
         <DialogHeader>
           <DialogTitle>PDF Editor</DialogTitle>
           <DialogDescription>Manipulate and transform PDF files</DialogDescription>
@@ -482,6 +687,7 @@ export function PdfEditorDialog({ onClose, initialFilePath }: Props) {
             setActiveTab(v as Operation);
             setError(null);
           }}
+          className="flex flex-col flex-1 min-h-0 overflow-hidden"
         >
           <TabsList className="flex-wrap">
             {OPERATIONS.map((op) => (
@@ -492,7 +698,8 @@ export function PdfEditorDialog({ onClose, initialFilePath }: Props) {
             ))}
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-1 gap-6 overflow-hidden min-h-0 mt-3">
+            <div className="flex-1 overflow-y-auto pr-1">
             <TabsContent value="merge" className="space-y-3 pt-3">
               <div className="space-y-1.5">
                 <Label>PDF files</Label>
@@ -963,7 +1170,65 @@ export function PdfEditorDialog({ onClose, initialFilePath }: Props) {
               {renderError()}
             </TabsContent>
           </div>
-        </Tabs>
+
+          {['rotate', 'delete', 'reorder'].includes(activeTab) && (pdfPages.length > 0 || pdfLoading) && (
+            <div className="w-80 border-l pl-4 flex flex-col min-h-0">
+              <h3 className="font-semibold text-sm mb-2 text-foreground">Page Thumbnails</h3>
+              {pdfLoading ? (
+                <div className="flex flex-1 items-center justify-center">
+                  <Loader2 className="size-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-2 pr-1 content-start">
+                  {pdfPages.map((pageState, index) => (
+                    <PdfPageThumbnail
+                      key={`${pageState.originalPageNum}-${index}`}
+                      pdfDoc={pdfDoc}
+                      pageState={pageState}
+                      isFirst={index === 0}
+                      isLast={index === pdfPages.length - 1}
+                      onRotate={() => {
+                        setPdfPages((prev) =>
+                          prev.map((p, idx) =>
+                            idx === index ? { ...p, rotation: (p.rotation + 90) % 360 } : p
+                          )
+                        );
+                      }}
+                      onDelete={() => {
+                        setPdfPages((prev) =>
+                          prev.map((p, idx) =>
+                            idx === index ? { ...p, isDeleted: !p.isDeleted } : p
+                          )
+                        );
+                      }}
+                      onMoveUp={() => {
+                        if (index === 0) return;
+                        setPdfPages((prev) => {
+                          const next = [...prev];
+                          const temp = next[index];
+                          next[index] = next[index - 1];
+                          next[index - 1] = temp;
+                          return next;
+                        });
+                      }}
+                      onMoveDown={() => {
+                        if (index === pdfPages.length - 1) return;
+                        setPdfPages((prev) => {
+                          const next = [...prev];
+                          const temp = next[index];
+                          next[index] = next[index + 1];
+                          next[index + 1] = temp;
+                          return next;
+                        });
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Tabs>
 
         {renderProgress()}
 

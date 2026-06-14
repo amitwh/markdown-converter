@@ -7,6 +7,28 @@ const mockProcessOperation = vi.fn().mockResolvedValue(undefined);
 const mockPickFile = vi.fn();
 const mockPickFolder = vi.fn();
 const mockShowSaveDialog = vi.fn();
+const mockReadBuffer = vi.fn();
+
+// Mock pdfjs-dist to avoid rendering/worker issues in node test environment
+vi.mock('pdfjs-dist', () => {
+  const mockRenderPromise = Promise.resolve();
+  const mockPage = {
+    getViewport: vi.fn().mockReturnValue({ width: 100, height: 150 }),
+    render: vi.fn().mockReturnValue({ promise: mockRenderPromise }),
+  };
+  const mockDoc = {
+    numPages: 3,
+    getPage: vi.fn().mockResolvedValue(mockPage),
+  };
+  return {
+    GlobalWorkerOptions: {
+      workerSrc: '',
+    },
+    getDocument: vi.fn().mockReturnValue({
+      promise: Promise.resolve(mockDoc),
+    }),
+  };
+});
 
 beforeEach(() => {
   localStorage.clear();
@@ -14,10 +36,12 @@ beforeEach(() => {
   mockPickFile.mockResolvedValue({ ok: true, data: null });
   mockPickFolder.mockResolvedValue({ ok: true, data: null });
   mockShowSaveDialog.mockResolvedValue({ ok: true, data: null });
+  mockReadBuffer.mockResolvedValue({ ok: true, data: new Uint8Array([1, 2, 3]) });
   window.electronAPI = {
     file: {
       pickFile: mockPickFile,
       pickFolder: mockPickFolder,
+      readBuffer: mockReadBuffer,
     },
     app: {
       showSaveDialog: mockShowSaveDialog,
@@ -293,5 +317,70 @@ describe('PdfEditorDialog', () => {
 
     await userEvent.click(screen.getByText('Compress'));
     expect(screen.queryByText(/add at least 2 pdf files/i)).not.toBeInTheDocument();
+  });
+
+  it('renders interactive page thumbnails in rotate tab', async () => {
+    render(<PdfEditorDialog onClose={() => {}} initialFilePath="/test.pdf" />);
+
+    // Switch to Rotate tab
+    await userEvent.click(screen.getByText('Rotate'));
+
+    // Wait for the thumbnails to load and render
+    await waitFor(() => {
+      expect(screen.getByText('Page 1')).toBeInTheDocument();
+      expect(screen.getByText('Page 2')).toBeInTheDocument();
+      expect(screen.getByText('Page 3')).toBeInTheDocument();
+    });
+
+    // Check Rotate button on page 1 thumbnail
+    const rotateBtns = screen.getAllByTitle('Rotate 90°');
+    expect(rotateBtns).toHaveLength(3);
+
+    // Click rotate on page 1
+    await userEvent.click(rotateBtns[0]);
+
+    // Check if the form's "Pages" input is updated to "1"
+    const pagesInput = screen.getByPlaceholderText('All pages') as HTMLInputElement;
+    expect(pagesInput.value).toBe('1');
+  });
+
+  it('toggles page deletion status in delete tab', async () => {
+    render(<PdfEditorDialog onClose={() => {}} initialFilePath="/test.pdf" />);
+
+    // Switch to Delete tab
+    await userEvent.click(screen.getByText('Delete'));
+
+    // Wait for the thumbnails
+    await waitFor(() => {
+      expect(screen.getByText('Page 1')).toBeInTheDocument();
+    });
+
+    // Click Delete button on page 1
+    const deleteBtns = screen.getAllByTitle('Delete');
+    await userEvent.click(deleteBtns[0]);
+
+    // Check if the pages to delete input is updated to "1"
+    const pagesInput = screen.getByPlaceholderText('1,3,5-8') as HTMLInputElement;
+    expect(pagesInput.value).toBe('1');
+  });
+
+  it('reorders pages in reorder tab', async () => {
+    render(<PdfEditorDialog onClose={() => {}} initialFilePath="/test.pdf" />);
+
+    // Switch to Reorder tab
+    await userEvent.click(screen.getByText('Reorder'));
+
+    // Wait for the thumbnails
+    await waitFor(() => {
+      expect(screen.getByText('Page 1')).toBeInTheDocument();
+    });
+
+    // Move Page 1 Down
+    const moveDownBtns = screen.getAllByTitle('Move Down');
+    await userEvent.click(moveDownBtns[0]);
+
+    // Check if the new order input is updated
+    const newOrderInput = screen.getByPlaceholderText('3,1,2,5,4') as HTMLTextAreaElement;
+    expect(newOrderInput.value).toBe('2,1,3');
   });
 });

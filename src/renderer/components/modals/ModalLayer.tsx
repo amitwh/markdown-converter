@@ -8,6 +8,7 @@ import { ExportBatchDialog } from './ExportBatchDialog';
 import { ExportDocxDialog } from './ExportDocxDialog';
 import { ExportHtmlDialog } from './ExportHtmlDialog';
 import { ExportPdfDialog } from './ExportPdfDialog';
+import { ExportRevealjsDialog } from './ExportRevealjsDialog';
 import { FindInFilesDialog } from './FindInFilesDialog';
 import { HeaderFooterDialog } from './HeaderFooterDialog';
 import { SettingsSheet } from './SettingsSheet';
@@ -29,6 +30,8 @@ export function ModalLayer() {
       return <ExportDocxDialog sourcePath={modal.props.sourcePath} />;
     case 'export-html':
       return <ExportHtmlDialog sourcePath={modal.props.sourcePath} />;
+    case 'export-revealjs':
+      return <ExportRevealjsDialog sourcePath={modal.props.sourcePath} />;
     case 'export-batch':
       return <ExportBatchDialog sourcePaths={modal.props.sourcePaths} />;
     case 'settings':

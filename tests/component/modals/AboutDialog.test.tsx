@@ -7,10 +7,8 @@ import { useAppStore } from '@/stores/app-store';
 describe('AboutDialog', () => {
   beforeEach(() => {
     window.electronAPI = {
-      app: {
-        getVersion: vi.fn().mockResolvedValue('5.0.0'),
-        openExternal: vi.fn().mockResolvedValue({ ok: true }),
-      },
+      getAppVersion: vi.fn().mockResolvedValue('5.0.0'),
+      send: vi.fn().mockResolvedValue({ ok: true }),
     } as any;
     // Reset store to about modal so dialog renders
     useAppStore.setState({ modal: { kind: 'about' } } as any);

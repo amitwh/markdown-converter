@@ -18,28 +18,45 @@ const defaultSettings = {
   logoPath: null,
 };
 
-const mockGetSettings = vi.fn().mockResolvedValue(defaultSettings);
-const mockSaveSettings = vi.fn().mockResolvedValue(undefined);
-const mockBrowseLogo = vi.fn().mockResolvedValue('/path/to/logo.png');
+let registeredCallback: ((data: any) => void) | null = null;
+const mockSend = vi.fn((channel, ...args) => {
+  if (channel === 'get-header-footer-settings') {
+    setTimeout(() => {
+      if (registeredCallback) registeredCallback(defaultSettings);
+    }, 0);
+  }
+});
+
+const mockOn = vi.fn((channel, cb) => {
+  if (channel === 'header-footer-settings-data') {
+    registeredCallback = cb as any;
+    // Trigger immediately with default settings to satisfy initial mount loading
+    setTimeout(() => {
+      cb(defaultSettings);
+    }, 0);
+  }
+  return vi.fn(); // cleanup/unsubscribe fn
+});
 
 beforeEach(() => {
   localStorage.clear();
   vi.clearAllMocks();
+  registeredCallback = null;
   useSettingsStore.setState(useSettingsStore.getInitialState());
   useAppStore.setState({ modal: { kind: null } } as any);
   (window.electronAPI as any) = {
-    headerFooter: {
-      getSettings: mockGetSettings,
-      saveSettings: mockSaveSettings,
-      browseLogo: mockBrowseLogo,
-    },
+    send: mockSend,
+    on: mockOn,
+    once: vi.fn(),
+    invoke: vi.fn(() => Promise.resolve(null)),
+    removeAllListeners: vi.fn(),
   };
 });
 
 describe('HeaderFooterDialog', () => {
   it('loads settings from electronAPI on mount', async () => {
     render(<HeaderFooterDialog />);
-    await waitFor(() => expect(mockGetSettings).toHaveBeenCalled());
+    await waitFor(() => expect(mockSend).toHaveBeenCalledWith('get-header-footer-settings'));
     expect(screen.getByText(/header & footer/i)).toBeInTheDocument();
   });
 
@@ -61,7 +78,7 @@ describe('HeaderFooterDialog', () => {
     render(<HeaderFooterDialog />);
     await waitFor(() => expect(screen.getByText(/header & footer/i)).toBeInTheDocument());
     await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    await waitFor(() => expect(mockSaveSettings).toHaveBeenCalled());
+    await waitFor(() => expect(mockSend).toHaveBeenCalledWith('save-header-footer-settings', expect.any(Object)));
   });
 
   it('closes modal on Cancel', async () => {
@@ -72,7 +89,16 @@ describe('HeaderFooterDialog', () => {
   });
 
   it('inserts dynamic field token into header input', async () => {
-    mockGetSettings.mockResolvedValue({ ...defaultSettings, headerEnabled: true });
+    // Override registered callback to return enabled header
+    mockOn.mockImplementationOnce((channel, cb) => {
+      if (channel === 'header-footer-settings-data') {
+        setTimeout(() => {
+          cb({ ...defaultSettings, headerEnabled: true });
+        }, 0);
+      }
+      return vi.fn();
+    });
+
     render(<HeaderFooterDialog />);
     await waitFor(() => expect(screen.getByText(/header & footer/i)).toBeInTheDocument());
     const tokenButton = screen.getAllByTitle('Page')[0];

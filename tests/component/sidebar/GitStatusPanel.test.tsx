@@ -3,38 +3,20 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GitStatusPanel } from '@/components/sidebar/GitStatusPanel';
 import { useFileStore } from '@/stores/file-store';
-
-vi.mock('@/lib/ipc', () => ({
-  ipc: {
-    file: {
-      gitStatus: vi.fn(),
-    },
-  },
-}));
-
-vi.mock('@/lib/toast', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warning: vi.fn(),
-    promise: vi.fn(),
-    dismiss: vi.fn(),
-  },
-}));
-
 import { ipc } from '@/lib/ipc';
 
 const mockGitStage = vi.fn();
 const mockGitCommit = vi.fn();
 
-Object.defineProperty(window, 'electronAPI', {
-  value: {
-    gitStage: mockGitStage,
-    gitCommit: mockGitCommit,
+vi.mock('@/lib/ipc', () => ({
+  ipc: {
+    file: {
+      gitStatus: vi.fn(),
+      gitStage: (args: any) => mockGitStage(args),
+      gitCommit: (args: any) => mockGitCommit(args),
+    },
   },
-  writable: true,
-});
+}));
 
 describe('GitStatusPanel', () => {
   beforeEach(() => {
@@ -126,7 +108,7 @@ describe('GitStatusPanel', () => {
   });
 
   it('stages selected files', async () => {
-    mockGitStage.mockResolvedValueOnce(undefined);
+    mockGitStage.mockResolvedValueOnce({ ok: true });
     (ipc.file.gitStatus as any).mockResolvedValue({
       ok: true,
       data: [{ filePath: '/project/a.md', status: 'modified' }],
@@ -137,11 +119,11 @@ describe('GitStatusPanel', () => {
     await userEvent.click(checkbox);
     const stageBtn = screen.getByTestId('git-stage-selected');
     await userEvent.click(stageBtn);
-    expect(mockGitStage).toHaveBeenCalledWith(['/project/a.md']);
+    expect(mockGitStage).toHaveBeenCalledWith({ rootPath: '/project', files: ['/project/a.md'] });
   });
 
   it('commits with message', async () => {
-    mockGitCommit.mockResolvedValueOnce(undefined);
+    mockGitCommit.mockResolvedValueOnce({ ok: true });
     (ipc.file.gitStatus as any).mockResolvedValue({
       ok: true,
       data: [{ filePath: '/project/a.md', status: 'modified' }],
@@ -152,6 +134,6 @@ describe('GitStatusPanel', () => {
     await userEvent.type(input, 'fix typo');
     const commitBtn = screen.getByTestId('git-commit-button');
     await userEvent.click(commitBtn);
-    expect(mockGitCommit).toHaveBeenCalledWith('fix typo');
+    expect(mockGitCommit).toHaveBeenCalledWith({ rootPath: '/project', message: 'fix typo' });
   });
 });

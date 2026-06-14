@@ -23,6 +23,7 @@ export type ModalState =
   | { kind: 'export-docx'; props: { sourcePath: string } }
   | { kind: 'export-html'; props: { sourcePath: string } }
   | { kind: 'export-batch'; props: { sourcePaths: string[] } }
+  | { kind: 'export-revealjs'; props: { sourcePath: string } }
   | { kind: 'settings' }
   | { kind: 'about' }
   | { kind: 'welcome' }

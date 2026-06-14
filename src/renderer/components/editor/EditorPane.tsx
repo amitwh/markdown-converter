@@ -1,16 +1,43 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { CodeMirrorEditor } from './CodeMirrorEditor';
 import { FindReplaceBar } from './FindReplaceBar';
 import { useEditorStore } from '@/stores/editor-store';
 import { usePreviewStore } from '@/stores/preview-store';
+import { useAppStore } from '@/stores/app-store';
+import { toast } from '@/lib/toast';
 
 export function EditorPane() {
   const { buffers, activeId } = useEditorStore();
   const buf = activeId ? buffers.get(activeId) : null;
   const setPreviewSource = usePreviewStore((s) => s.setSource);
+  const lastActiveId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (buf) setPreviewSource(buf.content);
+    if (!buf) return;
+    const isNewFile = lastActiveId.current !== buf.id;
+    lastActiveId.current = buf.id;
+
+    const isLarge = buf.content.length > 1024 * 1024;
+
+    if (isLarge) {
+      if (!usePreviewStore.getState().largeFileMode) {
+        usePreviewStore.setState({ largeFileMode: true });
+        useAppStore.setState({ previewVisible: false });
+        toast.warning(
+          'Large content detected (>1MB). Large File Mode enabled to maintain peak responsiveness. Live preview auto-render is disabled.'
+        );
+      }
+
+      // Only render on initial load / tab switch, not on edits
+      if (isNewFile) {
+        usePreviewStore.getState().forceRender(buf.content);
+      }
+    } else {
+      if (usePreviewStore.getState().largeFileMode) {
+        usePreviewStore.setState({ largeFileMode: false });
+      }
+      setPreviewSource(buf.content);
+    }
   }, [buf?.id, buf?.content, buf, setPreviewSource]);
 
   if (!buf) {

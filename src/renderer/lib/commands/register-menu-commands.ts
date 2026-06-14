@@ -68,6 +68,23 @@ export function registerMenuCommands(): void {
       if (!activeTabId) return;
       useAppStore.getState().openModal('export-html', { sourcePath: activeTabId });
     },
+    'file.showExportDialog': (format?: string) => {
+      const activeTabId = useFileStore.getState().activeTabId;
+      if (!activeTabId) return;
+      if (format === 'pdf') {
+        useAppStore.getState().openModal('export-pdf', { sourcePath: activeTabId });
+      } else if (format === 'docx') {
+        useAppStore.getState().openModal('export-docx', { sourcePath: activeTabId });
+      } else if (format === 'html') {
+        useAppStore.getState().openModal('export-html', { sourcePath: activeTabId });
+      } else if (format === 'revealjs') {
+        useAppStore.getState().openModal('export-revealjs' as any, { sourcePath: activeTabId } as any);
+      } else if (format === 'word') {
+        useAppStore.getState().openModal('export-word', { sourcePath: activeTabId });
+      } else if (format) {
+        window.electronAPI?.export?.withOptions?.(format, {});
+      }
+    },
     'file.exportBatch': () => {
       const paths = useFileStore.getState().openTabs.map((t) => t.path);
       if (paths.length === 0) return;
@@ -423,4 +440,5 @@ export function useBridgeNativeMenu(): void {
   useMenuAction('show-batch-converter', 'batch.showConverter', (type) => type as string);
   useMenuAction('show-document-compare', 'tools.documentCompare');
   useMenuAction('open-header-footer-dialog', 'settings.headerFooter');
+  useMenuAction('show-export-dialog', 'file.showExportDialog', (format) => format as string);
 }

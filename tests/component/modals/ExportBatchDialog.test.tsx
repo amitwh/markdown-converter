@@ -7,12 +7,12 @@ describe('ExportBatchDialog', () => {
   beforeEach(() => {
     localStorage.clear();
     window.electronAPI = {
-      export: {
-        batch: vi.fn().mockResolvedValue({
-          ok: true,
-          data: { total: 2, succeeded: 2, failed: 0, results: [] },
-        }),
-      },
+      invoke: vi.fn().mockResolvedValue({
+        total: 2,
+        succeeded: 2,
+        failed: 0,
+        results: [],
+      }),
     } as any;
   });
 
@@ -27,11 +27,12 @@ describe('ExportBatchDialog', () => {
     await userEvent.click(screen.getByRole('combobox', { name: /format/i }));
     await userEvent.click(screen.getByRole('option', { name: /^pdf$/i }));
     await userEvent.click(screen.getByRole('button', { name: /^export$/i }));
-    const call = (window.electronAPI.export.batch as any).mock.calls[0];
-    expect(call[0]).toEqual([
+    const call = (window.electronAPI.invoke as any).mock.calls[0];
+    expect(call[0]).toBe('batch-convert');
+    expect(call[1].items).toEqual([
       { inputPath: '/a.md', outputPath: expect.any(String) },
       { inputPath: '/b.md', outputPath: expect.any(String) },
     ]);
-    expect(call[1].format).toBe('pdf');
+    expect(call[1].options.format).toBe('pdf');
   });
 });

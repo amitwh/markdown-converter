@@ -10,10 +10,65 @@ import { FirstRunWizard } from './components/FirstRunWizard';
 import { useWelcomeTrigger } from './hooks/use-welcome-trigger';
 import { useAutoUpdateCheck } from './hooks/useAutoUpdateCheck';
 
+import { useSettingsStore } from './stores/settings-store';
+import { ipc } from './lib/ipc';
+import { toast } from './lib/toast';
+
+function scopeCSS(cssText: string, scopeSelector: string) {
+  if (!cssText) return '';
+  return cssText.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|(?=[^{]*{))/g, (match, selector, separator) => {
+    const trimmed = selector.trim();
+    if (
+      !trimmed ||
+      trimmed.startsWith('@') ||
+      trimmed.startsWith(':root') ||
+      trimmed.startsWith('from') ||
+      trimmed.startsWith('to') ||
+      /^\d+%$/.test(trimmed)
+    ) {
+      return match;
+    }
+    return scopeSelector + ' ' + trimmed + (separator || '');
+  });
+}
+
 function App() {
   useWelcomeTrigger();
   useAutoUpdateCheck();
   const [printOpen, setPrintOpen] = useState(false);
+  const customCssPath = useSettingsStore((s) => s.customCssPath);
+
+  useEffect(() => {
+    let active = true;
+    const styleId = 'custom-preview-style';
+
+    async function applyCSS() {
+      if (!customCssPath) {
+        const styleTag = document.getElementById(styleId);
+        if (styleTag) styleTag.remove();
+        return;
+      }
+
+      const r = await ipc.file.read(customCssPath);
+      if (!active) return;
+      if (r.ok && r.data) {
+        let styleTag = document.getElementById(styleId);
+        if (!styleTag) {
+          styleTag = document.createElement('style');
+          styleTag.id = styleId;
+          document.head.appendChild(styleTag);
+        }
+        styleTag.textContent = scopeCSS(r.data, '.preview-content');
+      } else {
+        toast.error('Failed to load custom CSS file');
+      }
+    }
+
+    void applyCSS();
+    return () => {
+      active = false;
+    };
+  }, [customCssPath]);
 
   useEffect(() => {
     window.electronAPI?.file?.rendererReady?.();

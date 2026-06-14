@@ -8,6 +8,11 @@ function register() {
     await fs.writeFile(filePath, Buffer.from(buffer));
     return { ok: true };
   });
+
+  ipcMain.handle('read-buffer', async (_event, { path: filePath }) => {
+    const data = await fs.readFile(filePath);
+    return { ok: true, data };
+  });
 }
 
 module.exports = { register };

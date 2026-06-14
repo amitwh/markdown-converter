@@ -94,7 +94,11 @@ export const ipc = {
     writeBuffer: (args: {
       path: string;
       buffer: Uint8Array;
-    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('file', 'list', args.path),
+    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('file', 'writeBuffer', args.path, args.buffer),
+    readBuffer: (
+      path: string
+    ): Promise<IpcResult<{ ok: boolean; data: Uint8Array } | ChannelMissing>> =>
+      safeCall('file', 'readBuffer', path),
     gitStage: (args: {
       rootPath: string;
       files: string[];
