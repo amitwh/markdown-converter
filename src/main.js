@@ -332,6 +332,7 @@ app.on('web-contents-created', (event, contents) => {
 let mainWindow;
 let currentFile = null; // This will now represent the active tab's file
 let pandocAvailable = null; // Cache pandoc availability check
+let pandocVersionCache = null; // Cached parsed { major, minor } from `pandoc --version`
 let wordTemplatePath = null; // Path to selected Word template
 let templateStartPage = 3; // Which page to start inserting content (default: page 3)
 let rendererReady = false; // Track if renderer is ready to receive file data
@@ -491,11 +492,29 @@ function checkPandocAvailability() {
       resolve(pandocAvailable);
       return;
     }
-    execFile('pandoc', ['--version'], (error, _stdout, _stderr) => {
+    execFile('pandoc', ['--version'], (error, stdout, _stderr) => {
       pandocAvailable = !error;
+      if (!error) {
+        const m = String(stdout).match(/pandoc\s+(\d+)\.(\d+)/);
+        pandocVersionCache = m ? { major: Number(m[1]), minor: Number(m[2]) } : { major: 0, minor: 0 };
+      } else {
+        pandocVersionCache = { major: 0, minor: 0 };
+      }
       resolve(pandocAvailable);
     });
   });
+}
+
+// Returns cached parsed pandoc version as { major, minor }.
+// Falls back to {0,0} when pandoc is missing — callers must treat that as "unsupported".
+function getPandocVersion() {
+  return pandocVersionCache || { major: 0, minor: 0 };
+}
+
+// --epub-embed-font was added in Pandoc 2.11.
+function pandocSupportsEpubEmbedFont() {
+  const v = getPandocVersion();
+  return v.major > 2 || (v.major === 2 && v.minor >= 11);
 }
 function createWindow() {
   mainWindow = new BrowserWindow({
