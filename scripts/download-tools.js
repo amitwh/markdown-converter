@@ -106,6 +106,27 @@ function download(url, destPath) {
   });
 }
 
+async function downloadFiraCode() {
+  const destDir = path.join(__dirname, '..', 'assets', 'fonts');
+  fs.mkdirSync(destDir, { recursive: true });
+
+  const targets = [
+    { url: 'https://github.com/tonsky/FiraCode/raw/master/distr/ttf/FiraCode-Regular.ttf', out: 'FiraCode-Regular.ttf' },
+    { url: 'https://github.com/tonsky/FiraCode/raw/master/distr/ttf/FiraCode-Bold.ttf',    out: 'FiraCode-Bold.ttf' },
+    { url: 'https://raw.githubusercontent.com/tonsky/FiraCode/master/LICENSE',            out: 'FiraCode-LICENSE.txt' },
+  ];
+
+  for (const t of targets) {
+    const destFile = path.join(destDir, t.out);
+    if (fs.existsSync(destFile)) {
+      console.log(`[download-tools] ${t.out} already present — skipping.`);
+      continue;
+    }
+    console.log(`[download-tools] Downloading ${t.out}...`);
+    await download(t.url, destFile);
+  }
+}
+
 async function downloadPandoc() {
   const platform = process.platform;
   const config = PANDOC_CONFIG[platform];
@@ -142,7 +163,7 @@ async function downloadPandoc() {
   console.log(`[download-tools] pandoc ready: ${destFile}`);
 }
 
-downloadPandoc().catch((err) => {
+Promise.all([downloadPandoc(), downloadFiraCode()]).catch((err) => {
   console.error('[download-tools] FAILED:', err.message);
   process.exit(1);
 });
