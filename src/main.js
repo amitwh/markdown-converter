@@ -9,6 +9,7 @@ const GitOperations = require('./main/GitOperations');
 const PdfFontHeader = require('./main/PdfFontHeader');
 const MonospaceFontConfig = require('./main/MonospaceFontConfig');
 const ExportCss = require('./main/ExportCss');
+const EpubFontEmbedder = require('./main/EpubFontEmbedder');
 
 // Add MiKTeX to PATH for LaTeX support
 if (process.platform === 'win32') {
@@ -2838,6 +2839,45 @@ function performExportWithOptions(format, options) {
       } else if (format === 'confluence' || format === 'jira') {
         pandocCmd = `${getPandocPath()} "${currentFile}" -t jira -o "${outputFile}"`;
         exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'epub') {
+        // Embed the active monospace TTF into EPUB so code blocks render in
+        // JetBrains Mono / Fira Code regardless of the reader's installed fonts.
+        if (pandocSupportsEpubEmbedFont()) {
+          const familyKey = readSettingsJsonCached().monospaceFont || 'jetbrains-mono';
+          const regular = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 400);
+          const bold = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 700);
+          [regular, bold].filter(Boolean).forEach((p) => {
+            pandocCmd += ` --epub-embed-font="${p}"`;
+          });
+        }
+        runPandocCmd(pandocCmd, async (error) => {
+          if (error) {
+            dialog.showErrorBox(
+              'Export Error',
+              sanitizeErrorMessage(`Failed to export EPUB: ${error.message}`)
+            );
+            return;
+          }
+          // Patch the OPF manifest so readers can locate the embedded font.
+          // Skip silently if the file is missing or pandoc didn't embed.
+          try {
+            const familyKey = readSettingsJsonCached().monospaceFont || 'jetbrains-mono';
+            const regular = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 400);
+            const fonts = [];
+            if (regular) fonts.push({ path: regular, family: familyKey === 'fira-code' ? 'Fira Code' : 'JetBrains Mono', weight: 400 });
+            if (fonts.length) {
+              const patched = await EpubFontEmbedder.patchManifest(outputFile, fonts);
+              try {
+                fs.renameSync(patched, outputFile);
+              } catch (renameErr) {
+                if (typeof console !== 'undefined') console.warn('[epub] could not overwrite with patched EPUB:', renameErr.message);
+              }
+            }
+          } catch (patchErr) {
+            if (typeof console !== 'undefined') console.warn('[epub] manifest patch failed:', patchErr.message);
+          }
+          showExportSuccess(outputFile);
+        });
       } else if (format === 'mobi') {
         // First export to EPUB, then try ebook-convert if available
         const epubFile = outputFile.replace(/\.mobi$/i, '.epub');
