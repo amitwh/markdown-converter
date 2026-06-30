@@ -73,3 +73,20 @@
   font-display: swap;
   src: url('../assets/fonts/JetBrainsMono-Bold.woff2') format('woff2');
 }
+
+/* Fira Code Font Family - bundled with the app */
+@font-face {
+  font-family: 'Fira Code';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/FiraCode-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Fira Code';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/FiraCode-Bold.ttf') format('truetype');
+}
