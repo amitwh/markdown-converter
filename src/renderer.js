@@ -12,6 +12,23 @@ const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
 
+/**
+ * Toggle body classes that drive the monospace font + ligatures CSS tokens.
+ * Single source of truth for the live preview/editor font behaviour.
+ * @param {{monospaceFont?: string, monospaceLigatures?: boolean} | null | undefined} settings
+ */
+function applyMonospaceClasses(settings) {
+  const s = settings || {};
+  const body = document.body;
+  if (!body) return;
+  const isFira = s.monospaceFont === 'fira-code';
+  body.classList.toggle('mono-fira', isFira);
+  body.classList.toggle('mono-jetbrains', !isFira);
+  const ligOn = s.monospaceLigatures === true;
+  body.classList.toggle('mono-ligatures-on', ligOn);
+  body.classList.toggle('mono-ligatures-off', !ligOn);
+}
+
 // Define a fallback window.electronAPI object for when contextIsolation is disabled
 // and the preload script is not loaded in the main window context.
 if (typeof window !== 'undefined' && !window.electronAPI) {
@@ -1821,6 +1838,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize Zen Mode
   const ZenModeClass = getZenMode();
   const zenMode = new ZenModeClass(tabManager);
+
+  // Apply initial monospace font + ligatures from settings
+  // (Task 20 will add the dedicated IPC; until then we read defaults)
+  if (window.electronAPI && typeof window.electronAPI.invoke === 'function') {
+    window.electronAPI
+      .invoke('get-monospace-settings')
+      .then(applyMonospaceClasses)
+      .catch(() => applyMonospaceClasses(null));
+  } else {
+    applyMonospaceClasses(null);
+  }
 
   // Welcome tab on startup
   const hasLaunched = localStorage.getItem('hasLaunchedBefore');
