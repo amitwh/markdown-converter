@@ -113,7 +113,8 @@
       "package.json"
     ],
     "asarUnpack": [
-      "node_modules/ffmpeg-static/**"
+      "node_modules/ffmpeg-static/**",
+      "assets/fonts/**"
     ],
     "extraFiles": [],
     "fileAssociations": [
