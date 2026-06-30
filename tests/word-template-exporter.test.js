@@ -58,4 +58,60 @@ Centered content
     const output = WordTemplateExporter.preprocessMarkdownForWordExport(input);
     expect(output).toBe(input);
   });
+
+  test('preserves HTML artifacts inside fenced code blocks', () => {
+    const input = `# Title
+
+\`\`\`
+<style>body{}</style>
+<!-- comment -->
+<div align="center">text</div>
+\`\`\`
+
+After code.
+`;
+    const output = WordTemplateExporter.preprocessMarkdownForWordExport(input);
+    expect(output).toContain('<style>body{}</style>');
+    expect(output).toContain('<!-- comment -->');
+    expect(output).toContain('<div align="center">text</div>');
+    expect(output).toContain('After code.');
+  });
+
+  test('preserves HTML artifacts inside inline code', () => {
+    const input = 'Use `<div align="center">` for alignment.';
+    const output = WordTemplateExporter.preprocessMarkdownForWordExport(input);
+    expect(output).toContain('`<div align="center">`');
+  });
+
+  test('handles uppercase tags and unquoted attributes', () => {
+    const input = `<DIV align=center>
+Centered
+</DIV>
+`;
+    const output = WordTemplateExporter.preprocessMarkdownForWordExport(input);
+    expect(output).not.toContain('<DIV');
+    expect(output).not.toContain('</DIV>');
+    expect(output).toContain('Centered');
+  });
+
+  test('handles single-quoted attributes', () => {
+    const input = `<div align='right'>Right</div>`;
+    const output = WordTemplateExporter.preprocessMarkdownForWordExport(input);
+    expect(output).not.toContain('<div');
+    expect(output).not.toContain('</div>');
+    expect(output).toContain('Right');
+  });
+
+  test('removes non-alignment div tags without leaving malformed HTML', () => {
+    const input = `<div class="note">Note text</div>`;
+    const output = WordTemplateExporter.preprocessMarkdownForWordExport(input);
+    expect(output).not.toContain('<div');
+    expect(output).not.toContain('</div>');
+    expect(output).toContain('Note text');
+  });
+
+  test('returns non-string input unchanged', () => {
+    expect(WordTemplateExporter.preprocessMarkdownForWordExport(null)).toBeNull();
+    expect(WordTemplateExporter.preprocessMarkdownForWordExport(123)).toBe(123);
+  });
 });

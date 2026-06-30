@@ -2563,17 +2563,16 @@ function performExportWithOptions(format, options) {
       // Use pandoc for export with advanced options
 
       let inputFile = currentFile;
+      let tempInputDir = null;
       let tempInputFile = null;
 
       // Pre-process markdown for Word output so that <style> blocks, HTML
-      // comments, and alignment <div> tags do not appear as visible text.
+      // comments, and <div> tags do not appear as visible text.
       if (format === 'docx') {
         const content = fs.readFileSync(currentFile, 'utf-8');
         const cleanedContent = WordTemplateExporter.preprocessMarkdownForWordExport(content);
-        tempInputFile = path.join(
-          require('os').tmpdir(),
-          `mc_export_${Date.now()}_${path.basename(currentFile)}`
-        );
+        tempInputDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mc_export_'));
+        tempInputFile = path.join(tempInputDir, path.basename(currentFile));
         fs.writeFileSync(tempInputFile, cleanedContent, 'utf-8');
         inputFile = tempInputFile;
       }
@@ -2677,6 +2676,13 @@ function performExportWithOptions(format, options) {
           if (tempInputFile) {
             try {
               fs.unlinkSync(tempInputFile);
+            } catch {
+              // Ignore cleanup errors
+            }
+          }
+          if (tempInputDir) {
+            try {
+              fs.rmdirSync(tempInputDir);
             } catch {
               // Ignore cleanup errors
             }
@@ -3777,19 +3783,33 @@ async function performBatchConversion(inputFolder, outputFolder, format, options
 
     // Build pandoc command for other formats
     let pandocInputFile = inputFile;
+    let batchTempInputDir = null;
     let batchTempInputFile = null;
 
     // Pre-process markdown for Word output so that <style> blocks, HTML
-    // comments, and alignment <div> tags do not appear as visible text.
+    // comments, and <div> tags do not appear as visible text.
     if (format === 'docx') {
-      const content = fs.readFileSync(inputFile, 'utf-8');
-      const cleanedContent = WordTemplateExporter.preprocessMarkdownForWordExport(content);
-      batchTempInputFile = path.join(
-        require('os').tmpdir(),
-        `mc_batch_export_${Date.now()}_${path.basename(inputFile)}`
-      );
-      fs.writeFileSync(batchTempInputFile, cleanedContent, 'utf-8');
-      pandocInputFile = batchTempInputFile;
+      try {
+        const content = fs.readFileSync(inputFile, 'utf-8');
+        const cleanedContent = WordTemplateExporter.preprocessMarkdownForWordExport(content);
+        batchTempInputDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mc_batch_export_'));
+        batchTempInputFile = path.join(batchTempInputDir, path.basename(inputFile));
+        fs.writeFileSync(batchTempInputFile, cleanedContent, 'utf-8');
+        pandocInputFile = batchTempInputFile;
+      } catch (preprocessError) {
+        console.error(
+          `Batch: Failed to pre-process ${path.basename(inputFile)}:`,
+          preprocessError.message
+        );
+        mainWindow.webContents.send('batch-progress', {
+          completed: index + 1,
+          total: totalCount,
+          currentFile: path.basename(inputFile),
+          success: false,
+        });
+        processNextFile(index + 1);
+        return;
+      }
     }
 
     let pandocCmd = `${getPandocPath()} "${pandocInputFile}" -o "${outputFile}"`;
@@ -3893,10 +3913,17 @@ async function performBatchConversion(inputFolder, outputFolder, format, options
 
     // Execute conversion (using runPandocCmd for safety)
     runPandocCmd(pandocCmd, async (error, _stdout, stderr) => {
-      // Clean up temporary pre-processed input file
+      // Clean up temporary pre-processed input file and directory
       if (batchTempInputFile) {
         try {
           fs.unlinkSync(batchTempInputFile);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+      if (batchTempInputDir) {
+        try {
+          fs.rmdirSync(batchTempInputDir);
         } catch {
           // Ignore cleanup errors
         }
