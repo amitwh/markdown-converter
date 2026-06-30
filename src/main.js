@@ -10,6 +10,7 @@ const PdfFontHeader = require('./main/PdfFontHeader');
 const MonospaceFontConfig = require('./main/MonospaceFontConfig');
 const ExportCss = require('./main/ExportCss');
 const EpubFontEmbedder = require('./main/EpubFontEmbedder');
+const DocxFontEmbedder = require('./main/DocxFontEmbedder');
 
 // Add MiKTeX to PATH for LaTeX support
 if (process.platform === 'win32') {
@@ -2748,7 +2749,21 @@ function performExportWithOptions(format, options) {
         });
       } else if (format === 'docx') {
         pandocCmd += ' -t docx';
-        exportWithPandoc(pandocCmd, outputFile, format, () => {
+        exportWithPandoc(pandocCmd, outputFile, format, async () => {
+          // Embed the active monospace TTF into the DOCX so code blocks render in
+          // JetBrains Mono / Fira Code regardless of the viewer's installed fonts.
+          try {
+            const familyKey = readSettingsJsonCached().monospaceFont || 'jetbrains-mono';
+            const family = familyKey === 'fira-code' ? 'Fira Code' : 'JetBrains Mono';
+            const regular = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 400);
+            const bold = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 700);
+            const fonts = [];
+            if (regular) fonts.push({ path: regular, family, weight: 400 });
+            if (bold) fonts.push({ path: bold, family, weight: 700 });
+            if (fonts.length) await DocxFontEmbedder.embed(outputFile, fonts);
+          } catch (embedErr) {
+            if (typeof console !== 'undefined') console.warn('[docx] font embed failed:', embedErr.message);
+          }
           if (tempInputFile) {
             try {
               fs.unlinkSync(tempInputFile);
