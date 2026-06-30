@@ -162,4 +162,4 @@ Amit Haridas (amit.wh@gmail.com)
 
 ## Version
 
-v4.4.4
+v4.4.5

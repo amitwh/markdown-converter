@@ -16,6 +16,6 @@ describe('Project version consistency', () => {
   });
 
   test('README contains current version string', () => {
-    expect(readme).toContain('v4.4.4');
+    expect(readme).toContain(`v${packageJson.version}`);
   });
 });

@@ -6,7 +6,7 @@
 
 Electron desktop app for Markdown editing and universal file conversion powered by Pandoc. Cross-platform (Win/macOS/Linux). Features: multi-tab editor with live preview, 25+ themes, PDF viewer/editor (merge/split/compress/rotate/watermark/password), export to 20+ formats (PDF/DOCX/ODT/EPUB/HTML/LaTeX/RTF/PPTX), batch conversion, syntax highlighting, diagram support (Mermaid), Git integration, and a plugin system.
 
-- **Version:** 4.4.3
+- **Version:** 4.4.5
 - **License:** MIT
 - **App ID:** `com.concreteinfo.markdownconverter`
 
