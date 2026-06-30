@@ -15,10 +15,21 @@ const { undo, redo } = require('@codemirror/commands');
 /**
  * Toggle body classes that drive the monospace font + ligatures CSS tokens.
  * Single source of truth for the live preview/editor font behaviour.
+ * Also pushes the settings into the renderer-wide cache so PrintPreview can read them.
  * @param {{monospaceFont?: string, monospaceLigatures?: boolean} | null | undefined} settings
  */
 function applyMonospaceClasses(settings) {
   const s = settings || {};
+  // Cache for downstream consumers (PrintPreview, future settings UI, etc.)
+  if (typeof window !== 'undefined') {
+    window.__monospaceSettings = {
+      monospaceFont: s.monospaceFont || 'jetbrains-mono',
+      monospaceLigatures: s.monospaceLigatures === true,
+    };
+    if (window.__printPreview && typeof window.__printPreview.setMonospaceSettings === 'function') {
+      window.__printPreview.setMonospaceSettings(window.__monospaceSettings);
+    }
+  }
   const body = document.body;
   if (!body) return;
   const isFira = s.monospaceFont === 'fira-code';
@@ -1951,7 +1962,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize print preview
   const PrintPreview = getPrintPreview();
-  const printPreview = new PrintPreview();
+  const printPreview = new PrintPreview(
+    window.__monospaceSettings || { monospaceFont: 'jetbrains-mono', monospaceLigatures: false }
+  );
+  window.__printPreview = printPreview;
 
   // Register commands
   commandPalette.register('New File', 'Ctrl+N', () => tabManager.createNewTab());
@@ -2270,7 +2284,9 @@ function openPrintPreviewDialog() {
     return;
   }
   const PrintPreviewClass = getPrintPreview();
-  const printPreviewInstance = new PrintPreviewClass();
+  const printPreviewInstance = new PrintPreviewClass(
+    window.__monospaceSettings || { monospaceFont: 'jetbrains-mono', monospaceLigatures: false }
+  );
   printPreviewInstance.open(previewContent.innerHTML);
 }
 

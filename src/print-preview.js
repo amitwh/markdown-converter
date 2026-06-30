@@ -1,9 +1,53 @@
+const fs = require('fs');
+const path = require('path');
+
+function getBundledFontWoff2Path(familyKey, weight) {
+  // Renderer can read directly from disk because nodeIntegration is on.
+  // Try repo-relative first, then packaged app.asar mirror.
+  const familyDir = familyKey === 'fira-code' ? 'FiraCode' : 'JetBrainsMono';
+  const weightName = weight >= 700 ? 'Bold' : 'Regular';
+  const filename = `${familyDir}-${weightName}.woff2`;
+  const repoPath = path.resolve(__dirname, '..', 'assets', 'fonts', filename);
+  if (fs.existsSync(repoPath)) return repoPath;
+  // Packaged: under <resourcesPath>/assets/fonts/
+  if (process.resourcesPath) {
+    const packaged = path.join(process.resourcesPath, 'assets', 'fonts', filename);
+    if (fs.existsSync(packaged)) return packaged;
+  }
+  return null;
+}
+
+function buildFontFaceBlock(familyKey) {
+  const family = familyKey === 'fira-code' ? 'Fira Code' : 'JetBrains Mono';
+  const fontPath = getBundledFontWoff2Path(familyKey, 400);
+  if (!fontPath) return '';
+  try {
+    const data = fs.readFileSync(fontPath);
+    const dataUri = `data:font/woff2;base64,${data.toString('base64')}`;
+    return `@font-face { font-family: '${family}'; font-weight: 400; font-style: normal; src: url('${dataUri}') format('woff2'); }`;
+  } catch (_) {
+    return '';
+  }
+}
+
 class PrintPreview {
-  constructor() {
+  constructor(monospaceSettings = {}) {
     this.overlay = document.getElementById('print-preview-overlay');
     this.modal = window.modals?.printPreviewModal;
     this._lastContent = '';
+    this._monospaceSettings = {
+      monospaceFont: monospaceSettings.monospaceFont || 'jetbrains-mono',
+      monospaceLigatures: monospaceSettings.monospaceLigatures === true,
+    };
     this.setupEventListeners();
+  }
+
+  setMonospaceSettings(settings) {
+    this._monospaceSettings = {
+      monospaceFont: (settings && settings.monospaceFont) || 'jetbrains-mono',
+      monospaceLigatures: !!(settings && settings.monospaceLigatures === true),
+    };
+    this.refreshPreview();
   }
 
   open(htmlContent) {
@@ -79,11 +123,17 @@ class PrintPreview {
     const width = orientation === 'landscape' ? size.height : size.width;
     const height = orientation === 'landscape' ? size.width : size.height;
 
+    const family = this._monospaceSettings.monospaceFont === 'fira-code' ? 'Fira Code' : 'JetBrains Mono';
+    const ligaturesOn = this._monospaceSettings.monospaceLigatures === true;
+    const featureSettings = ligaturesOn ? 'normal' : "'liga' 0, 'calt' 0, 'dlig' 0";
+    const fontFaceBlock = buildFontFaceBlock(this._monospaceSettings.monospaceFont);
+
     const previewHtml = `
             <!DOCTYPE html>
             <html>
             <head>
                 <style>
+                    ${fontFaceBlock}
                     body {
                         margin: 20px;
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -91,7 +141,18 @@ class PrintPreview {
                         line-height: 1.6;
                     }
                     @page { size: ${width} ${height}; }
-                    pre { background: #f5f5f5; padding: 12px; border-radius: 6px; overflow-x: auto; }
+                    pre, code, kbd, samp {
+                        font-family: '${family}', monospace;
+                        font-feature-settings: ${featureSettings};
+                    }
+                    pre {
+                        background: #f5f5f5;
+                        padding: 12px;
+                        border-radius: 6px;
+                        overflow-x: auto;
+                        white-space: pre;
+                        tab-size: 4;
+                    }
                     code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13px; }
                     pre code { background: none; padding: 0; }
                     table { border-collapse: collapse; width: 100%; }
