@@ -1,6 +1,6 @@
 ---
 title: Blog Post Title
-date: {{DATE}}
+date: { { DATE } }
 author: Your Name
 tags: []
 ---

@@ -8,7 +8,9 @@ describe('SettingsStore', () => {
     data = {};
     store = new SettingsStore({
       get: (key) => data[key],
-      set: (key, value) => { data[key] = value; }
+      set: (key, value) => {
+        data[key] = value;
+      },
     });
   });
 

@@ -25,61 +25,61 @@ global.window.electronAPI = {
     exists: jest.fn(() => Promise.resolve(false)),
     isDirectory: jest.fn(() => Promise.resolve(false)),
     copy: jest.fn(() => Promise.resolve()),
-    move: jest.fn(() => Promise.resolve())
+    move: jest.fn(() => Promise.resolve()),
   },
   theme: {
-    get: jest.fn()
+    get: jest.fn(),
   },
   print: {
-    doPrint: jest.fn()
+    doPrint: jest.fn(),
   },
   export: {
     withOptions: jest.fn(),
-    spreadsheet: jest.fn()
+    spreadsheet: jest.fn(),
   },
   batch: {
     convert: jest.fn(),
-    selectFolder: jest.fn()
+    selectFolder: jest.fn(),
   },
   converter: {
     convert: jest.fn(),
-    convertBatch: jest.fn()
+    convertBatch: jest.fn(),
   },
   headerFooter: {
     getSettings: jest.fn(),
     saveSettings: jest.fn(),
     browseLogo: jest.fn(),
     saveLogo: jest.fn(),
-    clearLogo: jest.fn()
+    clearLogo: jest.fn(),
   },
   page: {
     getSettings: jest.fn(),
     updateSettings: jest.fn(),
-    setCustomStartPage: jest.fn()
+    setCustomStartPage: jest.fn(),
   },
   pdf: {
     processOperation: jest.fn(),
     getPageCount: jest.fn(),
-    selectFolder: jest.fn()
-  }
+    selectFolder: jest.fn(),
+  },
 };
 
 // Mock marked library
 global.window.marked = {
   parse: jest.fn((text) => `<p>${text}</p>`),
-  use: jest.fn()
+  use: jest.fn(),
 };
 
 // Mock DOMPurify
 global.window.DOMPurify = {
-  sanitize: jest.fn((html) => html)
+  sanitize: jest.fn((html) => html),
 };
 
 // Mock highlight.js
 global.window.hljs = {
-  highlight: jest.fn((code, options) => ({ value: code })),
+  highlight: jest.fn((code, _options) => ({ value: code })),
   highlightAuto: jest.fn((code) => ({ value: code })),
-  getLanguage: jest.fn(() => true)
+  getLanguage: jest.fn(() => true),
 };
 
 // Mock localStorage
@@ -87,7 +87,7 @@ const localStorageMock = {
   getItem: jest.fn(),
   setItem: jest.fn(),
   removeItem: jest.fn(),
-  clear: jest.fn()
+  clear: jest.fn(),
 };
 global.localStorage = localStorageMock;
 

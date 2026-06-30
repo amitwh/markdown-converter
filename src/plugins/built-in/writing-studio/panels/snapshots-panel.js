@@ -45,7 +45,11 @@ function renderSnapshotsPanel(container, { engines, editor }) {
 
     const actions = document.createElement('div');
     actions.className = 'ws-snapshot-actions';
-    for (const [action, text, cls] of [['restore', 'Restore', ''], ['diff', 'Diff', ''], ['delete', 'Delete', 'ws-btn-danger']]) {
+    for (const [action, text, cls] of [
+      ['restore', 'Restore', ''],
+      ['diff', 'Diff', ''],
+      ['delete', 'Delete', 'ws-btn-danger'],
+    ]) {
       const actionBtn = document.createElement('button');
       actionBtn.className = 'ws-btn ws-btn-sm' + (cls ? ' ' + cls : '');
       actionBtn.textContent = text;

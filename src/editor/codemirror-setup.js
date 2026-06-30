@@ -12,38 +12,23 @@ const { EditorState } = require('@codemirror/state');
 const { markdown, markdownLanguage } = require('@codemirror/lang-markdown');
 // Language extensions loaded lazily on first use
 let _javascript, _html, _css, _json, _python;
-const {
-  defaultKeymap,
-  history,
-  historyKeymap,
-  indentWithTab,
-} = require('@codemirror/commands');
-const {
-  searchKeymap,
-  highlightSelectionMatches,
-} = require('@codemirror/search');
-const {
-  autocompletion,
-  completionKeymap,
-} = require('@codemirror/autocomplete');
-const {
-  bracketMatching,
-  foldGutter,
-  indentOnInput,
-} = require('@codemirror/language');
+const { defaultKeymap, history, historyKeymap, indentWithTab } = require('@codemirror/commands');
+const { searchKeymap, highlightSelectionMatches } = require('@codemirror/search');
+const { autocompletion, completionKeymap } = require('@codemirror/autocomplete');
+const { bracketMatching, foldGutter, indentOnInput } = require('@codemirror/language');
 const { oneDark } = require('@codemirror/theme-one-dark');
 
 // Custom theme for JetBrains Mono font
 const jetBrainsMonoTheme = EditorView.theme({
   '&': {
-    fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Courier New', monospace"
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Courier New', monospace",
   },
   '.cm-content': {
-    fontFamily: 'inherit'
+    fontFamily: 'inherit',
   },
   '.cm-scroller': {
-    fontFamily: 'inherit'
-  }
+    fontFamily: 'inherit',
+  },
 });
 
 /**
@@ -59,7 +44,14 @@ const jetBrainsMonoTheme = EditorView.theme({
  * @returns {EditorView} the created editor view
  */
 function createEditor(parentElement, options = {}) {
-  console.log('[createEditor] Called with parentElement:', parentElement?.id, 'dimensions:', parentElement?.clientWidth, 'x', parentElement?.clientHeight);
+  console.log(
+    '[createEditor] Called with parentElement:',
+    parentElement?.id,
+    'dimensions:',
+    parentElement?.clientWidth,
+    'x',
+    parentElement?.clientHeight
+  );
   if (!parentElement) {
     console.error('[createEditor] ERROR: parentElement is null or undefined!');
     return null;
@@ -125,11 +117,26 @@ function createEditor(parentElement, options = {}) {
  */
 function getLanguageExtension(lang) {
   const loaders = {
-    javascript: () => { if (!_javascript) _javascript = require('@codemirror/lang-javascript').javascript; return _javascript(); },
-    html: () => { if (!_html) _html = require('@codemirror/lang-html').html; return _html(); },
-    css: () => { if (!_css) _css = require('@codemirror/lang-css').css; return _css(); },
-    json: () => { if (!_json) _json = require('@codemirror/lang-json').json; return _json(); },
-    python: () => { if (!_python) _python = require('@codemirror/lang-python').python; return _python(); },
+    javascript: () => {
+      if (!_javascript) _javascript = require('@codemirror/lang-javascript').javascript;
+      return _javascript();
+    },
+    html: () => {
+      if (!_html) _html = require('@codemirror/lang-html').html;
+      return _html();
+    },
+    css: () => {
+      if (!_css) _css = require('@codemirror/lang-css').css;
+      return _css();
+    },
+    json: () => {
+      if (!_json) _json = require('@codemirror/lang-json').json;
+      return _json();
+    },
+    python: () => {
+      if (!_python) _python = require('@codemirror/lang-python').python;
+      return _python();
+    },
     markdown: () => markdown({ base: markdownLanguage }),
   };
   loaders.js = loaders.javascript;

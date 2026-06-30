@@ -7,7 +7,7 @@ describe('SprintEngine', () => {
   beforeEach(() => {
     events = [];
     engine = new SprintEngine({
-      onEvent: (name, data) => events.push({ name, data })
+      onEvent: (name, data) => events.push({ name, data }),
     });
   });
 
@@ -45,7 +45,7 @@ describe('SprintEngine', () => {
   test('tick auto-stops when time expires and emits sprint:complete', () => {
     engine.start(1, 100); // 1 minute
     engine.tick(60 * 1000 + 1); // just past
-    expect(events.some(e => e.name === 'sprint:complete')).toBe(true);
+    expect(events.some((e) => e.name === 'sprint:complete')).toBe(true);
     expect(engine.isActive()).toBe(false);
   });
 

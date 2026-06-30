@@ -25,7 +25,7 @@ describe('PluginLoader', () => {
       id: 'my-plugin',
       name: 'My Plugin',
       version: '1.0.0',
-      description: 'Test'
+      description: 'Test',
     });
     const loader = new PluginLoader([tempDir]);
     const plugins = loader.discoverPlugins();
@@ -46,7 +46,7 @@ describe('PluginLoader', () => {
       id: 'test-plugin',
       name: 'Test Plugin',
       version: '1.0.0',
-      description: 'A test plugin'
+      description: 'A test plugin',
     };
     const loader = new PluginLoader([]);
     expect(loader.validateManifest(manifest)).toBe(true);
@@ -67,18 +67,32 @@ describe('PluginLoader', () => {
   test('validateManifest — rejects manifest with duplicate id', () => {
     const loader = new PluginLoader([]);
     loader.loadedIds = new Set(['existing-plugin']);
-    expect(() => loader.validateManifest({ id: 'existing-plugin', name: 'Dup', version: '1.0.0', description: 'x' }))
-      .toThrow(/duplicate/i);
+    expect(() =>
+      loader.validateManifest({
+        id: 'existing-plugin',
+        name: 'Dup',
+        version: '1.0.0',
+        description: 'x',
+      })
+    ).toThrow(/duplicate/i);
   });
 
   test('discoverPlugins — loads index.js Plugin export if present', () => {
     const pluginDir = path.join(tempDir, 'with-index');
-    writeManifest(pluginDir, { id: 'with-index', name: 'With Index', version: '1.0.0', description: 'Test' });
+    writeManifest(pluginDir, {
+      id: 'with-index',
+      name: 'With Index',
+      version: '1.0.0',
+      description: 'Test',
+    });
     // Write a simple index.js with a Plugin export
-    fs.writeFileSync(path.join(pluginDir, 'index.js'), `
+    fs.writeFileSync(
+      path.join(pluginDir, 'index.js'),
+      `
 class SimplePlugin { init() {} }
 module.exports = { Plugin: SimplePlugin };
-`);
+`
+    );
     const loader = new PluginLoader([tempDir]);
     const plugins = loader.discoverPlugins();
     expect(plugins).toHaveLength(1);

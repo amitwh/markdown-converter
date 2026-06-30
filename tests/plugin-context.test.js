@@ -13,9 +13,14 @@ describe('PluginContext', () => {
       statusBar: { registerIndicator: jest.fn() },
       eventBus: new EventBus(),
       settings: { get: jest.fn(), set: jest.fn(), onChanged: jest.fn() },
-      editor: { getContent: jest.fn(), getSelection: jest.fn(), insertAtCursor: jest.fn(), onContentChanged: jest.fn() },
+      editor: {
+        getContent: jest.fn(),
+        getSelection: jest.fn(),
+        insertAtCursor: jest.fn(),
+        onContentChanged: jest.fn(),
+      },
       ipc: { invoke: jest.fn(), on: jest.fn() },
-      exportHooks: { preHooks: [], postHooks: [] }
+      exportHooks: { preHooks: [], postHooks: [] },
     };
     context = new PluginContext(mockDeps);
   });
@@ -23,11 +28,17 @@ describe('PluginContext', () => {
   test('exposes sidebar.registerPanel with namespaced id', () => {
     const handler = jest.fn();
     context.sidebar.registerPanel('my-panel', { icon: 'test', title: 'Test', render: handler });
-    expect(mockDeps.sidebar.registerPanel).toHaveBeenCalledWith('test-plugin:my-panel', { icon: 'test', title: 'Test', render: handler });
+    expect(mockDeps.sidebar.registerPanel).toHaveBeenCalledWith('test-plugin:my-panel', {
+      icon: 'test',
+      title: 'Test',
+      render: handler,
+    });
   });
 
   test('exposes commands.register with crash-safe wrapper', () => {
-    const badHandler = () => { throw new Error('boom'); };
+    const badHandler = () => {
+      throw new Error('boom');
+    };
     context.commands.register('bad-cmd', 'Bad', badHandler, 'Ctrl+Alt+T');
     const registeredHandler = mockDeps.commands.register.mock.calls[0][2];
     expect(() => registeredHandler()).not.toThrow();

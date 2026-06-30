@@ -48,7 +48,9 @@ describe('EventBus', () => {
 
   test('handler errors are caught and logged, not thrown', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    bus.on('bad:event', () => { throw new Error('boom'); });
+    bus.on('bad:event', () => {
+      throw new Error('boom');
+    });
     expect(() => bus.emit('bad:event', {})).not.toThrow();
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();

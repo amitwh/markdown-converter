@@ -42,7 +42,7 @@ Walk through the implementation.
 ```javascript
 // Example code
 function example() {
-    return 'Hello';
+  return 'Hello';
 }
 ```
 
@@ -53,10 +53,12 @@ How to verify everything works.
 ## Common Issues
 
 ### Issue 1
+
 **Problem:** Description of the problem.
 **Solution:** How to fix it.
 
 ### Issue 2
+
 **Problem:** Description of the problem.
 **Solution:** How to fix it.
 

@@ -74,7 +74,7 @@ describe('Preload Security', () => {
       'execute-code',
       'show-pdf-editor-from-toolbar',
       'menu-open',
-      'export'
+      'export',
     ];
 
     const EXPECTED_RECEIVE_CHANNELS = [
@@ -127,7 +127,7 @@ describe('Preload Security', () => {
       'load-template-menu',
       'toggle-command-palette',
       'toggle-sidebar-panel',
-      'toggle-bottom-panel'
+      'toggle-bottom-panel',
     ];
 
     test('should define all expected send channels', () => {

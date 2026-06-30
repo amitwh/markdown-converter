@@ -35,7 +35,7 @@ describe('Utility Functions', () => {
 
       return {
         command: parts[0],
-        args: parts.slice(1)
+        args: parts.slice(1),
       };
     }
 
@@ -58,7 +58,9 @@ describe('Utility Functions', () => {
     });
 
     test('should handle multiple options', () => {
-      const result = parseCommand('pandoc input.md --pdf-engine=xelatex -V geometry:margin=1in -o output.pdf');
+      const result = parseCommand(
+        'pandoc input.md --pdf-engine=xelatex -V geometry:margin=1in -o output.pdf'
+      );
       expect(result.command).toBe('pandoc');
       expect(result.args).toContain('--pdf-engine=xelatex');
       expect(result.args).toContain('-V');
@@ -75,11 +77,13 @@ describe('Utility Functions', () => {
     // This function converts hex colors to RGB
     function hexToRgb(hex) {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16) / 255,
-        g: parseInt(result[2], 16) / 255,
-        b: parseInt(result[3], 16) / 255
-      } : null;
+      return result
+        ? {
+            r: parseInt(result[1], 16) / 255,
+            g: parseInt(result[2], 16) / 255,
+            b: parseInt(result[3], 16) / 255,
+          }
+        : null;
     }
 
     test('should convert black hex to RGB', () => {

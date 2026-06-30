@@ -1,85 +1,85 @@
 class PrintPreview {
-    constructor() {
-        this.overlay = document.getElementById('print-preview-overlay');
-        this.modal = window.modals?.printPreviewModal;
-        this._lastContent = '';
-        this.setupEventListeners();
+  constructor() {
+    this.overlay = document.getElementById('print-preview-overlay');
+    this.modal = window.modals?.printPreviewModal;
+    this._lastContent = '';
+    this.setupEventListeners();
+  }
+
+  open(htmlContent) {
+    this._lastContent = htmlContent;
+    if (this.modal) {
+      this.modal.open();
+    } else {
+      this.overlay.classList.remove('hidden');
     }
+    this.updatePreview(htmlContent);
+    this.updateScaleLabel();
+  }
 
-    open(htmlContent) {
-        this._lastContent = htmlContent;
-        if (this.modal) {
-            this.modal.open();
-        } else {
-            this.overlay.classList.remove('hidden');
-        }
-        this.updatePreview(htmlContent);
-        this.updateScaleLabel();
+  close() {
+    if (this.modal) {
+      this.modal.close();
+    } else {
+      this.overlay.classList.add('hidden');
     }
+  }
 
-    close() {
-        if (this.modal) {
-            this.modal.close();
-        } else {
-            this.overlay.classList.add('hidden');
-        }
-    }
+  setupEventListeners() {
+    document.getElementById('print-preview-close')?.addEventListener('click', () => this.close());
+    document.getElementById('print-cancel')?.addEventListener('click', () => this.close());
+    document.getElementById('print-execute')?.addEventListener('click', () => this.executePrint());
 
-    setupEventListeners() {
-        document.getElementById('print-preview-close')?.addEventListener('click', () => this.close());
-        document.getElementById('print-cancel')?.addEventListener('click', () => this.close());
-        document.getElementById('print-execute')?.addEventListener('click', () => this.executePrint());
+    // Update preview on option changes
+    ['print-paper-size', 'print-orientation', 'print-margins'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('change', () => this.refreshPreview());
+    });
 
-        // Update preview on option changes
-        ['print-paper-size', 'print-orientation', 'print-margins'].forEach(id => {
-            document.getElementById(id)?.addEventListener('change', () => this.refreshPreview());
-        });
+    // Scale slider
+    const scaleSlider = document.getElementById('print-scale');
+    scaleSlider?.addEventListener('input', () => this.updateScaleLabel());
 
-        // Scale slider
-        const scaleSlider = document.getElementById('print-scale');
-        scaleSlider?.addEventListener('input', () => this.updateScaleLabel());
+    // Page range toggle
+    document.getElementById('print-pages')?.addEventListener('change', (e) => {
+      const rangeInput = document.getElementById('print-page-range');
+      if (rangeInput) {
+        rangeInput.classList.toggle('hidden', e.target.value !== 'custom');
+      }
+    });
 
-        // Page range toggle
-        document.getElementById('print-pages')?.addEventListener('change', (e) => {
-            const rangeInput = document.getElementById('print-page-range');
-            if (rangeInput) {
-                rangeInput.classList.toggle('hidden', e.target.value !== 'custom');
-            }
-        });
+    // Note: Backdrop click and Escape key are now handled by ModalManager
+  }
 
-        // Note: Backdrop click and Escape key are now handled by ModalManager
-    }
+  updateScaleLabel() {
+    const scale = document.getElementById('print-scale')?.value || 100;
+    const label = document.getElementById('print-scale-value');
+    if (label) label.textContent = `${scale}%`;
+  }
 
-    updateScaleLabel() {
-        const scale = document.getElementById('print-scale')?.value || 100;
-        const label = document.getElementById('print-scale-value');
-        if (label) label.textContent = `${scale}%`;
-    }
+  updatePreview(htmlContent) {
+    const frame = document.getElementById('print-preview-frame');
+    if (!frame) return;
 
-    updatePreview(htmlContent) {
-        const frame = document.getElementById('print-preview-frame');
-        if (!frame) return;
+    this._lastContent = htmlContent;
 
-        this._lastContent = htmlContent;
+    const orientation = document.getElementById('print-orientation')?.value || 'portrait';
+    const paperSize = document.getElementById('print-paper-size')?.value || 'A4';
 
-        const orientation = document.getElementById('print-orientation')?.value || 'portrait';
-        const paperSize = document.getElementById('print-paper-size')?.value || 'A4';
+    // Get dimensions for paper size
+    const sizes = {
+      A3: { width: '297mm', height: '420mm' },
+      A4: { width: '210mm', height: '297mm' },
+      A5: { width: '148mm', height: '210mm' },
+      Letter: { width: '8.5in', height: '11in' },
+      Legal: { width: '8.5in', height: '14in' },
+      Tabloid: { width: '11in', height: '17in' },
+    };
 
-        // Get dimensions for paper size
-        const sizes = {
-            'A3': { width: '297mm', height: '420mm' },
-            'A4': { width: '210mm', height: '297mm' },
-            'A5': { width: '148mm', height: '210mm' },
-            'Letter': { width: '8.5in', height: '11in' },
-            'Legal': { width: '8.5in', height: '14in' },
-            'Tabloid': { width: '11in', height: '17in' },
-        };
+    const size = sizes[paperSize] || sizes['A4'];
+    const width = orientation === 'landscape' ? size.height : size.width;
+    const height = orientation === 'landscape' ? size.width : size.height;
 
-        const size = sizes[paperSize] || sizes['A4'];
-        const width = orientation === 'landscape' ? size.height : size.width;
-        const height = orientation === 'landscape' ? size.width : size.height;
-
-        const previewHtml = `
+    const previewHtml = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -105,34 +105,34 @@ class PrintPreview {
             </html>
         `;
 
-        frame.srcdoc = previewHtml;
-    }
+    frame.srcdoc = previewHtml;
+  }
 
-    refreshPreview() {
-        if (this._lastContent) {
-            this.updatePreview(this._lastContent);
-        }
+  refreshPreview() {
+    if (this._lastContent) {
+      this.updatePreview(this._lastContent);
     }
+  }
 
-    getOptions() {
-        return {
-            paperSize: document.getElementById('print-paper-size')?.value || 'A4',
-            orientation: document.getElementById('print-orientation')?.value || 'portrait',
-            margins: document.getElementById('print-margins')?.value || 'default',
-            scale: parseInt(document.getElementById('print-scale')?.value || '100'),
-            headers: document.getElementById('print-headers')?.checked ?? true,
-            background: document.getElementById('print-background')?.checked ?? true,
-            pages: document.getElementById('print-pages')?.value || 'all',
-            pageRange: document.getElementById('print-page-range')?.value || '',
-        };
-    }
+  getOptions() {
+    return {
+      paperSize: document.getElementById('print-paper-size')?.value || 'A4',
+      orientation: document.getElementById('print-orientation')?.value || 'portrait',
+      margins: document.getElementById('print-margins')?.value || 'default',
+      scale: parseInt(document.getElementById('print-scale')?.value || '100'),
+      headers: document.getElementById('print-headers')?.checked ?? true,
+      background: document.getElementById('print-background')?.checked ?? true,
+      pages: document.getElementById('print-pages')?.value || 'all',
+      pageRange: document.getElementById('print-page-range')?.value || '',
+    };
+  }
 
-    executePrint() {
-        const options = this.getOptions();
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.send('do-print-with-options', options);
-        this.close();
-    }
+  executePrint() {
+    const options = this.getOptions();
+    const { ipcRenderer } = require('electron');
+    ipcRenderer.send('do-print-with-options', options);
+    this.close();
+  }
 }
 
 module.exports = { PrintPreview };

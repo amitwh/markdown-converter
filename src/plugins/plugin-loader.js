@@ -35,7 +35,10 @@ class PluginLoader {
               const loaded = require(indexPath);
               PluginClass = loaded.Plugin || loaded.default || null;
             } catch (err) {
-              console.error(`[PluginLoader] Failed to load index.js for "${manifest.id}":`, err.message);
+              console.error(
+                `[PluginLoader] Failed to load index.js for "${manifest.id}":`,
+                err.message
+              );
               continue;
             }
           }
@@ -46,7 +49,7 @@ class PluginLoader {
             description: manifest.description,
             manifest,
             PluginClass,
-            dir: pluginDir
+            dir: pluginDir,
           });
           this.loadedIds.add(manifest.id);
         } catch (err) {

@@ -12,10 +12,12 @@ Brief description of what this feature does.
 ## Requirements
 
 ### Functional Requirements
+
 1. Requirement 1
 2. Requirement 2
 
 ### Non-Functional Requirements
+
 1. Performance requirement
 2. Security requirement
 
@@ -27,9 +29,9 @@ Describe the technical approach.
 
 ### Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /api/resource | Get resource |
+| Method | Path          | Description  |
+| ------ | ------------- | ------------ |
+| GET    | /api/resource | Get resource |
 
 ## Testing Strategy
 
@@ -37,6 +39,6 @@ Describe how this will be tested.
 
 ## Timeline
 
-| Phase | Duration | Deliverables |
-|-------|----------|-------------|
-| Phase 1 | 1 week | Core implementation |
+| Phase   | Duration | Deliverables        |
+| ------- | -------- | ------------------- |
+| Phase 1 | 1 week   | Core implementation |

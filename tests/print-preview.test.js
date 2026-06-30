@@ -8,13 +8,17 @@
  */
 
 describe('PrintPreview', () => {
-    beforeEach(() => {
-        // Mock electron require for executePrint
-        jest.mock('electron', () => ({
-            ipcRenderer: { send: jest.fn(), invoke: jest.fn() }
-        }), { virtual: true });
+  beforeEach(() => {
+    // Mock electron require for executePrint
+    jest.mock(
+      'electron',
+      () => ({
+        ipcRenderer: { send: jest.fn(), invoke: jest.fn() },
+      }),
+      { virtual: true }
+    );
 
-        document.body.innerHTML = `
+    document.body.innerHTML = `
             <div class="dialog-overlay hidden" id="print-preview-overlay">
                 <button id="print-preview-close"></button>
                 <button id="print-cancel"></button>
@@ -31,79 +35,87 @@ describe('PrintPreview', () => {
                 <iframe id="print-preview-frame"></iframe>
             </div>
         `;
-    });
+  });
 
-    test('getOptions returns default values', () => {
-        const { PrintPreview } = require('../src/print-preview');
-        const preview = new PrintPreview();
-        const options = preview.getOptions();
-        expect(options.paperSize).toBe('A4');
-        expect(options.orientation).toBe('portrait');
-        expect(options.scale).toBe(100);
-        expect(options.headers).toBe(true);
-        expect(options.background).toBe(true);
-        expect(options.pages).toBe('all');
-        expect(options.margins).toBe('default');
-        expect(options.pageRange).toBe('');
-    });
+  test('getOptions returns default values', () => {
+    const { PrintPreview } = require('../src/print-preview');
+    const preview = new PrintPreview();
+    const options = preview.getOptions();
+    expect(options.paperSize).toBe('A4');
+    expect(options.orientation).toBe('portrait');
+    expect(options.scale).toBe(100);
+    expect(options.headers).toBe(true);
+    expect(options.background).toBe(true);
+    expect(options.pages).toBe('all');
+    expect(options.margins).toBe('default');
+    expect(options.pageRange).toBe('');
+  });
 
-    test('opens and closes', () => {
-        const { PrintPreview } = require('../src/print-preview');
-        const preview = new PrintPreview();
-        preview.open('<p>Test</p>');
-        expect(document.getElementById('print-preview-overlay').classList.contains('hidden')).toBe(false);
-        preview.close();
-        expect(document.getElementById('print-preview-overlay').classList.contains('hidden')).toBe(true);
-    });
+  test('opens and closes', () => {
+    const { PrintPreview } = require('../src/print-preview');
+    const preview = new PrintPreview();
+    preview.open('<p>Test</p>');
+    expect(document.getElementById('print-preview-overlay').classList.contains('hidden')).toBe(
+      false
+    );
+    preview.close();
+    expect(document.getElementById('print-preview-overlay').classList.contains('hidden')).toBe(
+      true
+    );
+  });
 
-    test('updateScaleLabel reflects slider value', () => {
-        const { PrintPreview } = require('../src/print-preview');
-        const preview = new PrintPreview();
-        document.getElementById('print-scale').value = '75';
-        preview.updateScaleLabel();
-        expect(document.getElementById('print-scale-value').textContent).toBe('75%');
-    });
+  test('updateScaleLabel reflects slider value', () => {
+    const { PrintPreview } = require('../src/print-preview');
+    const preview = new PrintPreview();
+    document.getElementById('print-scale').value = '75';
+    preview.updateScaleLabel();
+    expect(document.getElementById('print-scale-value').textContent).toBe('75%');
+  });
 
-    test('close button closes preview', () => {
-        const { PrintPreview } = require('../src/print-preview');
-        const preview = new PrintPreview();
-        preview.open('<p>Test</p>');
-        document.getElementById('print-preview-close').click();
-        expect(document.getElementById('print-preview-overlay').classList.contains('hidden')).toBe(true);
-    });
+  test('close button closes preview', () => {
+    const { PrintPreview } = require('../src/print-preview');
+    const preview = new PrintPreview();
+    preview.open('<p>Test</p>');
+    document.getElementById('print-preview-close').click();
+    expect(document.getElementById('print-preview-overlay').classList.contains('hidden')).toBe(
+      true
+    );
+  });
 
-    test('cancel button closes preview', () => {
-        const { PrintPreview } = require('../src/print-preview');
-        const preview = new PrintPreview();
-        preview.open('<p>Test</p>');
-        document.getElementById('print-cancel').click();
-        expect(document.getElementById('print-preview-overlay').classList.contains('hidden')).toBe(true);
-    });
+  test('cancel button closes preview', () => {
+    const { PrintPreview } = require('../src/print-preview');
+    const preview = new PrintPreview();
+    preview.open('<p>Test</p>');
+    document.getElementById('print-cancel').click();
+    expect(document.getElementById('print-preview-overlay').classList.contains('hidden')).toBe(
+      true
+    );
+  });
 
-    test('getOptions reflects changed values', () => {
-        const { PrintPreview } = require('../src/print-preview');
-        const preview = new PrintPreview();
+  test('getOptions reflects changed values', () => {
+    const { PrintPreview } = require('../src/print-preview');
+    const preview = new PrintPreview();
 
-        // Change paper size to Letter
-        const paperSelect = document.getElementById('print-paper-size');
-        paperSelect.value = 'Letter';
+    // Change paper size to Letter
+    const paperSelect = document.getElementById('print-paper-size');
+    paperSelect.value = 'Letter';
 
-        // Change scale
-        document.getElementById('print-scale').value = '50';
+    // Change scale
+    document.getElementById('print-scale').value = '50';
 
-        // Uncheck headers
-        document.getElementById('print-headers').checked = false;
+    // Uncheck headers
+    document.getElementById('print-headers').checked = false;
 
-        const options = preview.getOptions();
-        expect(options.paperSize).toBe('Letter');
-        expect(options.scale).toBe(50);
-        expect(options.headers).toBe(false);
-    });
+    const options = preview.getOptions();
+    expect(options.paperSize).toBe('Letter');
+    expect(options.scale).toBe(50);
+    expect(options.headers).toBe(false);
+  });
 
-    test('stores last content for refresh', () => {
-        const { PrintPreview } = require('../src/print-preview');
-        const preview = new PrintPreview();
-        preview.open('<p>Hello World</p>');
-        expect(preview._lastContent).toBe('<p>Hello World</p>');
-    });
+  test('stores last content for refresh', () => {
+    const { PrintPreview } = require('../src/print-preview');
+    const preview = new PrintPreview();
+    preview.open('<p>Hello World</p>');
+    expect(preview._lastContent).toBe('<p>Hello World</p>');
+  });
 });

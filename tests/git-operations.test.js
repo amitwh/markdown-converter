@@ -8,14 +8,14 @@ describe('GitOperations Utilities', () => {
   describe('error handling patterns', () => {
     it('should handle git errors gracefully', () => {
       const errorResponse = { error: 'Not a git repository' };
-      
+
       expect(errorResponse).toHaveProperty('error');
       expect(errorResponse.error).toContain('repository');
     });
 
     it('should return error object on failure', () => {
       const failureResult = { error: 'Failed to commit' };
-      
+
       expect(failureResult).toBeDefined();
       expect(failureResult.error).toBeTruthy();
     });
@@ -56,24 +56,20 @@ describe('GitOperations Utilities', () => {
         'branch',
         'checkout',
         'push',
-        'pull'
+        'pull',
       ];
 
       expect(gitOps.length).toBeGreaterThan(0);
-      gitOps.forEach(op => {
+      gitOps.forEach((op) => {
         expect(typeof op).toBe('string');
         expect(op.length).toBeGreaterThan(0);
       });
     });
 
     it('should handle directory paths', () => {
-      const paths = [
-        '/home/user/project',
-        './current/dir',
-        '../parent/dir'
-      ];
+      const paths = ['/home/user/project', './current/dir', '../parent/dir'];
 
-      paths.forEach(pathStr => {
+      paths.forEach((pathStr) => {
         expect(typeof pathStr).toBe('string');
         expect(pathStr.length).toBeGreaterThan(0);
       });
@@ -83,10 +79,10 @@ describe('GitOperations Utilities', () => {
       const messages = [
         'fix: bug in git panel',
         'feat: add new feature',
-        'refactor: clean up code'
+        'refactor: clean up code',
       ];
 
-      messages.forEach(msg => {
+      messages.forEach((msg) => {
         expect(typeof msg).toBe('string');
         expect(msg.length).toBeGreaterThan(0);
       });
@@ -101,7 +97,7 @@ describe('GitOperations Utilities', () => {
         deleted: [],
         modified: [],
         renamed: [],
-        staged: ['file.md']
+        staged: ['file.md'],
       };
 
       expect(statusResponse).toHaveProperty('staged');
@@ -110,10 +106,8 @@ describe('GitOperations Utilities', () => {
 
     it('should return log entries', () => {
       const logResponse = {
-        all: [
-          { hash: 'abc123', message: 'fix: something' }
-        ],
-        latest: { hash: 'abc123', message: 'fix: something' }
+        all: [{ hash: 'abc123', message: 'fix: something' }],
+        latest: { hash: 'abc123', message: 'fix: something' },
       };
 
       expect(logResponse).toHaveProperty('all');

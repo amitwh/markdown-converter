@@ -140,7 +140,7 @@ const ALLOWED_SEND_CHANNELS = [
 
   // Plugin settings
   'plugin-settings:get',
-  'plugin-settings:set'
+  'plugin-settings:set',
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [
@@ -237,7 +237,7 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'load-template-menu',
   'toggle-command-palette',
   'toggle-sidebar-panel',
-  'toggle-bottom-panel'
+  'toggle-bottom-panel',
 ];
 
 /**
@@ -344,23 +344,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     exists: (filePath) => ipcRenderer.invoke('path-exists', filePath),
     isDirectory: (filePath) => ipcRenderer.invoke('is-directory', filePath),
     copy: (source, destination) => ipcRenderer.invoke('copy-path', { source, destination }),
-    move: (source, destination) => ipcRenderer.invoke('move-path', { source, destination })
+    move: (source, destination) => ipcRenderer.invoke('move-path', { source, destination }),
   },
 
   // Theme Operations
   theme: {
-    get: () => ipcRenderer.send('get-theme')
+    get: () => ipcRenderer.send('get-theme'),
   },
 
   // Print Operations
   print: {
-    doPrint: (options) => ipcRenderer.send('do-print', options)
+    doPrint: (options) => ipcRenderer.send('do-print', options),
   },
 
   // Export Operations
   export: {
     withOptions: (format, options) => ipcRenderer.send('export-with-options', { format, options }),
-    spreadsheet: (content, format) => ipcRenderer.send('export-spreadsheet', { content, format })
+    spreadsheet: (content, format) => ipcRenderer.send('export-spreadsheet', { content, format }),
   },
 
   // Batch Conversion
@@ -368,7 +368,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     convert: (inputFolder, outputFolder, format, options) => {
       ipcRenderer.send('batch-convert', { inputFolder, outputFolder, format, options });
     },
-    selectFolder: (type) => ipcRenderer.send('select-folder', type)
+    selectFolder: (type) => ipcRenderer.send('select-folder', type),
   },
 
   // Universal Converter
@@ -377,8 +377,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.send('universal-convert', { tool, fromFormat, toFormat, filePath });
     },
     convertBatch: (tool, fromFormat, toFormat, inputFolder, outputFolder) => {
-      ipcRenderer.send('universal-convert-batch', { tool, fromFormat, toFormat, inputFolder, outputFolder });
-    }
+      ipcRenderer.send('universal-convert-batch', {
+        tool,
+        fromFormat,
+        toFormat,
+        inputFolder,
+        outputFolder,
+      });
+    },
   },
 
   // Header/Footer Operations
@@ -386,22 +392,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSettings: () => ipcRenderer.send('get-header-footer-settings'),
     saveSettings: (settings) => ipcRenderer.send('save-header-footer-settings', settings),
     browseLogo: (position) => ipcRenderer.send('browse-header-footer-logo', position),
-    saveLogo: (position, filePath) => ipcRenderer.send('save-header-footer-logo', { position, filePath }),
-    clearLogo: (position) => ipcRenderer.send('clear-header-footer-logo', position)
+    saveLogo: (position, filePath) =>
+      ipcRenderer.send('save-header-footer-logo', { position, filePath }),
+    clearLogo: (position) => ipcRenderer.send('clear-header-footer-logo', position),
   },
 
   // Page Settings
   page: {
     getSettings: () => ipcRenderer.send('get-page-settings'),
     updateSettings: (settings) => ipcRenderer.send('update-page-settings', settings),
-    setCustomStartPage: (pageNumber) => ipcRenderer.send('set-custom-start-page', pageNumber)
+    setCustomStartPage: (pageNumber) => ipcRenderer.send('set-custom-start-page', pageNumber),
   },
 
   // PDF Operations
   pdf: {
     processOperation: (data) => ipcRenderer.send('process-pdf-operation', data),
     getPageCount: (filePath) => ipcRenderer.send('get-pdf-page-count', filePath),
-    selectFolder: (inputId) => ipcRenderer.send('select-pdf-folder', inputId)
+    selectFolder: (inputId) => ipcRenderer.send('select-pdf-folder', inputId),
   },
 
   // Image Converter Operations
@@ -410,7 +417,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     batchConvert: (data) => ipcRenderer.send('image-batch-convert', data),
     resize: (data) => ipcRenderer.send('image-resize', data),
     compress: (data) => ipcRenderer.send('image-compress', data),
-    rotate: (data) => ipcRenderer.send('image-rotate', data)
+    rotate: (data) => ipcRenderer.send('image-rotate', data),
   },
 
   // Audio Converter Operations
@@ -419,7 +426,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     batchConvert: (data) => ipcRenderer.send('audio-batch-convert', data),
     extract: (data) => ipcRenderer.send('audio-extract', data),
     trim: (data) => ipcRenderer.send('audio-trim', data),
-    merge: (data) => ipcRenderer.send('audio-merge', data)
+    merge: (data) => ipcRenderer.send('audio-merge', data),
   },
 
   // Video Converter Operations
@@ -429,16 +436,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     compress: (data) => ipcRenderer.send('video-compress', data),
     trim: (data) => ipcRenderer.send('video-trim', data),
     extractFrames: (data) => ipcRenderer.send('video-frames', data),
-    toGif: (data) => ipcRenderer.send('video-gif', data)
+    toGif: (data) => ipcRenderer.send('video-gif', data),
   },
 
   // Generator Windows
   generators: {
     openAscii: () => ipcRenderer.send('open-ascii-generator'),
-    openTable: () => ipcRenderer.send('open-table-generator')
+    openTable: () => ipcRenderer.send('open-table-generator'),
   },
 
-  getAppVersion: () => ipcRenderer.invoke('get-app-version')
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 });
 
 // Log successful preload initialization

@@ -1,12 +1,14 @@
 function createWelcomeContent(recentFiles = [], appVersion = '') {
-    const recentHtml = recentFiles.length
-        ? recentFiles.map(f => {
-            const name = f.split(/[/\\]/).pop();
-            return `<div class="welcome-recent-item" data-path="${f}"><span class="welcome-recent-name">${name}</span><span class="welcome-recent-path">${f}</span></div>`;
-        }).join('')
-        : '<p class="welcome-muted">No recent files</p>';
+  const recentHtml = recentFiles.length
+    ? recentFiles
+        .map((f) => {
+          const name = f.split(/[/\\]/).pop();
+          return `<div class="welcome-recent-item" data-path="${f}"><span class="welcome-recent-name">${name}</span><span class="welcome-recent-path">${f}</span></div>`;
+        })
+        .join('')
+    : '<p class="welcome-muted">No recent files</p>';
 
-    return `
+  return `
     <div class="welcome-container">
         <div class="welcome-hero">
             <h1 class="welcome-title">MarkdownConverter</h1>

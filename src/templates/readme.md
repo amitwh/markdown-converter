@@ -21,9 +21,9 @@ const project = require('project-name');
 
 ## Configuration
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| option1 | true | Description |
+| Option  | Default | Description |
+| ------- | ------- | ----------- |
+| option1 | true    | Description |
 
 ## Contributing
 
