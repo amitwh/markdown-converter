@@ -2562,7 +2562,23 @@ function performExportWithOptions(format, options) {
 
       // Use pandoc for export with advanced options
 
-      let pandocCmd = `${getPandocPath()} "${currentFile}" -o "${outputFile}"`;
+      let inputFile = currentFile;
+      let tempInputFile = null;
+
+      // Pre-process markdown for Word output so that <style> blocks, HTML
+      // comments, and alignment <div> tags do not appear as visible text.
+      if (format === 'docx') {
+        const content = fs.readFileSync(currentFile, 'utf-8');
+        const cleanedContent = WordTemplateExporter.preprocessMarkdownForWordExport(content);
+        tempInputFile = path.join(
+          require('os').tmpdir(),
+          `mc_export_${Date.now()}_${path.basename(currentFile)}`
+        );
+        fs.writeFileSync(tempInputFile, cleanedContent, 'utf-8');
+        inputFile = tempInputFile;
+      }
+
+      let pandocCmd = `${getPandocPath()} "${inputFile}" -o "${outputFile}"`;
 
       // Add template if specified
       if (options.template && options.template !== 'default') {
@@ -2657,7 +2673,15 @@ function performExportWithOptions(format, options) {
         });
       } else if (format === 'docx') {
         pandocCmd += ' -t docx';
-        exportWithPandoc(pandocCmd, outputFile, format);
+        exportWithPandoc(pandocCmd, outputFile, format, () => {
+          if (tempInputFile) {
+            try {
+              fs.unlinkSync(tempInputFile);
+            } catch {
+              // Ignore cleanup errors
+            }
+          }
+        });
       } else if (format === 'pptx') {
         // Add PowerPoint footer if enabled
         if (headerFooterSettings.enabled && headerFooterSettings.footer.center) {
@@ -2859,7 +2883,7 @@ function showExportSuccess(outputFile) {
 }
 
 // Helper function to export with pandoc (general) - uses runPandocCmd for safety
-function exportWithPandoc(pandocCmd, outputFile, format) {
+function exportWithPandoc(pandocCmd, outputFile, format, onComplete) {
   runPandocCmd(pandocCmd, async (error, stdout, stderr) => {
     if (error) {
       console.error(`Pandoc error for ${format}:`, error);
@@ -2923,6 +2947,9 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
       if (format === 'odt' && headerFooterSettings.enabled) {
       }
       showExportSuccess(outputFile);
+    }
+    if (typeof onComplete === 'function') {
+      onComplete(error);
     }
   });
 }
@@ -3749,7 +3776,23 @@ async function performBatchConversion(inputFolder, outputFolder, format, options
     }
 
     // Build pandoc command for other formats
-    let pandocCmd = `${getPandocPath()} "${inputFile}" -o "${outputFile}"`;
+    let pandocInputFile = inputFile;
+    let batchTempInputFile = null;
+
+    // Pre-process markdown for Word output so that <style> blocks, HTML
+    // comments, and alignment <div> tags do not appear as visible text.
+    if (format === 'docx') {
+      const content = fs.readFileSync(inputFile, 'utf-8');
+      const cleanedContent = WordTemplateExporter.preprocessMarkdownForWordExport(content);
+      batchTempInputFile = path.join(
+        require('os').tmpdir(),
+        `mc_batch_export_${Date.now()}_${path.basename(inputFile)}`
+      );
+      fs.writeFileSync(batchTempInputFile, cleanedContent, 'utf-8');
+      pandocInputFile = batchTempInputFile;
+    }
+
+    let pandocCmd = `${getPandocPath()} "${pandocInputFile}" -o "${outputFile}"`;
 
     // Add template if specified
     if (options.template && options.template !== 'default') {
@@ -3850,6 +3893,15 @@ async function performBatchConversion(inputFolder, outputFolder, format, options
 
     // Execute conversion (using runPandocCmd for safety)
     runPandocCmd(pandocCmd, async (error, _stdout, stderr) => {
+      // Clean up temporary pre-processed input file
+      if (batchTempInputFile) {
+        try {
+          fs.unlinkSync(batchTempInputFile);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+
       if (error) {
         console.error(`Batch: Failed to convert ${path.basename(inputFile)}:`, error.message, stderr);
       } else {

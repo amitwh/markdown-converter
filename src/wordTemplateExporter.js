@@ -16,6 +16,26 @@ class WordTemplateExporter {
   }
 
   /**
+   * Strip HTML artifacts that Pandoc / Word cannot render and that would
+   * otherwise appear as visible text in DOCX output.
+   * Removes HTML comments, <style> blocks, and alignment <div> tags.
+   */
+  static preprocessMarkdownForWordExport(markdown) {
+    if (typeof markdown !== 'string') return markdown;
+    return (
+      markdown
+        // HTML comments (multi-line)
+        .replace(/<!--[\s\S]*?-->/g, '')
+        // <style> blocks (case-insensitive, multi-line)
+        .replace(/<style\b[\s\S]*?<\/style>/gi, '')
+        // Opening <div align="..."> tags
+        .replace(/<div\b[^>]*?\balign\s*=\s*["'][^"']*["'][^>]*>/gi, '')
+        // Closing </div> tags
+        .replace(/<\/div\s*>/gi, '')
+    );
+  }
+
+  /**
    * Convert markdown to Word document using template
    */
   async convert(markdownContent, outputPath) {
@@ -33,7 +53,8 @@ class WordTemplateExporter {
       }
 
       // Parse markdown and generate Word XML
-      const newContentXml = this.markdownToWordXml(markdownContent);
+      const cleanedContent = WordTemplateExporter.preprocessMarkdownForWordExport(markdownContent);
+      const newContentXml = this.markdownToWordXml(cleanedContent);
 
       // Insert new content after the specified start page
       const modifiedXml = this.insertContentAfterPage(documentXml, newContentXml, this.startPage);
