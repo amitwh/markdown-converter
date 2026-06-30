@@ -2,7 +2,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { app } = require('electron');
 const { getActiveMonoFont, isLigaturesEnabled, FAMILY_BY_KEY } = require('./settings/monospaceSettings');
 
 const WEIGHT_BY_KEY = { 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold' };

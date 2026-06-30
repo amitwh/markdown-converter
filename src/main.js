@@ -1,10 +1,13 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { execFile } = require('child_process');
 const WordTemplateExporter = require('./wordTemplateExporter');
 const PDFOperations = require('./main/PDFOperations');
 const GitOperations = require('./main/GitOperations');
+const PdfFontHeader = require('./main/PdfFontHeader');
+const MonospaceFontConfig = require('./main/MonospaceFontConfig');
 
 // Add MiKTeX to PATH for LaTeX support
 if (process.platform === 'win32') {
@@ -296,8 +299,41 @@ const store = {
     } catch {}
     settings[key] = value;
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    _cachedSettings = null;
   },
 };
+
+// Cached read of the on-disk settings.json with monospace defaults applied.
+// Invalidated by store.set.
+let _cachedSettings = null;
+function readSettingsJsonCached() {
+  if (_cachedSettings) return _cachedSettings;
+  try {
+    _cachedSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+  } catch {
+    _cachedSettings = {};
+  }
+  _cachedSettings.monospaceFont = _cachedSettings.monospaceFont || 'jetbrains-mono';
+  _cachedSettings.monospaceLigatures = _cachedSettings.monospaceLigatures === true;
+  return _cachedSettings;
+}
+
+// Build a monospace font header (.tex) for xelatex/lualatex from current settings.
+// Returns null when the bundled font is unavailable — callers should fall back to defaults.
+function buildMonospaceHeaderFile() {
+  const s = readSettingsJsonCached();
+  const familyKey = s.monospaceFont || 'jetbrains-mono';
+  const monoFontPath = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 400);
+  const monoBoldPath = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 700);
+  const tex = PdfFontHeader.build({
+    fontTtfPath: monoFontPath,
+    boldTtfPath: monoBoldPath,
+    ligatures: !!s.monospaceLigatures,
+  });
+  const headerFile = path.join(os.tmpdir(), `monospace-pdf-${Date.now()}-${process.pid}.tex`);
+  fs.writeFileSync(headerFile, tex, 'utf-8');
+  return headerFile;
+}
 
 // Plugin settings IPC handlers
 ipcMain.handle('plugin-settings:get', (_event, key) => {
@@ -516,6 +552,8 @@ function pandocSupportsEpubEmbedFont() {
   const v = getPandocVersion();
   return v.major > 2 || (v.major === 2 && v.minor >= 11);
 }
+exports.pandocSupportsEpubEmbedFont = pandocSupportsEpubEmbedFont;
+exports.getPandocVersion = getPandocVersion;
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -2635,8 +2673,9 @@ function performExportWithOptions(format, options) {
         pandocCmd += ` --pdf-engine="${pdfEngine}"`;
         if (options.geometry) pandocCmd += ` -V geometry:"${options.geometry}"`;
 
-        // Add monospace font settings for code blocks (ASCII art preservation)
-        pandocCmd += ' -V monofont="Consolas"';
+        // Embed bundled monospace font so ASCII columns align in the PDF.
+        const monoHeader = buildMonospaceHeaderFile();
+        pandocCmd += ` --include-in-header="${monoHeader}"`;
         pandocCmd += ' --highlight-style=tango';
 
         // Add header/footer if enabled
@@ -2683,7 +2722,7 @@ function performExportWithOptions(format, options) {
         runPandocCmd(pandocCmd, (error) => {
           if (error) {
             // Try fallback engines if the specified one fails
-            const fallbackEngines = ['pdflatex', 'lualatex'];
+            const fallbackEngines = ['lualatex', 'pdflatex'];
             tryPdfFallback(currentFile, outputFile, fallbackEngines, 0, options, error);
           } else {
             showExportSuccess(outputFile);
@@ -2831,8 +2870,9 @@ function tryPdfFallback(inputFile, outputFile, engines, index, options, _lastErr
   const engine = engines[index];
   let pandocCmd = `${getPandocPath()} "${inputFile}" --pdf-engine=${engine} -o "${outputFile}"`;
 
-  // Add monospace font settings for code blocks (ASCII art preservation)
-  pandocCmd += ' -V monofont="Consolas"';
+  // Embed bundled monospace font so ASCII columns align in the PDF.
+  const monoHeader = buildMonospaceHeaderFile();
+  pandocCmd += ` --include-in-header="${monoHeader}"`;
   pandocCmd += ' --highlight-style=tango';
 
   // Add geometry if specified

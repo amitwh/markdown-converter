@@ -32,6 +32,10 @@ function build({ fontTtfPath, boldTtfPath, ligatures }) {
     return '% Monospace font path unavailable; TeX will use its default monospace.\n';
   }
 
+  // `boldTtfPath` is accepted for API symmetry with future formats; the glob
+  // below resolves the bold file from the regular file's family prefix.
+  void boldTtfPath;
+
   const ligValue = ligatures ? 'Ligatures=TeX' : 'Ligatures=NoCommon';
   const prefix = escape(weightPrefix(fontTtfPath));
 

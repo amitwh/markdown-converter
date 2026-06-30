@@ -25,7 +25,9 @@ function buildFontFaceBlock(familyKey) {
     const data = fs.readFileSync(fontPath);
     const dataUri = `data:font/woff2;base64,${data.toString('base64')}`;
     return `@font-face { font-family: '${family}'; font-weight: 400; font-style: normal; src: url('${dataUri}') format('woff2'); }`;
-  } catch (_) {
+  } catch (err) {
+    // Non-fatal: fall back to the system monospace stack declared in styles-modern.css.
+    if (typeof console !== 'undefined') console.warn('[print-preview] font embed failed:', err.message);
     return '';
   }
 }
