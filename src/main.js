@@ -8,6 +8,7 @@ const PDFOperations = require('./main/PDFOperations');
 const GitOperations = require('./main/GitOperations');
 const PdfFontHeader = require('./main/PdfFontHeader');
 const MonospaceFontConfig = require('./main/MonospaceFontConfig');
+const ExportCss = require('./main/ExportCss');
 
 // Add MiKTeX to PATH for LaTeX support
 if (process.platform === 'win32') {
@@ -333,6 +334,22 @@ function buildMonospaceHeaderFile() {
   const headerFile = path.join(os.tmpdir(), `monospace-pdf-${Date.now()}-${process.pid}.tex`);
   fs.writeFileSync(headerFile, tex, 'utf-8');
   return headerFile;
+}
+
+// Build a self-contained CSS fragment for HTML/EPUB exports that embeds
+// the active monospace font as a base64 data URI. Returns a string with a
+// trailing newline suitable for either inline injection or a temp file.
+function buildMonospaceExportCss() {
+  const s = readSettingsJsonCached();
+  const familyKey = s.monospaceFont || 'jetbrains-mono';
+  const family = familyKey === 'fira-code' ? 'Fira Code' : 'JetBrains Mono';
+  const monoFontPath = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 400);
+  return ExportCss.build({
+    activeFontPath: monoFontPath,
+    family,
+    weight: 400,
+    ligatures: !!s.monospaceLigatures,
+  });
 }
 
 // Plugin settings IPC handlers
@@ -2764,6 +2781,12 @@ function performExportWithOptions(format, options) {
       } else if (format === 'json') {
         pandocCmd = `${getPandocPath()} "${currentFile}" -t json -o "${outputFile}"`;
         exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'html') {
+        // Build a complete HTML file with our bundled monospace font as embedded CSS.
+        const cssFile = path.join(os.tmpdir(), `monospace-html-${Date.now()}-${process.pid}.css`);
+        fs.writeFileSync(cssFile, buildMonospaceExportCss(), 'utf-8');
+        pandocCmd = `${getPandocPath()} "${inputFile}" -s --css="${cssFile}" -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
       } else if (format === 'yaml' || format === 'xml' || format === 'toml') {
         // For YAML/XML/TOML, save the raw markdown content with the new extension
         try {
@@ -3025,6 +3048,7 @@ function exportToHTML(outputFile) {
     const marked = require('marked');
     const markdownContent = fs.readFileSync(currentFile, 'utf8');
     const htmlContent = marked.parse(markdownContent);
+    const monospaceCss = buildMonospaceExportCss();
     const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3032,6 +3056,7 @@ function exportToHTML(outputFile) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exported Document</title>
     <style>
+        ${monospaceCss}
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             line-height: 1.6;
