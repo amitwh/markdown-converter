@@ -141,6 +141,10 @@ const ALLOWED_SEND_CHANNELS = [
   // Plugin settings
   'plugin-settings:get',
   'plugin-settings:set',
+
+  // Monospace font settings
+  'get-monospace-settings',
+  'set-monospace-settings',
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [

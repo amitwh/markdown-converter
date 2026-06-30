@@ -361,6 +361,30 @@ ipcMain.handle('plugin-settings:get', (_event, key) => {
 ipcMain.handle('plugin-settings:set', (_event, { key, value }) => {
   store.set(key, value);
 });
+
+// Monospace settings IPC — consumed by the renderer to apply CSS classes
+// and to feed the PrintPreview overlay. Returns the full settings object so
+// defaults are applied centrally here.
+ipcMain.handle('get-monospace-settings', () => {
+  const s = readSettingsJsonCached();
+  return {
+    monospaceFont: s.monospaceFont || 'jetbrains-mono',
+    monospaceLigatures: s.monospaceLigatures === true,
+  };
+});
+ipcMain.handle('set-monospace-settings', (_event, partial) => {
+  const safe = partial && typeof partial === 'object' ? partial : {};
+  if (safe.monospaceFont !== undefined) {
+    store.set('monospaceFont', safe.monospaceFont);
+  }
+  if (safe.monospaceLigatures !== undefined) {
+    store.set('monospaceLigatures', safe.monospaceLigatures === true);
+  }
+  return {
+    monospaceFont: readSettingsJsonCached().monospaceFont || 'jetbrains-mono',
+    monospaceLigatures: readSettingsJsonCached().monospaceLigatures === true,
+  };
+});
 ipcMain.handle('get-app-version', () => app.getVersion());
 
 // ============================================
