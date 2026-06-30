@@ -982,3 +982,20 @@ body.theme-concrete-warm .line-numbers {
   background: #f0ebe4;
   color: #9a9696;
 }
+
+/* Monospace font + ligature toggles — driven by body classes from renderer */
+body.mono-jetbrains {
+  --font-mono-active: 'JetBrains Mono', monospace;
+}
+
+body.mono-fira {
+  --font-mono-active: 'Fira Code', monospace;
+}
+
+body.mono-ligatures-on {
+  --font-mono-feature: normal;
+}
+
+body.mono-ligatures-off {
+  --font-mono-feature: 'liga' 0, 'calt' 0, 'dlig' 0;
+}

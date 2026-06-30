@@ -95,6 +95,8 @@
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Courier New', monospace;
+  --font-mono-active: 'JetBrains Mono', monospace;
+  --font-mono-feature: 'liga' 0, 'calt' 0, 'dlig' 0;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
