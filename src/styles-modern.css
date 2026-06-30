@@ -307,7 +307,7 @@ body {
   width: 100%;
   height: 100%;
   padding: 24px;
-  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Courier New', monospace;
+  font-family: var(--font-mono-active);
   font-size: 15px;
   line-height: 1.7;
   border: none;
@@ -324,7 +324,7 @@ body {
 }
 .codemirror-container .cm-editor {
   height: 100%;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono-active);
   font-size: 14px;
 }
 .codemirror-container .cm-scroller {
@@ -393,7 +393,7 @@ body {
   background: rgba(175, 184, 193, 0.2);
   border: 1px solid #e1e4e8;
   border-radius: 6px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono-active);
   font-weight: 500;
 }
 
@@ -764,7 +764,7 @@ body {
   color: var(--gray-600);
   padding: 2px 0;
   margin-left: 16px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono-active);
   font-weight: 500;
 }
 
@@ -775,7 +775,7 @@ body {
   background: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(8px);
   border-right: 1px solid #e1e4e8;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono-active);
   font-size: 13px;
   line-height: 1.7;
   color: var(--gray-500);
@@ -2217,7 +2217,7 @@ body.theme-rosepine-dawn .batch-dialog-footer {
   background: #f3f4f6;
   padding: 2px 8px;
   border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono-active);
 }
 
 /* Dark theme command palette */
@@ -2252,7 +2252,7 @@ body[class*='dark'] .command-shortcut {
   text-overflow: ellipsis;
   flex-shrink: 0;
   background: var(--gray-50, #f9fafb);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono-active);
 }
 body[class*='dark'] .breadcrumb-bar {
   background: #1a1a1a;
@@ -2756,4 +2756,13 @@ body[class*='dark'] .btn-reorder-right {
   background: var(--gray-700, #374151);
   border-color: var(--gray-600);
   color: var(--gray-200);
+}
+
+/* Monospace ligature control — driven by body.mono-ligatures-on/off */
+.editor-textarea,
+.preview-content code,
+.preview-content pre,
+.codemirror-container .cm-editor,
+.cm-editor {
+  font-feature-settings: var(--font-mono-feature);
 }
