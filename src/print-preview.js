@@ -27,7 +27,8 @@ function buildFontFaceBlock(familyKey) {
     return `@font-face { font-family: '${family}'; font-weight: 400; font-style: normal; src: url('${dataUri}') format('woff2'); }`;
   } catch (err) {
     // Non-fatal: fall back to the system monospace stack declared in styles-modern.css.
-    if (typeof console !== 'undefined') console.warn('[print-preview] font embed failed:', err.message);
+    if (typeof console !== 'undefined')
+      console.warn('[print-preview] font embed failed:', err.message);
     return '';
   }
 }
@@ -125,7 +126,8 @@ class PrintPreview {
     const width = orientation === 'landscape' ? size.height : size.width;
     const height = orientation === 'landscape' ? size.width : size.height;
 
-    const family = this._monospaceSettings.monospaceFont === 'fira-code' ? 'Fira Code' : 'JetBrains Mono';
+    const family =
+      this._monospaceSettings.monospaceFont === 'fira-code' ? 'Fira Code' : 'JetBrains Mono';
     const ligaturesOn = this._monospaceSettings.monospaceLigatures === true;
     const featureSettings = ligaturesOn ? 'normal' : "'liga' 0, 'calt' 0, 'dlig' 0";
     const fontFaceBlock = buildFontFaceBlock(this._monospaceSettings.monospaceFont);

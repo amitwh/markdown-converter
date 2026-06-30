@@ -38,8 +38,9 @@ async function patchZipWithFonts(inputPath, fonts) {
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n` +
     `<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/main">\n` +
     fonts
-      .map((f, i) =>
-        `  <w:font w:name="${f.family}"><w:embedRegular r:id="${generatedRId(i)}" xmlns:r="${REL_NS}"/></w:font>`
+      .map(
+        (f, i) =>
+          `  <w:font w:name="${f.family}"><w:embedRegular r:id="${generatedRId(i)}" xmlns:r="${REL_NS}"/></w:font>`
       )
       .join('\n') +
     `\n</w:fonts>\n`;
@@ -59,11 +60,17 @@ async function patchZipWithFonts(inputPath, fonts) {
     const ttfCt = 'application/x-font-ttf';
     const filePart = `/word/fonts/${path.basename(f.path)}`;
     if (!ct.includes(`PartName="${filePart}"`)) {
-      ct = ct.replace('</Types>', `<Override PartName="${filePart}" ContentType="${ttfCt}"/></Types>`);
+      ct = ct.replace(
+        '</Types>',
+        `<Override PartName="${filePart}" ContentType="${ttfCt}"/></Types>`
+      );
     }
   }
   if (!ct.includes('Default Extension="ttf"')) {
-    ct = ct.replace('</Types>', '<Default Extension="ttf" ContentType="application/x-font-ttf"/></Types>');
+    ct = ct.replace(
+      '</Types>',
+      '<Default Extension="ttf" ContentType="application/x-font-ttf"/></Types>'
+    );
   }
   zip.file(ctPath, ct);
 

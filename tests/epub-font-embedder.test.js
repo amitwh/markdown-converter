@@ -12,7 +12,10 @@ describe('EpubFontEmbedder.patchManifest', () => {
     fs.mkdirSync(fixturesDir, { recursive: true });
     fs.writeFileSync(fontPath, 'fake-ttf-binary');
     const zip = new JSZip();
-    zip.file('OEBPS/content.opf', '<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf"></package>');
+    zip.file(
+      'OEBPS/content.opf',
+      '<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf"></package>'
+    );
     fs.writeFileSync(epubPath, await zip.generateAsync({ type: 'nodebuffer' }));
   });
 

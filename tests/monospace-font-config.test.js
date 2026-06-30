@@ -7,7 +7,9 @@ const fs = require('fs');
 const MonospaceFontConfig = require('../src/main/MonospaceFontConfig');
 
 describe('MonospaceFontConfig', () => {
-  afterEach(() => { jest.clearAllMocks(); });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
   test('returns null when no file exists', () => {
     fs.existsSync.mockReturnValue(false);
@@ -16,13 +18,17 @@ describe('MonospaceFontConfig', () => {
   });
 
   test('returns dev repo path when dev file exists', () => {
-    fs.existsSync.mockImplementation((p) => !p.includes('app.asar.unpacked') && p.endsWith('JetBrainsMono-Regular.ttf'));
+    fs.existsSync.mockImplementation(
+      (p) => !p.includes('app.asar.unpacked') && p.endsWith('JetBrainsMono-Regular.ttf')
+    );
     const p = MonospaceFontConfig.getMonoFontTtfPath('jetbrains-mono', 400);
     expect(p).toMatch(/assets\/fonts\/JetBrainsMono-Regular\.ttf$/);
   });
 
   test('returns packaged asar.unpacked path when present and file exists', () => {
-    fs.existsSync.mockImplementation((p) => p.includes('app.asar.unpacked') && p.endsWith('FiraCode-Regular.ttf'));
+    fs.existsSync.mockImplementation(
+      (p) => p.includes('app.asar.unpacked') && p.endsWith('FiraCode-Regular.ttf')
+    );
     const p = MonospaceFontConfig.getMonoFontTtfPath('fira-code', 400);
     expect(p).toContain('app.asar.unpacked');
     expect(p).toContain('FiraCode-Regular.ttf');

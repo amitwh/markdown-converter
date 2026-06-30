@@ -575,7 +575,9 @@ function checkPandocAvailability() {
       pandocAvailable = !error;
       if (!error) {
         const m = String(stdout).match(/pandoc\s+(\d+)\.(\d+)/);
-        pandocVersionCache = m ? { major: Number(m[1]), minor: Number(m[2]) } : { major: 0, minor: 0 };
+        pandocVersionCache = m
+          ? { major: Number(m[1]), minor: Number(m[2]) }
+          : { major: 0, minor: 0 };
       } else {
         pandocVersionCache = { major: 0, minor: 0 };
       }
@@ -2786,7 +2788,8 @@ function performExportWithOptions(format, options) {
             if (bold) fonts.push({ path: bold, family, weight: 700 });
             if (fonts.length) await DocxFontEmbedder.embed(outputFile, fonts);
           } catch (embedErr) {
-            if (typeof console !== 'undefined') console.warn('[docx] font embed failed:', embedErr.message);
+            if (typeof console !== 'undefined')
+              console.warn('[docx] font embed failed:', embedErr.message);
           }
           if (tempInputFile) {
             try {
@@ -2903,17 +2906,24 @@ function performExportWithOptions(format, options) {
             const familyKey = readSettingsJsonCached().monospaceFont || 'jetbrains-mono';
             const regular = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 400);
             const fonts = [];
-            if (regular) fonts.push({ path: regular, family: familyKey === 'fira-code' ? 'Fira Code' : 'JetBrains Mono', weight: 400 });
+            if (regular)
+              fonts.push({
+                path: regular,
+                family: familyKey === 'fira-code' ? 'Fira Code' : 'JetBrains Mono',
+                weight: 400,
+              });
             if (fonts.length) {
               const patched = await EpubFontEmbedder.patchManifest(outputFile, fonts);
               try {
                 fs.renameSync(patched, outputFile);
               } catch (renameErr) {
-                if (typeof console !== 'undefined') console.warn('[epub] could not overwrite with patched EPUB:', renameErr.message);
+                if (typeof console !== 'undefined')
+                  console.warn('[epub] could not overwrite with patched EPUB:', renameErr.message);
               }
             }
           } catch (patchErr) {
-            if (typeof console !== 'undefined') console.warn('[epub] manifest patch failed:', patchErr.message);
+            if (typeof console !== 'undefined')
+              console.warn('[epub] manifest patch failed:', patchErr.message);
           }
           showExportSuccess(outputFile);
         });
@@ -3619,13 +3629,16 @@ ipcMain.on('export-with-options', (event, { format, options }) => {
 });
 
 // Handle batch conversion
-ipcMain.on('batch-convert', (event, { inputFolder, outputFolder, format, options, includeSubfolders }) => {
-  if (!conversionLimiter()) {
-    mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
-    return;
+ipcMain.on(
+  'batch-convert',
+  (event, { inputFolder, outputFolder, format, options, includeSubfolders }) => {
+    if (!conversionLimiter()) {
+      mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
+      return;
+    }
+    performBatchConversion(inputFolder, outputFolder, format, options, includeSubfolders);
   }
-  performBatchConversion(inputFolder, outputFolder, format, options, includeSubfolders);
-});
+);
 
 // Handle folder selection for batch conversion
 ipcMain.on('select-folder', (event, type) => {
@@ -3734,7 +3747,13 @@ function extractTablesFromMarkdown(markdown) {
   }
   return tables;
 }
-async function performBatchConversion(inputFolder, outputFolder, format, options, includeSubfolders = true) {
+async function performBatchConversion(
+  inputFolder,
+  outputFolder,
+  format,
+  options,
+  includeSubfolders = true
+) {
   if (!fs.existsSync(inputFolder)) {
     dialog.showErrorBox('Error', 'Input folder does not exist');
     return;
@@ -4093,7 +4112,11 @@ async function performBatchConversion(inputFolder, outputFolder, format, options
       }
 
       if (error) {
-        console.error(`Batch: Failed to convert ${path.basename(inputFile)}:`, error.message, stderr);
+        console.error(
+          `Batch: Failed to convert ${path.basename(inputFile)}:`,
+          error.message,
+          stderr
+        );
       } else {
         // Add headers/footers to DOCX if enabled
         if (format === 'docx' && headerFooterSettings.enabled) {

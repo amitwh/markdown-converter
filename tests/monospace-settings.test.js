@@ -1,4 +1,8 @@
-const { getDefaults, getActiveMonoFont, isLigaturesEnabled } = require('../src/main/settings/monospaceSettings');
+const {
+  getDefaults,
+  getActiveMonoFont,
+  isLigaturesEnabled,
+} = require('../src/main/settings/monospaceSettings');
 
 describe('monospaceSettings', () => {
   test('getDefaults returns sane defaults', () => {
