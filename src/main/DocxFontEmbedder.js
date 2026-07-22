@@ -1,7 +1,6 @@
 'use strict';
 
 const fs = require('fs');
-const path = require('path');
 const JSZip = require('jszip');
 
 const FONT_TABLE_PATH = 'word/fontTable.xml';

@@ -50,3 +50,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 9 dead IPC channels from `src/preload.js`: `toggle-command-palette`, `print-preview`, `print-preview-styled`, `open-ascii-generator`, `open-table-generator`, `show-ascii-generator`, `show-ascii-generator-window`, `show-table-generator`, `show-table-generator-window`
 
 [5.0.0]: https://github.com/amitwh/markdown-converter/releases/tag/v5.0.0
+
+## [5.1.0] - 2026-07-23 - react-electron parity
+
+### Added
+- **Monospace font embedding** — bundles JetBrains Mono + Fira Code TTFs and embeds the active font into PDF (xelatex fontspec), DOCX (post-pandoc zip patch with `fontTable.xml`), EPUB (`--epub-embed-font` + manifest), and HTML (woff2 base64 in CSS) exports. ASCII art and code blocks now render with the exact same font across machines.
+- **Monospace settings** — `get-monospace-settings` / `set-monospace-settings` IPC, with `monospaceFont` (`jetbrains-mono` / `fira-code`) and `monospaceLigatures` (boolean).
+- **Renderer body-class toggle** — `useMonospaceClasses` hook toggles `mono-jetbrains-mono` / `mono-fira-code` and `mono-ligatures-on` / `mono-ligatures-off` on `document.body`, driving `--font-mono-active` and `--font-mono-feature` CSS tokens.
+
+### Changed
+- **App renamed to Markdown Converter React** (`com.concreteinfo.markdownconverter.react`, npm name `markdown-converter-react`, deb `markdown-converter-react_*_amd64.deb`) so the dev build coexists with the installed `markdown-converter` deb without single-instance lock conflicts.
+- Window title shows `Markdown Converter — React Dev` in dev mode.
+- `download-tools.js` pins Fira Code to release `6.2` with SHA-256 digests verified before atomic rename; downloads refuse to start on digest mismatch.
+
+### Security
+- `PdfFontHeader` uses `fs.mkdtempSync` for an exclusive temp directory; the caller unlinks it after pandoc consumes the header (no racy `Date.now()+pid` filenames).

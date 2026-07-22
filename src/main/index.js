@@ -18,7 +18,7 @@ const { createMainWindow } = require('./window');
 const MonospaceFontConfig = require('./MonospaceFontConfig');
 const { buildPdfFontHeader } = require('./PdfFontHeader');
 const { embedDocxFont } = require('./DocxFontEmbedder');
-const { withEpubEmbedFontArgs, embedEpubFont } = require('./EpubFontEmbedder');
+const { withEpubEmbedFontArgs: _withEpubEmbedFontArgs, embedEpubFont } = require('./EpubFontEmbedder');
 const { buildExportCss } = require('./ExportCss');
 const { safeMonospaceSettings, DEFAULT_SETTINGS: MONO_DEFAULTS } = require('./settings/monospaceSettings');
 
@@ -1600,7 +1600,6 @@ function performExportWithOptions(format, options) {
         // active monospace font (xelatex fontspec) so ASCII art renders
         // identically across machines.
         const monoCtx = getActiveMonospaceContext();
-        let monoPdfHeaderDir = null;
         if (monoCtx.ttf) {
           try {
             const built = buildPdfFontHeader(
@@ -1609,7 +1608,6 @@ function performExportWithOptions(format, options) {
               MonospaceFontConfig.getActiveFamily(monoCtx.settings)
             );
             pandocCmd += ` --include-in-header="${built.headerPath}"`;
-            monoPdfHeaderDir = built.dir;
           } catch (e) {
             console.error('[monospace] PDF header build failed (non-fatal):', e.message);
           }
@@ -1986,10 +1984,8 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
       // Headers/footers are applied only for DOCX format
 
       showExportSuccess(outputFile);
-      cleanupMonoHeader();
-    } else {
-      cleanupMonoHeader();
     }
+    cleanupMonoHeader();
   });
 }
 
@@ -2101,7 +2097,7 @@ function exportToHTML(outputFile) {
             const woff2Path = path.join(path.dirname(monoCtx.ttf || ''), woff2Name);
             if (!fs.existsSync(woff2Path)) return '';
             return buildExportCss(monoCtx.settings, { woff2: fs.readFileSync(woff2Path) });
-          } catch (e) {
+          } catch (_e) {
             return '';
           }
         })()}
