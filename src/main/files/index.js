@@ -134,7 +134,12 @@ function register({
 
   // search-in-files
   ipcMain.handle('search-in-files', async (_event, payload) => {
-    return searchInFiles(payload || {});
+    const validation = validatePath(payload?.rootPath);
+    if (!validation.valid || !isPathAccessible(validation.resolved)) {
+      console.error('[SECURITY] Invalid search rootPath:', validation.error);
+      return [];
+    }
+    return searchInFiles({ ...(payload || {}), rootPath: validation.resolved });
   });
 
   // open-file-path

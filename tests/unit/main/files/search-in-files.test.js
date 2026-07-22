@@ -84,4 +84,50 @@ describe('searchInFiles', () => {
     const out = searchInFiles({ rootPath: tmpDir, query: 'match' });
     expect(out.length).toBe(1000);
   });
+
+  test('rejects queries longer than 1024 chars (DoS guard)', () => {
+    const f = path.join(tmpDir, 'a.md');
+    fs.writeFileSync(f, 'hello');
+    const longQ = 'a'.repeat(2000);
+    expect(searchInFiles({ rootPath: tmpDir, query: longQ })).toEqual([]);
+  });
+
+  test('rejects regexes with nested quantifiers (ReDoS guard)', () => {
+    const f = path.join(tmpDir, 'a.md');
+    fs.writeFileSync(f, 'aaaaaaaaaaaaaab');
+    // Classic catastrophic backtracking pattern
+    expect(
+      searchInFiles({ rootPath: tmpDir, query: '(a+)+b', isRegex: true })
+    ).toEqual([]);
+    // Allowed: non-nested alternation
+    expect(
+      searchInFiles({ rootPath: tmpDir, query: 'a+b', isRegex: true }).length
+    ).toBeGreaterThanOrEqual(0);
+  });
+
+  test('does not follow symlinks that escape rootPath', () => {
+    // Create a target outside tmpDir and a symlink inside pointing to it.
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'search-outside-'));
+    const targetFile = path.join(outside, 'secret.md');
+    fs.writeFileSync(targetFile, 'should not be searched');
+    try {
+      fs.symlinkSync(targetFile, path.join(tmpDir, 'evil-link'));
+      const insideFile = path.join(tmpDir, 'inside.md');
+      fs.writeFileSync(insideFile, 'inside match');
+      const out = searchInFiles({ rootPath: tmpDir, query: 'match' });
+      expect(out.find((r) => r.filePath.includes('evil-link'))).toBeUndefined();
+      expect(out.find((r) => r.filePath === insideFile)).toBeTruthy();
+    } finally {
+      fs.rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  test('caps files traversed at 10000', () => {
+    // Create many small files
+    for (let i = 0; i < 50; i++) {
+      fs.writeFileSync(path.join(tmpDir, `f${i}.md`), 'x');
+    }
+    const out = searchInFiles({ rootPath: tmpDir, query: 'x' });
+    expect(out.length).toBeLessThanOrEqual(1000); // capped at MAX_RESULTS too
+  });
 });

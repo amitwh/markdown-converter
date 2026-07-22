@@ -5,27 +5,61 @@ const path = require('path');
 
 const MAX_RESULTS = 1000;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
+const MAX_FILES = 10000;
+const MAX_QUERY_LENGTH = 1024;
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.next', '.cache']);
+
+// Reject regexes with nested quantifiers / classic ReDoS shapes.
+const UNSAFE_REGEX = /(\([^)]*[+*][^)]*\)[+*])|(\[[^\]]*\][+*])|(\.[+*]\.[+*])|(\(\?\:)/;
 
 function listFiles(rootPath) {
   const out = [];
   const stack = [rootPath];
-  while (stack.length) {
+  const visited = new Set();
+  while (stack.length && out.length < MAX_FILES) {
     const dir = stack.pop();
+    // Resolve symlinks and verify we haven't escaped the root.
+    let real;
+    try {
+      real = fs.realpathSync(dir);
+    } catch (_) {
+      continue;
+    }
+    if (visited.has(real)) continue;
+    visited.add(real);
+    const rootReal = fs.realpathSync(rootPath);
+    if (!real.startsWith(rootReal + path.sep) && real !== rootReal) continue;
+
     let entries;
     try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
+      entries = fs.readdirSync(real, { withFileTypes: true });
     } catch (_) {
       continue;
     }
     for (const e of entries) {
       if (e.name.startsWith('.')) continue;
-      const full = path.join(dir, e.name);
-      if (e.isDirectory()) {
-        if (SKIP_DIRS.has(e.name)) continue;
-        stack.push(full);
-      } else if (e.isFile()) {
-        out.push(full);
+      const full = path.join(real, e.name);
+      // Follow symlinks but verify containment again.
+      try {
+        const s = fs.lstatSync(full);
+        if (s.isSymbolicLink()) {
+          const linkTarget = fs.realpathSync(full);
+          if (!linkTarget.startsWith(rootReal + path.sep) && linkTarget !== rootReal) continue;
+        }
+      } catch (_) {
+        continue;
+      }
+      try {
+        const s = fs.statSync(full);
+        if (s.isDirectory()) {
+          if (SKIP_DIRS.has(e.name)) continue;
+          stack.push(full);
+        } else if (s.isFile()) {
+          out.push(full);
+          if (out.length >= MAX_FILES) break;
+        }
+      } catch (_) {
+        continue;
       }
     }
   }
@@ -34,6 +68,7 @@ function listFiles(rootPath) {
 
 function makeMatcher(query, isRegex, caseSensitive) {
   if (isRegex) {
+    if (UNSAFE_REGEX.test(query)) return null;
     try {
       const re = new RegExp(query, caseSensitive ? '' : 'i');
       return (line) => re.test(line);
@@ -50,11 +85,15 @@ function makeMatcher(query, isRegex, caseSensitive) {
  * Returns up to MAX_RESULTS matches of the form
  *   { filePath, line, content }.
  *
- * Skips binary files (> MAX_FILE_BYTES) and noisy directories
- * (node_modules, .git, dist, .next, .cache) to keep latency low.
+ * Hardened against:
+ * - Path traversal via symlinks (verified after realpathSync)
+ * - ReDoS via nested-quantifier regex (rejected at match time)
+ * - Resource exhaustion via MAX_FILES + MAX_FILE_BYTES + MAX_RESULTS
+ * - Empty / oversized queries via MAX_QUERY_LENGTH
  */
 function searchInFiles({ rootPath, query, isRegex = false, caseSensitive = false }) {
   if (!rootPath || !query) return [];
+  if (typeof query !== 'string' || query.length > MAX_QUERY_LENGTH) return [];
   const matcher = makeMatcher(query, isRegex, caseSensitive);
   if (!matcher) return [];
 
