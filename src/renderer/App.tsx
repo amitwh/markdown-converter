@@ -9,6 +9,7 @@ import { UpdateBanner } from './components/UpdateBanner';
 import { FirstRunWizard } from './components/FirstRunWizard';
 import { useWelcomeTrigger } from './hooks/use-welcome-trigger';
 import { useAutoUpdateCheck } from './hooks/useAutoUpdateCheck';
+import { useMonospaceClasses } from './hooks/use-monospace-classes';
 
 import { useSettingsStore } from './stores/settings-store';
 import { ipc } from './lib/ipc';
@@ -35,6 +36,7 @@ function scopeCSS(cssText: string, scopeSelector: string) {
 function App() {
   useWelcomeTrigger();
   useAutoUpdateCheck();
+  useMonospaceClasses();
   const [printOpen, setPrintOpen] = useState(false);
   const customCssPath = useSettingsStore((s) => s.customCssPath);
 

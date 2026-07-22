@@ -96,3 +96,22 @@
 .cm-editor .cm-scroller {
   @apply font-mono text-sm;
 }
+
+/* Monospace font + ligature tokens — driven by body.mono-* classes */
+:root {
+  --font-mono-active: 'JetBrains Mono', 'SF Mono', Monaco, 'Courier New', monospace;
+  --font-mono-feature: 'liga' 0, 'calt' 0;
+}
+body.mono-fira-code {
+  --font-mono-active: 'Fira Code', 'JetBrains Mono', 'SF Mono', monospace;
+}
+body.mono-ligatures-on {
+  --font-mono-feature: 'liga' 1, 'calt' 1;
+}
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono-active);
+  font-feature-settings: var(--font-mono-feature);
+}
