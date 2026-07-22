@@ -8,7 +8,8 @@ function register(currentFileRef) {
     const dir =
       rootPath ||
       (currentFileRef.current ? require('path').dirname(currentFileRef.current) : process.cwd());
-    return GitOperations.getStatus(dir);
+    const result = GitOperations.getStatus(dir);
+    return Array.isArray(result?.files) ? result.files : [];
   });
 
   ipcMain.handle('git-stage', async (_event, { rootPath, files }) => {
