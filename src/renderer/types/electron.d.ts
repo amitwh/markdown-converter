@@ -25,6 +25,12 @@ export interface ElectronAPI {
     list: (dirPath: string) => Promise<unknown>;
     pickFolder: () => Promise<string | null>;
     pickFile: () => Promise<string | null>;
+    search: (args: {
+      rootPath: string;
+      query: string;
+      isRegex: boolean;
+      caseSensitive: boolean;
+    }) => Promise<Array<{ filePath: string; line: number; content: string }>>;
   };
 
   theme: {

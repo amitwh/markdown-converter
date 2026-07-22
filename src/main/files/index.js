@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { register: registerGit } = require('./git');
 const { register: registerBinary } = require('./binary');
+const { searchInFiles } = require('./search-in-files');
 
 function register({
   validatePath,
@@ -129,6 +130,11 @@ function register({
     }
 
     return { source: sourceValidation.resolved, destination: destinationValidation.resolved };
+  });
+
+  // search-in-files
+  ipcMain.handle('search-in-files', async (_event, payload) => {
+    return searchInFiles(payload || {});
   });
 
   // open-file-path

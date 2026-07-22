@@ -108,6 +108,7 @@ const ALLOWED_SEND_CHANNELS = [
   'move-path',
   'pick-folder',
   'pick-file',
+  'search-in-files',
 
   // Git
   'git-status',
@@ -372,6 +373,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     list: (dirPath) => ipcRenderer.invoke('list-directory', dirPath),
     pickFolder: () => ipcRenderer.invoke('pick-folder'),
     pickFile: () => ipcRenderer.invoke('pick-file'),
+    search: (args) => ipcRenderer.invoke('search-in-files', args),
   },
 
   // Theme Operations

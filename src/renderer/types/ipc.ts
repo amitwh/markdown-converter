@@ -7,7 +7,7 @@ export interface FileEntry {
   path: string;
   isDirectory: boolean;
   size?: number;
-  modifiedAt?: string;
+  modifiedAt?: number;
 }
 
 export interface FileResult {

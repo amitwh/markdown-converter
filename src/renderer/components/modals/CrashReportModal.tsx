@@ -11,7 +11,14 @@ interface Dump {
 export function CrashReportModal({ onClose }: { onClose: () => void }) {
   const [dumps, setDumps] = useState<Dump[]>([]);
 
-  const refresh = async () => setDumps(await ipc.crash.read());
+  const refresh = async () => {
+    const result = await ipc.crash.read();
+    if (!result.ok) {
+      setDumps([]);
+      return;
+    }
+    setDumps(Array.isArray(result.data) ? (result.data as Dump[]) : []);
+  };
   useEffect(() => {
     refresh();
   }, []);

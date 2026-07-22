@@ -30,7 +30,7 @@ function listDirectoryEntries(dirPath) {
       name: d.name,
       isDirectory: d.isDirectory(),
       size,
-      modified,
+      modifiedAt: modified,
       path: full,
     });
   }

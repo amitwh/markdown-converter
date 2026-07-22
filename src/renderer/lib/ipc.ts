@@ -58,7 +58,8 @@ function safeCall<T extends (...args: any[]) => Promise<any>>(
 
 export const ipc = {
   file: {
-    open: (): Promise<IpcResult<FileResult | ChannelMissing>> => safeCall('file', 'pickFile'),
+    // NOTE: file.open was previously miswired to pickFile — removed.
+    // Callers needing a file picker should use ipc.file.pickFile() directly.
     read: (path: string): Promise<IpcResult<string | ChannelMissing>> =>
       safeCall('file', 'read', path),
     write: (path: string, content: string): Promise<IpcResult<void | ChannelMissing>> =>
@@ -82,7 +83,7 @@ export const ipc = {
       caseSensitive: boolean;
     }): Promise<
       IpcResult<Array<{ filePath: string; line: number; content: string }> | ChannelMissing>
-    > => safeCall('file', 'pickFile'),
+    > => safeCall('file', 'search', args),
     gitStatus: (args: {
       rootPath: string;
     }): Promise<
