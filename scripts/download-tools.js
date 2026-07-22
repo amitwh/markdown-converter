@@ -172,10 +172,15 @@ async function downloadPandoc() {
 async function downloadFiraCode() {
   const targetDir = path.resolve(__dirname, '..', 'assets', 'fonts');
   fs.mkdirSync(targetDir, { recursive: true });
+  // Pinned to an immutable release tag with explicit SHA-256 digests so the
+  // build fails loudly on any upstream tampering or accidental change.
+  // Update the version + digests together when bumping Fira Code.
+  const FIRA_CODE_VERSION = '6.2';
+  const baseUrl = `https://github.com/tonsky/FiraCode/releases/download/${FIRA_CODE_VERSION}`;
   const files = [
-    { url: 'https://github.com/tonsky/FiraCode/raw/master/distr/ttf/FiraCode-Regular.ttf', out: 'FiraCode-Regular.ttf' },
-    { url: 'https://github.com/tonsky/FiraCode/raw/master/distr/ttf/FiraCode-Bold.ttf', out: 'FiraCode-Bold.ttf' },
-    { url: 'https://raw.githubusercontent.com/tonsky/FiraCode/master/LICENSE', out: 'FiraCode-LICENSE.txt' },
+    { url: `${baseUrl}/FiraCode-Regular.ttf`, out: 'FiraCode-Regular.ttf', sha256: '3c79d234a9161c790410ebb2a80de7efb7c15f581062c130e0fa78503ccdd0da' },
+    { url: `${baseUrl}/FiraCode-Bold.ttf`, out: 'FiraCode-Bold.ttf', sha256: '975f26779fac1029c2cbdac1e9fac7e9ddeec05e064675e4aac63bffa121742f' },
+    { url: `${baseUrl}/FiraCode-LICENSE.txt`, out: 'FiraCode-LICENSE.txt', sha256: null },
   ];
   for (const f of files) {
     const dest = path.join(targetDir, f.out);
@@ -183,8 +188,23 @@ async function downloadFiraCode() {
       console.log(`[download-tools] Fira Code asset already present at ${dest} — skipping.`);
       continue;
     }
+    if (!f.sha256 || !/^[a-f0-9]{64}$/i.test(f.sha256)) {
+      throw new Error(
+        `[download-tools] Refusing to download ${f.url}: SHA-256 digest not pinned. ` +
+          'Update scripts/download-tools.js with the digest from the official Fira Code release before building.'
+      );
+    }
+    const tmp = `${dest}.tmp`;
     console.log(`[download-tools] Downloading ${f.url}...`);
-    await download(f.url, dest);
+    await download(f.url, tmp);
+    const actual = require('crypto').createHash('sha256').update(fs.readFileSync(tmp)).digest('hex');
+    if (actual !== f.sha256) {
+      fs.unlinkSync(tmp);
+      throw new Error(
+        `[download-tools] SHA-256 mismatch for ${f.url}: expected ${f.sha256}, got ${actual}`
+      );
+    }
+    fs.renameSync(tmp, dest);
   }
   console.log('[download-tools] Fira Code ready');
 }

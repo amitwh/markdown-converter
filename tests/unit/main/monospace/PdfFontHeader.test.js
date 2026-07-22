@@ -27,6 +27,7 @@ describe('PdfFontHeader', () => {
     expect(content).toContain('\\setmonofont');
     expect(content).toContain('JetBrainsMono-Regular.ttf');
     expect(out.familyName).toBe('JetBrains Mono');
+    fs.rmSync(out.dir, { recursive: true, force: true });
   });
 
   test('writes header with ligatures when enabled', () => {
@@ -39,6 +40,7 @@ describe('PdfFontHeader', () => {
     );
     const content = fs.readFileSync(out.headerPath, 'utf-8');
     expect(content).toContain('Ligatures=TeX');
+    fs.rmSync(out.dir, { recursive: true, force: true });
   });
 
   test('header is written under os.tmpdir', () => {
@@ -50,6 +52,7 @@ describe('PdfFontHeader', () => {
       'JetBrains Mono'
     );
     expect(out.headerPath.startsWith(os.tmpdir())).toBe(true);
+    fs.rmSync(out.dir, { recursive: true, force: true });
   });
 
   test('throws if ttfPath does not exist', () => {

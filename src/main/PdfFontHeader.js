@@ -4,6 +4,14 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+/**
+ * Build a xelatex/lualatex fontspec header referencing the bundled TTF.
+ *
+ * Uses an exclusive temp directory (mkdtempSync) to avoid the racy
+ * Date.now()+pid filename pattern. Returns the directory along with the
+ * header path; callers MUST `unlinkSync(headerPath)` and `rmdirSync(dir)`
+ * after pandoc consumes the file.
+ */
 function buildPdfFontHeader(settings, ttfPath, fontFamily) {
   if (!ttfPath || !fs.existsSync(ttfPath)) {
     throw new Error(`PdfFontHeader: TTF not found at ${ttfPath}`);
@@ -21,9 +29,10 @@ function buildPdfFontHeader(settings, ttfPath, fontFamily) {
     `             Scale = 0.9]`,
     `{${fontFamily}}`,
   ].filter(Boolean);
-  const headerPath = path.join(os.tmpdir(), `monospace-pdf-${Date.now()}-${process.pid}.tex`);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mono-pdf-'));
+  const headerPath = path.join(dir, 'monospace.tex');
   fs.writeFileSync(headerPath, lines.join('\n'), 'utf-8');
-  return { headerPath, familyName: fontFamily };
+  return { headerPath, dir, familyName: fontFamily };
 }
 
 module.exports = { buildPdfFontHeader };

@@ -1600,14 +1600,16 @@ function performExportWithOptions(format, options) {
         // active monospace font (xelatex fontspec) so ASCII art renders
         // identically across machines.
         const monoCtx = getActiveMonospaceContext();
+        let monoPdfHeaderDir = null;
         if (monoCtx.ttf) {
           try {
-            const { headerPath } = buildPdfFontHeader(
+            const built = buildPdfFontHeader(
               monoCtx.settings,
               monoCtx.ttf,
               MonospaceFontConfig.getActiveFamily(monoCtx.settings)
             );
-            pandocCmd += ` --include-in-header="${headerPath}"`;
+            pandocCmd += ` --include-in-header="${built.headerPath}"`;
+            monoPdfHeaderDir = built.dir;
           } catch (e) {
             console.error('[monospace] PDF header build failed (non-fatal):', e.message);
           }
@@ -1869,6 +1871,19 @@ function showExportSuccess(outputFile) {
 // Helper function to export with pandoc (general) - uses runPandocCmd for safety
 function exportWithPandoc(pandocCmd, outputFile, format) {
   console.log(`Executing Pandoc command: ${pandocCmd}`);
+  // Track the temp directory (if any) created by buildPdfFontHeader so we can
+  // clean it up after pandoc finishes — regardless of success or failure.
+  const headerDirMatch = pandocCmd.match(/--include-in-header="([^"]+)"/);
+  const monoPdfHeaderDir = headerDirMatch ? path.dirname(headerDirMatch[1]) : null;
+  const cleanupMonoHeader = () => {
+    if (monoPdfHeaderDir && monoPdfHeaderDir.includes('mono-pdf-')) {
+      try {
+        fs.rmSync(monoPdfHeaderDir, { recursive: true, force: true });
+      } catch (_) {
+        /* best-effort cleanup */
+      }
+    }
+  };
 
   runPandocCmd(pandocCmd, async (error, stdout, stderr) => {
     if (error) {
@@ -1971,6 +1986,9 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
       // Headers/footers are applied only for DOCX format
 
       showExportSuccess(outputFile);
+      cleanupMonoHeader();
+    } else {
+      cleanupMonoHeader();
     }
   });
 }
