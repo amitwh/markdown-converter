@@ -86,8 +86,7 @@ export const useFileStore = create<FileState>()(
           return;
         }
 
-        const raw: any = result.data!;
-        const entries: any[] = Array.isArray(raw) ? raw : raw.entries;
+        const entries = result.data ?? [];
         const children: FileNode[] = entries.map(entryToNode);
 
         set((s) => {
@@ -119,8 +118,7 @@ export const useFileStore = create<FileState>()(
 
         set((s) => {
           updateNode(s.tree!, dirPath, (node) => {
-            const raw: any = result.data!;
-            const items: any[] = Array.isArray(raw) ? raw : raw.entries;
+            const items = result.data ?? [];
             node.children = items.map(entryToNode);
             node.loaded = true;
           });

@@ -13,6 +13,7 @@ const WordTemplateExporter = require('./word-template');
 const PDFOperations = require('./PDFOperations');
 const { validatePath, resolveWritablePath, isPathAccessible } = require('./utils/paths');
 const fileOps = require('./files');
+const { listDirectoryEntries } = require('./files/list-directory');
 const menu = require('./menu');
 const { createMainWindow } = require('./window');
 const MonospaceFontConfig = require('./MonospaceFontConfig');
@@ -3522,22 +3523,7 @@ ipcMain.handle('list-directory', async (event, dirPath) => {
       return null;
     }
 
-    const entries = fs
-      .readdirSync(validation.resolved, { withFileTypes: true })
-      .filter((e) => !e.name.startsWith('.'))
-      .sort((a, b) => {
-        if (a.isDirectory() && !b.isDirectory()) return -1;
-        if (!a.isDirectory() && b.isDirectory()) return 1;
-        return a.name.localeCompare(b.name);
-      })
-      .map((e) => ({
-        name: e.name,
-        isDirectory: e.isDirectory(),
-        size: e.isDirectory() ? 0 : fs.statSync(path.join(validation.resolved, e.name)).size,
-        modified: fs.statSync(path.join(validation.resolved, e.name)).mtimeMs,
-        path: path.join(validation.resolved, e.name),
-      }));
-    return { path: validation.resolved, entries };
+    return listDirectoryEntries(validation.resolved);
   } catch (err) {
     console.error('list-directory error:', err);
     return null;

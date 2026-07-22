@@ -10,10 +10,23 @@ module.exports = {
   // Root directory
   rootDir: '.',
 
-  // Test file patterns
+  // Test file patterns — scoped to ./tests/ only so dist/ artifacts like
+  // .snap packages don't get matched as test suites.
   testMatch: [
-    '**/tests/**/*.test.js',
-    '**/tests/**/*.spec.js'
+    '<rootDir>/tests/**/*.test.js',
+    '<rootDir>/tests/**/*.spec.js'
+  ],
+
+  // Ignore build outputs so .snap packages and bundled .asar contents
+  // never enter jest's file discovery.
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/\\.git/'
+  ],
+  modulePathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/'
   ],
 
   // Coverage configuration
