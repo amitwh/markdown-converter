@@ -5,6 +5,7 @@ const { CrashWriter } = require('./updater/crash-writer');
 const { MigrationRunner } = require('./updater/migration-runner');
 const updaterHandlers = require('./ipc/updater-handlers');
 const crashHandlers = require('./ipc/crash-handlers');
+const monospaceHandlers = require('./ipc/monospace-handlers');
 const path = require('path');
 const fs = require('fs');
 const { execFile } = require('child_process');
@@ -14,6 +15,24 @@ const { validatePath, resolveWritablePath, isPathAccessible } = require('./utils
 const fileOps = require('./files');
 const menu = require('./menu');
 const { createMainWindow } = require('./window');
+const MonospaceFontConfig = require('./MonospaceFontConfig');
+const { buildPdfFontHeader } = require('./PdfFontHeader');
+const { embedDocxFont } = require('./DocxFontEmbedder');
+const { withEpubEmbedFontArgs, embedEpubFont } = require('./EpubFontEmbedder');
+const { buildExportCss } = require('./ExportCss');
+const { safeMonospaceSettings, DEFAULT_SETTINGS: MONO_DEFAULTS } = require('./settings/monospaceSettings');
+
+/**
+ * Read active monospace settings + TTF path. Returns null TTF if asset missing.
+ */
+function getActiveMonospaceContext() {
+  const settings = safeMonospaceSettings({
+    monospaceFont: store.get('monospaceFont', MONO_DEFAULTS.monospaceFont),
+    monospaceLigatures: store.get('monospaceLigatures', MONO_DEFAULTS.monospaceLigatures),
+  });
+  const ttf = MonospaceFontConfig.getMonoFontTtfPath(settings.monospaceFont, 400);
+  return { settings, ttf };
+}
 
 // Add MiKTeX to PATH for LaTeX support
 if (process.platform === 'win32') {
@@ -1577,6 +1596,23 @@ function performExportWithOptions(format, options) {
         pandocCmd += ' -V monofont="Consolas"';
         pandocCmd += ' --highlight-style=tango';
 
+        // When bundled TTF asset is present, replace system Consolas with our
+        // active monospace font (xelatex fontspec) so ASCII art renders
+        // identically across machines.
+        const monoCtx = getActiveMonospaceContext();
+        if (monoCtx.ttf) {
+          try {
+            const { headerPath } = buildPdfFontHeader(
+              monoCtx.settings,
+              monoCtx.ttf,
+              MonospaceFontConfig.getActiveFamily(monoCtx.settings)
+            );
+            pandocCmd += ` --include-in-header="${headerPath}"`;
+          } catch (e) {
+            console.error('[monospace] PDF header build failed (non-fatal):', e.message);
+          }
+        }
+
         // Add header/footer if enabled
         if (headerFooterSettings.enabled) {
           const filename = currentFile
@@ -1726,6 +1762,12 @@ function performExportWithOptions(format, options) {
         });
       } else {
         // Generic export for other formats
+        if (format === 'epub') {
+          const monoCtx = getActiveMonospaceContext();
+          if (monoCtx.ttf) {
+            pandocCmd = ` --epub-embed-font="${monoCtx.ttf}"` + pandocCmd;
+          }
+        }
         exportWithPandoc(pandocCmd, outputFile, format);
       }
     })
@@ -1866,6 +1908,22 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
         }
       }
 
+      // Embed active monospace TTF into DOCX so code blocks render in the
+      // bundled font even when the recipient opens the file without JetBrains
+      // Mono or Fira Code installed.
+      if (format === 'docx') {
+        const monoCtx = getActiveMonospaceContext();
+        if (monoCtx.ttf) {
+          try {
+            const family = MonospaceFontConfig.getActiveFamily(monoCtx.settings).replace(/\s+/g, '');
+            await embedDocxFont(outputFile, outputFile, monoCtx.ttf, family);
+            console.log(`[monospace] Embedded ${family} TTF into DOCX`);
+          } catch (e) {
+            console.error('[monospace] DOCX embed failed (non-fatal):', e.message);
+          }
+        }
+      }
+
       // Add headers/footers to DOCX if enabled
       if (format === 'docx' && headerFooterSettings.enabled) {
         try {
@@ -1892,6 +1950,20 @@ function exportWithPandoc(pandocCmd, outputFile, format) {
           console.log('Page size set for ODT');
         } catch (pageSizeError) {
           console.error('Error setting page size for ODT:', pageSizeError);
+        }
+      }
+
+      // Patch EPUB manifest so the font table references the embedded TTF.
+      if (format === 'epub') {
+        const monoCtx = getActiveMonospaceContext();
+        if (monoCtx.ttf) {
+          try {
+            const family = MonospaceFontConfig.getActiveFamily(monoCtx.settings);
+            await embedEpubFont(outputFile, monoCtx.ttf, family);
+            console.log(`[monospace] Patched EPUB manifest for ${family}`);
+          } catch (e) {
+            console.error('[monospace] EPUB manifest patch failed (non-fatal):', e.message);
+          }
         }
       }
 
@@ -2003,6 +2075,18 @@ function exportToHTML(outputFile) {
                 word-wrap: normal;
             }
         }
+        ${(() => {
+          try {
+            const monoCtx = getActiveMonospaceContext();
+            const familyName = MonospaceFontConfig.getActiveFamily(monoCtx.settings);
+            const woff2Name = familyName === 'Fira Code' ? 'FiraCode-Regular.woff2' : 'JetBrainsMono-Regular.woff2';
+            const woff2Path = path.join(path.dirname(monoCtx.ttf || ''), woff2Name);
+            if (!fs.existsSync(woff2Path)) return '';
+            return buildExportCss(monoCtx.settings, { woff2: fs.readFileSync(woff2Path) });
+          } catch (e) {
+            return '';
+          }
+        })()}
     </style>
 </head>
 <body>
@@ -3172,6 +3256,7 @@ app.whenReady().then(() => {
     crash,
     getMainWindow: () => mainWindow,
   });
+  monospaceHandlers.register();
   // --------------------------------------------------------------------
 
   // Register file ops IPC handlers
