@@ -172,10 +172,12 @@
       "src/main/**/*",
       "src/preload.js",
       "src/plugins/**/*",
+      "assets/fonts/**",
       "package.json"
     ],
     "asarUnpack": [
-      "node_modules/ffmpeg-static/**"
+      "node_modules/ffmpeg-static/**",
+      "assets/fonts/**"
     ],
     "extraResources": [
       {

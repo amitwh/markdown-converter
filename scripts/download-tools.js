@@ -169,7 +169,27 @@ async function downloadPandoc() {
   console.log(`[download-tools] pandoc ready: ${destFile}`);
 }
 
-downloadPandoc().catch((err) => {
+async function downloadFiraCode() {
+  const targetDir = path.resolve(__dirname, '..', 'assets', 'fonts');
+  fs.mkdirSync(targetDir, { recursive: true });
+  const files = [
+    { url: 'https://github.com/tonsky/FiraCode/raw/master/distr/ttf/FiraCode-Regular.ttf', out: 'FiraCode-Regular.ttf' },
+    { url: 'https://github.com/tonsky/FiraCode/raw/master/distr/ttf/FiraCode-Bold.ttf', out: 'FiraCode-Bold.ttf' },
+    { url: 'https://raw.githubusercontent.com/tonsky/FiraCode/master/LICENSE', out: 'FiraCode-LICENSE.txt' },
+  ];
+  for (const f of files) {
+    const dest = path.join(targetDir, f.out);
+    if (fs.existsSync(dest)) {
+      console.log(`[download-tools] Fira Code asset already present at ${dest} — skipping.`);
+      continue;
+    }
+    console.log(`[download-tools] Downloading ${f.url}...`);
+    await download(f.url, dest);
+  }
+  console.log('[download-tools] Fira Code ready');
+}
+
+Promise.all([downloadPandoc(), downloadFiraCode()]).catch((err) => {
   console.error('[download-tools] FAILED:', err.message);
   process.exit(1);
 });
