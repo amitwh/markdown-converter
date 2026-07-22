@@ -62,10 +62,28 @@ export const ipc = {
     // Callers needing a file picker should use ipc.file.pickFile() directly.
     read: (path: string): Promise<IpcResult<string | ChannelMissing>> =>
       safeCall('file', 'read', path),
-    write: (path: string, content: string): Promise<IpcResult<void | ChannelMissing>> =>
+    write: (path: string, content: string): Promise<IpcResult<{ path: string } | ChannelMissing>> =>
       safeCall('file', 'write', path, content),
     list: (dir: string): Promise<IpcResult<FileEntry[] | ChannelMissing>> =>
       safeCall('file', 'list', dir),
+    delete: (path: string): Promise<IpcResult<boolean | ChannelMissing>> =>
+      safeCall('file', 'delete', path),
+    ensureDir: (path: string): Promise<IpcResult<string | ChannelMissing>> =>
+      safeCall('file', 'ensureDir', path),
+    exists: (path: string): Promise<IpcResult<boolean | ChannelMissing>> =>
+      safeCall('file', 'exists', path),
+    isDirectory: (path: string): Promise<IpcResult<boolean | ChannelMissing>> =>
+      safeCall('file', 'isDirectory', path),
+    copy: (
+      source: string,
+      destination: string
+    ): Promise<IpcResult<{ source: string; destination: string } | ChannelMissing>> =>
+      safeCall('file', 'copy', source, destination),
+    move: (
+      source: string,
+      destination: string
+    ): Promise<IpcResult<{ source: string; destination: string } | ChannelMissing>> =>
+      safeCall('file', 'move', source, destination),
     pickFolder: (): Promise<IpcResult<string | null | ChannelMissing>> =>
       safeCall('file', 'pickFolder'),
     pickFile: (): Promise<IpcResult<string | null | ChannelMissing>> =>
@@ -103,11 +121,13 @@ export const ipc = {
     gitStage: (args: {
       rootPath: string;
       files: string[];
-    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('git', 'stage', args),
+    }): Promise<IpcResult<{ files: unknown[]; error?: string } | ChannelMissing>> =>
+      safeCall('git', 'stage', args),
     gitCommit: (args: {
       rootPath: string;
       message: string;
-    }): Promise<IpcResult<void | ChannelMissing>> => safeCall('git', 'commit', args),
+    }): Promise<IpcResult<{ summary: string } | { error: string } | ChannelMissing>> =>
+      safeCall('git', 'commit', args),
     setCurrent: (path: string | null): void => {
       if (typeof window !== 'undefined' && window.electronAPI?.file?.setCurrent) {
         window.electronAPI.file.setCurrent(path);
@@ -161,9 +181,11 @@ export const ipc = {
     },
   },
   updater: {
-    check: (): Promise<IpcResult<void | ChannelMissing>> => safeCall('updater', 'check'),
+    check: (): Promise<IpcResult<{ state: string } | ChannelMissing>> =>
+      safeCall('updater', 'check'),
     install: (): Promise<IpcResult<void | ChannelMissing>> => safeCall('updater', 'install'),
-    getState: (): Promise<IpcResult<unknown | ChannelMissing>> => safeCall('updater', 'getState'),
+    getState: (): Promise<IpcResult<{ state: string } | ChannelMissing>> =>
+      safeCall('updater', 'getState'),
     onStatus: (cb: (payload: unknown) => void): (() => void) => {
       if (typeof window === 'undefined' || !window.electronAPI?.updater?.onStatus) {
         return () => {};
@@ -172,9 +194,20 @@ export const ipc = {
     },
   },
   crash: {
-    read: (): Promise<IpcResult<unknown | ChannelMissing>> => safeCall('crash', 'read'),
+    read: (): Promise<
+      IpcResult<
+        | Array<{
+            filename: string;
+            kind: string;
+            message?: string;
+            stack?: string;
+            timestamp: string;
+          }>
+        | ChannelMissing
+      >
+    > => safeCall('crash', 'read'),
     openDir: (): Promise<IpcResult<void | ChannelMissing>> => safeCall('crash', 'openDir'),
-    delete: (filename: string): Promise<IpcResult<void | ChannelMissing>> =>
+    delete: (filename: string): Promise<IpcResult<boolean | ChannelMissing>> =>
       safeCall('crash', 'delete', filename),
   },
 };
