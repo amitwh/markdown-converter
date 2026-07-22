@@ -128,6 +128,20 @@ export interface ElectronAPI {
     openDir: () => void;
     delete: (filename: string) => Promise<unknown>;
   };
+
+  monospace: {
+    getSettings: () => Promise<{
+      monospaceFont: 'jetbrains-mono' | 'fira-code';
+      monospaceLigatures: boolean;
+    }>;
+    saveSettings: (partial: {
+      monospaceFont?: 'jetbrains-mono' | 'fira-code';
+      monospaceLigatures?: boolean;
+    }) => Promise<{
+      monospaceFont: 'jetbrains-mono' | 'fira-code';
+      monospaceLigatures: boolean;
+    }>;
+  };
 }
 
 declare global {

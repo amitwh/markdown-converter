@@ -149,6 +149,10 @@ const ALLOWED_SEND_CHANNELS = [
   'crash:open-dir',
   'crash:delete',
 
+  // Monospace font settings
+  'get-monospace-settings',
+  'set-monospace-settings',
+
   // Git diff
   'git-diff',
 
@@ -495,6 +499,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     read: () => ipcRenderer.invoke('crash:read'),
     openDir: () => ipcRenderer.send('crash:open-dir'),
     delete: (filename) => ipcRenderer.invoke('crash:delete', filename),
+  },
+
+  monospace: {
+    getSettings: () => ipcRenderer.invoke('get-monospace-settings'),
+    saveSettings: (partial) => ipcRenderer.invoke('set-monospace-settings', partial),
   },
 });
 
