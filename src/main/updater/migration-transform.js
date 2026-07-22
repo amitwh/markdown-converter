@@ -39,6 +39,9 @@ const v5SettingsSchema = z
     updateChannel: z.enum(['github', 'concreteinfo']).default('github'),
     autoCheckUpdates: z.boolean().default(true),
     firstRun: z.boolean().default(true),
+    monospaceFont: z.enum(['jetbrains-mono', 'fira-code']).default('jetbrains-mono'),
+    monospaceLigatures: z.boolean().default(false),
+    appVariant: z.enum(['classic', 'react']).default('react'),
     'migration.version': z.literal(5).optional(),
   })
   .passthrough();

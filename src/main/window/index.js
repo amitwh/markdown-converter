@@ -9,12 +9,14 @@ const menu = require('../menu');
 
 function createMainWindow() {
   const bounds = state.load();
+  const isDev = !!process.env.VITE_DEV_SERVER_URL;
   const win = new BrowserWindow({
     width: bounds.width,
     height: bounds.height,
     x: bounds.x,
     y: bounds.y,
     show: true,
+    title: `Markdown Converter${isDev ? ' — React Dev' : ''}`,
     webPreferences: {
       // The preload script exposes `window.electronAPI` — the only IPC
       // bridge the renderer uses. Without this, every renderer call returns

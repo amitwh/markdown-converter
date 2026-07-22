@@ -10,7 +10,7 @@ export const v4SettingsSchema = z.object({
   snippets: z.array(z.unknown()).default([]),
 });
 
-const v5OnlyFields = ['updateChannel', 'autoCheckUpdates', 'firstRun'];
+const v5OnlyFields = ['updateChannel', 'autoCheckUpdates', 'firstRun', 'monospaceFont', 'monospaceLigatures', 'appVariant'];
 const v5ThemeValues = ['light', 'dark', 'system'] as const;
 
 function isAlreadyV5(data: unknown): boolean {

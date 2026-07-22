@@ -1,7 +1,7 @@
 {
-  "name": "markdown-converter",
+  "name": "markdown-converter-react",
   "version": "5.0.1",
-  "description": "Professional Markdown editor and universal file converter with PDF editing, batch processing, and syntax highlighting",
+  "description": "Professional Markdown editor and universal file converter with PDF editing, batch processing, and syntax highlighting (React build)",
   "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
@@ -161,8 +161,8 @@
     "lodash": "^4.17.21"
   },
   "build": {
-    "appId": "com.concreteinfo.markdownconverter",
-    "productName": "MarkdownConverter",
+    "appId": "com.concreteinfo.markdownconverter.react",
+    "productName": "Markdown Converter React",
     "copyright": "Copyright (C) 2024-2025 ConcreteInfo",
     "directories": {
       "output": "dist"
@@ -291,6 +291,8 @@
       ],
       "category": "Utility",
       "maintainer": "ConcreteInfo <amit.wh@gmail.com>",
+      "executableName": "markdown-converter-react",
+      "synopsis": "Markdown editor and converter (React build)",
       "extraFiles": [
         {
           "from": "bin/linux/pandoc",
