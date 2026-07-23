@@ -105,6 +105,43 @@ describe('searchInFiles', () => {
     ).toBeGreaterThanOrEqual(0);
   });
 
+  test('rejects regexes with lookahead / lookbehind', () => {
+    fs.writeFileSync(path.join(tmpDir, 'a.md'), 'hello');
+    expect(
+      searchInFiles({ rootPath: tmpDir, query: '(?=hello)h', isRegex: true })
+    ).toEqual([]);
+    expect(
+      searchInFiles({ rootPath: tmpDir, query: '(?!foo)h', isRegex: true })
+    ).toEqual([]);
+  });
+
+  test('rejects regexes with backrefs', () => {
+    fs.writeFileSync(path.join(tmpDir, 'a.md'), 'hello hello');
+    expect(
+      searchInFiles({ rootPath: tmpDir, query: '(hello)\\1', isRegex: true })
+    ).toEqual([]);
+  });
+
+  test('rejects regexes with class + quantifier', () => {
+    fs.writeFileSync(path.join(tmpDir, 'a.md'), 'abc');
+    expect(
+      searchInFiles({ rootPath: tmpDir, query: '[a-z]+', isRegex: true })
+    ).toEqual([]);
+  });
+
+  test('rejects regexes longer than 200 chars', () => {
+    fs.writeFileSync(path.join(tmpDir, 'a.md'), 'x');
+    const longRe = 'a'.repeat(250);
+    expect(
+      searchInFiles({ rootPath: tmpDir, query: longRe, isRegex: true })
+    ).toEqual([]);
+    // But 200 chars is fine
+    const okRe = 'a'.repeat(200);
+    expect(
+      searchInFiles({ rootPath: tmpDir, query: okRe, isRegex: true }).length
+    ).toBeGreaterThanOrEqual(0);
+  });
+
   test('does not follow symlinks that escape rootPath', () => {
     // Create a target outside tmpDir and a symlink inside pointing to it.
     const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'search-outside-'));

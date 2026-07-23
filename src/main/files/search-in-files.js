@@ -7,10 +7,31 @@ const MAX_RESULTS = 1000;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_FILES = 10000;
 const MAX_QUERY_LENGTH = 1024;
+const MAX_REGEX_LENGTH = 200;
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.next', '.cache']);
 
-// Reject regexes with nested quantifiers / classic ReDoS shapes.
-const UNSAFE_REGEX = /(\([^)]*[+*][^)]*\)[+*])|(\[[^\]]*\][+*])|(\.[+*]\.[+*])|(\(\?\:)/;
+// Reject regexes with classic ReDoS shapes. This is a defense-in-depth
+// denylist, not a proof of safety — the hard caps on length, files, and
+// results are the primary defense.
+const UNSAFE_REGEX = new RegExp(
+  // nested quantifiers: (a+)+, [a-z]*+
+  '\\([^)]*[+*][^)]*\\)[+*?]' +
+  '|' +
+  // class with quantifier: [a-z]+
+  '\\[[^\\]]*\\][+*]' +
+  '|' +
+  // dot-quantifier followed by dot-quantifier
+  '\\.[+*]\\s*\\.[+*]' +
+  '|' +
+  // lookahead / lookbehind
+  '\\(\\?[=!]' +
+  '|' +
+  // backrefs
+  '\\\\[1-9]' +
+  '|' +
+  // alternation with quantifier
+  '\\([^)]*\\|[^)]*\\)[+*]'
+);
 
 function listFiles(rootPath) {
   const out = [];
@@ -68,6 +89,7 @@ function listFiles(rootPath) {
 
 function makeMatcher(query, isRegex, caseSensitive) {
   if (isRegex) {
+    if (query.length > MAX_REGEX_LENGTH) return null;
     if (UNSAFE_REGEX.test(query)) return null;
     try {
       const re = new RegExp(query, caseSensitive ? '' : 'i');
