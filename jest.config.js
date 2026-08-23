@@ -11,10 +11,7 @@ module.exports = {
   rootDir: '.',
 
   // Test file patterns
-  testMatch: [
-    '**/tests/**/*.test.js',
-    '**/tests/**/*.spec.js'
-  ],
+  testMatch: ['**/tests/**/*.test.js', '**/tests/**/*.spec.js'],
 
   // Coverage configuration
   collectCoverageFrom: [
@@ -22,7 +19,7 @@ module.exports = {
     '!src/main.js', // Main process needs electron-mock
     '!src/renderer.js', // Large renderer file with duplicate declarations
     '!src/preload.js', // Electron preload requires contextBridge
-    '!**/node_modules/**'
+    '!**/node_modules/**',
   ],
 
   // Coverage thresholds (raised with expanded test suite)
@@ -31,8 +28,8 @@ module.exports = {
       branches: 10,
       functions: 15,
       lines: 15,
-      statements: 15
-    }
+      statements: 15,
+    },
   },
 
   // Transform settings (no transpilation needed for vanilla JS)
@@ -45,10 +42,11 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
 
   // Ignore patterns
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/dist/'
-  ],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+
+  // Keep the haste map / snapshot scanner out of build output — electron-builder's
+  // .snap (Squashfs) artifacts otherwise register as obsolete Jest snapshots.
+  modulePathIgnorePatterns: ['/dist/'],
 
   // Verbose output
   verbose: true,
@@ -57,5 +55,5 @@ module.exports = {
   clearMocks: true,
 
   // Reset modules between tests
-  resetModules: true
+  resetModules: true,
 };
