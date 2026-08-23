@@ -12,6 +12,7 @@ const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
 const { showMediaOperationsDialog } = require('./renderer/media-operations-dialog');
+const { csvToMarkdownTable } = require('./utils/csv-to-markdown-table');
 
 /**
  * Toggle body classes that drive the monospace font + ligatures CSS tokens.
@@ -1212,6 +1213,11 @@ class TabManager {
       this.insertTable();
     });
 
+    // CSV to Table (converts the selected CSV text in place)
+    document.getElementById('btn-csv-table').addEventListener('click', () => {
+      this.convertSelectionToTable();
+    });
+
     // Strikethrough
     document.getElementById('btn-strikethrough').addEventListener('click', () => {
       this.wrapSelection('~~', '~~');
@@ -1282,6 +1288,26 @@ class TabManager {
       '| Cell 1   | Cell 2   | Cell 3   |\n' +
       '| Cell 4   | Cell 5   | Cell 6   |\n';
     this.insertAtCursor(table);
+  }
+
+  // Convert the selected CSV text into a markdown table in place
+  convertSelectionToTable() {
+    const tab = this.tabs.get(this.activeTabId);
+    if (!tab?.editorView) return;
+    const view = tab.editorView;
+    const { from, to } = view.state.selection.main;
+    const selectedText = view.state.sliceDoc(from, to);
+    if (!selectedText.trim()) return;
+    const table = csvToMarkdownTable(selectedText);
+    if (!table) return;
+    view.dispatch({
+      changes: {
+        from,
+        to,
+        insert: table,
+      },
+    });
+    view.focus();
   }
 
   // Insert a code block
