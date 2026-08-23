@@ -172,6 +172,7 @@ const ALLOWED_RECEIVE_CHANNELS = [
 
   // Font
   'adjust-font-size',
+  'monospace-setting-change',
 
   // Print
   'print-preview',
