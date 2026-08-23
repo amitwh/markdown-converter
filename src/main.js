@@ -13,6 +13,7 @@ const GitOperations = require('./main/GitOperations');
 const PdfFontHeader = require('./main/PdfFontHeader');
 const MonospaceFontConfig = require('./main/MonospaceFontConfig');
 const ExportCss = require('./main/ExportCss');
+const ExportPresets = require('./main/ExportPresets');
 const EpubFontEmbedder = require('./main/EpubFontEmbedder');
 const DocxFontEmbedder = require('./main/DocxFontEmbedder');
 
@@ -2020,6 +2021,17 @@ ipcMain.on('save-header-footer-settings', (event, settings) => {
     buttons: ['OK'],
   });
 });
+
+// Export Presets IPC Handlers (invoke-style). Presets live in settings.json
+// under the `exportPresets` key — the same store used for header/footer and
+// page settings; list logic is in src/main/ExportPresets.js.
+ipcMain.handle('get-export-presets', async () => ExportPresets.loadPresets(store));
+ipcMain.handle('save-export-preset', async (event, preset) =>
+  ExportPresets.savePreset(store, preset)
+);
+ipcMain.handle('delete-export-preset', async (event, presetId) =>
+  ExportPresets.deletePreset(store, presetId)
+);
 
 // Get current page settings
 ipcMain.on('get-page-settings', (event) => {

@@ -74,6 +74,11 @@ const ALLOWED_SEND_CHANNELS = [
   'browse-word-template',
   'clear-word-template',
 
+  // Export presets (invoke channels — gated by this same array)
+  'get-export-presets',
+  'save-export-preset',
+  'delete-export-preset',
+
   // Page settings
   'get-page-settings',
   'update-page-settings',

@@ -352,22 +352,28 @@
           </div>
           <div class="modal-body">
             <!-- Simple/Advanced Export Toggle -->
-            <!-- Export Profiles -->
-            <div class="export-section export-profiles">
-              <label>Export Profile:</label>
-              <div class="profile-controls">
-                <select id="export-profile-select">
-                  <option value="">Custom Settings</option>
-                </select>
-                <button
-                  id="save-profile-btn"
-                  type="button"
-                  title="Save current settings as profile"
-                >
-                  💾 Save
-                </button>
-                <button id="delete-profile-btn" type="button" title="Delete selected profile">
-                  🗑️ Delete
+            <!-- Export Presets (main-process persisted; see src/renderer/export-presets.js) -->
+            <div class="export-section export-presets">
+              <label>Export Preset:</label>
+              <div class="preset-controls">
+                <div class="preset-dropdown">
+                  <button
+                    type="button"
+                    id="preset-dropdown-toggle"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                  >
+                    Custom Settings
+                  </button>
+                  <div
+                    id="preset-dropdown-list"
+                    class="preset-dropdown-list hidden"
+                    role="listbox"
+                    aria-label="Export presets"
+                  ></div>
+                </div>
+                <button id="save-preset-btn" type="button" title="Save current settings as preset">
+                  💾 Save as preset
                 </button>
               </div>
               <small class="export-help">Save and reuse your favorite export configurations</small>

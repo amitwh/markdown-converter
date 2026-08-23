@@ -1491,29 +1491,26 @@ body.theme-github .line-numbers {
   color: #586069;
 }
 
-/* Export Profiles Styles */
-.export-profiles {
+/* Export Presets Styles */
+.export-presets {
   border-bottom: 1px solid #ddd;
   padding-bottom: 15px;
   margin-bottom: 15px;
 }
 
-.profile-controls {
+.preset-controls {
   display: flex;
   gap: 8px;
   align-items: center;
   margin-top: 8px;
 }
 
-.profile-controls select {
+.preset-dropdown {
   flex: 1;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
+  position: relative;
 }
 
-.profile-controls button {
+.preset-dropdown button {
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -1523,7 +1520,98 @@ body.theme-github .line-numbers {
   transition: all 0.2s;
 }
 
-.profile-controls button:hover {
+.preset-dropdown button:hover {
+  background: #e8e8e8;
+}
+
+#preset-dropdown-toggle {
+  width: 100%;
+  text-align: left;
+}
+
+.preset-dropdown-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+}
+
+.preset-dropdown-list.hidden {
+  display: none;
+}
+
+.preset-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.preset-row.selected {
+  background: #eef4fb;
+}
+
+.preset-row:hover {
+  background: #f0f0f0;
+}
+
+.preset-row-select {
+  flex: 1;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 6px 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.preset-format {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #586069;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
+.preset-delete {
+  border: none;
+  background: none;
+  color: #586069;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.preset-delete:hover {
+  color: #cb2431;
+}
+
+.preset-empty {
+  padding: 8px;
+  font-size: 13px;
+  color: #586069;
+}
+
+#save-preset-btn {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f5f5f5;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+#save-preset-btn:hover {
   background: #e8e8e8;
 }
 

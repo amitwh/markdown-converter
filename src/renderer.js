@@ -13,6 +13,7 @@ const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
 const { showMediaOperationsDialog } = require('./renderer/media-operations-dialog');
 const { showDocumentCompareDialog } = require('./renderer/document-compare-dialog');
+const { initExportPresets, refreshExportPresets } = require('./renderer/export-presets');
 const { csvToMarkdownTable } = require('./utils/csv-to-markdown-table');
 
 /**
@@ -2425,6 +2426,9 @@ function showExportDialog(format) {
 
   // Initialize form values
   initializeExportForm(format);
+
+  // Populate the preset dropdown from the main-process store
+  refreshExportPresets();
 }
 function hideExportDialog() {
   window.modals.exportModal.close();
@@ -2599,129 +2603,14 @@ function collectExportOptions() {
   return options;
 }
 
-// Export Profiles Management
-let exportProfiles = {};
-function loadExportProfiles() {
-  const saved = localStorage.getItem('exportProfiles');
-  if (saved) {
-    try {
-      exportProfiles = JSON.parse(saved);
-      populateProfileDropdown();
-    } catch (e) {
-      console.error('Failed to load export profiles:', e);
-      exportProfiles = {};
-    }
-  }
-}
-function saveExportProfiles() {
-  localStorage.setItem('exportProfiles', JSON.stringify(exportProfiles));
-}
-function populateProfileDropdown() {
-  const select = document.getElementById('export-profile-select');
-  if (!select) return;
-
-  // Clear existing options except the first one
-  while (select.options.length > 1) {
-    select.remove(1);
-  }
-
-  // Add saved profiles
-  Object.keys(exportProfiles).forEach((name) => {
-    const option = document.createElement('option');
-    option.value = name;
-    option.textContent = name;
-    select.appendChild(option);
-  });
-}
-function saveCurrentProfile() {
-  const name = prompt('Enter a name for this export profile:', 'My Profile');
-  if (!name || name.trim() === '') return;
-  const profileName = name.trim();
-
-  // Collect current settings
-  const profile = {
-    format: currentExportFormat,
-    advancedMode: document.getElementById('advanced-export-toggle').checked,
-    pageSize: document.getElementById('page-size').value,
-    pageOrientation: document.getElementById('page-orientation').value,
-    basicToc: document.getElementById('basic-toc').checked,
-    basicNumberSections: document.getElementById('basic-number-sections').checked,
-  };
-
-  // Add advanced options if enabled
-  if (profile.advancedMode) {
-    profile.template = document.getElementById('export-template').value;
-    profile.toc = document.getElementById('export-toc').checked;
-    profile.tocDepth = document.getElementById('export-toc-depth').value;
-    profile.numberSections = document.getElementById('export-number-sections').checked;
-    profile.citeproc = document.getElementById('export-citeproc').checked;
-    if (currentExportFormat === 'pdf') {
-      profile.pdfEngine = document.getElementById('pdf-engine').value;
-      profile.pdfGeometry = document.getElementById('pdf-geometry').value;
-    }
-  }
-  exportProfiles[profileName] = profile;
-  saveExportProfiles();
-  populateProfileDropdown();
-
-  // Select the newly created profile
-  document.getElementById('export-profile-select').value = profileName;
-  notifyUser(`Profile "${profileName}" saved successfully.`, 'success');
-}
-function loadProfile(profileName) {
-  if (!profileName || !exportProfiles[profileName]) return;
-  const profile = exportProfiles[profileName];
-
-  // Apply settings
-  if (profile.advancedMode !== undefined) {
-    document.getElementById('advanced-export-toggle').checked = profile.advancedMode;
-    const advancedOptions = document.getElementById('advanced-export-options');
-    if (profile.advancedMode) {
-      advancedOptions.classList.remove('hidden');
-    } else {
-      advancedOptions.classList.add('hidden');
-    }
-  }
-  if (profile.pageSize) document.getElementById('page-size').value = profile.pageSize;
-  if (profile.pageOrientation)
-    document.getElementById('page-orientation').value = profile.pageOrientation;
-  if (profile.basicToc !== undefined)
-    document.getElementById('basic-toc').checked = profile.basicToc;
-  if (profile.basicNumberSections !== undefined)
-    document.getElementById('basic-number-sections').checked = profile.basicNumberSections;
-
-  // Advanced options
-  if (profile.advancedMode && profile.template)
-    document.getElementById('export-template').value = profile.template;
-  if (profile.toc !== undefined) document.getElementById('export-toc').checked = profile.toc;
-  if (profile.tocDepth) document.getElementById('export-toc-depth').value = profile.tocDepth;
-  if (profile.numberSections !== undefined)
-    document.getElementById('export-number-sections').checked = profile.numberSections;
-  if (profile.citeproc !== undefined)
-    document.getElementById('export-citeproc').checked = profile.citeproc;
-  if (profile.pdfEngine) document.getElementById('pdf-engine').value = profile.pdfEngine;
-  if (profile.pdfGeometry) document.getElementById('pdf-geometry').value = profile.pdfGeometry;
-}
-function deleteSelectedProfile() {
-  const select = document.getElementById('export-profile-select');
-  const profileName = select.value;
-  if (!profileName) {
-    notifyUser('Select a profile to delete.', 'warning');
-    return;
-  }
-  if (confirm(`Are you sure you want to delete the profile "${profileName}"?`)) {
-    delete exportProfiles[profileName];
-    saveExportProfiles();
-    populateProfileDropdown();
-    select.value = '';
-    notifyUser(`Profile "${profileName}" deleted successfully.`, 'success');
-  }
-}
+// Export Presets — the preset dropdown / "Save as preset" logic lives in
+// src/renderer/export-presets.js; presets are persisted by the main process
+// in settings.json (get-export-presets / save-export-preset /
+// delete-export-preset invoke channels), replacing the earlier
+// localStorage-only export profiles.
 
 // Event listeners for export dialog
 document.addEventListener('DOMContentLoaded', () => {
-  // Load export profiles on startup
-  loadExportProfiles();
   // Template selection
   document.getElementById('export-template').addEventListener('change', (e) => {
     const customPath = document.getElementById('custom-template-path');
@@ -2812,12 +2701,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Export Profile buttons
-  document.getElementById('save-profile-btn').addEventListener('click', saveCurrentProfile);
-  document.getElementById('delete-profile-btn').addEventListener('click', deleteSelectedProfile);
-  document.getElementById('export-profile-select').addEventListener('change', (e) => {
-    loadProfile(e.target.value);
-  });
+  // Export Preset controls (dropdown, per-row delete, save-as-preset)
+  initExportPresets({ notify: notifyUser });
 
   // Add metadata field
   document.getElementById('add-metadata-field').addEventListener('click', () => {
