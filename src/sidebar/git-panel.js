@@ -1,3 +1,15 @@
+// Escape repo-derived strings (branch/file names, commit messages, git stderr) before
+// interpolating them into innerHTML. Quotes are included so attribute contexts
+// (data-file, data-branch) cannot be broken out of.
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderGitPanel(
   container,
   { gitStatus, gitDiff, gitStage, gitCommit, gitLog, gitBranches, gitCheckout, gitPush, gitPull }
@@ -47,7 +59,7 @@ function renderGitPanel(
     if (!status || !changesEl) return;
 
     if (status.error) {
-      changesEl.innerHTML = `<p class="git-info">${status.error}</p>`;
+      changesEl.innerHTML = `<p class="git-info">${escapeHtml(status.error)}</p>`;
       return;
     }
 
@@ -65,11 +77,11 @@ function renderGitPanel(
       changesEl.innerHTML = files
         .map(
           (f) => `
-                <div class="git-file" data-file="${f.file}">
+                <div class="git-file" data-file="${escapeHtml(f.file)}">
                     <span class="git-file-status" style="color:${f.color}">${f.status}</span>
-                    <span class="git-file-name">${f.file}</span>
-                    <button class="git-diff-btn" data-file="${f.file}" title="View diff">diff</button>
-                    <button class="git-stage-btn" data-file="${f.file}" title="Stage file">+</button>
+                    <span class="git-file-name">${escapeHtml(f.file)}</span>
+                    <button class="git-diff-btn" data-file="${escapeHtml(f.file)}" title="View diff">diff</button>
+                    <button class="git-stage-btn" data-file="${escapeHtml(f.file)}" title="Stage file">+</button>
                 </div>
             `
         )
@@ -101,8 +113,8 @@ function renderGitPanel(
           .map(
             (entry) => `
                 <div class="git-log-entry">
-                    <div class="git-log-msg">${entry.message}</div>
-                    <div class="git-log-meta">${entry.date?.substring(0, 10) || ''} &middot; ${entry.author_name || ''}</div>
+                    <div class="git-log-msg">${escapeHtml(entry.message)}</div>
+                    <div class="git-log-meta">${entry.date?.substring(0, 10) || ''} &middot; ${escapeHtml(entry.author_name || '')}</div>
                 </div>
             `
           )
@@ -127,7 +139,7 @@ function renderGitPanel(
     if (!result) return;
 
     if (result.error) {
-      branchesEl.innerHTML = `<p class="git-info">${result.error}</p>`;
+      branchesEl.innerHTML = `<p class="git-info">${escapeHtml(result.error)}</p>`;
       return;
     }
 
@@ -142,9 +154,9 @@ function renderGitPanel(
     branchesEl.innerHTML = names
       .map(
         (name) => `
-                <div class="git-branch-item${name === current ? ' git-branch-current' : ''}" data-branch="${name}">
-                    <span class="git-branch-name">${name === current ? '&#9679; ' : ''}${name}</span>
-                    ${name === current ? '' : `<button class="git-checkout-btn" data-branch="${name}" title="Checkout branch">checkout</button>`}
+                <div class="git-branch-item${name === current ? ' git-branch-current' : ''}" data-branch="${escapeHtml(name)}">
+                    <span class="git-branch-name">${name === current ? '&#9679; ' : ''}${escapeHtml(name)}</span>
+                    ${name === current ? '' : `<button class="git-checkout-btn" data-branch="${escapeHtml(name)}" title="Checkout branch">checkout</button>`}
                 </div>
             `
       )
