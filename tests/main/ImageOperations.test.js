@@ -9,7 +9,9 @@ describe('ImageOperations', () => {
   beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'imgops_'));
     inputPath = path.join(tmpDir, 'in.png');
-    await sharp({ create: { width: 100, height: 100, channels: 3, background: { r: 255, g: 0, b: 0 } } })
+    await sharp({
+      create: { width: 100, height: 100, channels: 3, background: { r: 255, g: 0, b: 0 } },
+    })
       .png()
       .toFile(inputPath);
   });
@@ -26,7 +28,13 @@ describe('ImageOperations', () => {
 
   test('imageResize resizes to given width preserving aspect', async () => {
     const outputPath = path.join(tmpDir, 'out.png');
-    await ImageOperations.imageResize({ inputPath, outputPath, width: 50, height: null, fit: 'inside' });
+    await ImageOperations.imageResize({
+      inputPath,
+      outputPath,
+      width: 50,
+      height: null,
+      fit: 'inside',
+    });
     const meta = await sharp(outputPath).metadata();
     expect(meta.width).toBe(50);
   });
@@ -48,7 +56,11 @@ describe('ImageOperations', () => {
 
   test('executeOperation dispatches to the correct function', async () => {
     const outputPath = path.join(tmpDir, 'out.png');
-    const result = await ImageOperations.executeOperation('rotate', { inputPath, outputPath, angle: 180 });
+    const result = await ImageOperations.executeOperation('rotate', {
+      inputPath,
+      outputPath,
+      angle: 180,
+    });
     expect(result.success).toBe(true);
   });
 
