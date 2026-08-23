@@ -1682,6 +1682,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const ReplPanel = getReplPanel();
   replPanel = new ReplPanel();
 
+  // View menu: toggle the bottom REPL panel
+  ipcRenderer.on('toggle-bottom-panel', () => {
+    replPanel.toggle();
+  });
+
   // Populate app version from main process
   window.electronAPI.getAppVersion().then((version) => {
     const el = document.getElementById('app-version-display');
@@ -1791,6 +1796,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
       });
     },
+  });
+
+  // View menu: toggle a sidebar panel by id (explorer/git/snippets/templates/outline)
+  ipcRenderer.on('toggle-sidebar-panel', (event, panelId) => {
+    sidebarManager.togglePanel(panelId);
   });
 
   // --- Plugin System ---
@@ -2044,6 +2054,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   );
   commandPalette.register('Load Custom Preview CSS', '', triggerLoadCustomCSS);
   commandPalette.register('Clear Custom Preview CSS', '', triggerClearCustomCSS);
+
+  // View menu: toggle the Command Palette
+  ipcRenderer.on('toggle-command-palette', () => {
+    if (commandPalette.isOpen()) {
+      commandPalette.close();
+    } else {
+      commandPalette.open();
+    }
+  });
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
