@@ -721,3 +721,20 @@ test('a bibliography path containing a double quote cannot inject extra pandoc f
 - [ ] **Step 5:** `npm run build:local` (per `package.json` script — builds Linux + Windows targets; this matches "local release" for this dev machine's platform(s)). If this machine is Linux-only and Windows cross-build tooling (wine, etc.) isn't available, fall back to `npm run build:linux-ci` and note the Windows build was skipped and why.
 - [ ] **Step 6:** Verify the `dist/` output contains the expected artifacts (`.deb`, `.AppImage` at minimum) and that the packaged app launches (`./dist/*.AppImage` or the unpacked `dist/linux-unpacked/markdown-converter` binary) without immediate crash — smoke-test opening a markdown file and exporting to PDF from the packaged build specifically (not `npm start`), since `asarUnpack` behavior for `sharp`/`ffmpeg-static`/fonts only manifests in a packaged build.
 - [ ] **Step 7:** Report the final `dist/` artifact list and versions to the user; do not bump `package.json`'s version number as part of this task unless the user asks — that is a separate release-management decision.
+
+---
+
+### Task 26: Migrate `File.path` → `webUtils.getPathForFile` (Electron 41 fix) — appended by controller ruling 2026-08-23
+
+**Origin:** Task 20 review. `File.path` was removed in Electron 32; this app pins `electron ^41.1.1` and has no `webUtils` usage — every renderer file-picker reading `file.path` gets `undefined` at runtime (~15 sites: universal converter, PDF editor pickers, bibliography/CSL pickers, custom template, media merge lists, document-compare File B).
+
+**Files:**
+- Modify: `src/preload.js` (expose a `getFilePath(file)` helper via `webUtils.getPathForFile`)
+- Modify: `src/renderer.js`, `src/renderer/media-operations-dialog.js`, `src/renderer/document-compare-dialog.js` (migrate all `file.path` reads to the helper)
+
+**Steps:**
+1. In `src/preload.js`, expose `getFilePath: (file) => webUtils.getPathForFile(file)` on the existing `electronAPI` surface (webUtils is available in the preload/renderer context; it exists precisely to replace File.path). No new IPC channel needed — this is a synchronous in-process call.
+2. Grep-migrate every `file.path` / `files[i].path` read in the three renderer files to `window.electronAPI.getFilePath(file)` (falling back to `file.path` if the helper is absent, to keep jsdom tests runnable — verify which tests mock this surface and update them to mock the helper).
+3. Add a preload test asserting `getFilePath` is exposed (follow tests/preload.test.js conventions).
+4. `npm run lint && npm test`.
+5. Commit: `fix(renderer): migrate File.path reads to webUtils.getPathForFile for Electron 41`
