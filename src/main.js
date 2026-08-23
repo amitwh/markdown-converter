@@ -965,6 +965,38 @@ function createMenu() {
               label: 'MOBI E-book (.mobi)',
               click: () => exportFile('mobi'),
             },
+            {
+              type: 'separator',
+            },
+            // Lightweight markup / interchange formats supported by the bundled Pandoc
+            {
+              label: 'AsciiDoc (.adoc)',
+              click: () => exportFile('asciidoc'),
+            },
+            {
+              label: 'reStructuredText (.rst)',
+              click: () => exportFile('rst'),
+            },
+            {
+              label: 'MediaWiki (.wiki)',
+              click: () => exportFile('mediawiki'),
+            },
+            {
+              label: 'Org-mode (.org)',
+              click: () => exportFile('org'),
+            },
+            {
+              label: 'Textile (.textile)',
+              click: () => exportFile('textile'),
+            },
+            {
+              label: 'Man Page (.man)',
+              click: () => exportFile('man'),
+            },
+            {
+              label: 'Jupyter Notebook (.ipynb)',
+              click: () => exportFile('ipynb'),
+            },
           ],
         },
         {
@@ -2689,6 +2721,8 @@ function performExportWithOptions(format, options) {
     beamer: 'pdf',
     confluence: 'txt',
     jira: 'txt',
+    asciidoc: 'adoc',
+    mediawiki: 'wiki',
   };
   const fileExt = formatExtMap[format] || format;
   const outputFile = dialog.showSaveDialogSync(mainWindow, {
@@ -2942,6 +2976,27 @@ function performExportWithOptions(format, options) {
         exportWithPandoc(pandocCmd, outputFile, format);
       } else if (format === 'confluence' || format === 'jira') {
         pandocCmd = `${getPandocPath()} "${currentFile}" -t jira -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'asciidoc') {
+        pandocCmd = `${getPandocPath()} "${currentFile}" -t asciidoc -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'rst') {
+        pandocCmd = `${getPandocPath()} "${currentFile}" -t rst -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'mediawiki') {
+        pandocCmd = `${getPandocPath()} "${currentFile}" -t mediawiki -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'org') {
+        pandocCmd = `${getPandocPath()} "${currentFile}" -t org -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'textile') {
+        pandocCmd = `${getPandocPath()} "${currentFile}" -t textile -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'man') {
+        pandocCmd = `${getPandocPath()} "${currentFile}" -t man -o "${outputFile}"`;
+        exportWithPandoc(pandocCmd, outputFile, format);
+      } else if (format === 'ipynb') {
+        pandocCmd = `${getPandocPath()} "${currentFile}" -t ipynb -o "${outputFile}"`;
         exportWithPandoc(pandocCmd, outputFile, format);
       } else if (format === 'epub') {
         // Embed the active monospace TTF into EPUB so code blocks render in
