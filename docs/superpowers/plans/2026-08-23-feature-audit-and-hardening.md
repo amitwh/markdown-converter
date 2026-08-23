@@ -738,3 +738,22 @@ test('a bibliography path containing a double quote cannot inject extra pandoc f
 3. Add a preload test asserting `getFilePath` is exposed (follow tests/preload.test.js conventions).
 4. `npm run lint && npm test`.
 5. Commit: `fix(renderer): migrate File.path reads to webUtils.getPathForFile for Electron 41`
+
+---
+
+### Task 27: PDF encrypt/decrypt/permissions — replace silent no-op with honest failure — appended by controller ruling 2026-08-23
+
+**Origin:** Task 22 review (empirically verified). pdf-lib 1.17.1 cannot encrypt: `save({userPassword, ownerPassword, permissions})` silently ignores these options, `PDFDocument.load({password})` is not a LoadOptions field. Current behavior: `pdfEncrypt`/`pdfSetPermissions` write unprotected files and report success; `pdfDecrypt` reports success on non-encrypted inputs (copy no-op) and always fails on genuinely encrypted ones.
+
+**Files:**
+- Modify: `src/main/PDFOperations.js` (pdfEncrypt, pdfDecrypt, pdfSetPermissions), their renderer call sites if messages surface there, and `src/main/PDFBatchOperations.js` exclusion register comment (already excludes these ops — keep excluded, update the comment to reference this task).
+
+**Steps:**
+1. Capability-detect once at module load (probe whether the installed pdf-lib honors encryption — e.g. build a tiny in-memory PDFDocument, save with a userPassword, check raw bytes for `/Encrypt`; or simply pin the known limitation with a constant + comment referencing pdf-lib 1.17.1) — prefer the empirical probe so a future library swap re-enables the ops automatically.
+2. When encryption is unsupported: pdfEncrypt/pdfSetPermissions return `{success: false, message: 'Password protection is not available in this build (pdf-lib lacks encryption support).'}`; pdfDecrypt returns an equivalent honest failure. Never write a file. Never report success.
+3. Update the PDF editor dialog so these three controls are disabled with explanatory hint text when unavailable (grep renderer call sites for the encrypt/permissions handlers).
+4. Update tests: existing encrypt/decrypt/permissions tests (they currently pin the broken behavior — rewrite to assert honest failure); keep any genuinely-passing load-with-password tests only if the probe says the library supports them.
+5. `npm run lint && npm test`.
+6. Commit: `fix(pdf): make encrypt/decrypt/permissions fail honestly instead of silent no-op`
+
+**Out of scope (user decision pending):** swapping pdf-lib for an encryption-capable fork (e.g. @cantoo/pdf-lib) to restore the feature for real — new dependency, needs sign-off.
