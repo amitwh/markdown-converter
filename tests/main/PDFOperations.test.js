@@ -385,3 +385,110 @@ describe('PDFOperations - Task 16 form field fill/flatten', () => {
     });
   });
 });
+
+describe('PDFOperations - Task 27 honest encryption failure', () => {
+  let tmpDir, inputPath;
+
+  beforeEach(async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdfops_pw_'));
+    inputPath = path.join(tmpDir, 'in.pdf');
+
+    const doc = await PDFDocument.create();
+    doc.addPage([600, 800]);
+    fs.writeFileSync(inputPath, await doc.save());
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('detects the bundled pdf-lib as encryption-incapable via the module-load probe', async () => {
+    // Pins the Task 27 premise: pdf-lib 1.17.1's save() ignores password
+    // options (SaveOptions has no such fields), so the probe — which saves a
+    // tiny document with a userPassword and checks the bytes for /Encrypt —
+    // must report false. If this fails after a library swap, the probe
+    // re-enabled the ops and the honest-failure tests below no longer apply.
+    await expect(PDFOperations.pdfEncryptionSupported).resolves.toBe(false);
+  });
+
+  it('pdfEncrypt fails honestly without writing an output file', async () => {
+    const outputPath = path.join(tmpDir, 'encrypted.pdf');
+    const result = await PDFOperations.pdfEncrypt({
+      inputPath,
+      outputPath,
+      userPassword: 'secret',
+      ownerPassword: 'owner-secret',
+      permissions: { printing: true },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(PDFOperations.PDF_ENCRYPTION_UNAVAILABLE_MESSAGE);
+    expect(fs.existsSync(outputPath)).toBe(false);
+  });
+
+  it('pdfDecrypt fails honestly without writing an output file', async () => {
+    const outputPath = path.join(tmpDir, 'decrypted.pdf');
+    const result = await PDFOperations.pdfDecrypt({
+      inputPath,
+      outputPath,
+      password: 'secret',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(PDFOperations.PDF_ENCRYPTION_UNAVAILABLE_MESSAGE);
+    expect(fs.existsSync(outputPath)).toBe(false);
+  });
+
+  it('pdfSetPermissions fails honestly without writing an output file', async () => {
+    const outputPath = path.join(tmpDir, 'permissions.pdf');
+    const result = await PDFOperations.pdfSetPermissions({
+      inputPath,
+      outputPath,
+      ownerPassword: 'owner-secret',
+      permissions: { printing: true },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(PDFOperations.PDF_ENCRYPTION_UNAVAILABLE_MESSAGE);
+    expect(fs.existsSync(outputPath)).toBe(false);
+  });
+
+  it('fails honestly even before reading the input, so a missing input reports unavailability', async () => {
+    const result = await PDFOperations.pdfEncrypt({
+      inputPath: path.join(tmpDir, 'missing.pdf'),
+      outputPath: path.join(tmpDir, 'never-written.pdf'),
+      userPassword: 'secret',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(PDFOperations.PDF_ENCRYPTION_UNAVAILABLE_MESSAGE);
+    expect(fs.existsSync(path.join(tmpDir, 'never-written.pdf'))).toBe(false);
+  });
+
+  it('executeOperation routes the password ops to the honest failure', async () => {
+    const result = await PDFOperations.executeOperation('encrypt', {
+      inputPath,
+      outputPath: path.join(tmpDir, 'exec-encrypted.pdf'),
+      userPassword: 'secret',
+      permissions: { printing: true },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(PDFOperations.PDF_ENCRYPTION_UNAVAILABLE_MESSAGE);
+  });
+
+  it('the module-load probe does not affect other operations', async () => {
+    const outputPath = path.join(tmpDir, 'rotated.pdf');
+    const result = await PDFOperations.pdfRotate({
+      inputPath,
+      outputPath,
+      pages: '1',
+      angle: 90,
+    });
+
+    expect(result.success).toBe(true);
+    expect(fs.existsSync(outputPath)).toBe(true);
+    const rotated = await PDFDocument.load(fs.readFileSync(outputPath));
+    expect(rotated.getPageCount()).toBe(1);
+  });
+});

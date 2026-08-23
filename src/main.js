@@ -4760,6 +4760,12 @@ ipcMain.on('process-pdf-operation', async (event, data) => {
     });
   }
 });
+// Reports pdf-lib's encryption capability (Task 27) so the renderer can
+// disable the password-protection controls instead of letting the user
+// fill the form only to see the operation fail.
+ipcMain.handle('get-pdf-capabilities', async () => ({
+  passwordProtection: await PDFOperations.pdfEncryptionSupported,
+}));
 ipcMain.on('get-pdf-page-count', async (event, filePath) => {
   try {
     const count = await PDFOperations.getPageCount(filePath);

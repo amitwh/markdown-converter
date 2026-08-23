@@ -2,6 +2,30 @@ const fs = require('fs');
 const path = require('path');
 const { PDFDocument, rgb, degrees, StandardFonts } = require('pdf-lib');
 
+// pdf-lib 1.17.1 cannot encrypt: SaveOptions has no userPassword/ownerPassword/
+// permissions fields, so save() silently ignores them and writes an unprotected
+// file, and PDFDocument.load() cannot open password-protected input (verified
+// empirically in Task 22's review). Rather than trusting a pinned version
+// string, probe the installed library once at module load: save a tiny
+// in-memory document with a userPassword and check the raw bytes for an
+// /Encrypt dictionary (which an unencrypted document never contains). A library
+// that supports encryption passes the probe and the password ops re-enable
+// automatically. Probe errors fail closed (treated as unsupported).
+const pdfEncryptionSupported = (async () => {
+  try {
+    const probeDoc = await PDFDocument.create();
+    const probeBytes = await probeDoc.save({ userPassword: 'encryption-capability-probe' });
+    return Buffer.from(probeBytes).includes('/Encrypt');
+  } catch {
+    return false;
+  }
+})();
+
+// Returned by the password ops when the probe reports no encryption support
+// (Task 27): fail honestly instead of silently writing an unprotected file.
+const PDF_ENCRYPTION_UNAVAILABLE_MESSAGE =
+  'Password protection is not available in this build (pdf-lib lacks encryption support).';
+
 function parsePageRanges(rangeString, totalPages) {
   const pages = [];
   const ranges = rangeString.split(',').map((r) => r.trim());
@@ -301,6 +325,9 @@ async function pdfWatermark(data) {
 }
 
 async function pdfEncrypt(data) {
+  if (!(await pdfEncryptionSupported)) {
+    return { success: false, message: PDF_ENCRYPTION_UNAVAILABLE_MESSAGE };
+  }
   try {
     const pdfBytes = fs.readFileSync(data.inputPath);
     const pdf = await PDFDocument.load(pdfBytes);
@@ -335,6 +362,9 @@ async function pdfEncrypt(data) {
 }
 
 async function pdfDecrypt(data) {
+  if (!(await pdfEncryptionSupported)) {
+    return { success: false, message: PDF_ENCRYPTION_UNAVAILABLE_MESSAGE };
+  }
   try {
     const pdfBytes = fs.readFileSync(data.inputPath);
     const pdf = await PDFDocument.load(pdfBytes, { password: data.password });
@@ -352,6 +382,9 @@ async function pdfDecrypt(data) {
 }
 
 async function pdfSetPermissions(data) {
+  if (!(await pdfEncryptionSupported)) {
+    return { success: false, message: PDF_ENCRYPTION_UNAVAILABLE_MESSAGE };
+  }
   try {
     const pdfBytes = fs.readFileSync(data.inputPath);
     const loadOptions = data.currentPassword ? { password: data.currentPassword } : {};
@@ -701,6 +734,8 @@ async function getPageCount(filePath) {
 module.exports = {
   parsePageRanges,
   hexToRgb,
+  pdfEncryptionSupported,
+  PDF_ENCRYPTION_UNAVAILABLE_MESSAGE,
   pdfMerge,
   pdfSplit,
   pdfCompress,

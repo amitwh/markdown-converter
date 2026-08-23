@@ -86,6 +86,7 @@ const ALLOWED_SEND_CHANNELS = [
   // PDF operations
   'process-pdf-operation',
   'get-pdf-page-count',
+  'get-pdf-capabilities',
   'select-pdf-folder',
   'batch-pdf-operation',
 

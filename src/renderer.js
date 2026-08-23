@@ -3922,8 +3922,41 @@ function updateMergeFilesList() {
   });
 }
 
+// Task 27: pdf-lib 1.17.1 cannot encrypt, so encrypt/decrypt/permissions fail
+// honestly in the main process. Ask main once whether password protection is
+// available and, when it is not, disable the three sections' controls with an
+// explanatory hint instead of letting the user fill the form only to see the
+// operation fail. If the capability query itself fails, leave the controls
+// enabled — main still fails the operation honestly on submit.
+async function applyPDFPasswordProtectionAvailability() {
+  let capabilities;
+  try {
+    capabilities = await ipcRenderer.invoke('get-pdf-capabilities');
+  } catch {
+    return;
+  }
+  if (!capabilities || capabilities.passwordProtection !== false) return;
+
+  const sectionIds = ['pdf-encrypt-section', 'pdf-decrypt-section', 'pdf-permissions-section'];
+  for (const sectionId of sectionIds) {
+    const section = document.getElementById(sectionId);
+    if (!section) continue;
+    section.querySelectorAll('input, select, button').forEach((control) => {
+      control.disabled = true;
+    });
+    const hint = document.createElement('p');
+    hint.className = 'warning-message pdf-unavailable-hint';
+    hint.textContent =
+      'Password protection is not available in this build (pdf-lib lacks encryption support).';
+    section.prepend(hint);
+  }
+}
+
 // PDF Editor Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+  // Disable password-protection controls when pdf-lib lacks encryption support
+  applyPDFPasswordProtectionAvailability();
+
   // Close PDF Editor Dialog
   const pdfEditorClose = document.getElementById('pdf-editor-dialog-close');
   if (pdfEditorClose) {
@@ -4694,7 +4727,7 @@ ipcRenderer.on('pdf-operation-complete', (event, { success, error, message }) =>
       }
     }, 800);
   } else {
-    showPDFStatus(`Error: ${error || 'PDF operation failed'}`, 'warning');
+    showPDFStatus(`Error: ${error || message || 'PDF operation failed'}`, 'warning');
   }
 });
 
