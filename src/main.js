@@ -1219,6 +1219,44 @@ function createMenu() {
           type: 'separator',
         },
         {
+          label: 'Monospace Font',
+          submenu: [
+            {
+              label: 'JetBrains Mono',
+              type: 'radio',
+              checked: readSettingsJsonCached().monospaceFont !== 'fira-code',
+              click: () =>
+                mainWindow.webContents.send('monospace-setting-change', {
+                  monospaceFont: 'jetbrains-mono',
+                }),
+            },
+            {
+              label: 'Fira Code',
+              type: 'radio',
+              checked: readSettingsJsonCached().monospaceFont === 'fira-code',
+              click: () =>
+                mainWindow.webContents.send('monospace-setting-change', {
+                  monospaceFont: 'fira-code',
+                }),
+            },
+            {
+              type: 'separator',
+            },
+            {
+              label: 'Ligatures',
+              type: 'checkbox',
+              checked: readSettingsJsonCached().monospaceLigatures === true,
+              click: (menuItem) =>
+                mainWindow.webContents.send('monospace-setting-change', {
+                  monospaceLigatures: menuItem.checked,
+                }),
+            },
+          ],
+        },
+        {
+          type: 'separator',
+        },
+        {
           label: 'Spell Check',
           type: 'checkbox',
           checked: true,

@@ -1875,6 +1875,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyMonospaceClasses(null);
   }
 
+  // Reachable UI control: View > Monospace Font menu (main.js) sends the
+  // requested change here; persist it via the existing setter and apply it
+  // live the same way the initial load above does.
+  ipcRenderer.on('monospace-setting-change', (event, partial) => {
+    if (!window.electronAPI || typeof window.electronAPI.invoke !== 'function') return;
+    window.electronAPI
+      .invoke('set-monospace-settings', partial)
+      .then(applyMonospaceClasses)
+      .catch(() => {});
+  });
+
   // Welcome tab on startup
   const hasLaunched = localStorage.getItem('hasLaunchedBefore');
   const showWelcome = localStorage.getItem('showWelcomeOnStartup') !== 'false';
