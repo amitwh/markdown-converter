@@ -68,3 +68,57 @@ describe('ImageOperations', () => {
     await expect(ImageOperations.executeOperation('bogus', {})).rejects.toThrow();
   });
 });
+
+describe('ImageOperations when sharp fails to load (boot resilience)', () => {
+  // Reproduces the packaged-deb crash: the native @img/sharp-* bindings are
+  // missing/pruned, so require('sharp') throws. Importing ImageOperations must
+  // never crash the app at boot, and every operation must degrade honestly.
+  const dlopenErrorMessage =
+    'Could not load the "sharp" module using the linux-x64 runtime. ' +
+    'ERR_DLOPEN_FAILED: libvips-cpp.so.8.17.3: cannot open shared object file ' +
+    '(searched /opt/MarkdownConverter/resources/app.asar.unpacked/node_modules/@img/' +
+    'sharp-linux-x64/lib, /opt/MarkdownConverter/resources/app.asar/node_modules/@img/' +
+    'sharp-linux-x64/lib, ...)';
+
+  let isolatedModule;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.doMock('sharp', () => {
+      throw new Error(dlopenErrorMessage);
+    });
+    jest.isolateModules(() => {
+      isolatedModule = require('../../src/main/ImageOperations');
+    });
+  });
+
+  afterEach(() => {
+    jest.dontMock('sharp');
+  });
+
+  test('requiring ImageOperations does not throw at import time', () => {
+    expect(() => require('../../src/main/ImageOperations')).not.toThrow();
+  });
+
+  test("executeOperation('convert') resolves to an honest unavailable failure", async () => {
+    const result = await isolatedModule.executeOperation('convert', {
+      inputPath: '/tmp/imgops-resilience-in.png',
+      outputPath: '/tmp/imgops-resilience-out.jpg',
+      format: 'jpeg',
+    });
+    expect(result).toEqual({
+      success: false,
+      error: expect.stringContaining('Image operations unavailable'),
+    });
+  });
+
+  test('the unavailable failure message carries no absolute paths', async () => {
+    const result = await isolatedModule.executeOperation('rotate', {
+      inputPath: '/tmp/imgops-resilience-in.png',
+      outputPath: '/tmp/imgops-resilience-out.png',
+      angle: 90,
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).not.toMatch(/\/opt\/|\/tmp\/|[A-Z]:\\/);
+  });
+});

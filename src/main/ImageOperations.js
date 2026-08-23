@@ -4,12 +4,41 @@
  * Handles image manipulation via `sharp`: format conversion, resize, compress, rotate.
  * Mirrors the executeOperation(operation, data) dispatcher pattern used by PDFOperations.js.
  *
+ * sharp loads LAZILY: its native bindings (@img/sharp-*) are optionalDependencies
+ * that a packaged build can prune or fail to unpack, and a top-level require would
+ * then crash the whole app at boot (src/main.js requires this module unconditionally).
+ * When sharp cannot load, operations degrade honestly instead of killing the app —
+ * the same honest-failure precedent PDFOperations set for missing pdf-lib features.
+ *
  * @module ImageOperations
  */
 
 const fs = require('fs');
 const path = require('path');
-const sharp = require('sharp');
+
+let sharpModule = null;
+let sharpLoadError = null;
+
+function loadSharp() {
+  if (sharpModule) return sharpModule;
+  if (sharpLoadError) throw sharpLoadError;
+  try {
+    sharpModule = require('sharp');
+    return sharpModule;
+  } catch (error) {
+    sharpLoadError = error;
+    throw error;
+  }
+}
+
+// Strip absolute paths from error text before it reaches callers, mirroring
+// sanitizeErrorMessage() in main.js (that helper is not importable from here).
+function sanitizeMessage(message) {
+  if (typeof message !== 'string') return String(message);
+  return message
+    .replace(/[A-Z]:\\[^\s"']+\\([^\s"'\\]+)/gi, '$1')
+    .replace(/\/[^\s"']+\/([^\s"'/]+)/g, '$1');
+}
 
 // Must match the MAX_FILE_SIZE convention defined in main.js (50MB). main.js is the
 // single source of truth for this limit; this module does not redefine it independently
@@ -40,6 +69,7 @@ function validateInput(data) {
 
 async function imageConvert(data) {
   try {
+    const sharp = loadSharp();
     validateInput(data);
     const { inputPath, outputPath, format } = data;
 
@@ -57,6 +87,7 @@ async function imageConvert(data) {
 
 async function imageResize(data) {
   try {
+    const sharp = loadSharp();
     validateInput(data);
     const { inputPath, outputPath, width = null, height = null, fit = 'inside' } = data;
 
@@ -78,6 +109,7 @@ async function imageResize(data) {
 
 async function imageCompress(data) {
   try {
+    const sharp = loadSharp();
     validateInput(data);
     const { inputPath, outputPath, quality = 80 } = data;
 
@@ -116,6 +148,7 @@ async function imageCompress(data) {
 
 async function imageRotate(data) {
   try {
+    const sharp = loadSharp();
     validateInput(data);
     const { inputPath, outputPath, angle } = data;
 
@@ -132,6 +165,16 @@ async function imageRotate(data) {
 }
 
 function executeOperation(operation, data) {
+  try {
+    loadSharp();
+  } catch (error) {
+    // Honest degradation: the app keeps booting and every image op reports the
+    // unavailable state as a resolved result instead of throwing at import time.
+    return Promise.resolve({
+      success: false,
+      error: `Image operations unavailable: ${sanitizeMessage(error.message)}`,
+    });
+  }
   switch (operation) {
     case 'convert':
       return imageConvert(data);
