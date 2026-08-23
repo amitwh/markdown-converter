@@ -43,6 +43,24 @@ describe('GitOperations', () => {
       expect(result).toHaveProperty('error');
       fs.rmSync(nonGitDir, { recursive: true, force: true });
     });
+
+    test('includes staged changes when againstHead is true', async () => {
+      fs.writeFileSync(filePath, 'line1\nline2\n');
+      await simpleGit(tmpDir).add('file.txt');
+
+      const unstaged = await GitOperations.diff(tmpDir, 'file.txt');
+      expect(unstaged).toBe('');
+
+      const againstHead = await GitOperations.diff(tmpDir, 'file.txt', true);
+      expect(againstHead).toContain('+line2');
+    });
+
+    test('returns error object for non-git directory when againstHead is true', async () => {
+      const nonGitDir = fs.mkdtempSync(path.join(os.tmpdir(), 'notgit_'));
+      const result = await GitOperations.diff(nonGitDir, null, true);
+      expect(result).toHaveProperty('error');
+      fs.rmSync(nonGitDir, { recursive: true, force: true });
+    });
   });
 
   describe('branches', () => {

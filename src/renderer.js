@@ -12,6 +12,7 @@ const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
 const { showMediaOperationsDialog } = require('./renderer/media-operations-dialog');
+const { showDocumentCompareDialog } = require('./renderer/document-compare-dialog');
 const { csvToMarkdownTable } = require('./utils/csv-to-markdown-table');
 
 /**
@@ -3811,6 +3812,12 @@ ipcRenderer.on('show-audio-converter', () => {
 });
 ipcRenderer.on('show-video-converter', () => {
   showMediaOperationsDialog('video');
+});
+
+// Show Document Compare Dialog (Tools > Document Compare)
+ipcRenderer.on('show-document-compare', () => {
+  const tab = tabManager?.tabs.get(tabManager.activeTabId);
+  showDocumentCompareDialog({ filePath: tab?.filePath || null });
 });
 function showPDFEditorDialog(operation, openedFilePath = null) {
   const title = document.getElementById('pdf-editor-title');

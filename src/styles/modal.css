@@ -211,6 +211,59 @@
 }
 
 /* ============================================
+ * Document Compare Diff View
+ * ============================================ */
+
+.diff-view {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: var(--text-sm, 0.875rem);
+  line-height: var(--leading-normal, 1.5);
+  border: 1px solid hsl(var(--border, 214.3 31.8% 91.4%));
+  border-radius: var(--radius, 0.5rem);
+  overflow: auto;
+  max-height: 50vh;
+}
+
+.diff-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 var(--spacing-2, 0.5rem);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-marker {
+  flex: none;
+  width: 1.25em;
+  user-select: none;
+}
+
+.diff-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.diff-added {
+  background: hsl(var(--diff-added-bg, 142 76% 94%));
+  color: hsl(var(--diff-added-fg, 142 76% 24%));
+}
+
+.diff-removed {
+  background: hsl(var(--diff-removed-bg, 0 84% 96%));
+  color: hsl(var(--diff-removed-fg, 0 74% 30%));
+}
+
+.diff-context {
+  color: hsl(var(--foreground, 222.2 84% 4.9%));
+}
+
+.diff-hunk {
+  color: hsl(var(--diff-hunk-fg, 215 16% 47%));
+  background: hsl(var(--muted, 210 40% 96.1%));
+  font-weight: var(--font-semibold, 600);
+}
+
+/* ============================================
  * Size Variants
  * ============================================ */
 

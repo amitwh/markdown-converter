@@ -5384,9 +5384,9 @@ ipcMain.handle('git-log', async () => {
   const dir = currentFile ? path.dirname(currentFile) : process.cwd();
   return GitOperations.log(dir);
 });
-ipcMain.handle('git-diff', async (event, { file } = {}) => {
+ipcMain.handle('git-diff', async (event, { file, againstHead } = {}) => {
   const dir = currentFile ? path.dirname(currentFile) : process.cwd();
-  return GitOperations.diff(dir, file);
+  return GitOperations.diff(dir, file, againstHead);
 });
 ipcMain.handle('git-branches', async () => {
   const dir = currentFile ? path.dirname(currentFile) : process.cwd();

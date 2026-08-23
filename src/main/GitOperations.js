@@ -41,9 +41,15 @@ async function log(dir, maxCount = 20) {
   }
 }
 
-async function diff(dir, file) {
+// againstHead=true compares the working tree (staged + unstaged) against the last
+// commit instead of against the index — used by the Document Compare dialog's
+// "Git HEAD" mode. Default behavior (worktree vs index) is unchanged.
+async function diff(dir, file, againstHead = false) {
   try {
     const git = getGitInstance(dir);
+    if (againstHead) {
+      return file ? await git.diff(['HEAD', '--', file]) : await git.diff('HEAD');
+    }
     return file ? await git.diff([file]) : await git.diff();
   } catch (err) {
     return { error: err.message };

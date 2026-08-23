@@ -61,6 +61,13 @@
   --info: 199 89% 48%;
   --info-foreground: 210 40% 98%;
 
+  /* Diff - added/removed/hunk line colors (Document Compare, git-style) */
+  --diff-added-bg: 142 76% 94%;
+  --diff-added-fg: 142 76% 24%;
+  --diff-removed-bg: 0 84% 96%;
+  --diff-removed-fg: 0 74% 30%;
+  --diff-hunk-fg: 215 16% 47%;
+
   /* Border and input */
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
@@ -194,6 +201,13 @@
   /* Info */
   --info: 199 89% 38%;
   --info-foreground: 210 40% 98%;
+
+  /* Diff - darker backgrounds / lighter text for dark mode */
+  --diff-added-bg: 142 45% 16%;
+  --diff-added-fg: 142 60% 66%;
+  --diff-removed-bg: 0 45% 18%;
+  --diff-removed-fg: 0 70% 70%;
+  --diff-hunk-fg: 215 20% 65%;
 
   /* Border and input */
   --border: 217.2 32.6% 17.5%;
