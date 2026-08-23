@@ -45,11 +45,8 @@ const ALLOWED_SEND_CHANNELS = [
   'universal-convert-batch',
 
   // Image converter
-  'image-convert',
-  'image-batch-convert',
-  'image-resize',
-  'image-compress',
-  'image-rotate',
+  'process-image-operation',
+  'select-image-folder',
 
   // Audio converter
   'audio-convert',
@@ -205,6 +202,7 @@ const ALLOWED_RECEIVE_CHANNELS = [
   // Folder selection
   'folder-selected',
   'pdf-folder-selected',
+  'image-folder-selected',
 
   // Header/Footer
   'header-footer-settings-data',

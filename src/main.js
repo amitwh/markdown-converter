@@ -5,6 +5,7 @@ const os = require('os');
 const { execFile } = require('child_process');
 const WordTemplateExporter = require('./wordTemplateExporter');
 const PDFOperations = require('./main/PDFOperations');
+const ImageOperations = require('./main/ImageOperations');
 const GitOperations = require('./main/GitOperations');
 const PdfFontHeader = require('./main/PdfFontHeader');
 const MonospaceFontConfig = require('./main/MonospaceFontConfig');
@@ -4614,6 +4615,34 @@ ipcMain.on('select-pdf-folder', (event, inputId) => {
   });
   if (folder && folder[0]) {
     event.reply('pdf-folder-selected', {
+      inputId,
+      path: folder[0],
+    });
+  }
+});
+
+// ========================================
+// IMAGE OPERATIONS — delegates to main/ImageOperations.js
+// ========================================
+
+ipcMain.handle('process-image-operation', async (event, { operation, data }) => {
+  try {
+    return await ImageOperations.executeOperation(operation, {
+      ...data,
+      maxFileSize: MAX_FILE_SIZE,
+    });
+  } catch (error) {
+    return { success: false, error: sanitizeErrorMessage(error.message) };
+  }
+});
+
+// IPC Handler for folder selection (for batch image operations)
+ipcMain.on('select-image-folder', (event, inputId) => {
+  const folder = dialog.showOpenDialogSync(mainWindow, {
+    properties: ['openDirectory'],
+  });
+  if (folder && folder[0]) {
+    event.reply('image-folder-selected', {
       inputId,
       path: folder[0],
     });
