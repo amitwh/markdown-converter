@@ -527,4 +527,147 @@ describe('Export presets dialog', () => {
       expect(captured.pdfEngine).toBeUndefined();
     });
   });
+
+  describe('one-time import of legacy localStorage export profiles', () => {
+    const legacyBlob = JSON.stringify({
+      'Quick HTML': {
+        format: 'html',
+        advancedMode: false,
+        pageSize: 'letter',
+        pageOrientation: 'portrait',
+        basicToc: true,
+        basicNumberSections: false,
+      },
+      'Book PDF': {
+        format: 'pdf',
+        advancedMode: true,
+        pageSize: 'a4',
+        pageOrientation: 'landscape',
+        basicToc: false,
+        basicNumberSections: false,
+        template: 'custom',
+        toc: true,
+        tocDepth: '4',
+        numberSections: true,
+        citeproc: false,
+        pdfEngine: 'lualatex',
+        pdfGeometry: 'custom',
+      },
+    });
+
+    function saveCalls() {
+      return ipcRenderer.invoke.mock.calls.filter((call) => call[0] === 'save-export-preset');
+    }
+
+    function mockStoredValue(value) {
+      jest.spyOn(window.Storage.prototype, 'getItem').mockReturnValue(value);
+      return jest.spyOn(window.Storage.prototype, 'removeItem');
+    }
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('imports every legacy profile through save-export-preset with the mapped shape', async () => {
+      const removeItem = mockStoredValue(legacyBlob);
+      ipcRenderer.invoke.mockResolvedValue([]);
+
+      initExportPresets({ notify });
+      await flush();
+      await flush();
+
+      const calls = saveCalls();
+      expect(calls).toHaveLength(2);
+
+      const quickHtml = calls.find(([, preset]) => preset.name === 'Quick HTML')[1];
+      expect(quickHtml.id).toBe('preset-legacy-Quick HTML');
+      expect(quickHtml.format).toBe('html');
+      expect(quickHtml.options).toEqual({
+        advancedMode: false,
+        pageSize: 'letter',
+        pageOrientation: 'portrait',
+        toc: true, // basicToc -> toc (basic branch of collectExportOptions)
+        numberSections: false, // basicNumberSections -> numberSections
+      });
+
+      const bookPdf = calls.find(([, preset]) => preset.name === 'Book PDF')[1];
+      expect(bookPdf.id).toBe('preset-legacy-Book PDF');
+      expect(bookPdf.format).toBe('pdf');
+      expect(bookPdf.options).toEqual({
+        advancedMode: true,
+        pageSize: 'a4',
+        pageOrientation: 'landscape',
+        template: 'default', // legacy stored the raw select value; path was never persisted
+        metadata: {},
+        toc: true,
+        tocDepth: '4',
+        numberSections: true,
+        citeproc: false,
+        pdfEngine: 'lualatex',
+        geometry: 'margin=1in', // legacy 'custom' literal had no restorable text -> default
+      });
+
+      // Import must never run twice.
+      expect(removeItem).toHaveBeenCalledWith('exportProfiles');
+      // Presets are refreshed after a successful import so the dropdown is current.
+      expect(ipcRenderer.invoke).toHaveBeenCalledWith('get-export-presets');
+    });
+
+    it('keeps the legacy key when a save fails, so a retry upserts instead of duplicating', async () => {
+      const removeItem = mockStoredValue(legacyBlob);
+      ipcRenderer.invoke.mockRejectedValue(new Error('disk full'));
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      initExportPresets({ notify });
+      await flush();
+      await flush();
+
+      expect(saveCalls()).toHaveLength(1);
+      expect(removeItem).not.toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+
+    it('skips gracefully on a malformed legacy blob without breaking dialog init', async () => {
+      mockStoredValue('{"Quick HTML": not valid json');
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      jest.spyOn(window, 'prompt').mockReturnValue(null);
+
+      initExportPresets({ notify });
+      await flush();
+      await flush();
+
+      expect(saveCalls()).toHaveLength(0);
+      expect(jest.mocked(window.Storage.prototype.removeItem)).not.toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalled();
+
+      // Dialog init unaffected: the save button still works.
+      document.getElementById('save-preset-btn').click();
+      await flush();
+      expect(ipcRenderer.invoke).toHaveBeenCalledTimes(0);
+      expect(notify).not.toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+
+    it('skips a legacy blob that is valid JSON but not a profile map', async () => {
+      mockStoredValue(JSON.stringify(['not', 'a', 'map']));
+      initExportPresets({ notify });
+      await flush();
+      await flush();
+
+      expect(saveCalls()).toHaveLength(0);
+      expect(jest.mocked(window.Storage.prototype.removeItem)).not.toHaveBeenCalled();
+      expect(ipcRenderer.invoke).toHaveBeenCalledTimes(0);
+    });
+
+    it('is a no-op when the legacy key is absent', async () => {
+      mockStoredValue(null);
+      initExportPresets({ notify });
+      await flush();
+      await flush();
+
+      expect(ipcRenderer.invoke).toHaveBeenCalledTimes(0);
+      expect(jest.mocked(window.Storage.prototype.removeItem)).not.toHaveBeenCalled();
+    });
+  });
 });

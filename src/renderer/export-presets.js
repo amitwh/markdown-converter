@@ -22,6 +22,10 @@
 
 const { ipcRenderer } = require('electron');
 
+// localStorage key of the pre-4.x renderer-only "export profiles" that the
+// preset system replaced; consumed once by importLegacyProfiles().
+const LEGACY_PROFILES_KEY = 'exportProfiles';
+
 let currentPresets = [];
 let selectedPresetId = null;
 let notify = (message, type) => console.warn(`Export presets (${type}): ${message}`);
@@ -407,6 +411,90 @@ function createPresetId() {
   return `preset-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// ============================================
+// One-time import of legacy localStorage profiles
+// ============================================
+
+/**
+ * Map one legacy export profile onto the preset options shape captured by
+ * captureDialogOptions(). Legacy shape (saveCurrentProfile at git 52ef5b4):
+ * { format, advancedMode, pageSize, pageOrientation, basicToc,
+ * basicNumberSections } plus, in advanced mode, { template, toc, tocDepth,
+ * numberSections, citeproc, pdfEngine, pdfGeometry } — all raw select/input
+ * values. Two fidelity limits of the legacy format itself: the custom
+ * template PATH and the custom geometry TEXT were never persisted (only the
+ * literal select value 'custom'), so those map back to the dialog defaults.
+ * @param {Object} profile legacy profile value
+ * @returns {Object} preset options snapshot
+ */
+function mapLegacyProfileOptions(profile) {
+  const advancedMode = profile.advancedMode === true;
+  const options = {
+    advancedMode,
+    pageSize: typeof profile.pageSize === 'string' ? profile.pageSize : 'a4',
+    pageOrientation:
+      typeof profile.pageOrientation === 'string' ? profile.pageOrientation : 'portrait',
+  };
+
+  if (!advancedMode) {
+    // Basic mode maps like collectExportOptions: basicToc -> toc,
+    // basicNumberSections -> numberSections.
+    options.toc = profile.basicToc === true;
+    options.numberSections = profile.basicNumberSections === true;
+    return options;
+  }
+
+  options.template = 'default';
+  options.metadata = {};
+  options.toc = profile.toc === true;
+  options.tocDepth =
+    typeof profile.tocDepth === 'string' && profile.tocDepth ? profile.tocDepth : '3';
+  options.numberSections = profile.numberSections === true;
+  options.citeproc = profile.citeproc === true;
+  options.pdfEngine = typeof profile.pdfEngine === 'string' ? profile.pdfEngine : 'xelatex';
+  options.geometry =
+    typeof profile.pdfGeometry === 'string' && profile.pdfGeometry !== 'custom'
+      ? profile.pdfGeometry
+      : 'margin=1in';
+  return options;
+}
+
+/**
+ * Import the legacy localStorage export profiles into the main-process preset
+ * store via save-export-preset, then remove the legacy key so the import runs
+ * only once. Ids are deterministic (`preset-legacy-<name>`), so an import
+ * interrupted midway retries as an upsert on the next launch instead of
+ * duplicating presets. Malformed or unexpected data degrades to "skip import"
+ * — it must never break dialog init.
+ * @returns {Promise<boolean>} true when at least one preset was imported
+ */
+async function importLegacyProfiles() {
+  try {
+    const raw = localStorage.getItem(LEGACY_PROFILES_KEY);
+    if (!raw) return false;
+    const legacy = JSON.parse(raw);
+    if (!legacy || typeof legacy !== 'object' || Array.isArray(legacy)) return false;
+
+    let imported = false;
+    for (const name of Object.keys(legacy)) {
+      const profile = legacy[name];
+      if (!name.trim() || !profile || typeof profile !== 'object') continue;
+      await ipcRenderer.invoke('save-export-preset', {
+        id: `preset-legacy-${name}`,
+        name,
+        format: typeof profile.format === 'string' ? profile.format : null,
+        options: mapLegacyProfileOptions(profile),
+      });
+      imported = true;
+    }
+    localStorage.removeItem(LEGACY_PROFILES_KEY);
+    return imported;
+  } catch (error) {
+    console.error('Skipping legacy export profile import:', error);
+    return false;
+  }
+}
+
 /**
  * Wire the preset section of the export dialog. Call once after DOM ready.
  * @param {{notify?: Function}} options hooks from renderer.js
@@ -420,6 +508,12 @@ function initExportPresets(options = {}) {
   if (toggle) toggle.addEventListener('click', toggleDropdown);
   const list = elementById('preset-dropdown-list');
   if (list) list.addEventListener('click', handleListClick);
+
+  // One-time legacy import; refresh afterwards so imported presets are
+  // visible even if the dialog is already open.
+  importLegacyProfiles().then((imported) => {
+    if (imported) refreshExportPresets();
+  });
 }
 
 module.exports = {
