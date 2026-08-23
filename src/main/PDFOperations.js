@@ -230,6 +230,30 @@ async function pdfReorder(data) {
   }
 }
 
+// Shared corner/center coordinate mapping used by pdfWatermark and pdfAddPageNumbers.
+function resolvePosition(position, width, height, margin = 50) {
+  switch (position) {
+    case 'center':
+      return { x: width / 2, y: height / 2 };
+    case 'diagonal':
+      return { x: width / 2, y: height / 2 };
+    case 'top-left':
+      return { x: margin, y: height - margin };
+    case 'top-center':
+      return { x: width / 2, y: height - margin };
+    case 'top-right':
+      return { x: width - margin, y: height - margin };
+    case 'bottom-left':
+      return { x: margin, y: margin };
+    case 'bottom-center':
+      return { x: width / 2, y: margin };
+    case 'bottom-right':
+      return { x: width - margin, y: margin };
+    default:
+      return { x: width / 2, y: height / 2 };
+  }
+}
+
 async function pdfWatermark(data) {
   try {
     const pdfBytes = fs.readFileSync(data.inputPath);
@@ -250,48 +274,8 @@ async function pdfWatermark(data) {
       const page = pdf.getPage(pageIndex);
       const { width, height } = page.getSize();
 
-      let x,
-        y,
-        rotation = 0;
-
-      switch (data.position) {
-        case 'center':
-          x = width / 2;
-          y = height / 2;
-          break;
-        case 'diagonal':
-          x = width / 2;
-          y = height / 2;
-          rotation = 45;
-          break;
-        case 'top-left':
-          x = 50;
-          y = height - 50;
-          break;
-        case 'top-center':
-          x = width / 2;
-          y = height - 50;
-          break;
-        case 'top-right':
-          x = width - 50;
-          y = height - 50;
-          break;
-        case 'bottom-left':
-          x = 50;
-          y = 50;
-          break;
-        case 'bottom-center':
-          x = width / 2;
-          y = 50;
-          break;
-        case 'bottom-right':
-          x = width - 50;
-          y = 50;
-          break;
-        default:
-          x = width / 2;
-          y = height / 2;
-      }
+      const { x, y } = resolvePosition(data.position, width, height, 50);
+      const rotation = data.position === 'diagonal' ? 45 : 0;
 
       page.drawText(data.text, {
         x,
@@ -401,6 +385,210 @@ async function pdfSetPermissions(data) {
   }
 }
 
+// pdf-lib has no text-extraction API, so this loads pdfjs-dist's Node-friendly
+// "legacy" build (the standard build assumes DOM globals like DOMMatrix).
+// pdfjs-dist v5.x ships ESM-only, so it must be loaded via dynamic import()
+// even from this CommonJS module.
+async function loadPdfjs() {
+  return import('pdfjs-dist/legacy/build/pdf.mjs');
+}
+
+// Points pdfjs-dist at its bundled standard font metrics so it doesn't warn
+// (and degrade text-extraction fidelity) when a PDF uses a standard font.
+function getStandardFontDataUrl() {
+  return (
+    path.join(path.dirname(require.resolve('pdfjs-dist/package.json')), 'standard_fonts') + path.sep
+  );
+}
+
+async function pdfExtractText(data) {
+  try {
+    const pdfjsLib = await loadPdfjs();
+    const fileData = new Uint8Array(fs.readFileSync(data.inputPath));
+    const pdf = await pdfjsLib.getDocument({
+      data: fileData,
+      standardFontDataUrl: getStandardFontDataUrl(),
+    }).promise;
+
+    let text = '';
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((item) => item.str).join(' ');
+      text += pageText + '\n';
+    }
+
+    const trimmedText = text.trim();
+    const result = { success: true, text: trimmedText };
+
+    // outputPath is optional: when provided (e.g. from the PDF editor UI),
+    // also save the extracted text to disk and report where it went.
+    if (data.outputPath) {
+      fs.writeFileSync(data.outputPath, trimmedText, 'utf8');
+      result.message = `Successfully extracted text to ${data.outputPath}`;
+    }
+
+    return result;
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function pdfAddPageNumbers(data) {
+  try {
+    const pdfBytes = fs.readFileSync(data.inputPath);
+    const pdf = await PDFDocument.load(pdfBytes);
+    const totalPages = pdf.getPageCount();
+
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const position = data.position || 'bottom-center';
+    const fontSize = data.fontSize || 12;
+    const startNumber = data.startNumber && data.startNumber > 0 ? data.startNumber : 1;
+
+    for (let i = 0; i < totalPages; i++) {
+      const page = pdf.getPage(i);
+      const { width, height } = page.getSize();
+      const { x, y } = resolvePosition(position, width, height, 30);
+
+      const label = String(startNumber + i);
+      const textWidth = font.widthOfTextAtSize(label, fontSize);
+
+      let drawX = x;
+      if (position.includes('center')) {
+        drawX = x - textWidth / 2;
+      } else if (position.includes('right')) {
+        drawX = x - textWidth;
+      }
+
+      page.drawText(label, {
+        x: drawX,
+        y,
+        size: fontSize,
+        font,
+        color: rgb(0, 0, 0),
+      });
+    }
+
+    const newPdfBytes = await pdf.save();
+    fs.writeFileSync(data.outputPath, newPdfBytes);
+
+    return { success: true, message: `Successfully added page numbers to ${totalPages} page(s)` };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function pdfCrop(data) {
+  try {
+    const pdfBytes = fs.readFileSync(data.inputPath);
+    const pdf = await PDFDocument.load(pdfBytes);
+    const totalPages = pdf.getPageCount();
+
+    const margins = data.margins || {};
+    const top = margins.top || 0;
+    const bottom = margins.bottom || 0;
+    const left = margins.left || 0;
+    const right = margins.right || 0;
+
+    for (let i = 0; i < totalPages; i++) {
+      const page = pdf.getPage(i);
+      const mediaBox = page.getMediaBox();
+      const newWidth = mediaBox.width - left - right;
+      const newHeight = mediaBox.height - top - bottom;
+
+      if (newWidth <= 0 || newHeight <= 0) {
+        return { success: false, error: `Crop margins are too large for page ${i + 1}` };
+      }
+
+      page.setCropBox(mediaBox.x + left, mediaBox.y + bottom, newWidth, newHeight);
+    }
+
+    const croppedPdfBytes = await pdf.save();
+    fs.writeFileSync(data.outputPath, croppedPdfBytes);
+
+    return { success: true, message: `Successfully cropped ${totalPages} page(s)` };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function pdfExtractImages(data) {
+  try {
+    const pdfjsLib = await loadPdfjs();
+    // sharp is only needed here; require lazily to match the module's existing
+    // pattern of not pulling heavy optional deps in until an operation runs.
+    const sharp = require('sharp');
+
+    const fileData = new Uint8Array(fs.readFileSync(data.inputPath));
+    const pdf = await pdfjsLib.getDocument({
+      data: fileData,
+      standardFontDataUrl: getStandardFontDataUrl(),
+    }).promise;
+
+    if (!fs.existsSync(data.outputDir)) {
+      fs.mkdirSync(data.outputDir, { recursive: true });
+    }
+
+    const baseName = path.basename(data.inputPath, path.extname(data.inputPath));
+    const files = [];
+    let imageIndex = 0;
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const opList = await page.getOperatorList();
+
+      for (let i = 0; i < opList.fnArray.length; i++) {
+        if (opList.fnArray[i] !== pdfjsLib.OPS.paintImageXObject) {
+          continue;
+        }
+
+        const objId = opList.argsArray[i][0];
+
+        try {
+          const imgObj = await new Promise((resolve) => page.objs.get(objId, resolve));
+
+          if (!imgObj || !imgObj.data || !imgObj.width || !imgObj.height) {
+            continue;
+          }
+
+          const channels =
+            imgObj.kind === pdfjsLib.ImageKind.RGBA_32BPP
+              ? 4
+              : imgObj.kind === pdfjsLib.ImageKind.GRAYSCALE_1BPP
+                ? 1
+                : 3;
+
+          imageIndex++;
+          const outputFile = path.join(
+            data.outputDir,
+            `${baseName}_page${pageNum}_img${imageIndex}.png`
+          );
+
+          await sharp(Buffer.from(imgObj.data), {
+            raw: { width: imgObj.width, height: imgObj.height, channels },
+          })
+            .png()
+            .toFile(outputFile);
+
+          files.push(outputFile);
+        } catch {
+          // Skip images pdfjs/sharp can't decode (e.g. unsupported color spaces).
+          continue;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      count: files.length,
+      files,
+      message: `Successfully extracted ${files.length} image(s)`,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 function executeOperation(operation, data) {
   switch (operation) {
     case 'merge':
@@ -423,6 +611,14 @@ function executeOperation(operation, data) {
       return pdfDecrypt(data);
     case 'permissions':
       return pdfSetPermissions(data);
+    case 'extractText':
+      return pdfExtractText(data);
+    case 'pageNumbers':
+      return pdfAddPageNumbers(data);
+    case 'crop':
+      return pdfCrop(data);
+    case 'extractImages':
+      return pdfExtractImages(data);
     default:
       return Promise.resolve({ success: false, error: `Unknown operation: ${operation}` });
   }
@@ -447,6 +643,10 @@ module.exports = {
   pdfEncrypt,
   pdfDecrypt,
   pdfSetPermissions,
+  pdfExtractText,
+  pdfAddPageNumbers,
+  pdfCrop,
+  pdfExtractImages,
   executeOperation,
   getPageCount,
 };

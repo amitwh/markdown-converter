@@ -1953,6 +1953,164 @@
                 </div>
               </div>
 
+              <!-- Extract Text Section -->
+              <div id="pdf-extract-text-section" class="pdf-operation-section hidden">
+                <div class="export-section">
+                  <label>PDF File:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="extract-text-input-path"
+                      placeholder="Select PDF file..."
+                      readonly
+                    />
+                    <button id="browse-extract-text-input">Browse</button>
+                  </div>
+                </div>
+                <div class="export-section">
+                  <label>Save Extracted Text As:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="extract-text-output-path"
+                      placeholder="Select save location..."
+                      readonly
+                    />
+                    <button id="browse-extract-text-output">Save As</button>
+                  </div>
+                  <small>Text from every page is saved to a single .txt file</small>
+                </div>
+              </div>
+
+              <!-- Page Numbers Section -->
+              <div id="pdf-page-numbers-section" class="pdf-operation-section hidden">
+                <div class="export-section">
+                  <label>PDF File:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="page-numbers-input-path"
+                      placeholder="Select PDF file..."
+                      readonly
+                    />
+                    <button id="browse-page-numbers-input">Browse</button>
+                  </div>
+                </div>
+                <div class="export-section">
+                  <label>Position:</label>
+                  <select id="page-numbers-position">
+                    <option value="bottom-center" selected>Bottom Center</option>
+                    <option value="bottom-left">Bottom Left</option>
+                    <option value="bottom-right">Bottom Right</option>
+                    <option value="top-center">Top Center</option>
+                    <option value="top-left">Top Left</option>
+                    <option value="top-right">Top Right</option>
+                  </select>
+                </div>
+                <div class="export-section">
+                  <label>Start Number:</label>
+                  <input type="number" id="page-numbers-start" min="1" value="1" placeholder="1" />
+                </div>
+                <div class="export-section">
+                  <label class="checkbox-inline"
+                    ><input type="checkbox" id="page-numbers-overwrite" /> Overwrite original
+                    file</label
+                  >
+                </div>
+                <div class="export-section" id="page-numbers-saveas-section">
+                  <label>Save As:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="page-numbers-output-path"
+                      placeholder="Select save location..."
+                      readonly
+                    />
+                    <button id="browse-page-numbers-output">Save As</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Crop Pages Section -->
+              <div id="pdf-crop-section" class="pdf-operation-section hidden">
+                <div class="export-section">
+                  <label>PDF File:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="crop-input-path"
+                      placeholder="Select PDF file..."
+                      readonly
+                    />
+                    <button id="browse-crop-input">Browse</button>
+                  </div>
+                </div>
+                <div class="export-section">
+                  <label>Crop Margins (points):</label>
+                  <div class="checkbox-group">
+                    <label
+                      >Top: <input type="number" id="crop-margin-top" min="0" value="0"
+                    /></label>
+                    <label
+                      >Bottom: <input type="number" id="crop-margin-bottom" min="0" value="0"
+                    /></label>
+                    <label
+                      >Left: <input type="number" id="crop-margin-left" min="0" value="0"
+                    /></label>
+                    <label
+                      >Right: <input type="number" id="crop-margin-right" min="0" value="0"
+                    /></label>
+                  </div>
+                  <small>1 point = 1/72 inch. Margins are trimmed from each edge.</small>
+                </div>
+                <div class="export-section">
+                  <label class="checkbox-inline"
+                    ><input type="checkbox" id="crop-overwrite" /> Overwrite original file</label
+                  >
+                </div>
+                <div class="export-section" id="crop-saveas-section">
+                  <label>Save As:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="crop-output-path"
+                      placeholder="Select save location..."
+                      readonly
+                    />
+                    <button id="browse-crop-output">Save As</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Extract Images Section -->
+              <div id="pdf-extract-images-section" class="pdf-operation-section hidden">
+                <div class="export-section">
+                  <label>PDF File:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="extract-images-input-path"
+                      placeholder="Select PDF file..."
+                      readonly
+                    />
+                    <button id="browse-extract-images-input">Browse</button>
+                  </div>
+                </div>
+                <div class="export-section">
+                  <label>Output Folder:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="extract-images-output-folder"
+                      placeholder="Select output folder..."
+                      readonly
+                    />
+                    <button id="browse-extract-images-output">Browse</button>
+                  </div>
+                  <small>Each embedded image is saved as a separate PNG file</small>
+                </div>
+              </div>
+
               <div id="pdf-status-message" class="info-message hidden" aria-live="polite"></div>
 
               <!-- Progress indicator -->
@@ -2401,6 +2559,65 @@
                   <path d="M7 11V7a5 5 0 019.9-1"></path>
                 </svg>
                 <span>Decrypt</span>
+              </button>
+              <button id="pdf-tb-extract-text" class="pdf-editor-btn" title="Extract Text">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="8" y1="13" x2="16" y2="13"></line>
+                  <line x1="8" y1="17" x2="16" y2="17"></line>
+                </svg>
+                <span>Extract Text</span>
+              </button>
+              <button id="pdf-tb-page-numbers" class="pdf-editor-btn" title="Add Page Numbers">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="1"></rect>
+                  <text x="8" y="17" font-size="10" stroke="none" fill="currentColor">#</text>
+                </svg>
+                <span>Page #s</span>
+              </button>
+              <button id="pdf-tb-crop" class="pdf-editor-btn" title="Crop Pages">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M6 2v14a2 2 0 002 2h14"></path>
+                  <path d="M18 22V8a2 2 0 00-2-2H2"></path>
+                </svg>
+                <span>Crop</span>
+              </button>
+              <button id="pdf-tb-extract-images" class="pdf-editor-btn" title="Extract Images">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <span>Images</span>
               </button>
               <div class="pdf-toolbar-separator"></div>
               <!-- File Info and Close -->

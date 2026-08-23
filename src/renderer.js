@@ -3862,6 +3862,38 @@ function showPDFEditorDialog(operation, openedFilePath = null) {
         if (permInput) permInput.value = openedFilePath;
       }
       break;
+    case 'extractText':
+      sectionId = 'pdf-extract-text-section';
+      titleText = 'Extract Text';
+      if (openedFilePath) {
+        const extractTextInput = document.getElementById('extract-text-input-path');
+        if (extractTextInput) extractTextInput.value = openedFilePath;
+      }
+      break;
+    case 'pageNumbers':
+      sectionId = 'pdf-page-numbers-section';
+      titleText = 'Add Page Numbers';
+      if (openedFilePath) {
+        const pageNumbersInput = document.getElementById('page-numbers-input-path');
+        if (pageNumbersInput) pageNumbersInput.value = openedFilePath;
+      }
+      break;
+    case 'crop':
+      sectionId = 'pdf-crop-section';
+      titleText = 'Crop Pages';
+      if (openedFilePath) {
+        const cropInput = document.getElementById('crop-input-path');
+        if (cropInput) cropInput.value = openedFilePath;
+      }
+      break;
+    case 'extractImages':
+      sectionId = 'pdf-extract-images-section';
+      titleText = 'Extract Images';
+      if (openedFilePath) {
+        const extractImagesInput = document.getElementById('extract-images-input-path');
+        if (extractImagesInput) extractImagesInput.value = openedFilePath;
+      }
+      break;
   }
   title.textContent = titleText;
   document.getElementById(sectionId).classList.remove('hidden');
@@ -4040,6 +4072,46 @@ document.addEventListener('DOMContentLoaded', () => {
       inputId: 'permissions-output-path',
       saveDialog: true,
     },
+    {
+      id: 'browse-extract-text-input',
+      inputId: 'extract-text-input-path',
+      saveDialog: false,
+    },
+    {
+      id: 'browse-extract-text-output',
+      inputId: 'extract-text-output-path',
+      saveDialog: true,
+    },
+    {
+      id: 'browse-page-numbers-input',
+      inputId: 'page-numbers-input-path',
+      saveDialog: false,
+    },
+    {
+      id: 'browse-page-numbers-output',
+      inputId: 'page-numbers-output-path',
+      saveDialog: true,
+    },
+    {
+      id: 'browse-crop-input',
+      inputId: 'crop-input-path',
+      saveDialog: false,
+    },
+    {
+      id: 'browse-crop-output',
+      inputId: 'crop-output-path',
+      saveDialog: true,
+    },
+    {
+      id: 'browse-extract-images-input',
+      inputId: 'extract-images-input-path',
+      saveDialog: false,
+    },
+    {
+      id: 'browse-extract-images-output',
+      inputId: 'extract-images-output-folder',
+      folder: true,
+    },
   ];
   browseButtons.forEach((button) => {
     const btn = document.getElementById(button.id);
@@ -4150,6 +4222,14 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       checkbox: 'permissions-overwrite',
       section: 'permissions-saveas-section',
+    },
+    {
+      checkbox: 'page-numbers-overwrite',
+      section: 'page-numbers-saveas-section',
+    },
+    {
+      checkbox: 'crop-overwrite',
+      section: 'crop-saveas-section',
     },
   ];
   overwriteCheckboxes.forEach((item) => {
@@ -4428,6 +4508,67 @@ function processPDFOperation() {
           showPDFValidationMessage(
             'Fill in the input file, output path, and owner password.',
             '#permissions-input-path'
+          );
+          return;
+        }
+        break;
+      case 'extractText':
+        operationData.inputPath = document.getElementById('extract-text-input-path').value.trim();
+        operationData.outputPath = document.getElementById('extract-text-output-path').value.trim();
+        if (!operationData.inputPath || !operationData.outputPath) {
+          showPDFValidationMessage(
+            'Select an input PDF and where to save the extracted text.',
+            '#extract-text-input-path'
+          );
+          return;
+        }
+        break;
+      case 'pageNumbers':
+        operationData.inputPath = document.getElementById('page-numbers-input-path').value.trim();
+        operationData.overwrite = document.getElementById('page-numbers-overwrite').checked;
+        operationData.outputPath = operationData.overwrite
+          ? operationData.inputPath
+          : document.getElementById('page-numbers-output-path').value.trim();
+        operationData.position = document.getElementById('page-numbers-position').value;
+        operationData.startNumber =
+          parseInt(document.getElementById('page-numbers-start').value) || 1;
+        if (!operationData.inputPath || !operationData.outputPath) {
+          showPDFValidationMessage(
+            'Select an input PDF' + (operationData.overwrite ? '.' : ' and an output file path.'),
+            '#page-numbers-input-path'
+          );
+          return;
+        }
+        break;
+      case 'crop':
+        operationData.inputPath = document.getElementById('crop-input-path').value.trim();
+        operationData.overwrite = document.getElementById('crop-overwrite').checked;
+        operationData.outputPath = operationData.overwrite
+          ? operationData.inputPath
+          : document.getElementById('crop-output-path').value.trim();
+        operationData.margins = {
+          top: parseFloat(document.getElementById('crop-margin-top').value) || 0,
+          bottom: parseFloat(document.getElementById('crop-margin-bottom').value) || 0,
+          left: parseFloat(document.getElementById('crop-margin-left').value) || 0,
+          right: parseFloat(document.getElementById('crop-margin-right').value) || 0,
+        };
+        if (!operationData.inputPath || !operationData.outputPath) {
+          showPDFValidationMessage(
+            'Select an input PDF' + (operationData.overwrite ? '.' : ' and an output file path.'),
+            '#crop-input-path'
+          );
+          return;
+        }
+        break;
+      case 'extractImages':
+        operationData.inputPath = document.getElementById('extract-images-input-path').value.trim();
+        operationData.outputDir = document
+          .getElementById('extract-images-output-folder')
+          .value.trim();
+        if (!operationData.inputPath || !operationData.outputDir) {
+          showPDFValidationMessage(
+            'Select an input PDF and an output folder.',
+            '#extract-images-input-path'
           );
           return;
         }
@@ -5923,6 +6064,18 @@ document.getElementById('pdf-tb-encrypt')?.addEventListener('click', () => {
 });
 document.getElementById('pdf-tb-decrypt')?.addEventListener('click', () => {
   openPdfEditorDialog('decrypt');
+});
+document.getElementById('pdf-tb-extract-text')?.addEventListener('click', () => {
+  openPdfEditorDialog('extractText');
+});
+document.getElementById('pdf-tb-page-numbers')?.addEventListener('click', () => {
+  openPdfEditorDialog('pageNumbers');
+});
+document.getElementById('pdf-tb-crop')?.addEventListener('click', () => {
+  openPdfEditorDialog('crop');
+});
+document.getElementById('pdf-tb-extract-images')?.addEventListener('click', () => {
+  openPdfEditorDialog('extractImages');
 });
 
 // ============================================

@@ -1433,6 +1433,25 @@ function createMenu() {
           click: () => showPDFEditorDialog('watermark'),
         },
         {
+          label: 'Add Page Numbers...',
+          click: () => showPDFEditorDialog('pageNumbers'),
+        },
+        {
+          label: 'Crop Pages...',
+          click: () => showPDFEditorDialog('crop'),
+        },
+        {
+          type: 'separator',
+        },
+        {
+          label: 'Extract Text...',
+          click: () => showPDFEditorDialog('extractText'),
+        },
+        {
+          label: 'Extract Images...',
+          click: () => showPDFEditorDialog('extractImages'),
+        },
+        {
           type: 'separator',
         },
         {
@@ -1463,7 +1482,7 @@ function createMenu() {
               title: 'About PDF Editor',
               message: 'PDF Editor',
               detail:
-                'Comprehensive PDF editing capabilities powered by pdf-lib.\n\nFeatures:\n• Merge multiple PDF files\n• Split PDF into separate files\n• Compress PDF to reduce file size\n• Rotate pages (90°, 180°, 270°)\n• Delete unwanted pages\n• Reorder pages\n• Add text watermarks\n\nSecurity Features:\n• Password protection (encryption)\n• Remove passwords (decryption)\n• Set document permissions\n\n100% offline and open-source.',
+                'Comprehensive PDF editing capabilities powered by pdf-lib and pdfjs-dist.\n\nFeatures:\n• Merge multiple PDF files\n• Split PDF into separate files\n• Compress PDF to reduce file size\n• Rotate pages (90°, 180°, 270°)\n• Delete unwanted pages\n• Reorder pages\n• Add text watermarks\n• Add page numbers\n• Crop pages\n• Extract text\n• Extract embedded images\n\nSecurity Features:\n• Password protection (encryption)\n• Remove passwords (decryption)\n• Set document permissions\n\n100% offline and open-source.',
               buttons: ['OK'],
             });
           },
