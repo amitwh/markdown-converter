@@ -1,6 +1,7 @@
 const { PluginRegistry } = require('../src/plugins/plugin-registry');
 const { PluginAPI } = require('../src/plugins/plugin-api');
 const { EventBus } = require('../src/plugins/event-bus');
+const { FormatRegistry } = require('../src/plugins/format-registry');
 
 class TestPlugin extends PluginAPI {
   init(context) {
@@ -152,5 +153,41 @@ describe('PluginRegistry', () => {
     const handler = jest.fn();
     registry.getPlugin('test').instance.ctx.exports.registerPreHook(handler);
     expect(registry.exportHooks.preHooks).toContain(handler);
+  });
+
+  test('a plugin calling context.formats.registerExportFormat populates the injected FormatRegistry with a namespaced entry', () => {
+    const formatRegistry = new FormatRegistry();
+    const registryWithFormats = new PluginRegistry({ ...mockDeps, formatRegistry });
+
+    class ExportingPlugin extends PluginAPI {
+      init(context) {
+        context.formats.registerExportFormat('sprint-summary', {
+          label: 'Writing Studio Summary (.txt)',
+          extension: 'txt',
+          handler: async () => {},
+        });
+      }
+    }
+
+    registryWithFormats.register({
+      id: 'writing-studio',
+      name: 'Writing Studio',
+      version: '1.0.0',
+      description: 'desc',
+      manifest: {},
+      PluginClass: ExportingPlugin,
+      dir: '/tmp/test',
+    });
+
+    const entry = formatRegistry.get('writing-studio:sprint-summary');
+    expect(entry).toBeDefined();
+    expect(entry.label).toBe('Writing Studio Summary (.txt)');
+    expect(entry.extension).toBe('txt');
+    expect(typeof entry.handler).toBe('function');
+
+    const all = formatRegistry.getAll();
+    expect(all).toContainEqual(
+      expect.objectContaining({ id: 'writing-studio:sprint-summary', extension: 'txt' })
+    );
   });
 });

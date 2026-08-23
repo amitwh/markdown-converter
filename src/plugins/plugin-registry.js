@@ -33,6 +33,7 @@ class PluginRegistry {
       editor: this.deps.editor,
       ipc: this.deps.ipc,
       exportHooks: this.exportHooks,
+      formatRegistry: this.deps.formatRegistry,
     });
 
     try {

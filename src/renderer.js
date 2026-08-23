@@ -1817,8 +1817,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { PluginRegistry } = require('./plugins/plugin-registry');
   const { EventBus } = require('./plugins/event-bus');
   const { SettingsStore } = require('./plugins/settings-store');
+  const { FormatRegistry } = require('./plugins/format-registry');
   const pluginPath = require('path');
   const pluginEventBus = new EventBus();
+  const pluginFormatRegistry = new FormatRegistry();
   const pluginSettings = new SettingsStore({
     get: (key) => window.electronAPI.invoke('plugin-settings:get', key),
     set: (key, value) =>
@@ -1863,11 +1865,50 @@ document.addEventListener('DOMContentLoaded', async () => {
       invoke: (ch, data) => window.electronAPI.invoke(ch, data),
       on: (ch, cb) => window.electronAPI.on(ch, cb),
     },
+    formatRegistry: pluginFormatRegistry,
   });
   const builtInDir = pluginPath.join(__dirname, 'plugins', 'built-in');
   const loader = new PluginLoader([builtInDir]);
   const discovered = loader.discoverPlugins();
   discovered.forEach((p) => pluginRegistry.register(p));
+
+  // Tell the main process which export formats plugins registered, so the
+  // Export menu (built in main.js, a separate process from this one) can
+  // grow entries for them. Only serializable metadata crosses the IPC
+  // boundary — the handler functions stay here in the renderer, since
+  // that's the only process that actually holds them.
+  ipcRenderer.send(
+    'plugin-export-formats-registered',
+    pluginFormatRegistry.getAll().map(({ id, label, extension }) => ({ id, label, extension }))
+  );
+
+  // Main process resolved a save path (via the Export menu) for a
+  // plugin-registered format; run the plugin's handler with the live
+  // editor content and report back so main can show success/error UI.
+  ipcRenderer.on('run-plugin-export-format', async (event, { id, outputPath } = {}) => {
+    const entry = pluginFormatRegistry.get(id);
+    if (!entry || typeof entry.handler !== 'function') {
+      ipcRenderer.send('plugin-export-format-result', {
+        id,
+        outputPath,
+        success: false,
+        error: `Export format "${id}" is not registered.`,
+      });
+      return;
+    }
+    try {
+      const content = tabManager.getCurrentContent();
+      await entry.handler(content, outputPath, {});
+      ipcRenderer.send('plugin-export-format-result', { id, outputPath, success: true });
+    } catch (err) {
+      ipcRenderer.send('plugin-export-format-result', {
+        id,
+        outputPath,
+        success: false,
+        error: err && err.message ? err.message : String(err),
+      });
+    }
+  });
 
   // Initialize Zen Mode
   const ZenModeClass = getZenMode();

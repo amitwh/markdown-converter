@@ -419,6 +419,7 @@ let pandocVersionCache = null; // Cached parsed { major, minor } from `pandoc --
 let wordTemplatePath = null; // Path to selected Word template
 let templateStartPage = 3; // Which page to start inserting content (default: page 3)
 let rendererReady = false; // Track if renderer is ready to receive file data
+let pluginExportFormats = []; // Export formats registered by plugins: [{ id, label, extension }]
 
 // Header & Footer Settings
 let headerFooterSettings = {
@@ -997,6 +998,7 @@ function createMenu() {
               label: 'Jupyter Notebook (.ipynb)',
               click: () => exportFile('ipynb'),
             },
+            ...buildPluginExportMenuItems(),
           ],
         },
         {
@@ -1894,6 +1896,42 @@ function exportFile(format) {
 }
 function showExportOptionsDialog(format) {
   mainWindow.webContents.send('show-export-dialog', format);
+}
+
+// Build the dynamic tail of the Export submenu from plugin-registered
+// formats (see plugin-export-formats-registered IPC handler below). Returns
+// [] when no plugin has registered a format, so the Export menu is
+// unchanged for a plain install.
+function buildPluginExportMenuItems() {
+  if (!pluginExportFormats.length) return [];
+  const items = pluginExportFormats.map((fmt) => ({
+    label: fmt.label || fmt.id,
+    click: () => runPluginExportFormat(fmt),
+  }));
+  return [{ type: 'separator' }, ...items];
+}
+
+// Resolve an output path for a plugin-registered export format (main
+// process owns save dialogs, same as every other export path in this
+// file), then hand off to the renderer — the plugin's handler function
+// only exists there, since that's the process that loaded the plugin.
+function runPluginExportFormat(fmt) {
+  if (!currentFile) {
+    dialog.showErrorBox('Error', 'Please save the file first');
+    return;
+  }
+  const ext = fmt.extension || 'txt';
+  const outputFile = dialog.showSaveDialogSync(mainWindow, {
+    defaultPath: currentFile.replace(/\.[^/.]+$/, `.${ext}`),
+    filters: [
+      {
+        name: fmt.label || fmt.id,
+        extensions: [ext],
+      },
+    ],
+  });
+  if (!outputFile) return; // User cancelled
+  mainWindow.webContents.send('run-plugin-export-format', { id: fmt.id, outputPath: outputFile });
 }
 function showBatchConversionDialog() {
   mainWindow.webContents.send('show-batch-dialog');
@@ -4634,6 +4672,28 @@ ipcMain.on('clear-recent-files', (event) => {
     event.reply('recent-files-cleared');
   } catch (error) {
     console.error('Error clearing recent files:', error);
+  }
+});
+
+// Plugins (loaded in the renderer) report the export formats they've
+// registered; rebuild the Export menu so they show up as entries.
+// createMenu() is idempotent and already re-invoked elsewhere (e.g. after
+// clearRecentFilesOnDisk() above) so calling it again here is safe.
+ipcMain.on('plugin-export-formats-registered', (event, formats) => {
+  pluginExportFormats = Array.isArray(formats)
+    ? formats.filter((f) => f && typeof f.id === 'string')
+    : [];
+  createMenu();
+});
+
+// Result of a plugin export handler running in the renderer (see
+// runPluginExportFormat() / the Export menu wiring above).
+ipcMain.on('plugin-export-format-result', (event, result) => {
+  const { outputPath, success, error } = result || {};
+  if (success) {
+    showExportSuccess(outputPath);
+  } else {
+    dialog.showErrorBox('Export Error', sanitizeErrorMessage(error || 'Unknown error'));
   }
 });
 

@@ -29,6 +29,7 @@ class WritingStudioPlugin extends PluginAPI {
 
     this._registerCommands(context);
     this._registerStatusBar(context);
+    this._registerExportFormats(context);
   }
 
   _registerCommands(context) {
@@ -117,6 +118,42 @@ class WritingStudioPlugin extends PluginAPI {
     context.statusBar.registerIndicator('sprint-timer', {
       text: '',
       tooltip: 'Writing sprint timer',
+    });
+  }
+
+  // Example usage of context.formats.registerExportFormat (Task 17): adds
+  // a "Writing Studio Summary" entry to the Export menu that writes a
+  // plain-text snapshot of today's sprint/goal progress instead of going
+  // through Pandoc. Doubles as documentation for how a plugin can offer
+  // its own export target.
+  _registerExportFormats(context) {
+    const { sprintEngine, goalTracker } = this;
+
+    context.formats.registerExportFormat('sprint-summary', {
+      label: 'Writing Studio Summary (.txt)',
+      extension: 'txt',
+      handler: async (markdownContent, outputPath) => {
+        const fs = require('fs');
+        const goal = context.settings.get('dailyGoal') || 1000;
+        const progress = goalTracker.getDailyProgress(goal);
+        const streak = goalTracker.getStreak(goal);
+        const wordCount = (markdownContent || '').split(/\s+/).filter(Boolean).length;
+
+        const lines = [
+          'Writing Studio Summary',
+          '=======================',
+          `Generated: ${new Date().toISOString()}`,
+          '',
+          `Document word count: ${wordCount}`,
+          `Daily goal: ${goal}`,
+          `Words written today: ${progress.written} (${progress.pct}%)`,
+          `Current streak: ${streak} day(s)`,
+          `Sprint active: ${sprintEngine.isActive() ? 'yes' : 'no'}`,
+          '',
+        ];
+
+        fs.writeFileSync(outputPath, lines.join('\n'), 'utf-8');
+      },
     });
   }
 

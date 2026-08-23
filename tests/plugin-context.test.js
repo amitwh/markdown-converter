@@ -21,6 +21,7 @@ describe('PluginContext', () => {
       },
       ipc: { invoke: jest.fn(), on: jest.fn() },
       exportHooks: { preHooks: [], postHooks: [] },
+      formatRegistry: { register: jest.fn(), get: jest.fn(), getAll: jest.fn() },
     };
     context = new PluginContext(mockDeps);
   });
@@ -86,5 +87,19 @@ describe('PluginContext', () => {
     const handler = jest.fn();
     context.exports.registerPostHook(handler);
     expect(mockDeps.exportHooks.postHooks).toContain(handler);
+  });
+
+  test('exposes formats.registerExportFormat with namespaced id', () => {
+    const handler = jest.fn();
+    const opts = { label: 'My Format', extension: 'txt', handler };
+    context.formats.registerExportFormat('my-format', opts);
+    expect(mockDeps.formatRegistry.register).toHaveBeenCalledWith('test-plugin:my-format', opts);
+  });
+
+  test('formats.registerExportFormat is a no-op when no formatRegistry is injected', () => {
+    const noRegistryContext = new PluginContext({ ...mockDeps, formatRegistry: undefined });
+    expect(() =>
+      noRegistryContext.formats.registerExportFormat('x', { handler: jest.fn() })
+    ).not.toThrow();
   });
 });

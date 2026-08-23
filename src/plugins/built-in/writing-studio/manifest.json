@@ -32,7 +32,14 @@
         "shortcut": "Ctrl+Alt+G"
       }
     ],
-    "statusBar": { "indicators": ["sprint-timer", "word-goal"] }
+    "statusBar": { "indicators": ["sprint-timer", "word-goal"] },
+    "exportFormats": [
+      {
+        "id": "sprint-summary",
+        "label": "Writing Studio Summary (.txt)",
+        "extension": "txt"
+      }
+    ]
   },
   "settings": [
     { "key": "dailyGoal", "type": "number", "default": 1000, "label": "Daily word goal" },

@@ -10,10 +10,21 @@ class PluginContext {
    * @param {object} deps.editor - { getContent, getSelection, insertAtCursor, onContentChanged }
    * @param {object} deps.ipc - { invoke, on }
    * @param {object} deps.exportHooks - { preHooks: [], postHooks: [] }
+   * @param {object} deps.formatRegistry - FormatRegistry instance ({ register, get, getAll })
    */
   constructor(deps) {
-    const { pluginId, sidebar, commands, statusBar, eventBus, settings, editor, ipc, exportHooks } =
-      deps;
+    const {
+      pluginId,
+      sidebar,
+      commands,
+      statusBar,
+      eventBus,
+      settings,
+      editor,
+      ipc,
+      exportHooks,
+      formatRegistry,
+    } = deps;
 
     this.sidebar = {
       registerPanel: (id, opts) => sidebar.registerPanel(`${pluginId}:${id}`, opts),
@@ -67,6 +78,19 @@ class PluginContext {
       },
       registerPostHook: (handler) => {
         if (exportHooks) exportHooks.postHooks.push(handler);
+      },
+    };
+
+    this.formats = {
+      /**
+       * Register a plugin-provided export format. It is namespaced as
+       * `${pluginId}:${id}` so plugins can't collide with each other or
+       * with the built-in Pandoc-backed formats.
+       * @param {string} id - Format id, unique within this plugin.
+       * @param {object} opts - { label, extension, handler: async (markdownContent, outputPath, options) => void }
+       */
+      registerExportFormat: (id, opts) => {
+        if (formatRegistry) formatRegistry.register(`${pluginId}:${id}`, opts);
       },
     };
   }
