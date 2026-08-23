@@ -19,7 +19,7 @@
 
 **Candidate assessed and dropped (with evidence):**
 
-- PowerShell BurntToast interpolation (`main.js` ~4344): pre-existing at origin/master in identical `execFile`-array form; interpolated `format` comes from a hardcoded 12-entry list, `iconPath` is a constant asset — not attacker-controlled. Not exploitable.
+- PowerShell BurntToast interpolation (`main.js` ~4344): pre-existing at origin/master in identical `execFile`-array form. The dialog path interpolates a `format` chosen from a hardcoded 12-entry list; the `--convert-to <format>` CLI path feeds raw argv into the same string — but argv is trusted local-user input (precedent: CLI flags are trusted), and no shell is involved. Not exploitable. (Evidence note: the "hardcoded list" rationale covers the dialog path only; the drop stands on the argv-trust precedent for the CLI path.)
 
 **Verified clean (14 areas):** media operation backends and all batch handlers (execFile arrays throughout, no string re-tokenization); plugin system (no escalation beyond the renderer's existing privileges; format metadata reaches main only as native menu labels and save-dialog filters); all new dialog renderers (`textContent`-only for dynamic content); PDFOperations new ops (pdfjs/sharp in-process, no shell); wordTemplateExporter (all `<w:t>` insertions escaped, no zip extraction → no zip-slip); GitOperations (simple-git array args); settings/presets stores (no deep merge → no prototype pollution); PandocArgs completeness (tree-wide grep: zero surviving string-built pandoc invocations); font embedders (fixed family→filename maps); generator windows (no untrusted prefill); print-preview (DOMPurify flow); no `eval`/`new Function`; no variable-URL `shell.openExternal`; no secrets in the diff.
 
