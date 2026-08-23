@@ -1679,7 +1679,7 @@ function openPDFFile() {
       dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
       return;
     }
-    mainWindow.webContents.send('open-pdf-viewer', files[0]);
+    mainWindow.webContents.send('show-pdf-editor-dialog', null, files[0]);
   }
 }
 function openFile() {
