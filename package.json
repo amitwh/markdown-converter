@@ -116,6 +116,8 @@
     "asarUnpack": [
       "node_modules/ffmpeg-static/**",
       "node_modules/sharp/**",
+      "node_modules/@img/**",
+      "node_modules/@napi-rs/**",
       "assets/fonts/**"
     ],
     "extraFiles": [],
