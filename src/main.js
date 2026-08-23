@@ -7,6 +7,7 @@ const WordTemplateExporter = require('./wordTemplateExporter');
 const PDFOperations = require('./main/PDFOperations');
 const ImageOperations = require('./main/ImageOperations');
 const AudioOperations = require('./main/AudioOperations');
+const VideoOperations = require('./main/VideoOperations');
 const GitOperations = require('./main/GitOperations');
 const PdfFontHeader = require('./main/PdfFontHeader');
 const MonospaceFontConfig = require('./main/MonospaceFontConfig');
@@ -4644,6 +4645,20 @@ ipcMain.handle('process-image-operation', async (event, { operation, data }) => 
 ipcMain.handle('process-audio-operation', async (event, { operation, data }) => {
   try {
     return await AudioOperations.executeOperation(operation, data, {
+      ffmpegPath: getFFmpegPath(),
+    });
+  } catch (error) {
+    return { success: false, error: sanitizeErrorMessage(error.message) };
+  }
+});
+
+// ========================================
+// VIDEO OPERATIONS — delegates to main/VideoOperations.js
+// ========================================
+
+ipcMain.handle('process-video-operation', async (event, { operation, data }) => {
+  try {
+    return await VideoOperations.executeOperation(operation, data, {
       ffmpegPath: getFFmpegPath(),
     });
   } catch (error) {

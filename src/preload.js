@@ -52,12 +52,7 @@ const ALLOWED_SEND_CHANNELS = [
   'process-audio-operation',
 
   // Video converter
-  'video-convert',
-  'video-batch-convert',
-  'video-compress',
-  'video-trim',
-  'video-frames',
-  'video-gif',
+  'process-video-operation',
 
   // Header/Footer
   'get-header-footer-settings',
