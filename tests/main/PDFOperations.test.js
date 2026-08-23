@@ -492,3 +492,54 @@ describe('PDFOperations - Task 27 honest encryption failure', () => {
     expect(rotated.getPageCount()).toBe(1);
   });
 });
+
+describe('PDFOperations - pdfSplit interval guard', () => {
+  let tmpDir, inputPath, outputFolder;
+
+  beforeEach(async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdfops_split_'));
+    inputPath = path.join(tmpDir, 'in.pdf');
+    outputFolder = path.join(tmpDir, 'out');
+    fs.mkdirSync(outputFolder);
+
+    const doc = await PDFDocument.create();
+    doc.addPage([600, 800]);
+    doc.addPage([600, 800]);
+    fs.writeFileSync(inputPath, await doc.save());
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  // A non-positive (or non-integer) interval previously made the split loop
+  // spin forever (i += 0 never advances the counter), so Jest's per-test
+  // timeout is the hang detector for these cases.
+  it.each([0, -1, 1.5])(
+    'rejects interval %s without writing any output files',
+    async (interval) => {
+      const result = await PDFOperations.pdfSplit({
+        inputPath,
+        outputFolder,
+        splitMode: 'interval',
+        interval,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Split interval must be a positive integer.');
+      expect(fs.readdirSync(outputFolder)).toEqual([]);
+    }
+  );
+
+  it('still splits every N pages for a valid positive interval', async () => {
+    const result = await PDFOperations.pdfSplit({
+      inputPath,
+      outputFolder,
+      splitMode: 'interval',
+      interval: 1,
+    });
+
+    expect(result.success).toBe(true);
+    expect(fs.readdirSync(outputFolder).sort()).toEqual(['in_part_1.pdf', 'in_part_2.pdf']);
+  });
+});

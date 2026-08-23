@@ -112,6 +112,9 @@ async function pdfSplit(data) {
       }
     } else if (data.splitMode === 'interval') {
       const interval = data.interval;
+      if (!Number.isInteger(interval) || interval <= 0) {
+        return { success: false, message: 'Split interval must be a positive integer.' };
+      }
       for (let i = 0; i < totalPages; i += interval) {
         const pages = [];
         for (let j = i; j < i + interval && j < totalPages; j++) {
