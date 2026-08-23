@@ -1705,6 +1705,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pdfEditorModal = new ModalManager('#pdf-editor-dialog');
   const headerFooterModal = new ModalManager('#header-footer-dialog');
   const fieldPickerModal = new ModalManager('#field-picker-dialog');
+  const wordTemplateModal = new ModalManager('#word-template-dialog');
 
   // Make modals globally accessible for functions outside this scope
   window.modals = {
@@ -1718,6 +1719,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     pdfEditorModal,
     headerFooterModal,
     fieldPickerModal,
+    wordTemplateModal,
   };
 
   // Initialize sidebar
@@ -4975,6 +4977,98 @@ window.openHeaderFooterDialog = openHeaderFooterDialog;
 ipcRenderer.on('open-header-footer-dialog', () => {
   openHeaderFooterDialog();
 });
+
+// ================================
+// Word Template Settings Dialog
+// ================================
+//
+// Replaces the two former native OS dialogs ("Select Word Template...",
+// "Template Settings...") with a single in-app modal that shows the
+// currently active template state, instead of that state being invisible
+// until a user thought to reopen a menu item. "Browse..." still triggers
+// a native file picker in the main process — there is no bundled folder
+// of templates to enumerate, so a gallery of multiple templates would
+// require inventing content that doesn't exist; see Task 18 report.
+
+// Tracks the template path chosen via Browse in this dialog session,
+// before it is persisted by Save.
+let pendingWordTemplatePath = null;
+let wordTemplateDefaultAvailable = false;
+
+function openWordTemplateDialog() {
+  window.modals.wordTemplateModal.open();
+  ipcRenderer.send('get-word-template-settings');
+}
+
+function closeWordTemplateDialog() {
+  window.modals.wordTemplateModal.close();
+}
+
+function renderWordTemplateStatus(templateFileName) {
+  const statusEl = document.getElementById('word-template-status');
+  const titleEl = document.getElementById('word-template-status-title');
+  const detailEl = document.getElementById('word-template-status-detail');
+
+  statusEl.classList.remove('wt-status-none', 'wt-status-selected', 'wt-status-missing');
+
+  if (templateFileName) {
+    statusEl.classList.add('wt-status-selected');
+    titleEl.textContent = templateFileName;
+    detailEl.textContent = 'Custom template selected';
+  } else if (wordTemplateDefaultAvailable) {
+    statusEl.classList.add('wt-status-none');
+    titleEl.textContent = 'No template selected';
+    detailEl.textContent = 'Using the bundled default template';
+  } else {
+    statusEl.classList.add('wt-status-missing');
+    titleEl.textContent = 'No template selected';
+    detailEl.textContent = 'Using default formatting (no default template is bundled)';
+  }
+}
+
+// Populate dialog with current settings from main process
+ipcRenderer.on('word-template-settings-data', (event, data) => {
+  pendingWordTemplatePath = data.templatePath || null;
+  wordTemplateDefaultAvailable = !!data.defaultTemplateAvailable;
+  renderWordTemplateStatus(data.templateFileName);
+  document.getElementById('word-template-start-page').value = data.startPage || 3;
+});
+
+// Result of a Browse... click (native picker) or Clear
+ipcRenderer.on('word-template-browsed', (event, data) => {
+  pendingWordTemplatePath = data.templatePath || null;
+  renderWordTemplateStatus(data.templateFileName);
+});
+
+function saveWordTemplateSettings() {
+  const startPageInput = document.getElementById('word-template-start-page');
+  let startPage = parseInt(startPageInput.value, 10);
+  if (!Number.isFinite(startPage) || startPage < 1) startPage = 1;
+  if (startPage > 100) startPage = 100;
+
+  ipcRenderer.send('save-word-template-settings', {
+    templatePath: pendingWordTemplatePath,
+    startPage,
+  });
+  closeWordTemplateDialog();
+}
+
+document.getElementById('word-template-close').addEventListener('click', closeWordTemplateDialog);
+document.getElementById('word-template-cancel').addEventListener('click', closeWordTemplateDialog);
+document.getElementById('word-template-save').addEventListener('click', saveWordTemplateSettings);
+document.getElementById('word-template-browse').addEventListener('click', () => {
+  ipcRenderer.send('browse-word-template');
+});
+document.getElementById('word-template-clear').addEventListener('click', () => {
+  ipcRenderer.send('clear-word-template');
+});
+
+window.openWordTemplateDialog = openWordTemplateDialog;
+
+ipcRenderer.on('open-word-template-dialog', () => {
+  openWordTemplateDialog();
+});
+
 // Command Palette - initialized via CommandPalette class
 // (see DOMContentLoaded handler for registration of commands)
 

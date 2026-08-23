@@ -1005,12 +1005,12 @@ function createMenu() {
           type: 'separator',
         },
         {
-          label: 'Select Word Template...',
-          click: selectWordTemplate,
-        },
-        {
-          label: 'Template Settings...',
-          click: showTemplateSettings,
+          label: 'Word Template Settings...',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('open-word-template-dialog');
+            }
+          },
         },
         {
           label: 'Header & Footer Settings...',
@@ -1937,76 +1937,69 @@ function showBatchConversionDialog() {
   mainWindow.webContents.send('show-batch-dialog');
 }
 
-// Select Word Template
-async function selectWordTemplate() {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    title: 'Select Word Template',
-    filters: [
-      {
-        name: 'Word Document',
-        extensions: ['docx'],
-      },
-    ],
-    properties: ['openFile'],
+// Word Template Settings IPC Handlers
+//
+// Template selection/settings used to be two separate native OS dialogs
+// (an open-file picker and a message-box question) with no visible
+// in-app UI showing the currently active template — the original audit
+// finding this replaces. There is still genuinely no folder of bundled
+// templates to enumerate (see WordTemplateExporter.getDefaultTemplatePath()
+// docs), so "Browse..." still opens a native file picker, but the result
+// and current state are now shown in a real renderer dialog instead of
+// being invisible until a user thinks to reopen the menu item.
+
+// Send current template state to the renderer dialog
+ipcMain.on('get-word-template-settings', (event) => {
+  event.reply('word-template-settings-data', {
+    templatePath: wordTemplatePath,
+    templateFileName: wordTemplatePath ? path.basename(wordTemplatePath) : null,
+    startPage: templateStartPage,
+    defaultTemplateAvailable: fs.existsSync(WordTemplateExporter.getDefaultTemplatePath()),
   });
-  if (!result.canceled && result.filePaths.length > 0) {
-    wordTemplatePath = result.filePaths[0];
-    store.set('wordTemplatePath', wordTemplatePath);
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Template Selected',
-      message: 'Word template has been updated',
-      detail: `Template: ${path.basename(wordTemplatePath)}`,
-    });
-  }
-}
+});
 
-// Template Settings Dialog
-async function showTemplateSettings() {
-  const result = await dialog.showMessageBox(mainWindow, {
-    type: 'question',
-    title: 'Template Settings',
-    message: 'Configure Word Template Export',
-    detail: `Current template: ${wordTemplatePath ? path.basename(wordTemplatePath) : 'Default template'}\nContent starts from page: ${templateStartPage}\n\nWhich page should content start from?\n(Templates usually have cover pages, TOC, etc.)`,
-    buttons: ['Page 1', 'Page 2', 'Page 3', 'Page 4', 'Page 5', 'Custom...', 'Cancel'],
-    defaultId: templateStartPage - 1,
-    cancelId: 6,
-  });
-  if (result.response === 6) return; // Cancel
-
-  let newStartPage;
-  if (result.response === 5) {
-    // Custom
-    // Show input dialog for custom page number
-    mainWindow.webContents.send('show-custom-start-page-dialog', templateStartPage);
-  } else {
-    newStartPage = result.response + 1; // Convert button index to page number
-    templateStartPage = newStartPage;
-    store.set('templateStartPage', templateStartPage);
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Settings Updated',
-      message: 'Template settings have been updated',
-      detail: `Content will now start from page ${templateStartPage}`,
+// Browse for a template file via the native picker; does not persist
+// until the dialog's Save button sends 'save-word-template-settings'.
+ipcMain.on('browse-word-template', async (event) => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Word Template',
+      filters: [
+        {
+          name: 'Word Document',
+          extensions: ['docx'],
+        },
+      ],
+      properties: ['openFile'],
     });
+    if (!result.canceled && result.filePaths.length > 0) {
+      const filePath = result.filePaths[0];
+      event.reply('word-template-browsed', {
+        templatePath: filePath,
+        templateFileName: path.basename(filePath),
+      });
+    }
+  } catch (error) {
+    console.error('Word template browse error:', error);
+    dialog.showErrorBox(
+      'Template Error',
+      sanitizeErrorMessage(`Failed to select template: ${error.message}`)
+    );
   }
-}
+});
 
-// Handle custom start page input from renderer
-ipcMain.on('set-custom-start-page', (event, pageNumber) => {
-  const page = parseInt(pageNumber);
-  if (page >= 1 && page <= 100) {
-    templateStartPage = page;
-    store.set('templateStartPage', templateStartPage);
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Settings Updated',
-      message: 'Template settings have been updated',
-      detail: `Content will now start from page ${templateStartPage}`,
-    });
-  } else {
-    dialog.showErrorBox('Invalid Page Number', 'Please enter a page number between 1 and 100');
-  }
+// Clear the currently selected template (revert to default formatting)
+ipcMain.on('clear-word-template', (event) => {
+  event.reply('word-template-browsed', { templatePath: null, templateFileName: null });
+});
+
+// Persist template path + start page from the dialog's Save button
+ipcMain.on('save-word-template-settings', (event, settings) => {
+  wordTemplatePath = (settings && settings.templatePath) || null;
+  const page = parseInt(settings && settings.startPage, 10);
+  templateStartPage = page >= 1 && page <= 100 ? page : 3;
+  store.set('wordTemplatePath', wordTemplatePath);
+  store.set('templateStartPage', templateStartPage);
 });
 
 // Header & Footer Settings IPC Handlers

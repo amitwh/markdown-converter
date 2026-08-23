@@ -2354,6 +2354,56 @@
         </div>
       </div>
 
+      <!-- Word Template Settings Dialog -->
+      <div
+        id="word-template-dialog"
+        class="modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="word-template-title"
+      >
+        <div class="modal-backdrop" data-close></div>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 id="word-template-title">Word Template Settings</h3>
+            <button class="modal-close" id="word-template-close" aria-label="Close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="wt-status-section">
+              <div id="word-template-status" class="wt-status wt-status-none">
+                <div class="wt-status-icon" aria-hidden="true">&#128196;</div>
+                <div class="wt-status-text">
+                  <div id="word-template-status-title" class="wt-status-title">
+                    No template selected
+                  </div>
+                  <div id="word-template-status-detail" class="wt-status-detail">
+                    Using default formatting
+                  </div>
+                </div>
+              </div>
+              <div class="wt-status-actions">
+                <button id="word-template-browse" class="browse-btn">Browse...</button>
+                <button id="word-template-clear" class="clear-btn">Clear</button>
+              </div>
+            </div>
+
+            <div class="wt-startpage-section">
+              <label for="word-template-start-page">Content starts from page</label>
+              <input type="number" id="word-template-start-page" min="1" max="100" value="3" />
+              <p class="wt-help">
+                Templates usually reserve the first pages for a cover sheet and table of contents;
+                your Markdown content is inserted starting from this page. Ignored when no template
+                is selected.
+              </p>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="word-template-cancel" class="btn btn-secondary" data-close>Cancel</button>
+            <button id="word-template-save" class="btn btn-primary">Save Settings</button>
+          </div>
+        </div>
+      </div>
+
       <div class="main-content" id="main-content">
         <!-- Sidebar -->
         <div class="sidebar collapsed" id="sidebar">
