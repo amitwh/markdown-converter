@@ -1,11 +1,30 @@
-function renderGitPanel(container, { gitStatus, _gitDiff, gitStage, gitCommit, gitLog }) {
+function renderGitPanel(
+  container,
+  { gitStatus, gitDiff, gitStage, gitCommit, gitLog, gitBranches, gitCheckout, gitPush, gitPull }
+) {
   container.innerHTML = `
         <div class="git-panel">
+            <div class="git-section">
+                <h4 class="git-section-title">Branches</h4>
+                <div class="git-branches" id="git-branches">
+                    <p class="git-loading">Loading...</p>
+                </div>
+                <div class="git-branch-new">
+                    <input type="text" class="git-branch-input" id="git-branch-input" placeholder="New branch name..." />
+                    <button class="git-branch-create-btn" id="git-branch-create-btn">Create</button>
+                </div>
+                <div class="git-remote-actions">
+                    <button class="git-push-btn" id="git-push-btn">Push</button>
+                    <button class="git-pull-btn" id="git-pull-btn">Pull</button>
+                </div>
+                <p class="git-remote-status" id="git-remote-status"></p>
+            </div>
             <div class="git-section">
                 <h4 class="git-section-title">Changes</h4>
                 <div class="git-changes" id="git-changes">
                     <p class="git-loading">Loading...</p>
                 </div>
+                <pre class="git-diff-view" id="git-diff-view" style="display:none;"></pre>
             </div>
             <div class="git-section">
                 <h4 class="git-section-title">Commit</h4>
@@ -20,6 +39,7 @@ function renderGitPanel(container, { gitStatus, _gitDiff, gitStage, gitCommit, g
     `;
 
   loadGitStatus();
+  loadGitBranches();
 
   async function loadGitStatus() {
     const status = await gitStatus();
@@ -48,6 +68,7 @@ function renderGitPanel(container, { gitStatus, _gitDiff, gitStage, gitCommit, g
                 <div class="git-file" data-file="${f.file}">
                     <span class="git-file-status" style="color:${f.color}">${f.status}</span>
                     <span class="git-file-name">${f.file}</span>
+                    <button class="git-diff-btn" data-file="${f.file}" title="View diff">diff</button>
                     <button class="git-stage-btn" data-file="${f.file}" title="Stage file">+</button>
                 </div>
             `
@@ -59,6 +80,13 @@ function renderGitPanel(container, { gitStatus, _gitDiff, gitStage, gitCommit, g
           e.stopPropagation();
           await gitStage([btn.dataset.file]);
           loadGitStatus();
+        });
+      });
+
+      changesEl.querySelectorAll('.git-diff-btn').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await showDiff(btn.dataset.file);
         });
       });
     }
@@ -82,12 +110,104 @@ function renderGitPanel(container, { gitStatus, _gitDiff, gitStage, gitCommit, g
     }
   }
 
+  async function showDiff(file) {
+    const diffView = document.getElementById('git-diff-view');
+    if (!diffView || !gitDiff) return;
+    const result = await gitDiff(file);
+    diffView.textContent =
+      result && result.error ? result.error : result && result.length ? result : 'No changes';
+    diffView.style.display = 'block';
+  }
+
+  async function loadGitBranches() {
+    const branchesEl = document.getElementById('git-branches');
+    if (!gitBranches || !branchesEl) return;
+
+    const result = await gitBranches();
+    if (!result) return;
+
+    if (result.error) {
+      branchesEl.innerHTML = `<p class="git-info">${result.error}</p>`;
+      return;
+    }
+
+    const names = result.all || [];
+    const current = result.current;
+
+    if (names.length === 0) {
+      branchesEl.innerHTML = '<p class="git-info">No branches</p>';
+      return;
+    }
+
+    branchesEl.innerHTML = names
+      .map(
+        (name) => `
+                <div class="git-branch-item${name === current ? ' git-branch-current' : ''}" data-branch="${name}">
+                    <span class="git-branch-name">${name === current ? '&#9679; ' : ''}${name}</span>
+                    ${name === current ? '' : `<button class="git-checkout-btn" data-branch="${name}" title="Checkout branch">checkout</button>`}
+                </div>
+            `
+      )
+      .join('');
+
+    branchesEl.querySelectorAll('.git-checkout-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const result = await gitCheckout(btn.dataset.branch, false);
+        if (result && result.error) {
+          const statusEl = document.getElementById('git-remote-status');
+          if (statusEl) statusEl.textContent = `Checkout failed: ${result.error}`;
+        }
+        loadGitBranches();
+        loadGitStatus();
+      });
+    });
+  }
+
   document.getElementById('git-commit-btn')?.addEventListener('click', async () => {
     const msg = document.getElementById('git-commit-msg')?.value?.trim();
     if (!msg) return;
     await gitCommit(msg);
     document.getElementById('git-commit-msg').value = '';
     loadGitStatus();
+  });
+
+  document.getElementById('git-branch-create-btn')?.addEventListener('click', async () => {
+    const input = document.getElementById('git-branch-input');
+    const name = input?.value?.trim();
+    if (!name || !gitCheckout) return;
+    const result = await gitCheckout(name, true);
+    const statusEl = document.getElementById('git-remote-status');
+    if (result && result.error) {
+      if (statusEl) statusEl.textContent = `Create branch failed: ${result.error}`;
+    } else {
+      input.value = '';
+      if (statusEl) statusEl.textContent = '';
+    }
+    loadGitBranches();
+    loadGitStatus();
+  });
+
+  document.getElementById('git-push-btn')?.addEventListener('click', async () => {
+    const statusEl = document.getElementById('git-remote-status');
+    if (!gitPush) return;
+    const result = await gitPush();
+    if (statusEl) {
+      statusEl.textContent =
+        result && result.error ? `Push failed: ${result.error}` : 'Push complete';
+    }
+  });
+
+  document.getElementById('git-pull-btn')?.addEventListener('click', async () => {
+    const statusEl = document.getElementById('git-remote-status');
+    if (!gitPull) return;
+    const result = await gitPull();
+    if (statusEl) {
+      statusEl.textContent =
+        result && result.error ? `Pull failed: ${result.error}` : 'Pull complete';
+    }
+    loadGitStatus();
+    loadGitBranches();
   });
 }
 

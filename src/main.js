@@ -5294,6 +5294,26 @@ ipcMain.handle('git-log', async () => {
   const dir = currentFile ? path.dirname(currentFile) : process.cwd();
   return GitOperations.log(dir);
 });
+ipcMain.handle('git-diff', async (event, { file } = {}) => {
+  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
+  return GitOperations.diff(dir, file);
+});
+ipcMain.handle('git-branches', async () => {
+  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
+  return GitOperations.branches(dir);
+});
+ipcMain.handle('git-checkout', async (event, { name, isNew } = {}) => {
+  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
+  return GitOperations.checkoutBranch(dir, name, isNew);
+});
+ipcMain.handle('git-push', async () => {
+  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
+  return GitOperations.push(dir);
+});
+ipcMain.handle('git-pull', async () => {
+  const dir = currentFile ? path.dirname(currentFile) : process.cwd();
+  return GitOperations.pull(dir);
+});
 
 // ============================================
 // Snippets IPC Handlers

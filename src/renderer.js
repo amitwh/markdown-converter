@@ -1751,6 +1751,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             message,
           }),
         gitLog: () => ipcRenderer.invoke('git-log'),
+        gitBranches: () => ipcRenderer.invoke('git-branches'),
+        gitCheckout: (name, isNew) =>
+          ipcRenderer.invoke('git-checkout', {
+            name,
+            isNew,
+          }),
+        gitPush: () => ipcRenderer.invoke('git-push'),
+        gitPull: () => ipcRenderer.invoke('git-pull'),
       }),
   });
   sidebarManager.registerPanel('snippets', {

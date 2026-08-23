@@ -107,6 +107,10 @@ const ALLOWED_SEND_CHANNELS = [
   'git-stage',
   'git-commit',
   'git-log',
+  'git-branches',
+  'git-checkout',
+  'git-push',
+  'git-pull',
 
   // Snippets
   'get-snippets',

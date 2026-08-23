@@ -41,4 +41,49 @@ async function log(dir, maxCount = 20) {
   }
 }
 
-module.exports = { getStatus, stage, commit, log };
+async function diff(dir, file) {
+  try {
+    const git = getGitInstance(dir);
+    return file ? await git.diff([file]) : await git.diff();
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+async function branches(dir) {
+  try {
+    const git = getGitInstance(dir);
+    return await git.branchLocal();
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+async function checkoutBranch(dir, name, isNew) {
+  try {
+    const git = getGitInstance(dir);
+    return isNew ? await git.checkoutLocalBranch(name) : await git.checkout(name);
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+async function push(dir) {
+  try {
+    const git = getGitInstance(dir);
+    return await git.push();
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+async function pull(dir) {
+  try {
+    const git = getGitInstance(dir);
+    return await git.pull();
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+module.exports = { getStatus, stage, commit, log, diff, branches, checkoutBranch, push, pull };

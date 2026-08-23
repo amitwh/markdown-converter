@@ -307,6 +307,101 @@ body[class*='dark'] .panel-list-item-desc {
   font-size: 13px;
   color: var(--gray-400);
 }
+.git-diff-btn {
+  border: none;
+  background: var(--gray-200);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 6px;
+}
+.git-diff-view {
+  margin-top: 8px;
+  max-height: 240px;
+  overflow: auto;
+  padding: 8px;
+  background: var(--gray-100, #f3f4f6);
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.git-branch-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  gap: 6px;
+}
+.git-branch-item:hover {
+  background: var(--gray-100, #f3f4f6);
+}
+.git-branch-current {
+  font-weight: 600;
+}
+.git-branch-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.git-checkout-btn {
+  border: none;
+  background: var(--gray-200);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 6px;
+}
+.git-branch-new {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+.git-branch-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.git-branch-create-btn {
+  border: none;
+  background: var(--gray-200);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+.git-remote-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.git-push-btn,
+.git-pull-btn {
+  flex: 1;
+  padding: 8px;
+  background: var(--primary-dark, #5661b3);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.git-push-btn:hover,
+.git-pull-btn:hover {
+  opacity: 0.9;
+}
+.git-remote-status {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 6px;
+  min-height: 14px;
+}
 
 /* Snippets Panel */
 .snippets-toolbar {
@@ -397,9 +492,14 @@ body[class*='dark'] .snippet-delete {
   border-color: #444;
   color: #ccc;
 }
-body[class*='dark'] .git-commit-input {
+body[class*='dark'] .git-commit-input,
+body[class*='dark'] .git-branch-input {
   background: #2d2d2d;
   border-color: #444;
+  color: #ccc;
+}
+body[class*='dark'] .git-diff-view {
+  background: #2d2d2d;
   color: #ccc;
 }
 body[class*='dark'] .snippet-item {
@@ -409,7 +509,8 @@ body[class*='dark'] .snippet-preview {
   background: #2d2d2d;
 }
 body[class*='dark'] .tree-item:hover,
-body[class*='dark'] .git-file:hover {
+body[class*='dark'] .git-file:hover,
+body[class*='dark'] .git-branch-item:hover {
   background: #333;
 }
 
