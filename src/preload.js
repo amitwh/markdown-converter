@@ -36,6 +36,10 @@ const ALLOWED_SEND_CHANNELS = [
   'export-with-options',
   'export-spreadsheet',
 
+  // Plugin export formats
+  'plugin-export-formats-registered',
+  'plugin-export-format-result',
+
   // Batch conversion
   'batch-convert',
   'select-folder',
@@ -244,6 +248,9 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'toggle-command-palette',
   'toggle-sidebar-panel',
   'toggle-bottom-panel',
+
+  // Plugin export formats
+  'run-plugin-export-format',
 ];
 
 /**
