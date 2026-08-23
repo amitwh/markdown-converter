@@ -183,6 +183,7 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'show-universal-converter-dialog',
   'show-table-generator',
   'show-pdf-editor-dialog',
+  'show-document-compare',
 
   // Converter dialogs
   'show-image-converter',
