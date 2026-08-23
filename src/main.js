@@ -1455,6 +1455,13 @@ function createMenu() {
           type: 'separator',
         },
         {
+          label: 'Fill Form...',
+          click: () => showPDFEditorDialog('fillForm'),
+        },
+        {
+          type: 'separator',
+        },
+        {
           label: 'Security',
           submenu: [
             {
@@ -4695,6 +4702,17 @@ ipcMain.on('get-pdf-page-count', async (event, filePath) => {
     });
   } catch (error) {
     event.reply('pdf-page-count', {
+      error: error.message,
+    });
+  }
+});
+ipcMain.on('get-pdf-form-fields', async (event, filePath) => {
+  try {
+    const result = await PDFOperations.pdfGetFormFields({ inputPath: filePath });
+    event.reply('pdf-form-fields', result);
+  } catch (error) {
+    event.reply('pdf-form-fields', {
+      success: false,
       error: error.message,
     });
   }

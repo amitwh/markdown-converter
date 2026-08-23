@@ -3894,6 +3894,23 @@ function showPDFEditorDialog(operation, openedFilePath = null) {
         if (extractImagesInput) extractImagesInput.value = openedFilePath;
       }
       break;
+    case 'fillForm': {
+      sectionId = 'pdf-fill-form-section';
+      titleText = 'Fill Form';
+      const fieldsList = document.getElementById('fill-form-fields-list');
+      if (fieldsList) {
+        fieldsList.innerHTML =
+          '<small>Select a PDF with fillable fields to list them here.</small>';
+      }
+      if (openedFilePath) {
+        const fillFormInput = document.getElementById('fill-form-input-path');
+        if (fillFormInput) {
+          fillFormInput.value = openedFilePath;
+          setTimeout(() => loadFillFormFields(openedFilePath), 50);
+        }
+      }
+      break;
+    }
   }
   title.textContent = titleText;
   document.getElementById(sectionId).classList.remove('hidden');
@@ -4112,6 +4129,16 @@ document.addEventListener('DOMContentLoaded', () => {
       inputId: 'extract-images-output-folder',
       folder: true,
     },
+    {
+      id: 'browse-fill-form-input',
+      inputId: 'fill-form-input-path',
+      saveDialog: false,
+    },
+    {
+      id: 'browse-fill-form-output',
+      inputId: 'fill-form-output-path',
+      saveDialog: true,
+    },
   ];
   browseButtons.forEach((button) => {
     const btn = document.getElementById(button.id);
@@ -4140,6 +4167,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (file) {
               document.getElementById(button.inputId).value = file.path;
               onPDFFileSelected(button.inputId, file.path);
+              if (button.inputId === 'fill-form-input-path') {
+                loadFillFormFields(file.path);
+              }
             }
           };
           input.click();
@@ -4231,6 +4261,10 @@ document.addEventListener('DOMContentLoaded', () => {
       checkbox: 'crop-overwrite',
       section: 'crop-saveas-section',
     },
+    {
+      checkbox: 'fill-form-overwrite',
+      section: 'fill-form-saveas-section',
+    },
   ];
   overwriteCheckboxes.forEach((item) => {
     const checkbox = document.getElementById(item.checkbox);
@@ -4284,6 +4318,59 @@ ipcRenderer.on('pdf-page-count', (event, { count, error }) => {
   document.getElementById('current-order-display').textContent = currentOrder;
   document.getElementById('current-page-order').classList.remove('hidden');
   document.getElementById('reorder-pages').value = currentOrder;
+});
+
+// Fill Form: request the AcroForm text fields for a selected PDF, then render
+// one text input per field so the user can supply values before submitting.
+function loadFillFormFields(filePath) {
+  const container = document.getElementById('fill-form-fields-list');
+  if (!container) return;
+  container.innerHTML = '';
+  const loading = document.createElement('small');
+  loading.textContent = 'Loading form fields...';
+  container.appendChild(loading);
+  ipcRenderer.send('get-pdf-form-fields', filePath);
+}
+ipcRenderer.on('pdf-form-fields', (event, result) => {
+  const container = document.getElementById('fill-form-fields-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!result.success) {
+    const msg = document.createElement('small');
+    msg.textContent = `Error reading form fields: ${result.error || 'unknown error'}`;
+    container.appendChild(msg);
+    return;
+  }
+
+  const textFields = (result.fields || []).filter((field) => field.type === 'PDFTextField');
+
+  if (textFields.length === 0) {
+    const msg = document.createElement('small');
+    msg.textContent = 'No fillable text fields were found in this PDF.';
+    container.appendChild(msg);
+    return;
+  }
+
+  textFields.forEach((field) => {
+    const row = document.createElement('div');
+    row.className = 'fill-form-field-row';
+
+    const label = document.createElement('label');
+    label.textContent = field.name;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'fill-form-field-input';
+    input.dataset.fieldName = field.name;
+    if (field.value) {
+      input.value = field.value;
+    }
+
+    label.appendChild(input);
+    row.appendChild(label);
+    container.appendChild(row);
+  });
 });
 function getPDFStatusElement() {
   return document.getElementById('pdf-status-message');
@@ -4569,6 +4656,27 @@ function processPDFOperation() {
           showPDFValidationMessage(
             'Select an input PDF and an output folder.',
             '#extract-images-input-path'
+          );
+          return;
+        }
+        break;
+      case 'fillForm':
+        operationData.inputPath = document.getElementById('fill-form-input-path').value.trim();
+        operationData.overwrite = document.getElementById('fill-form-overwrite').checked;
+        operationData.outputPath = operationData.overwrite
+          ? operationData.inputPath
+          : document.getElementById('fill-form-output-path').value.trim();
+        operationData.flatten = document.getElementById('fill-form-flatten').checked;
+        operationData.values = {};
+        document
+          .querySelectorAll('#fill-form-fields-list .fill-form-field-input')
+          .forEach((input) => {
+            operationData.values[input.dataset.fieldName] = input.value;
+          });
+        if (!operationData.inputPath || !operationData.outputPath) {
+          showPDFValidationMessage(
+            'Select an input PDF' + (operationData.overwrite ? '.' : ' and an output file path.'),
+            '#fill-form-input-path'
           );
           return;
         }

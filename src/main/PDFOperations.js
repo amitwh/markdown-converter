@@ -589,6 +589,70 @@ async function pdfExtractImages(data) {
   }
 }
 
+async function pdfGetFormFields(data) {
+  try {
+    const pdfBytes = fs.readFileSync(data.inputPath);
+    const pdf = await PDFDocument.load(pdfBytes);
+    const form = pdf.getForm();
+
+    const fields = form.getFields().map((field) => {
+      let value;
+      try {
+        if (typeof field.getText === 'function') {
+          value = field.getText();
+        } else if (typeof field.isChecked === 'function') {
+          value = field.isChecked();
+        } else if (typeof field.getSelected === 'function') {
+          value = field.getSelected();
+        }
+      } catch {
+        // Some field types throw when read in an unexpected state; leave value undefined.
+        value = undefined;
+      }
+      return { name: field.getName(), type: field.constructor.name, value };
+    });
+
+    return { success: true, fields };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function pdfFillForm(data) {
+  try {
+    const pdfBytes = fs.readFileSync(data.inputPath);
+    const pdf = await PDFDocument.load(pdfBytes);
+    const form = pdf.getForm();
+
+    const values = data.values || {};
+    let filledCount = 0;
+
+    for (const [name, value] of Object.entries(values)) {
+      try {
+        const field = form.getTextField(name);
+        field.setText(value !== null && value !== undefined ? String(value) : '');
+        filledCount++;
+      } catch (fieldError) {
+        // Batch-of-independent-fields: a field that doesn't exist or isn't a text
+        // field shouldn't fail the whole fill — skip it and keep going (same
+        // partial-success precedent as pdfExtractImages).
+        console.warn(`pdfFillForm: skipping field "${name}": ${fieldError.message}`);
+      }
+    }
+
+    if (data.flatten) {
+      form.flatten();
+    }
+
+    const filledPdfBytes = await pdf.save();
+    fs.writeFileSync(data.outputPath, filledPdfBytes);
+
+    return { success: true, message: `Successfully filled ${filledCount} form field(s)` };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 function executeOperation(operation, data) {
   switch (operation) {
     case 'merge':
@@ -619,6 +683,10 @@ function executeOperation(operation, data) {
       return pdfCrop(data);
     case 'extractImages':
       return pdfExtractImages(data);
+    case 'formFields':
+      return pdfGetFormFields(data);
+    case 'fillForm':
+      return pdfFillForm(data);
     default:
       return Promise.resolve({ success: false, error: `Unknown operation: ${operation}` });
   }
@@ -647,6 +715,8 @@ module.exports = {
   pdfAddPageNumbers,
   pdfCrop,
   pdfExtractImages,
+  pdfGetFormFields,
+  pdfFillForm,
   executeOperation,
   getPageCount,
 };

@@ -2111,6 +2111,52 @@
                 </div>
               </div>
 
+              <!-- Fill Form Section -->
+              <div id="pdf-fill-form-section" class="pdf-operation-section hidden">
+                <div class="export-section">
+                  <label>PDF File:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="fill-form-input-path"
+                      placeholder="Select PDF file..."
+                      readonly
+                    />
+                    <button id="browse-fill-form-input">Browse</button>
+                  </div>
+                </div>
+                <div class="export-section">
+                  <label>Form Fields:</label>
+                  <div id="fill-form-fields-list" class="fill-form-fields-list">
+                    <small>Select a PDF with fillable fields to list them here.</small>
+                  </div>
+                </div>
+                <div class="export-section">
+                  <label class="checkbox-inline"
+                    ><input type="checkbox" id="fill-form-flatten" /> Flatten after fill (makes
+                    fields non-editable)</label
+                  >
+                </div>
+                <div class="export-section">
+                  <label class="checkbox-inline"
+                    ><input type="checkbox" id="fill-form-overwrite" /> Overwrite original
+                    file</label
+                  >
+                </div>
+                <div class="export-section" id="fill-form-saveas-section">
+                  <label>Save As:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="fill-form-output-path"
+                      placeholder="Select save location..."
+                      readonly
+                    />
+                    <button id="browse-fill-form-output">Save As</button>
+                  </div>
+                </div>
+              </div>
+
               <div id="pdf-status-message" class="info-message hidden" aria-live="polite"></div>
 
               <!-- Progress indicator -->
