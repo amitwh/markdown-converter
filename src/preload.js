@@ -49,11 +49,7 @@ const ALLOWED_SEND_CHANNELS = [
   'select-image-folder',
 
   // Audio converter
-  'audio-convert',
-  'audio-batch-convert',
-  'audio-extract',
-  'audio-trim',
-  'audio-merge',
+  'process-audio-operation',
 
   // Video converter
   'video-convert',

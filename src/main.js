@@ -6,6 +6,7 @@ const { execFile } = require('child_process');
 const WordTemplateExporter = require('./wordTemplateExporter');
 const PDFOperations = require('./main/PDFOperations');
 const ImageOperations = require('./main/ImageOperations');
+const AudioOperations = require('./main/AudioOperations');
 const GitOperations = require('./main/GitOperations');
 const PdfFontHeader = require('./main/PdfFontHeader');
 const MonospaceFontConfig = require('./main/MonospaceFontConfig');
@@ -4630,6 +4631,20 @@ ipcMain.handle('process-image-operation', async (event, { operation, data }) => 
     return await ImageOperations.executeOperation(operation, {
       ...data,
       maxFileSize: MAX_FILE_SIZE,
+    });
+  } catch (error) {
+    return { success: false, error: sanitizeErrorMessage(error.message) };
+  }
+});
+
+// ========================================
+// AUDIO OPERATIONS — delegates to main/AudioOperations.js
+// ========================================
+
+ipcMain.handle('process-audio-operation', async (event, { operation, data }) => {
+  try {
+    return await AudioOperations.executeOperation(operation, data, {
+      ffmpegPath: getFFmpegPath(),
     });
   } catch (error) {
     return { success: false, error: sanitizeErrorMessage(error.message) };
