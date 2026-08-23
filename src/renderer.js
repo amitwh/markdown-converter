@@ -11,6 +11,7 @@ const DOMPurify = createDOMPurify(window);
 const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
+const { showMediaOperationsDialog } = require('./renderer/media-operations-dialog');
 
 /**
  * Toggle body classes that drive the monospace font + ligatures CSS tokens.
@@ -3722,6 +3723,17 @@ ipcRenderer.on('show-table-generator', () => {
 ipcRenderer.on('show-pdf-editor-dialog', (event, operation, openedFilePath) => {
   currentPDFOperation = operation;
   showPDFEditorDialog(operation, openedFilePath);
+});
+
+// Show Media Operations Dialogs (Tools > Image/Audio/Video Tools...)
+ipcRenderer.on('show-image-converter', () => {
+  showMediaOperationsDialog('image');
+});
+ipcRenderer.on('show-audio-converter', () => {
+  showMediaOperationsDialog('audio');
+});
+ipcRenderer.on('show-video-converter', () => {
+  showMediaOperationsDialog('video');
 });
 function showPDFEditorDialog(operation, openedFilePath = null) {
   const title = document.getElementById('pdf-editor-title');

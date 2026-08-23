@@ -1457,6 +1457,21 @@ function createMenu() {
           label: 'Document Compare',
           click: () => mainWindow.webContents.send('show-document-compare'),
         },
+        {
+          type: 'separator',
+        },
+        {
+          label: 'Image Tools...',
+          click: () => mainWindow.webContents.send('show-image-converter'),
+        },
+        {
+          label: 'Audio Tools...',
+          click: () => mainWindow.webContents.send('show-audio-converter'),
+        },
+        {
+          label: 'Video Tools...',
+          click: () => mainWindow.webContents.send('show-video-converter'),
+        },
       ],
     },
     {

@@ -406,34 +406,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectFolder: (inputId) => ipcRenderer.send('select-pdf-folder', inputId),
   },
 
-  // Image Converter Operations
-  image: {
-    convert: (data) => ipcRenderer.send('image-convert', data),
-    batchConvert: (data) => ipcRenderer.send('image-batch-convert', data),
-    resize: (data) => ipcRenderer.send('image-resize', data),
-    compress: (data) => ipcRenderer.send('image-compress', data),
-    rotate: (data) => ipcRenderer.send('image-rotate', data),
-  },
-
-  // Audio Converter Operations
-  audio: {
-    convert: (data) => ipcRenderer.send('audio-convert', data),
-    batchConvert: (data) => ipcRenderer.send('audio-batch-convert', data),
-    extract: (data) => ipcRenderer.send('audio-extract', data),
-    trim: (data) => ipcRenderer.send('audio-trim', data),
-    merge: (data) => ipcRenderer.send('audio-merge', data),
-  },
-
-  // Video Converter Operations
-  video: {
-    convert: (data) => ipcRenderer.send('video-convert', data),
-    batchConvert: (data) => ipcRenderer.send('video-batch-convert', data),
-    compress: (data) => ipcRenderer.send('video-compress', data),
-    trim: (data) => ipcRenderer.send('video-trim', data),
-    extractFrames: (data) => ipcRenderer.send('video-frames', data),
-    toGif: (data) => ipcRenderer.send('video-gif', data),
-  },
-
   // Generator Windows
   generators: {
     openAscii: () => ipcRenderer.send('open-ascii-generator'),
