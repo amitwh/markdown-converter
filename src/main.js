@@ -731,7 +731,12 @@ function buildRecentFilesMenu() {
     {
       label: 'Clear Recent Files',
       click: () => {
-        mainWindow.webContents.send('clear-recent-files');
+        try {
+          clearRecentFilesOnDisk();
+          mainWindow.webContents.send('recent-files-cleared');
+        } catch (error) {
+          console.error('Error clearing recent files:', error);
+        }
       },
     },
   ];
@@ -4467,6 +4472,14 @@ app.on('activate', () => {
   }
 });
 
+// Clear recent files from disk
+function clearRecentFilesOnDisk() {
+  const userDataPath = app.getPath('userData');
+  const recentFilesPath = path.join(userDataPath, 'recent-files.json');
+  fs.writeFileSync(recentFilesPath, JSON.stringify([], null, 2));
+  createMenu();
+}
+
 // IPC handlers for recent files
 ipcMain.on('save-recent-files', (event, recentFiles) => {
   try {
@@ -4479,11 +4492,7 @@ ipcMain.on('save-recent-files', (event, recentFiles) => {
 });
 ipcMain.on('clear-recent-files', (event) => {
   try {
-    const userDataPath = app.getPath('userData');
-    const recentFilesPath = path.join(userDataPath, 'recent-files.json');
-    fs.writeFileSync(recentFilesPath, JSON.stringify([], null, 2));
-    // Rebuild menu to reflect changes
-    createMenu();
+    clearRecentFilesOnDisk();
     event.reply('recent-files-cleared');
   } catch (error) {
     console.error('Error clearing recent files:', error);
