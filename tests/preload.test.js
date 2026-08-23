@@ -44,7 +44,6 @@ describe('Preload Security', () => {
       'clear-header-footer-logo',
       'get-page-settings',
       'update-page-settings',
-      'set-custom-start-page',
       'process-pdf-operation',
       'get-pdf-page-count',
       'select-pdf-folder',

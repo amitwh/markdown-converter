@@ -68,12 +68,15 @@ const ALLOWED_SEND_CHANNELS = [
   'save-header-footer-logo',
   'clear-header-footer-logo',
 
+  // Word template settings
+  'get-word-template-settings',
+  'save-word-template-settings',
+  'browse-word-template',
+  'clear-word-template',
+
   // Page settings
   'get-page-settings',
   'update-page-settings',
-
-  // Template settings
-  'set-custom-start-page',
 
   // PDF operations
   'process-pdf-operation',
@@ -214,6 +217,11 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'header-footer-settings-data',
   'header-footer-logo-selected',
   'header-footer-logo-saved',
+
+  // Word template settings
+  'word-template-settings-data',
+  'word-template-browsed',
+  'open-word-template-dialog',
 
   // Page settings
   'page-settings-data',
@@ -414,7 +422,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   page: {
     getSettings: () => ipcRenderer.send('get-page-settings'),
     updateSettings: (settings) => ipcRenderer.send('update-page-settings', settings),
-    setCustomStartPage: (pageNumber) => ipcRenderer.send('set-custom-start-page', pageNumber),
   },
 
   // PDF Operations

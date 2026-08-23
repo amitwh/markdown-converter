@@ -55,7 +55,6 @@ global.window.electronAPI = {
   page: {
     getSettings: jest.fn(),
     updateSettings: jest.fn(),
-    setCustomStartPage: jest.fn(),
   },
   pdf: {
     processOperation: jest.fn(),
