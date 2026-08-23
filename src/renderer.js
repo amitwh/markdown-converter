@@ -1654,6 +1654,22 @@ class TabManager {
 // Initialize tab manager
 let tabManager;
 let replPanel;
+
+// Shared by the sidebar Templates panel and the "New from Template" menu items:
+// loads a template file's content into a brand-new tab, substituting {{DATE}}.
+async function loadTemplateIntoNewTab(file) {
+  const templateContent = await ipcRenderer.invoke('load-template', file);
+  if (templateContent) {
+    const content = templateContent.replace(
+      /\{\{DATE\}\}/g,
+      new Date().toISOString().split('T')[0]
+    );
+    tabManager.createNewTab();
+    const tab = tabManager.tabs.get(tabManager.activeTabId);
+    tabManager.setEditorContent(tab.id, content);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const ModalManager = _ModalManager;
   tabManager = new TabManager();
@@ -1743,19 +1759,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   sidebarManager.registerPanel('templates', {
     title: 'Templates',
-    render: (container) =>
-      getRenderTemplatesPanel()(container, async (file) => {
-        const templateContent = await ipcRenderer.invoke('load-template', file);
-        if (templateContent) {
-          const content = templateContent.replace(
-            /\{\{DATE\}\}/g,
-            new Date().toISOString().split('T')[0]
-          );
-          tabManager.createNewTab();
-          const tab = tabManager.tabs.get(tabManager.activeTabId);
-          tabManager.setEditorContent(tab.id, content);
-        }
-      }),
+    render: (container) => getRenderTemplatesPanel()(container, loadTemplateIntoNewTab),
   });
   let outlinePanelContainer = null;
   sidebarManager.registerPanel('outline', {
@@ -2118,6 +2122,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 // IPC event listeners
 ipcRenderer.on('file-new', () => {
   tabManager.createNewTab();
+});
+ipcRenderer.on('load-template-menu', (event, file) => {
+  loadTemplateIntoNewTab(file);
 });
 ipcRenderer.on('file-opened', (event, data) => {
   // Diagnostic: check library state
