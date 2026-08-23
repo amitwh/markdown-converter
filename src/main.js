@@ -9,6 +9,7 @@ const ImageOperations = require('./main/ImageOperations');
 const AudioOperations = require('./main/AudioOperations');
 const VideoOperations = require('./main/VideoOperations');
 const { collectFilesByExtension } = require('./main/collectFilesByExtension');
+const { runPDFBatchOperation } = require('./main/PDFBatchOperations');
 const GitOperations = require('./main/GitOperations');
 const PdfFontHeader = require('./main/PdfFontHeader');
 const MonospaceFontConfig = require('./main/MonospaceFontConfig');
@@ -5050,6 +5051,47 @@ ipcMain.on(
       includeSubfolders,
       extensions,
       data,
+    });
+  }
+);
+
+// ========================================
+// BATCH PDF OPERATIONS — apply one PDFOperations.executeOperation() operation
+// (watermark, compress, rotate, split, ... — every per-file non-interactive op;
+// see PDF_BATCH_OUTPUT_SPEC in src/main/PDFBatchOperations.js for exclusions) to
+// every .pdf in a folder, mirroring the runMediaBatchOperation() batch-folder
+// pattern above: collect matching files, loop the operation over them with
+// per-file progress, then a completion dialog with completed/failed counts.
+// ========================================
+ipcMain.on(
+  'batch-pdf-operation',
+  async (event, { operation, data, inputFolder, outputFolder, includeSubfolders }) => {
+    if (!conversionLimiter()) {
+      mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
+      return;
+    }
+    await runPDFBatchOperation({
+      operation,
+      inputFolder,
+      outputFolder,
+      includeSubfolders,
+      data,
+      maxFileSize: MAX_FILE_SIZE,
+      sanitizeError: sanitizeErrorMessage,
+      onProgress: (progress) => mainWindow.webContents.send('batch-progress', progress),
+      onComplete: (result) => {
+        mainWindow.webContents.send('pdf-batch-complete', result);
+        if (!result.success) return;
+
+        const allSucceeded = result.failed === 0;
+        dialog.showMessageBox(mainWindow, {
+          type: allSucceeded ? 'info' : 'warning',
+          title: allSucceeded ? 'Batch PDF Operation Complete' : 'Batch PDF Operation Finished',
+          message: 'Batch PDF operation finished!',
+          detail: `Completed: ${result.completed}/${result.total} files${result.failed > 0 ? ` (${result.failed} failed)` : ''}\nOutput: ${result.outputFolder}`,
+          buttons: ['OK'],
+        });
+      },
     });
   }
 );

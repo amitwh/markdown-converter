@@ -87,6 +87,7 @@ const ALLOWED_SEND_CHANNELS = [
   'process-pdf-operation',
   'get-pdf-page-count',
   'select-pdf-folder',
+  'batch-pdf-operation',
 
   // ASCII generator (separate window)
   'open-ascii-generator',
@@ -235,6 +236,7 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'pdf-page-count',
   'pdf-operation-complete',
   'pdf-operation-error',
+  'pdf-batch-complete',
 
   // ASCII Art Generator
   'show-ascii-generator-window',

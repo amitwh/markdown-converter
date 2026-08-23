@@ -12,6 +12,7 @@ const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
 const { showMediaOperationsDialog } = require('./renderer/media-operations-dialog');
+const { showPdfBatchDialog } = require('./renderer/pdf-batch-dialog');
 const { showDocumentCompareDialog } = require('./renderer/document-compare-dialog');
 const { initExportPresets, refreshExportPresets } = require('./renderer/export-presets');
 const { csvToMarkdownTable } = require('./utils/csv-to-markdown-table');
@@ -2772,6 +2773,16 @@ ipcRenderer.on('show-universal-converter-dialog', () => {
 
 // Batch converter menu items - open universal converter with batch mode and correct tool
 ipcRenderer.on('show-batch-converter', (event, type) => {
+  if (type === 'pdf') {
+    // Task 22: the PDF batch menu item now also offers bulk PDF operations
+    // (watermark/compress/rotate/...). Format conversion stays the default and
+    // is delegated to the pre-existing universal-converter batch flow.
+    showPdfBatchDialog({ onConvertFormat: () => openUniversalConverterBatch('pdf') });
+    return;
+  }
+  openUniversalConverterBatch(type);
+});
+function openUniversalConverterBatch(type) {
   showUniversalConverterDialog();
   // Map batch type to the appropriate tool
   const toolMap = {
@@ -2792,7 +2803,7 @@ ipcRenderer.on('show-batch-converter', (event, type) => {
     batchToggle.checked = true;
     batchToggle.dispatchEvent(new Event('change'));
   }
-});
+}
 ipcRenderer.on('conversion-status', (event, status) => {
   document.getElementById('converter-status').textContent = status;
 });
