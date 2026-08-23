@@ -11,6 +11,7 @@ const VideoOperations = require('./main/VideoOperations');
 const { collectFilesByExtension } = require('./main/collectFilesByExtension');
 const { runPDFBatchOperation } = require('./main/PDFBatchOperations');
 const GitOperations = require('./main/GitOperations');
+const PandocArgs = require('./main/PandocArgs');
 const PdfFontHeader = require('./main/PdfFontHeader');
 const MonospaceFontConfig = require('./main/MonospaceFontConfig');
 const ExportCss = require('./main/ExportCss');
@@ -229,63 +230,22 @@ function convertDataToMarkdown(content, format) {
 }
 
 /**
- * Run a Pandoc command string safely using execFile
- * Parses the command string and uses execFile to prevent shell injection
- * @param {string} cmdString - Full Pandoc command string (e.g., 'pandoc "input.md" -o "output.pdf"')
+ * Run Pandoc with an explicit argument array via execFile.
+ * Args must be built with the PandocArgs helpers (or plain Array.push) — never
+ * assembled into a command string, so user-controlled values always reach the
+ * process as single literal argv elements (SEC-1).
+ * @param {string[]} args - Argument array (without the pandoc executable)
  * @param {Function} callback - Callback function (error, stdout, stderr)
  */
-function runPandocCmd(cmdString, callback) {
-  const parsed = parseCommand(cmdString);
-  // Skip the command element when it is pandoc (bare or a full path to the binary)
-  const commandName = path.basename(parsed.command).replace(/\.exe$/i, '');
-  const args = commandName === 'pandoc' ? parsed.args : [parsed.command, ...parsed.args];
-  const pandocPath = getPandocPath();
+function runPandocArgs(args, callback) {
   execFile(
-    pandocPath,
+    getPandocPath(),
     args,
     {
       maxBuffer: 10 * 1024 * 1024,
     },
     callback
   );
-}
-
-/**
- * Parse a command string into command and arguments array
- * This helps transition from exec() to execFile() safely
- * @param {string} cmdString - Full command string
- * @returns {{command: string, args: string[]}}
- */
-function parseCommand(cmdString) {
-  // Handle quoted strings properly
-  const parts = [];
-  let current = '';
-  let inQuotes = false;
-  let quoteChar = '';
-  for (let i = 0; i < cmdString.length; i++) {
-    const char = cmdString[i];
-    if ((char === '"' || char === "'") && !inQuotes) {
-      inQuotes = true;
-      quoteChar = char;
-    } else if (char === quoteChar && inQuotes) {
-      inQuotes = false;
-      quoteChar = '';
-    } else if (char === ' ' && !inQuotes) {
-      if (current) {
-        parts.push(current);
-        current = '';
-      }
-    } else {
-      current += char;
-    }
-  }
-  if (current) {
-    parts.push(current);
-  }
-  return {
-    command: parts[0],
-    args: parts.slice(1),
-  };
 }
 
 // Simple storage implementation to replace electron-store
@@ -2845,49 +2805,22 @@ function performExportWithOptions(format, options) {
         inputFile = tempInputFile;
       }
 
-      let pandocCmd = `${getPandocPath()} "${inputFile}" -o "${outputFile}"`;
-
-      // Add template if specified
-      if (options.template && options.template !== 'default') {
-        pandocCmd += ` --template="${options.template}"`;
-      }
-
-      // Add metadata
-      if (options.metadata) {
-        for (const [key, value] of Object.entries(options.metadata)) {
-          if (value.trim()) {
-            pandocCmd += ` -M ${key}="${value.replace(/"/g, '\\"')}"`;
-          }
-        }
-      }
-
-      // Add variables
-      if (options.variables) {
-        for (const [key, value] of Object.entries(options.variables)) {
-          if (value.trim()) {
-            pandocCmd += ` -V ${key}="${value.replace(/"/g, '\\"')}"`;
-          }
-        }
-      }
-
-      // Add other options
-      if (options.toc) pandocCmd += ' --toc';
-      if (options.tocDepth) pandocCmd += ` --toc-depth=${options.tocDepth}`;
-      if (options.numberSections) pandocCmd += ' --number-sections';
-      if (options.citeproc) pandocCmd += ' --citeproc';
-      if (options.bibliography) pandocCmd += ` --bibliography="${options.bibliography}"`;
-      if (options.csl) pandocCmd += ` --csl="${options.csl}"`;
+      // Build the argument array once with the shared export options; format
+      // branches below append their own flags. Every value lands in argv as a
+      // single literal element — never inside a command string (SEC-1).
+      const pandocArgs = PandocArgs.buildPandocArgs({ inputFile, outputFile, format, options });
 
       // Add specific options for PDF export to ensure proper generation
       if (format === 'pdf') {
-        const pdfEngine = options.pdfEngine || 'xelatex'; // Default to xelatex
-        pandocCmd += ` --pdf-engine="${pdfEngine}"`;
-        if (options.geometry) pandocCmd += ` -V geometry:"${options.geometry}"`;
+        PandocArgs.appendPdfEngineOptions(pandocArgs, {
+          pdfEngine: options.pdfEngine,
+          geometry: options.geometry,
+        });
 
         // Embed bundled monospace font so ASCII columns align in the PDF.
         const monoHeader = buildMonospaceHeaderFile();
-        pandocCmd += ` --include-in-header="${monoHeader}"`;
-        pandocCmd += ' --highlight-style=tango';
+        pandocArgs.push(`--include-in-header=${monoHeader}`);
+        pandocArgs.push('--highlight-style=tango');
 
         // Add header/footer if enabled
         if (headerFooterSettings.enabled) {
@@ -2925,12 +2858,12 @@ function performExportWithOptions(format, options) {
 `;
           const headerFile = path.join(require('os').tmpdir(), `header_export_${Date.now()}.tex`);
           fs.writeFileSync(headerFile, latexHeader, 'utf-8');
-          pandocCmd += ` --include-in-header="${headerFile}"`;
-          pandocCmd += ' --variable header-includes="\\\\usepackage{lastpage}"';
+          pandocArgs.push(`--include-in-header=${headerFile}`);
+          pandocArgs.push('--variable', 'header-includes=\\\\usepackage{lastpage}');
         }
 
-        // Try with specified PDF engine (using runPandocCmd for safety)
-        runPandocCmd(pandocCmd, (error) => {
+        // Try with the specified PDF engine, then fall back if it fails
+        runPandocArgs(pandocArgs, (error) => {
           if (error) {
             // Try fallback engines if the specified one fails
             const fallbackEngines = ['lualatex', 'pdflatex'];
@@ -2940,8 +2873,7 @@ function performExportWithOptions(format, options) {
           }
         });
       } else if (format === 'docx') {
-        pandocCmd += ' -t docx';
-        exportWithPandoc(pandocCmd, outputFile, format, async () => {
+        exportWithPandoc(pandocArgs, outputFile, format, async () => {
           // Embed the active monospace TTF into the DOCX so code blocks render in
           // JetBrains Mono / Fira Code regardless of the viewer's installed fonts.
           try {
@@ -2984,18 +2916,24 @@ function performExportWithOptions(format, options) {
             author: '',
           };
           const footerText = processDynamicFields(headerFooterSettings.footer.center, metadata);
-          pandocCmd += ` --variable footer="${footerText}"`;
+          PandocArgs.appendFooterVariable(pandocArgs, footerText);
         }
-        exportWithPandoc(pandocCmd, outputFile, format);
+        exportWithPandoc(pandocArgs, outputFile, format);
       } else if (format === 'json') {
-        pandocCmd = `${getPandocPath()} "${currentFile}" -t json -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
+        exportWithPandoc(
+          PandocArgs.buildSimpleTargetArgs(currentFile, outputFile, format),
+          outputFile,
+          format
+        );
       } else if (format === 'html') {
         // Build a complete HTML file with our bundled monospace font as embedded CSS.
         const cssFile = path.join(os.tmpdir(), `monospace-html-${Date.now()}-${process.pid}.css`);
         fs.writeFileSync(cssFile, buildMonospaceExportCss(), 'utf-8');
-        pandocCmd = `${getPandocPath()} "${inputFile}" -s --css="${cssFile}" -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
+        exportWithPandoc(
+          [inputFile, '-s', `--css=${cssFile}`, '-o', outputFile],
+          outputFile,
+          format
+        );
       } else if (format === 'yaml' || format === 'xml' || format === 'toml') {
         // For YAML/XML/TOML, save the raw markdown content with the new extension
         try {
@@ -3009,65 +2947,52 @@ function performExportWithOptions(format, options) {
           );
         }
       } else if (format === 'revealjs') {
-        let revealCmd = `${getPandocPath()} "${currentFile}" -t revealjs -s -o "${outputFile}" --slide-level=2`;
+        const revealArgs = [
+          currentFile,
+          '-t',
+          'revealjs',
+          '-s',
+          '-o',
+          outputFile,
+          '--slide-level=2',
+        ];
         if (options) {
-          if (options.revealTheme) revealCmd += ` -V theme="${options.revealTheme}"`;
-          if (options.revealTransition) revealCmd += ` -V transition="${options.revealTransition}"`;
+          if (options.revealTheme) revealArgs.push('-V', `theme=${options.revealTheme}`);
+          if (options.revealTransition)
+            revealArgs.push('-V', `transition=${options.revealTransition}`);
           if (options.revealTransitionSpeed)
-            revealCmd += ` -V transitionSpeed="${options.revealTransitionSpeed}"`;
+            revealArgs.push('-V', `transitionSpeed=${options.revealTransitionSpeed}`);
           if (options.revealControls !== undefined)
-            revealCmd += ` -V controls="${options.revealControls}"`;
+            revealArgs.push('-V', `controls=${options.revealControls}`);
           if (options.revealSlideNumber !== undefined)
-            revealCmd += ` -V slideNumber="${options.revealSlideNumber}"`;
+            revealArgs.push('-V', `slideNumber=${options.revealSlideNumber}`);
           if (options.revealProgress !== undefined)
-            revealCmd += ` -V progress="${options.revealProgress}"`;
+            revealArgs.push('-V', `progress=${options.revealProgress}`);
           if (options.revealHistory !== undefined)
-            revealCmd += ` -V history="${options.revealHistory}"`;
+            revealArgs.push('-V', `history=${options.revealHistory}`);
           if (options.revealCenter !== undefined)
-            revealCmd += ` -V center="${options.revealCenter}"`;
+            revealArgs.push('-V', `center=${options.revealCenter}`);
 
-          // Support for templates, metadata, bibliography
-          if (options.template && options.template !== 'default') {
-            revealCmd += ` --template="${options.template}"`;
-          }
-          if (options.metadata) {
-            for (const [key, value] of Object.entries(options.metadata)) {
-              if (value.trim()) {
-                revealCmd += ` -M ${key}="${value.replace(/"/g, '\\"')}"`;
-              }
-            }
-          }
-          if (options.bibliography) revealCmd += ` --bibliography="${options.bibliography}"`;
-          if (options.csl) revealCmd += ` --csl="${options.csl}"`;
+          // Support for templates, metadata, bibliography (only these dialog
+          // options were applied to reveal.js exports before the args-array
+          // conversion — keep that exact behavior)
+          PandocArgs.appendCommonOptions(revealArgs, {
+            template: options.template,
+            metadata: options.metadata,
+            bibliography: options.bibliography,
+            csl: options.csl,
+          });
         }
-        exportWithPandoc(revealCmd, outputFile, format);
-      } else if (format === 'beamer') {
-        pandocCmd = `${getPandocPath()} "${currentFile}" -t beamer -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
-      } else if (format === 'confluence' || format === 'jira') {
-        pandocCmd = `${getPandocPath()} "${currentFile}" -t jira -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
-      } else if (format === 'asciidoc') {
-        pandocCmd = `${getPandocPath()} "${currentFile}" -t asciidoc -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
-      } else if (format === 'rst') {
-        pandocCmd = `${getPandocPath()} "${currentFile}" -t rst -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
-      } else if (format === 'mediawiki') {
-        pandocCmd = `${getPandocPath()} "${currentFile}" -t mediawiki -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
-      } else if (format === 'org') {
-        pandocCmd = `${getPandocPath()} "${currentFile}" -t org -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
-      } else if (format === 'textile') {
-        pandocCmd = `${getPandocPath()} "${currentFile}" -t textile -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
-      } else if (format === 'man') {
-        pandocCmd = `${getPandocPath()} "${currentFile}" -t man -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
-      } else if (format === 'ipynb') {
-        pandocCmd = `${getPandocPath()} "${currentFile}" -t ipynb -o "${outputFile}"`;
-        exportWithPandoc(pandocCmd, outputFile, format);
+        exportWithPandoc(revealArgs, outputFile, format);
+      } else if (PandocArgs.SIMPLE_TARGET_FORMATS[format]) {
+        // json, beamer, jira/confluence and the plain text/markup formats all
+        // export through a bare `-t <target>` conversion (dialog options are
+        // not applied to these formats).
+        exportWithPandoc(
+          PandocArgs.buildSimpleTargetArgs(currentFile, outputFile, format),
+          outputFile,
+          format
+        );
       } else if (format === 'epub') {
         // Embed the active monospace TTF into EPUB so code blocks render in
         // JetBrains Mono / Fira Code regardless of the reader's installed fonts.
@@ -3076,10 +3001,10 @@ function performExportWithOptions(format, options) {
           const regular = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 400);
           const bold = MonospaceFontConfig.getMonoFontTtfPath(familyKey, 700);
           [regular, bold].filter(Boolean).forEach((p) => {
-            pandocCmd += ` --epub-embed-font="${p}"`;
+            pandocArgs.push(`--epub-embed-font=${p}`);
           });
         }
-        runPandocCmd(pandocCmd, async (error) => {
+        runPandocArgs(pandocArgs, async (error) => {
           if (error) {
             dialog.showErrorBox(
               'Export Error',
@@ -3117,8 +3042,7 @@ function performExportWithOptions(format, options) {
       } else if (format === 'mobi') {
         // First export to EPUB, then try ebook-convert if available
         const epubFile = outputFile.replace(/\.mobi$/i, '.epub');
-        pandocCmd = `${getPandocPath()} "${currentFile}" -o "${epubFile}"`;
-        runPandocCmd(pandocCmd, (error) => {
+        runPandocArgs([currentFile, '-o', epubFile], (error) => {
           if (error) {
             dialog.showErrorBox(
               'Export Error',
@@ -3148,7 +3072,7 @@ function performExportWithOptions(format, options) {
         });
       } else {
         // Generic export for other formats
-        exportWithPandoc(pandocCmd, outputFile, format);
+        exportWithPandoc(pandocArgs, outputFile, format);
       }
     })
     .catch((error) => {
@@ -3167,16 +3091,17 @@ function tryPdfFallback(inputFile, outputFile, engines, index, options, _lastErr
     return;
   }
   const engine = engines[index];
-  let pandocCmd = `${getPandocPath()} "${inputFile}" --pdf-engine=${engine} -o "${outputFile}"`;
+  const pandocArgs = [inputFile, `--pdf-engine=${engine}`, '-o', outputFile];
 
   // Embed bundled monospace font so ASCII columns align in the PDF.
   const monoHeader = buildMonospaceHeaderFile();
-  pandocCmd += ` --include-in-header="${monoHeader}"`;
-  pandocCmd += ' --highlight-style=tango';
+  pandocArgs.push(`--include-in-header=${monoHeader}`);
+  pandocArgs.push('--highlight-style=tango');
 
-  // Add geometry if specified
-  if (options.geometry)
-    pandocCmd = pandocCmd.replace(` -o `, ` -V geometry:"${options.geometry}" -o `);
+  // Add geometry if specified (the engine flag is already set above)
+  if (options.geometry) {
+    pandocArgs.push('-V', `geometry:${options.geometry}`);
+  }
 
   // Add header/footer if enabled
   if (headerFooterSettings.enabled) {
@@ -3213,23 +3138,17 @@ function tryPdfFallback(inputFile, outputFile, engines, index, options, _lastErr
 `;
     const headerFile = path.join(require('os').tmpdir(), `header_fallback_${Date.now()}.tex`);
     fs.writeFileSync(headerFile, latexHeader, 'utf-8');
-    pandocCmd += ` --include-in-header="${headerFile}"`;
+    pandocArgs.push(`--include-in-header=${headerFile}`);
   }
 
-  // Add all other options
-  if (options.template && options.template !== 'default') {
-    pandocCmd += ` --template="${options.template}"`;
-  }
-  if (options.metadata) {
-    for (const [key, value] of Object.entries(options.metadata)) {
-      if (value.trim()) {
-        pandocCmd += ` -M ${key}="${value.replace(/"/g, '\\"')}"`;
-      }
-    }
-  }
+  // Add all other options (this fallback path historically applied only the
+  // template and metadata options — keep that exact behavior)
+  PandocArgs.appendCommonOptions(pandocArgs, {
+    template: options.template,
+    metadata: options.metadata,
+  });
 
-  // Use runPandocCmd for safety (prevents command injection)
-  runPandocCmd(pandocCmd, (error) => {
+  runPandocArgs(pandocArgs, (error) => {
     if (error) {
       tryPdfFallback(inputFile, outputFile, engines, index + 1, options, error);
     } else {
@@ -3246,9 +3165,10 @@ function showExportSuccess(outputFile) {
   });
 }
 
-// Helper function to export with pandoc (general) - uses runPandocCmd for safety
-function exportWithPandoc(pandocCmd, outputFile, format, onComplete) {
-  runPandocCmd(pandocCmd, async (error, stdout, stderr) => {
+// Helper function to export with pandoc (general) - runs pandoc with an
+// argument array (values are passed to execFile as literal argv elements)
+function exportWithPandoc(pandocArgs, outputFile, format, onComplete) {
+  runPandocArgs(pandocArgs, async (error, stdout, stderr) => {
     if (error) {
       console.error(`Pandoc error for ${format}:`, error);
       console.error(`Pandoc stderr:`, stderr);
@@ -3264,7 +3184,7 @@ function exportWithPandoc(pandocCmd, outputFile, format, onComplete) {
       } else {
         errorMessage += `\n\nError details: ${error.message}`;
       }
-      errorMessage += `\n\nCommand used: ${pandocCmd}`;
+      errorMessage += `\n\nCommand used: pandoc ${pandocArgs.join(' ')}`;
       dialog.showErrorBox('Export Error', sanitizeErrorMessage(errorMessage));
     } else {
       if (stderr) {
@@ -3647,21 +3567,21 @@ function importDocument() {
     const outputFile = inputFile.replace(/\.[^/.]+$/, '.md');
 
     // Determine format-specific conversion options
-    let additionalOptions = '';
+    let additionalOptions = [];
 
     // For PDFs, extract text properly
     if (ext === 'pdf') {
-      additionalOptions = '--pdf-engine=xelatex';
+      additionalOptions = ['--pdf-engine=xelatex'];
     }
 
     // For CSV/TSV, convert as tables
     if (ext === 'csv' || ext === 'tsv') {
-      additionalOptions = '--from=csv -t markdown';
+      additionalOptions = ['--from=csv', '-t', 'markdown'];
     }
 
     // For JSON, handle structure
     if (ext === 'json') {
-      additionalOptions = '--from=json -t markdown';
+      additionalOptions = ['--from=json', '-t', 'markdown'];
     }
 
     // For YAML, XML, TOML - wrap content in code blocks directly
@@ -3684,9 +3604,10 @@ function importDocument() {
       return;
     }
 
-    // Convert to markdown using pandoc (using runPandocCmd for safety)
-    const pandocCmd = `${getPandocPath()} "${inputFile}" -t markdown ${additionalOptions} -o "${outputFile}"`;
-    runPandocCmd(pandocCmd, (error, _stdout, _stderr) => {
+    // Convert to markdown using pandoc with an argument array (input and
+    // output paths are passed as single literal argv elements)
+    const pandocArgs = [inputFile, '-t', 'markdown', ...additionalOptions, '-o', outputFile];
+    runPandocArgs(pandocArgs, (error, _stdout, _stderr) => {
       if (error) {
         dialog.showErrorBox(
           'Import Error',
@@ -4181,48 +4102,25 @@ async function performBatchConversion(
       }
     }
 
-    let pandocCmd = `${getPandocPath()} "${pandocInputFile}" -o "${outputFile}"`;
-
-    // Add template if specified
-    if (options.template && options.template !== 'default') {
-      pandocCmd += ` --template="${options.template}"`;
-    }
-
-    // Add metadata
-    if (options.metadata) {
-      for (const [key, value] of Object.entries(options.metadata)) {
-        if (value.trim()) {
-          pandocCmd += ` -M ${key}="${value.replace(/"/g, '\\"')}"`;
-        }
-      }
-    }
-
-    // Add variables
-    if (options.variables) {
-      for (const [key, value] of Object.entries(options.variables)) {
-        if (value.trim()) {
-          pandocCmd += ` -V ${key}="${value.replace(/"/g, '\\"')}"`;
-        }
-      }
-    }
-
-    // Add other options
-    if (options.toc) pandocCmd += ' --toc';
-    if (options.tocDepth) pandocCmd += ` --toc-depth=${options.tocDepth}`;
-    if (options.numberSections) pandocCmd += ' --number-sections';
-    if (options.citeproc) pandocCmd += ' --citeproc';
-    if (options.bibliography) pandocCmd += ` --bibliography="${options.bibliography}"`;
-    if (options.csl) pandocCmd += ` --csl="${options.csl}"`;
+    // Build the argument array with the shared export options (values are
+    // passed to execFile as single literal argv elements — SEC-1)
+    const pandocArgs = PandocArgs.buildPandocArgs({
+      inputFile: pandocInputFile,
+      outputFile,
+      format,
+      options,
+    });
 
     // Add PDF-specific options with header/footer support
     if (format === 'pdf') {
-      const pdfEngine = options.pdfEngine || 'xelatex';
-      pandocCmd += ` --pdf-engine=${pdfEngine}`;
-      if (options.geometry) pandocCmd += ` -V geometry:"${options.geometry}"`;
+      PandocArgs.appendPdfEngineOptions(pandocArgs, {
+        pdfEngine: options.pdfEngine,
+        geometry: options.geometry,
+      });
 
       // Add monospace font settings for code blocks (ASCII art preservation)
-      pandocCmd += ' -V monofont="Consolas"';
-      pandocCmd += ' --highlight-style=tango';
+      pandocArgs.push('-V', 'monofont=Consolas');
+      pandocArgs.push('--highlight-style=tango');
 
       // Add header/footer if enabled
       if (headerFooterSettings.enabled) {
@@ -4258,14 +4156,9 @@ async function performBatchConversion(
 `;
         const headerFile = path.join(require('os').tmpdir(), `header_batch_${Date.now()}.tex`);
         fs.writeFileSync(headerFile, latexHeader, 'utf-8');
-        pandocCmd += ` --include-in-header="${headerFile}"`;
-        pandocCmd += ' --variable header-includes="\\\\usepackage{lastpage}"';
+        pandocArgs.push(`--include-in-header=${headerFile}`);
+        pandocArgs.push('--variable', 'header-includes=\\\\usepackage{lastpage}');
       }
-    }
-
-    // Add DOCX-specific handling
-    if (format === 'docx') {
-      pandocCmd += ' -t docx';
     }
 
     // Add PowerPoint footer if enabled
@@ -4277,11 +4170,11 @@ async function performBatchConversion(
         author: '',
       };
       const footerText = processDynamicFields(headerFooterSettings.footer.center, metadata);
-      pandocCmd += ` --variable footer="${footerText}"`;
+      PandocArgs.appendFooterVariable(pandocArgs, footerText);
     }
 
-    // Execute conversion (using runPandocCmd for safety)
-    runPandocCmd(pandocCmd, async (error, _stdout, stderr) => {
+    // Execute conversion with the argument array
+    runPandocArgs(pandocArgs, async (error, _stdout, stderr) => {
       // Clean up temporary pre-processed input file and directory
       if (batchTempInputFile) {
         try {
@@ -4438,9 +4331,9 @@ function performCLIConversion(inputPath, format) {
   try {
     const content = fs.readFileSync(inputPath, 'utf-8');
     const outputPath = inputPath.replace(/\.[^/.]+$/, `.${format}`);
-    // Use existing export functions but with CLI output (using runPandocCmd for safety)
-    const pandocCommand = buildPandocCommand(content, format, outputPath);
-    runPandocCmd(pandocCommand, (error, stdout, stderr) => {
+    // Convert with an argument array (input/output paths are single argv elements)
+    const pandocArgs = buildCLIConversionArgs(content, format, outputPath);
+    runPandocArgs(pandocArgs, (error, stdout, stderr) => {
       if (error) {
         console.error(`Conversion failed: ${error.message}`);
         if (stderr) console.error(`Details: ${stderr}`);
@@ -4467,11 +4360,12 @@ function performCLIConversion(inputPath, format) {
   }
 }
 
-// Build Pandoc command for CLI conversion
-function buildPandocCommand(content, format, outputPath) {
+// Build pandoc argument array for CLI conversion (temp input file plus
+// format-specific flags; every value is a single literal argv element)
+function buildCLIConversionArgs(content, format, outputPath) {
   const inputFile = path.join(require('os').tmpdir(), `panconverter_temp_${Date.now()}.md`);
   fs.writeFileSync(inputFile, content, 'utf-8');
-  let command = `pandoc "${inputFile}" -o "${outputPath}"`;
+  let args = [inputFile, '-o', outputPath];
 
   // Get metadata for dynamic fields
   const filename = currentFile ? path.basename(currentFile, path.extname(currentFile)) : 'document';
@@ -4482,26 +4376,26 @@ function buildPandocCommand(content, format, outputPath) {
   };
   switch (format) {
     case 'pdf':
-      command += ' --pdf-engine=xelatex --variable geometry:margin=1in';
+      args.push('--pdf-engine=xelatex', '-V', 'geometry:margin=1in');
 
       // Add page size and orientation
       const pageSize = PAGE_SIZES[pageSettings.size];
       if (pageSize) {
-        command += ` -V geometry:papersize=${pageSize.pandoc}`;
+        args.push('-V', `geometry:papersize=${pageSize.pandoc}`);
       } else if (pageSettings.customWidth && pageSettings.customHeight) {
         // Custom page size
-        command += ` -V geometry:paperwidth=${pageSettings.customWidth}`;
-        command += ` -V geometry:paperheight=${pageSettings.customHeight}`;
+        args.push('-V', `geometry:paperwidth=${pageSettings.customWidth}`);
+        args.push('-V', `geometry:paperheight=${pageSettings.customHeight}`);
       }
 
       // Add orientation
       if (pageSettings.orientation === 'landscape') {
-        command += ' -V geometry:landscape';
+        args.push('-V', 'geometry:landscape');
       }
 
       // Add monospace font settings for code blocks (ASCII art preservation)
-      command += ' -V monofont="Consolas"';
-      command += ' --highlight-style=tango';
+      args.push('-V', 'monofont=Consolas');
+      args.push('--highlight-style=tango');
 
       // Add header/footer if enabled
       if (headerFooterSettings.enabled) {
@@ -4514,12 +4408,12 @@ function buildPandocCommand(content, format, outputPath) {
         const footerRight = processDynamicFields(headerFooterSettings.footer.right, metadata);
 
         // Add Pandoc variables for fancyhdr package
-        if (headerLeft) command += ` --variable header-left="${headerLeft}"`;
-        if (headerCenter) command += ` --variable header-center="${headerCenter}"`;
-        if (headerRight) command += ` --variable header-right="${headerRight}"`;
-        if (footerLeft) command += ` --variable footer-left="${footerLeft}"`;
-        if (footerCenter) command += ` --variable footer-center="${footerCenter}"`;
-        if (footerRight) command += ` --variable footer-right="${footerRight}"`;
+        if (headerLeft) args.push('--variable', `header-left=${headerLeft}`);
+        if (headerCenter) args.push('--variable', `header-center=${headerCenter}`);
+        if (headerRight) args.push('--variable', `header-right=${headerRight}`);
+        if (footerLeft) args.push('--variable', `footer-left=${footerLeft}`);
+        if (footerCenter) args.push('--variable', `footer-center=${footerCenter}`);
+        if (footerRight) args.push('--variable', `footer-right=${footerRight}`);
 
         // Create custom LaTeX header with fancyhdr
         const latexHeader = `
@@ -4540,17 +4434,17 @@ function buildPandocCommand(content, format, outputPath) {
 `;
         const headerFile = path.join(require('os').tmpdir(), `header_${Date.now()}.tex`);
         fs.writeFileSync(headerFile, latexHeader, 'utf-8');
-        command += ` --include-in-header="${headerFile}"`;
+        args.push(`--include-in-header=${headerFile}`);
 
         // Add lastpage package for $TOTAL$ support
-        command += ' --variable header-includes="\\\\usepackage{lastpage}"';
+        args.push('--variable', 'header-includes=\\\\usepackage{lastpage}');
       }
       break;
     case 'html':
-      command += ' --self-contained --css';
+      args.push('--self-contained', '--css');
       break;
     case 'docx':
-      command += ' --reference-doc';
+      args.push('--reference-doc');
 
       // For DOCX, header/footer are handled via reference document or separate processing
       // We'll add a note that DOCX headers/footers require reference doc or post-processing
@@ -4559,41 +4453,41 @@ function buildPandocCommand(content, format, outputPath) {
       // ODT headers/footers are handled via reference document
       break;
     case 'latex':
-      command += ' --standalone';
+      args.push('--standalone');
       break;
     case 'pptx':
-      command += ' --slide-level=2';
+      args.push('--slide-level=2');
       // PowerPoint footer can be added with --variable
       if (headerFooterSettings.enabled && headerFooterSettings.footer.center) {
         const footerText = processDynamicFields(headerFooterSettings.footer.center, metadata);
-        command += ` --variable footer="${footerText}"`;
+        PandocArgs.appendFooterVariable(args, footerText);
       }
       break;
     case 'json':
-      command = `pandoc "${inputFile}" -t json -o "${outputPath}"`;
+      args = [inputFile, '-t', 'json', '-o', outputPath];
       break;
     case 'yaml':
-      command = `pandoc "${inputFile}" -t markdown -o "${outputPath}"`;
+      args = [inputFile, '-t', 'markdown', '-o', outputPath];
       break;
     case 'xml':
-      command = `pandoc "${inputFile}" -t jats -o "${outputPath}"`;
+      args = [inputFile, '-t', 'jats', '-o', outputPath];
       break;
     case 'toml':
       // TOML: save raw markdown content with .toml extension
-      command = `pandoc "${inputFile}" -t markdown -o "${outputPath}"`;
+      args = [inputFile, '-t', 'markdown', '-o', outputPath];
       break;
     case 'revealjs':
-      command = `pandoc "${inputFile}" -t revealjs -s -o "${outputPath}" --slide-level=2`;
+      args = [inputFile, '-t', 'revealjs', '-s', '-o', outputPath, '--slide-level=2'];
       break;
     case 'beamer':
-      command = `pandoc "${inputFile}" -t beamer -o "${outputPath}"`;
+      args = [inputFile, '-t', 'beamer', '-o', outputPath];
       break;
     case 'confluence':
     case 'jira':
-      command = `pandoc "${inputFile}" -t jira -o "${outputPath}"`;
+      args = [inputFile, '-t', 'jira', '-o', outputPath];
       break;
   }
-  return command;
+  return args;
 }
 app.whenReady().then(() => {
   // Load saved Word template path and settings
