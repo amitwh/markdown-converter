@@ -86,6 +86,7 @@ const ALLOWED_SEND_CHANNELS = [
   // PDF operations
   'process-pdf-operation',
   'get-pdf-page-count',
+  'get-pdf-form-fields',
   'get-pdf-capabilities',
   'select-pdf-folder',
   'batch-pdf-operation',
@@ -235,6 +236,7 @@ const ALLOWED_RECEIVE_CHANNELS = [
 
   // PDF operations
   'pdf-page-count',
+  'pdf-form-fields',
   'pdf-operation-complete',
   'pdf-operation-error',
   'pdf-batch-complete',
