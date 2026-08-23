@@ -47,12 +47,15 @@ const ALLOWED_SEND_CHANNELS = [
   // Image converter
   'process-image-operation',
   'select-image-folder',
+  'batch-image-operation',
 
   // Audio converter
   'process-audio-operation',
+  'batch-audio-operation',
 
   // Video converter
   'process-video-operation',
+  'batch-video-operation',
 
   // Header/Footer
   'get-header-footer-settings',
@@ -189,6 +192,10 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'image-conversion-complete',
   'audio-conversion-complete',
   'video-conversion-complete',
+
+  // Batch media operations (Image/Audio/Video Tools dialog batch mode)
+  'media-batch-progress',
+  'media-batch-complete',
 
   // Folder selection
   'folder-selected',

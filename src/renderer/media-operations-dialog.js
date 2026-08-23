@@ -15,10 +15,19 @@
  * whose `.path` is read directly (nodeIntegration is enabled for this renderer), the
  * same approach already used throughout the PDF Editor and Universal Converter
  * dialogs. No new IPC channel is needed for single-file or save-file pickers. Output
- * *folder* selection (used by the video "Extract Frames" operation) reuses the
- * existing generic `select-folder` / `folder-selected` IPC channels already wired up
- * in main.js for the batch converter — filtered here by a unique `type` string so this
- * dialog only reacts to its own request.
+ * *folder* selection (used by the video "Extract Frames" operation, and by batch
+ * mode below) reuses the existing generic `select-folder` / `folder-selected` IPC
+ * channels already wired up in main.js for the batch converter — filtered here by a
+ * unique `type` string per picker so this dialog only reacts to requests it made.
+ *
+ * A "Mode: Single File / Batch Folder" dropdown (disabled for audio "Merge", which
+ * doesn't fit a per-file batch model) swaps the input/output file fields for an
+ * Input Folder + "Include subfolders" + Output Folder trio while keeping every other
+ * parameter field as-is; Process then fires `batch-image-operation` /
+ * `batch-audio-operation` / `batch-video-operation` (fire-and-forget, like
+ * `universal-convert-batch`) and progress/completion arrive via the
+ * `media-batch-progress` / `media-batch-complete` events sent by
+ * `runMediaBatchOperation()` in main.js.
  *
  * @module media-operations-dialog
  */
@@ -36,6 +45,7 @@ const MEDIA_KIND_CONFIG = {
   image: {
     title: 'Image Tools',
     channel: 'process-image-operation',
+    batchChannel: 'batch-image-operation',
     operations: {
       convert: {
         label: 'Convert Format',
@@ -96,6 +106,7 @@ const MEDIA_KIND_CONFIG = {
   audio: {
     title: 'Audio Tools',
     channel: 'process-audio-operation',
+    batchChannel: 'batch-audio-operation',
     operations: {
       convert: {
         label: 'Convert Format',
@@ -142,6 +153,12 @@ const MEDIA_KIND_CONFIG = {
       merge: {
         label: 'Merge',
         help: 'Select at least 2 audio files to merge, in order.',
+        // Merge combines several input files into a single output — it does not
+        // fit the "apply the same operation to every file in a folder" batch model
+        // (there is no single "one operation per file" mapping), so batch mode is
+        // unavailable for it. Enforced both here (hides the Batch option in the UI)
+        // and defensively in main.js's BATCH_OUTPUT_SPEC (no 'merge' entry).
+        batchable: false,
         fields: [
           {
             name: 'inputPaths',
@@ -157,6 +174,7 @@ const MEDIA_KIND_CONFIG = {
   video: {
     title: 'Video Tools',
     channel: 'process-video-operation',
+    batchChannel: 'batch-video-operation',
     operations: {
       convert: {
         label: 'Convert Format',
@@ -231,11 +249,18 @@ const MEDIA_KIND_CONFIG = {
 };
 
 const FOLDER_PICK_TYPE = 'media-operations-output-dir';
+const BATCH_INPUT_FOLDER_PICK_TYPE = 'media-operations-batch-input-dir';
+const BATCH_OUTPUT_FOLDER_PICK_TYPE = 'media-operations-batch-output-dir';
+
+const BATCH_INPUT_FIELD_NAME = 'batchInputFolder';
+const BATCH_OUTPUT_FIELD_NAME = 'batchOutputFolder';
+const BATCH_SUBFOLDERS_FIELD_NAME = 'batchIncludeSubfolders';
 
 let modalEl = null;
 let modalManager = null;
 let els = null;
 let currentKind = null;
+let currentMode = 'single';
 let mergeFilePaths = [];
 
 function fieldElId(name) {
@@ -261,6 +286,13 @@ function buildDialogDom() {
           <label for="media-operation-select">Operation:</label>
           <select id="media-operation-select"></select>
         </div>
+        <div class="export-section">
+          <label for="media-mode-select">Mode:</label>
+          <select id="media-mode-select">
+            <option value="single">Single File</option>
+            <option value="batch">Batch Folder (apply to every matching file)</option>
+          </select>
+        </div>
         <small id="media-operation-help" class="hidden"></small>
         <div id="media-operation-fields"></div>
         <div id="media-status-message" class="info-message hidden" aria-live="polite"></div>
@@ -284,6 +316,7 @@ function buildDialogDom() {
   els = {
     title: modalEl.querySelector('#media-operations-title'),
     operationSelect: modalEl.querySelector('#media-operation-select'),
+    modeSelect: modalEl.querySelector('#media-mode-select'),
     help: modalEl.querySelector('#media-operation-help'),
     fieldsContainer: modalEl.querySelector('#media-operation-fields'),
     status: modalEl.querySelector('#media-status-message'),
@@ -294,7 +327,15 @@ function buildDialogDom() {
     cancelBtn: modalEl.querySelector('#media-operations-cancel'),
   };
 
-  els.operationSelect.addEventListener('change', renderFields);
+  els.operationSelect.addEventListener('change', () => {
+    currentMode = 'single';
+    updateModeOptions();
+    renderFields();
+  });
+  els.modeSelect.addEventListener('change', () => {
+    currentMode = els.modeSelect.value;
+    renderFields();
+  });
   els.processBtn.addEventListener('click', handleProcess);
   els.cancelBtn.addEventListener('click', hideDialog);
 
@@ -304,9 +345,35 @@ function buildDialogDom() {
   // input/output folder pickers) — filter by our own `type` so we only react
   // to requests this dialog made.
   ipcRenderer.on('folder-selected', (event, { type, path: folderPath }) => {
-    if (type !== FOLDER_PICK_TYPE || !folderPath) return;
-    const input = document.getElementById(fieldElId('outputDir'));
+    if (!folderPath) return;
+    let targetFieldName = null;
+    if (type === FOLDER_PICK_TYPE) targetFieldName = 'outputDir';
+    else if (type === BATCH_INPUT_FOLDER_PICK_TYPE) targetFieldName = BATCH_INPUT_FIELD_NAME;
+    else if (type === BATCH_OUTPUT_FOLDER_PICK_TYPE) targetFieldName = BATCH_OUTPUT_FIELD_NAME;
+    if (!targetFieldName) return;
+    const input = document.getElementById(fieldElId(targetFieldName));
     if (input) input.value = folderPath;
+  });
+
+  // Batch operation progress/completion (main.js: runMediaBatchOperation()).
+  ipcRenderer.on('media-batch-progress', (event, { completed, failed, total, currentFile }) => {
+    if (!els.progress || els.progress.classList.contains('hidden')) return;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    els.progressFill.style.width = `${pct}%`;
+    els.progressText.textContent = currentFile
+      ? `Processing ${completed + 1}/${total}: ${currentFile}${failed ? ` (${failed} failed so far)` : ''}`
+      : `Processed ${completed}/${total}${failed ? ` (${failed} failed)` : ''}`;
+  });
+  ipcRenderer.on('media-batch-complete', (event, { success, completed, failed, total, error }) => {
+    hideProgress();
+    if (success) {
+      showStatus(
+        `Batch complete: ${completed}/${total} file(s) processed${failed ? ` (${failed} failed)` : ''}.`,
+        failed > 0 ? 'warning' : 'success'
+      );
+    } else {
+      showStatus(`Error: ${error || 'Batch operation failed.'}`, 'warning');
+    }
   });
 }
 
@@ -402,12 +469,32 @@ function renderSaveField(field) {
   });
 }
 
-function renderFolderField(field) {
+function renderFolderField(field, pickType = FOLDER_PICK_TYPE) {
   return createFolderInputGroup(field, {
     onBrowse: () => {
-      ipcRenderer.send('select-folder', FOLDER_PICK_TYPE);
+      ipcRenderer.send('select-folder', pickType);
     },
   });
+}
+
+function renderCheckboxField(field) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'export-section';
+
+  const label = document.createElement('label');
+  label.setAttribute('for', fieldElId(field.name));
+
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.id = fieldElId(field.name);
+  input.checked = field.default !== false;
+  input.style.marginRight = '0.5em';
+
+  label.appendChild(input);
+  label.appendChild(document.createTextNode(field.label));
+  wrapper.appendChild(label);
+
+  return wrapper;
 }
 
 function renderNumberField(field) {
@@ -514,21 +601,33 @@ function renderFilesField(field) {
   return wrapper;
 }
 
-function renderFields() {
+// The field carrying the input-file picker for a batchable operation is always a
+// 'file' field (single input) — 'files' (merge) operations are excluded from batch
+// mode via `batchable: false` before this is ever consulted.
+function getInputFileField(opConfig) {
+  return opConfig.fields.find((field) => field.type === 'file');
+}
+
+function isBatchable(opConfig) {
+  return opConfig.batchable !== false;
+}
+
+// Keep the Mode dropdown in sync with whether the currently selected operation
+// supports batch mode (everything except audio "Merge").
+function updateModeOptions() {
   const kindConfig = MEDIA_KIND_CONFIG[currentKind];
-  const opKey = els.operationSelect.value;
-  const opConfig = kindConfig.operations[opKey];
-
-  els.fieldsContainer.innerHTML = '';
-
-  if (opConfig.help) {
-    els.help.textContent = opConfig.help;
-    els.help.classList.remove('hidden');
-  } else {
-    els.help.textContent = '';
-    els.help.classList.add('hidden');
+  const opConfig = kindConfig.operations[els.operationSelect.value];
+  const batchOption = els.modeSelect.querySelector('option[value="batch"]');
+  if (batchOption) {
+    batchOption.disabled = !isBatchable(opConfig);
   }
+  if (!isBatchable(opConfig)) {
+    currentMode = 'single';
+  }
+  els.modeSelect.value = currentMode;
+}
 
+function renderSingleFields(opConfig) {
   opConfig.fields.forEach((field) => {
     let fieldEl;
     switch (field.type) {
@@ -555,6 +654,68 @@ function renderFields() {
     }
     els.fieldsContainer.appendChild(fieldEl);
   });
+}
+
+// Batch mode swaps the single input/output file (or folder) fields for one
+// "Input Folder" + "Include Subfolders" + "Output Folder" trio, while keeping every
+// other parameter field (width/height/quality/angle/startTime/duration/crf/fps/
+// format/fit/...) exactly as in single mode — those values apply to every matching
+// file. The actual per-file output path/dir is computed by main.js's
+// runMediaBatchOperation()/BATCH_OUTPUT_SPEC.
+function renderBatchFields(opConfig) {
+  els.fieldsContainer.appendChild(
+    renderFolderField(
+      { name: BATCH_INPUT_FIELD_NAME, label: 'Input Folder', type: 'folder' },
+      BATCH_INPUT_FOLDER_PICK_TYPE
+    )
+  );
+  els.fieldsContainer.appendChild(
+    renderCheckboxField({
+      name: BATCH_SUBFOLDERS_FIELD_NAME,
+      label: 'Include subfolders',
+      default: true,
+    })
+  );
+
+  opConfig.fields.forEach((field) => {
+    if (field.type === 'number') {
+      els.fieldsContainer.appendChild(renderNumberField(field));
+    } else if (field.type === 'select') {
+      els.fieldsContainer.appendChild(renderSelectField(field));
+    }
+    // 'file' / 'save' / 'folder' single-file fields are intentionally skipped —
+    // replaced by the Input/Output Folder fields below/above.
+  });
+
+  els.fieldsContainer.appendChild(
+    renderFolderField(
+      { name: BATCH_OUTPUT_FIELD_NAME, label: 'Output Folder', type: 'folder' },
+      BATCH_OUTPUT_FOLDER_PICK_TYPE
+    )
+  );
+}
+
+function renderFields() {
+  const kindConfig = MEDIA_KIND_CONFIG[currentKind];
+  const opKey = els.operationSelect.value;
+  const opConfig = kindConfig.operations[opKey];
+
+  updateModeOptions();
+  els.fieldsContainer.innerHTML = '';
+
+  if (opConfig.help) {
+    els.help.textContent = opConfig.help;
+    els.help.classList.remove('hidden');
+  } else {
+    els.help.textContent = '';
+    els.help.classList.add('hidden');
+  }
+
+  if (currentMode === 'batch') {
+    renderBatchFields(opConfig);
+  } else {
+    renderSingleFields(opConfig);
+  }
 }
 
 function collectOperationData(opConfig) {
@@ -607,11 +768,7 @@ function collectOperationData(opConfig) {
   return { data };
 }
 
-async function handleProcess() {
-  const kindConfig = MEDIA_KIND_CONFIG[currentKind];
-  const opKey = els.operationSelect.value;
-  const opConfig = kindConfig.operations[opKey];
-
+async function handleSingleProcess(kindConfig, opKey, opConfig) {
   const { data, error } = collectOperationData(opConfig);
   if (error) {
     showStatus(error, 'warning');
@@ -638,6 +795,95 @@ async function handleProcess() {
   }
 }
 
+// Collects the shared parameter fields (number/select only — no file/folder/files
+// fields) that apply identically to every file in a batch run.
+function collectBatchParamData(opConfig) {
+  const data = {};
+  for (const field of opConfig.fields) {
+    if (field.type !== 'number' && field.type !== 'select') continue;
+    const input = document.getElementById(fieldElId(field.name));
+    if (!input) continue;
+
+    if (field.type === 'number') {
+      const raw = String(input.value).trim();
+      if (raw === '') {
+        if (field.optional) {
+          data[field.name] = null;
+          continue;
+        }
+        return { error: `${field.label} is required.` };
+      }
+      const num = Number(raw);
+      if (!Number.isFinite(num)) {
+        return { error: `${field.label} must be a valid number.` };
+      }
+      data[field.name] = num;
+    } else {
+      data[field.name] = input.value;
+    }
+  }
+
+  if ('width' in data && 'height' in data && data.width === null && data.height === null) {
+    return { error: 'Provide at least one of Width or Height.' };
+  }
+
+  return { data };
+}
+
+function handleBatchProcess(kindConfig, opKey, opConfig) {
+  const inputFolder = document.getElementById(fieldElId(BATCH_INPUT_FIELD_NAME))?.value;
+  const outputFolder = document.getElementById(fieldElId(BATCH_OUTPUT_FIELD_NAME))?.value;
+  const includeSubfolders =
+    document.getElementById(fieldElId(BATCH_SUBFOLDERS_FIELD_NAME))?.checked !== false;
+
+  if (!inputFolder) {
+    showStatus('Select an input folder.', 'warning');
+    return;
+  }
+  if (!outputFolder) {
+    showStatus('Select an output folder.', 'warning');
+    return;
+  }
+
+  const { data, error } = collectBatchParamData(opConfig);
+  if (error) {
+    showStatus(error, 'warning');
+    return;
+  }
+
+  const inputField = getInputFileField(opConfig);
+  const extensions = (inputField?.accept || '').split(',').filter(Boolean);
+  if (extensions.length === 0) {
+    showStatus('This operation does not support batch mode.', 'warning');
+    return;
+  }
+
+  clearStatus();
+  showProgress();
+  els.progressText.textContent = 'Scanning folder...';
+
+  ipcRenderer.send(kindConfig.batchChannel, {
+    operation: opKey,
+    inputFolder,
+    outputFolder,
+    includeSubfolders,
+    extensions,
+    data,
+  });
+}
+
+async function handleProcess() {
+  const kindConfig = MEDIA_KIND_CONFIG[currentKind];
+  const opKey = els.operationSelect.value;
+  const opConfig = kindConfig.operations[opKey];
+
+  if (currentMode === 'batch' && isBatchable(opConfig)) {
+    handleBatchProcess(kindConfig, opKey, opConfig);
+  } else {
+    await handleSingleProcess(kindConfig, opKey, opConfig);
+  }
+}
+
 function hideDialog() {
   if (modalManager) modalManager.close();
   clearStatus();
@@ -651,6 +897,7 @@ function showMediaOperationsDialog(kind) {
 
   ensureDialog();
   currentKind = kind;
+  currentMode = 'single';
 
   const kindConfig = MEDIA_KIND_CONFIG[kind];
   els.title.textContent = kindConfig.title;

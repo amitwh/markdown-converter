@@ -8,6 +8,7 @@ const PDFOperations = require('./main/PDFOperations');
 const ImageOperations = require('./main/ImageOperations');
 const AudioOperations = require('./main/AudioOperations');
 const VideoOperations = require('./main/VideoOperations');
+const { collectFilesByExtension } = require('./main/collectFilesByExtension');
 const GitOperations = require('./main/GitOperations');
 const PdfFontHeader = require('./main/PdfFontHeader');
 const MonospaceFontConfig = require('./main/MonospaceFontConfig');
@@ -4680,6 +4681,221 @@ ipcMain.handle('process-video-operation', async (event, { operation, data }) => 
     return { success: false, error: sanitizeErrorMessage(error.message) };
   }
 });
+
+// ========================================
+// BATCH MEDIA OPERATIONS — apply one image/audio/video operation to every matching
+// file in a folder, mirroring the ipcMain.on('universal-convert-batch', ...) /
+// performBatchConversion() batch-folder pattern above: collect matching files
+// (collectFilesByExtension, generalizing that handler's inline collectFiles()),
+// loop executeOperation() over them reporting progress per file, then show a
+// completion dialog with completed/failed counts.
+// ========================================
+
+// Per-kind executeOperation callers — Image/Audio/Video Operations modules take
+// slightly different call shapes (Image bakes maxFileSize into `data`; Audio/Video
+// take a third {ffmpegPath} options object), so each is wrapped identically to how
+// the single-file process-*-operation handlers above already call them.
+const BATCH_MEDIA_EXECUTORS = {
+  image: (operation, fileData) =>
+    ImageOperations.executeOperation(operation, { ...fileData, maxFileSize: MAX_FILE_SIZE }),
+  audio: (operation, fileData) =>
+    AudioOperations.executeOperation(operation, fileData, { ffmpegPath: getFFmpegPath() }),
+  video: (operation, fileData) =>
+    VideoOperations.executeOperation(operation, fileData, { ffmpegPath: getFFmpegPath() }),
+};
+
+// How to derive each output file's extension (or, for 'frames', its output directory)
+// from the source file. 'fromFormat' means "use data.format" (the operation has a
+// format dropdown in the dialog); 'original' keeps the source file's extension;
+// 'fixed' always uses a specific extension. Operations not listed here (audio
+// 'merge') don't fit the "apply the same operation to every file" batch model —
+// merge combines many inputs into a single output — so batch mode is unavailable
+// for them (enforced both in the dialog UI and defensively here).
+const BATCH_OUTPUT_SPEC = {
+  image: {
+    convert: { ext: 'fromFormat' },
+    resize: { ext: 'original' },
+    compress: { ext: 'original' },
+    rotate: { ext: 'original' },
+  },
+  audio: {
+    convert: { ext: 'fromFormat' },
+    trim: { ext: 'original' },
+    extract: { ext: 'fixed', value: 'm4a' },
+  },
+  video: {
+    convert: { ext: 'original' },
+    compress: { ext: 'original' },
+    trim: { ext: 'original' },
+    gif: { ext: 'fixed', value: 'gif' },
+    frames: { dir: true },
+  },
+};
+
+async function runMediaBatchOperation({
+  mediaKind,
+  operation,
+  inputFolder,
+  outputFolder,
+  includeSubfolders,
+  extensions,
+  data,
+}) {
+  const spec = (BATCH_OUTPUT_SPEC[mediaKind] || {})[operation];
+  if (!spec) {
+    mainWindow.webContents.send('media-batch-complete', {
+      success: false,
+      error: `Batch mode is not supported for this operation.`,
+    });
+    return;
+  }
+
+  if (!inputFolder || !fs.existsSync(inputFolder)) {
+    mainWindow.webContents.send('media-batch-complete', {
+      success: false,
+      error: 'Input folder does not exist.',
+    });
+    return;
+  }
+
+  try {
+    fs.mkdirSync(outputFolder, { recursive: true });
+  } catch (error) {
+    mainWindow.webContents.send('media-batch-complete', {
+      success: false,
+      error: sanitizeErrorMessage(`Failed to create output folder: ${error.message}`),
+    });
+    return;
+  }
+
+  const files = collectFilesByExtension(inputFolder, extensions, includeSubfolders !== false);
+  if (files.length === 0) {
+    mainWindow.webContents.send('media-batch-complete', {
+      success: false,
+      error: 'No matching files found in the selected folder.',
+    });
+    return;
+  }
+
+  const executor = BATCH_MEDIA_EXECUTORS[mediaKind];
+  const total = files.length;
+  let completed = 0;
+  let failed = 0;
+
+  for (const filePath of files) {
+    mainWindow.webContents.send('media-batch-progress', {
+      completed,
+      failed,
+      total,
+      currentFile: path.basename(filePath),
+    });
+
+    const baseName = path.basename(filePath, path.extname(filePath));
+    const relativeDir = path.dirname(path.relative(inputFolder, filePath));
+    const targetDir = relativeDir === '.' ? outputFolder : path.join(outputFolder, relativeDir);
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    const fileData = { ...data, inputPath: filePath };
+    if (spec.dir) {
+      fileData.outputDir = path.join(targetDir, baseName);
+    } else {
+      const ext =
+        spec.ext === 'fromFormat'
+          ? data.format
+          : spec.ext === 'fixed'
+            ? spec.value
+            : path.extname(filePath).replace(/^\./, '');
+      fileData.outputPath = path.join(targetDir, `${baseName}.${ext}`);
+    }
+
+    try {
+      await executor(operation, fileData);
+      completed++;
+    } catch {
+      failed++;
+    }
+  }
+
+  mainWindow.webContents.send('media-batch-progress', {
+    completed,
+    failed,
+    total,
+    currentFile: null,
+  });
+  mainWindow.webContents.send('media-batch-complete', {
+    success: true,
+    completed,
+    failed,
+    total,
+    outputFolder,
+  });
+
+  const allSucceeded = failed === 0;
+  dialog.showMessageBox(mainWindow, {
+    type: allSucceeded ? 'info' : 'warning',
+    title: allSucceeded ? 'Batch Conversion Complete' : 'Batch Conversion Finished',
+    message: 'Batch conversion finished!',
+    detail: `Completed: ${completed}/${total} files${failed > 0 ? ` (${failed} failed)` : ''}\nOutput: ${outputFolder}`,
+    buttons: ['OK'],
+  });
+}
+
+ipcMain.on(
+  'batch-image-operation',
+  async (event, { operation, inputFolder, outputFolder, includeSubfolders, extensions, data }) => {
+    if (!conversionLimiter()) {
+      mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
+      return;
+    }
+    await runMediaBatchOperation({
+      mediaKind: 'image',
+      operation,
+      inputFolder,
+      outputFolder,
+      includeSubfolders,
+      extensions,
+      data,
+    });
+  }
+);
+
+ipcMain.on(
+  'batch-audio-operation',
+  async (event, { operation, inputFolder, outputFolder, includeSubfolders, extensions, data }) => {
+    if (!conversionLimiter()) {
+      mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
+      return;
+    }
+    await runMediaBatchOperation({
+      mediaKind: 'audio',
+      operation,
+      inputFolder,
+      outputFolder,
+      includeSubfolders,
+      extensions,
+      data,
+    });
+  }
+);
+
+ipcMain.on(
+  'batch-video-operation',
+  async (event, { operation, inputFolder, outputFolder, includeSubfolders, extensions, data }) => {
+    if (!conversionLimiter()) {
+      mainWindow.webContents.send('conversion-status', 'Please wait before converting again...');
+      return;
+    }
+    await runMediaBatchOperation({
+      mediaKind: 'video',
+      operation,
+      inputFolder,
+      outputFolder,
+      includeSubfolders,
+      extensions,
+      data,
+    });
+  }
+);
 
 // IPC Handler for folder selection (for batch image operations)
 ipcMain.on('select-image-folder', (event, inputId) => {
