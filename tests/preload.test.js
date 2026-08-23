@@ -182,4 +182,65 @@ describe('Preload Security', () => {
       expect(window.electronAPI.pdf.getPageCount).toBeDefined();
     });
   });
+
+  // Loads the real src/preload.js against a mocked electron module, following
+  // the jest.mock('electron') pattern used by the renderer dialog tests.
+  describe('getFilePath (webUtils.getPathForFile bridge)', () => {
+    const setupApi = window.electronAPI;
+
+    afterAll(() => {
+      window.electronAPI = setupApi;
+    });
+
+    test('exposes getFilePath and delegates to webUtils.getPathForFile', () => {
+      jest.mock('electron', () => ({
+        contextBridge: {
+          exposeInMainWorld: (key, api) => {
+            window[key] = api;
+          },
+        },
+        ipcRenderer: {
+          send: jest.fn(),
+          invoke: jest.fn(),
+          on: jest.fn(),
+          once: jest.fn(),
+          removeListener: jest.fn(),
+          removeAllListeners: jest.fn(),
+        },
+        webUtils: {
+          getPathForFile: jest.fn((file) => file && `/resolved${file.name}`),
+        },
+      }));
+      const { webUtils } = require('electron');
+      require('../src/preload.js');
+
+      expect(typeof window.electronAPI.getFilePath).toBe('function');
+      const file = { name: '/report.md' };
+      expect(window.electronAPI.getFilePath(file)).toBe('/resolved/report.md');
+      expect(webUtils.getPathForFile).toHaveBeenCalledWith(file);
+    });
+
+    test('falls back to file.path when webUtils is unavailable', () => {
+      jest.mock('electron', () => ({
+        contextBridge: {
+          exposeInMainWorld: (key, api) => {
+            window[key] = api;
+          },
+        },
+        ipcRenderer: {
+          send: jest.fn(),
+          invoke: jest.fn(),
+          on: jest.fn(),
+          once: jest.fn(),
+          removeListener: jest.fn(),
+          removeAllListeners: jest.fn(),
+        },
+      }));
+      require('../src/preload.js');
+
+      expect(typeof window.electronAPI.getFilePath).toBe('function');
+      const file = { path: '/legacy/file.md' };
+      expect(window.electronAPI.getFilePath(file)).toBe('/legacy/file.md');
+    });
+  });
 });

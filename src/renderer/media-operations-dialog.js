@@ -12,8 +12,9 @@
  * three media kinds together cover 13 distinct operations.
  *
  * File selection reuses the app's existing convention: a plain `<input type="file">`
- * whose `.path` is read directly (nodeIntegration is enabled for this renderer), the
- * same approach already used throughout the PDF Editor and Universal Converter
+ * whose chosen File is resolved to a path via `window.electronAPI.getFilePath`
+ * (webUtils.getPathForFile — `File.path` was removed in Electron 32), the same
+ * approach already used throughout the PDF Editor and Universal Converter
  * dialogs. No new IPC channel is needed for single-file or save-file pickers. Output
  * *folder* selection (used by the video "Extract Frames" operation, and by batch
  * mode below) reuses the existing generic `select-folder` / `folder-selected` IPC
@@ -33,6 +34,7 @@
  */
 
 const { ipcRenderer } = require('electron');
+const { getFilePath } = require('../utils/file-path');
 
 const IMAGE_ACCEPT = '.jpg,.jpeg,.png,.webp,.avif,.tiff,.tif,.gif';
 const AUDIO_ACCEPT = '.mp3,.wav,.ogg,.flac,.aac,.m4a,.wma';
@@ -447,7 +449,7 @@ function renderFileField(field) {
       fileInput.accept = field.accept || '*';
       fileInput.onchange = (e) => {
         const file = e.target.files[0];
-        if (file) input.value = file.path;
+        if (file) input.value = getFilePath(file);
       };
       fileInput.click();
     },
@@ -462,7 +464,7 @@ function renderSaveField(field) {
       fileInput.nwsaveas = true;
       fileInput.onchange = (e) => {
         const file = e.target.files[0];
-        if (file) input.value = file.path;
+        if (file) input.value = getFilePath(file);
       };
       fileInput.click();
     },
@@ -588,8 +590,9 @@ function renderFilesField(field) {
     fileInput.multiple = true;
     fileInput.onchange = (e) => {
       Array.from(e.target.files).forEach((file) => {
-        if (!mergeFilePaths.includes(file.path)) {
-          mergeFilePaths.push(file.path);
+        const filePath = getFilePath(file);
+        if (!mergeFilePaths.includes(filePath)) {
+          mergeFilePaths.push(filePath);
         }
       });
       updateMergeFilesList(listContainer);

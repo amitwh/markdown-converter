@@ -9,7 +9,8 @@
  * markup appended to document.body on first use, driven by ModalManager, with a
  * status line reusing the `info-message` / `warning-message` classes. File
  * selection reuses the app's existing convention: a plain `<input type="file">`
- * whose `.path` is read directly (nodeIntegration is enabled for this renderer) —
+ * whose chosen File is resolved to a path via `window.electronAPI.getFilePath`
+ * (webUtils.getPathForFile — `File.path` was removed in Electron 32) —
  * no new IPC channel for picking files. File *contents* are read through the
  * existing `read-file` invoke channel (the same one the renderer's electronAPI
  * adapters use), not through a new privileged renderer-side file path.
@@ -28,6 +29,7 @@
  */
 
 const { ipcRenderer } = require('electron');
+const { getFilePath } = require('../utils/file-path');
 const { computeLineDiff } = require('../utils/line-diff');
 
 const COMPARE_ACCEPT = '.md,.markdown,.txt,.text,.log,.json,.xml,.yml,.yaml,.csv';
@@ -140,7 +142,7 @@ function chooseFile(input) {
   fileInput.onchange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      input.value = file.path;
+      input.value = getFilePath(file);
       clearResult();
     }
   };

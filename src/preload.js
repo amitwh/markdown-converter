@@ -12,7 +12,7 @@
  * @version 4.4.1
  */
 
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 // Define allowed IPC channels for security
 const ALLOWED_SEND_CHANNELS = [
@@ -429,6 +429,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
   page: {
     getSettings: () => ipcRenderer.send('get-page-settings'),
     updateSettings: (settings) => ipcRenderer.send('update-page-settings', settings),
+  },
+
+  /**
+   * Resolve a File object chosen via `<input type="file">` to its absolute
+   * path. `File.path` was removed in Electron 32; `webUtils.getPathForFile`
+   * is its replacement. Falls back to `file.path` on older Electron where
+   * webUtils is unavailable.
+   * @param {File} file - File object from a file input's files list
+   * @returns {string | undefined} Absolute filesystem path when resolvable
+   */
+  getFilePath: (file) => {
+    if (webUtils && typeof webUtils.getPathForFile === 'function') {
+      return webUtils.getPathForFile(file);
+    }
+    return file && file.path;
   },
 
   // PDF Operations

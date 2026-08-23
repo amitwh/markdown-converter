@@ -11,6 +11,8 @@ global.window.electronAPI = {
   once: jest.fn(),
   invoke: jest.fn(() => Promise.resolve(null)),
   removeAllListeners: jest.fn(),
+  // webUtils.getPathForFile bridge (File.path was removed in Electron 32)
+  getFilePath: jest.fn((file) => file && file.path),
   file: {
     save: jest.fn(),
     saveCurrent: jest.fn(),

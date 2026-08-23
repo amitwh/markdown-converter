@@ -3,7 +3,7 @@
  * @version 4.5.0
  */
 
-const { ipcRenderer } = require('electron');
+const { ipcRenderer, webUtils } = require('electron');
 const marked = require('marked');
 const { markedHighlight } = require('marked-highlight');
 const createDOMPurify = require('dompurify');
@@ -16,6 +16,7 @@ const { showPdfBatchDialog } = require('./renderer/pdf-batch-dialog');
 const { showDocumentCompareDialog } = require('./renderer/document-compare-dialog');
 const { initExportPresets, refreshExportPresets } = require('./renderer/export-presets');
 const { csvToMarkdownTable } = require('./utils/csv-to-markdown-table');
+const { getFilePath } = require('./utils/file-path');
 
 /**
  * Toggle body classes that drive the monospace font + ligatures CSS tokens.
@@ -69,6 +70,13 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
       ipcRenderer.removeAllListeners(channel);
     },
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+    // File.path was removed in Electron 32 — resolve picker paths via webUtils.
+    getFilePath: (file) => {
+      if (webUtils && typeof webUtils.getPathForFile === 'function') {
+        return webUtils.getPathForFile(file);
+      }
+      return file && file.path;
+    },
     file: {
       read: (filePath) => ipcRenderer.invoke('read-file', filePath),
       write: (filePath, content) =>
@@ -2647,7 +2655,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('template-file-input').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
-      document.getElementById('custom-template-path').value = file.path;
+      document.getElementById('custom-template-path').value = getFilePath(file);
     }
   });
 
@@ -2725,7 +2733,7 @@ document.addEventListener('DOMContentLoaded', () => {
     input.onchange = (e) => {
       const file = e.target.files[0];
       if (file) {
-        document.getElementById('bibliography-file').value = file.path;
+        document.getElementById('bibliography-file').value = getFilePath(file);
       }
     };
     input.click();
@@ -2739,7 +2747,7 @@ document.addEventListener('DOMContentLoaded', () => {
     input.onchange = (e) => {
       const file = e.target.files[0];
       if (file) {
-        document.getElementById('csl-file').value = file.path;
+        document.getElementById('csl-file').value = getFilePath(file);
       }
     };
     input.click();
@@ -3590,8 +3598,9 @@ document.addEventListener('DOMContentLoaded', () => {
       input.onchange = (e) => {
         const file = e.target.files[0];
         if (file) {
-          converterFilePath = file.path;
-          document.getElementById('converter-file-path').value = file.path;
+          const filePath = getFilePath(file);
+          converterFilePath = filePath;
+          document.getElementById('converter-file-path').value = filePath;
         }
       };
       input.click();
@@ -3942,8 +3951,9 @@ document.addEventListener('DOMContentLoaded', () => {
       input.onchange = (e) => {
         const files = Array.from(e.target.files);
         files.forEach((file) => {
-          if (!mergeFilePaths.includes(file.path)) {
-            mergeFilePaths.push(file.path);
+          const filePath = getFilePath(file);
+          if (!mergeFilePaths.includes(filePath)) {
+            mergeFilePaths.push(filePath);
           }
         });
         updateMergeFilesList();
@@ -4127,8 +4137,9 @@ document.addEventListener('DOMContentLoaded', () => {
           input.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
-              document.getElementById(button.inputId).value = file.path;
-              onPDFFileSelected(button.inputId, file.path);
+              const filePath = getFilePath(file);
+              document.getElementById(button.inputId).value = filePath;
+              onPDFFileSelected(button.inputId, filePath);
             }
           };
           input.click();
@@ -4137,10 +4148,11 @@ document.addEventListener('DOMContentLoaded', () => {
           input.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
-              document.getElementById(button.inputId).value = file.path;
-              onPDFFileSelected(button.inputId, file.path);
+              const filePath = getFilePath(file);
+              document.getElementById(button.inputId).value = filePath;
+              onPDFFileSelected(button.inputId, filePath);
               if (button.inputId === 'fill-form-input-path') {
-                loadFillFormFields(file.path);
+                loadFillFormFields(filePath);
               }
             }
           };
