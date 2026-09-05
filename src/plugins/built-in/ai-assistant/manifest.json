@@ -19,7 +19,7 @@
       "key": "provider",
       "type": "string",
       "default": "",
-      "label": "Provider (openai|anthropic|ollama|lmstudio|openai-compatible)"
+      "label": "Provider (openai|anthropic|ollama|lmstudio|openai-compatible|anthropic-compatible)"
     },
     { "key": "model", "type": "string", "default": "", "label": "Model name" },
     {

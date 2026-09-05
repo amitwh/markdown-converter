@@ -1,5 +1,5 @@
-function renderSnapshotsPanel(container, { engines, editor }) {
-  const snapshots = engines.snapshots.list();
+async function renderSnapshotsPanel(container, { engines, editor }) {
+  const snapshots = await engines.snapshots.list();
 
   container.replaceChildren();
 
@@ -53,16 +53,16 @@ function renderSnapshotsPanel(container, { engines, editor }) {
       const actionBtn = document.createElement('button');
       actionBtn.className = 'ws-btn ws-btn-sm' + (cls ? ' ' + cls : '');
       actionBtn.textContent = text;
-      actionBtn.addEventListener('click', () => {
+      actionBtn.addEventListener('click', async () => {
         if (action === 'restore') {
-          const content = engines.snapshots.restore(s.id);
+          const content = await engines.snapshots.restore(s.id);
           editor.insertAtCursor(content);
         } else if (action === 'delete') {
-          engines.snapshots.delete(s.id);
+          await engines.snapshots.delete(s.id);
           renderSnapshotsPanel(container, { engines, editor });
         } else if (action === 'diff') {
           const current = editor.getContent() || '';
-          const result = engines.snapshots.diff(s.id, current);
+          const result = await engines.snapshots.diff(s.id, current);
           alert('+' + result.added + ' lines added, -' + result.removed + ' lines removed');
         }
       });
@@ -75,9 +75,9 @@ function renderSnapshotsPanel(container, { engines, editor }) {
   container.appendChild(panel);
 
   // Take snapshot button handler
-  container.querySelector('#ws-take-snapshot').addEventListener('click', () => {
+  container.querySelector('#ws-take-snapshot').addEventListener('click', async () => {
     const content = editor.getContent() || '';
-    engines.snapshots.create(content, 'manual');
+    await engines.snapshots.create(content, 'manual');
     renderSnapshotsPanel(container, { engines, editor });
   });
 }

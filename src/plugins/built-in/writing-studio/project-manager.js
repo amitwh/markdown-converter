@@ -1,3 +1,11 @@
+/**
+ * Manuscript project management (.project.json + chapter files).
+ *
+ * All methods are async: the fs backend injected by the plugin is the
+ * IPC-backed file API (readFile/writeFile/fileExists/listDir return
+ * Promises); `await` also works against the synchronous fakes used in unit
+ * tests.
+ */
 class ProjectManager {
   /**
    * @param {object} fs - { readFile(path), writeFile(path, content), fileExists(path), listDir(path) }
@@ -6,7 +14,7 @@ class ProjectManager {
     this.fs = fs;
   }
 
-  createProject(dir, opts) {
+  async createProject(dir, opts) {
     const project = {
       title: opts.title,
       type: opts.type || 'manuscript',
@@ -14,51 +22,53 @@ class ProjectManager {
       chapters: [],
       metadata: opts.metadata || {},
     };
-    this.fs.writeFile(dir + '/.project.json', JSON.stringify(project, null, 2));
+    await this.fs.writeFile(dir + '/.project.json', JSON.stringify(project, null, 2));
     return project;
   }
 
-  loadProject(dir) {
-    const raw = this.fs.readFile(dir + '/.project.json');
+  async loadProject(dir) {
+    const exists = await this.fs.fileExists(dir + '/.project.json');
+    if (!exists) return null;
+    const raw = await this.fs.readFile(dir + '/.project.json');
     if (!raw) return null;
     return JSON.parse(raw);
   }
 
-  _saveProject(dir, project) {
-    this.fs.writeFile(dir + '/.project.json', JSON.stringify(project, null, 2));
+  async _saveProject(dir, project) {
+    await this.fs.writeFile(dir + '/.project.json', JSON.stringify(project, null, 2));
   }
 
-  addChapter(dir, chapter) {
-    const project = this.loadProject(dir);
+  async addChapter(dir, chapter) {
+    const project = await this.loadProject(dir);
     if (!project) throw new Error('Project not found');
     project.chapters.push(chapter);
-    this._saveProject(dir, project);
+    await this._saveProject(dir, project);
   }
 
-  updateChapter(dir, index, updates) {
-    const project = this.loadProject(dir);
+  async updateChapter(dir, index, updates) {
+    const project = await this.loadProject(dir);
     if (!project) throw new Error('Project not found');
     Object.assign(project.chapters[index], updates);
-    this._saveProject(dir, project);
+    await this._saveProject(dir, project);
   }
 
-  compileManuscript(dir) {
-    const project = this.loadProject(dir);
+  async compileManuscript(dir) {
+    const project = await this.loadProject(dir);
     if (!project) throw new Error('Project not found');
     const parts = [];
     for (const ch of project.chapters) {
-      const content = this.fs.readFile(dir + '/' + ch.file);
+      const content = await this.fs.readFile(dir + '/' + ch.file);
       if (content) parts.push(content);
     }
     return parts.join('\n\n---\n\n');
   }
 
-  getStats(dir) {
-    const project = this.loadProject(dir);
+  async getStats(dir) {
+    const project = await this.loadProject(dir);
     if (!project) throw new Error('Project not found');
     let totalWords = 0;
     for (const ch of project.chapters) {
-      const content = this.fs.readFile(dir + '/' + ch.file);
+      const content = await this.fs.readFile(dir + '/' + ch.file);
       if (content) totalWords += content.split(/\s+/).filter(Boolean).length;
     }
     const target = project.target.words || 0;

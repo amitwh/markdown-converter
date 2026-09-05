@@ -1,3 +1,9 @@
+/**
+ * Content snapshots with a rolling window, stored via the plugin settings
+ * backend. All methods are async because the real backend is the IPC-backed
+ * SettingsStore (get/set return Promises); `await` also works against the
+ * synchronous fakes used in unit tests.
+ */
 class SnapshotManager {
   /**
    * @param {object} store - { get(key), set(key, value) }
@@ -8,17 +14,17 @@ class SnapshotManager {
     this.storeKey = storeKey;
   }
 
-  _getAll() {
-    const raw = this.store.get(this.storeKey);
+  async _getAll() {
+    const raw = await this.store.get(this.storeKey);
     return raw ? JSON.parse(raw) : [];
   }
 
-  _saveAll(snaps) {
-    this.store.set(this.storeKey, JSON.stringify(snaps));
+  async _saveAll(snaps) {
+    await this.store.set(this.storeKey, JSON.stringify(snaps));
   }
 
-  create(content, label = 'manual') {
-    const snaps = this._getAll();
+  async create(content, label = 'manual') {
+    const snaps = await this._getAll();
     const snap = {
       id: 'snap-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
       timestamp: new Date().toISOString(),
@@ -27,31 +33,31 @@ class SnapshotManager {
       label,
     };
     snaps.unshift(snap);
-    this._saveAll(snaps);
+    await this._saveAll(snaps);
     return snap;
   }
 
-  list() {
+  async list() {
     return this._getAll();
   }
 
-  getById(id) {
-    return this._getAll().find((s) => s.id === id) || null;
+  async getById(id) {
+    return (await this._getAll()).find((s) => s.id === id) || null;
   }
 
-  restore(id) {
-    const snap = this.getById(id);
+  async restore(id) {
+    const snap = await this.getById(id);
     if (!snap) throw new Error('Snapshot not found');
     return snap.content;
   }
 
-  delete(id) {
-    const snaps = this._getAll().filter((s) => s.id !== id);
-    this._saveAll(snaps);
+  async delete(id) {
+    const snaps = (await this._getAll()).filter((s) => s.id !== id);
+    await this._saveAll(snaps);
   }
 
-  diff(id, currentContent) {
-    const snap = this.getById(id);
+  async diff(id, currentContent) {
+    const snap = await this.getById(id);
     if (!snap) throw new Error('Snapshot not found');
     const oldLines = snap.content.split('\n');
     const newLines = currentContent.split('\n');
@@ -68,9 +74,9 @@ class SnapshotManager {
     return { added, removed };
   }
 
-  prune(keepCount) {
-    const snaps = this._getAll();
-    this._saveAll(snaps.slice(0, keepCount));
+  async prune(keepCount) {
+    const snaps = await this._getAll();
+    await this._saveAll(snaps.slice(0, keepCount));
   }
 }
 

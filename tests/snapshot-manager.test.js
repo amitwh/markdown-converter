@@ -1,5 +1,7 @@
 const { SnapshotManager } = require('../src/plugins/built-in/writing-studio/snapshot-manager');
 
+// All SnapshotManager methods are async (the real settings backend is the
+// IPC-backed SettingsStore; these tests inject a synchronous fake).
 describe('SnapshotManager', () => {
   let manager;
   let store;
@@ -14,62 +16,63 @@ describe('SnapshotManager', () => {
     });
   });
 
-  test('create stores snapshot with timestamp, content, wordCount', () => {
-    const snap = manager.create('Hello world this is a test', 'auto');
+  test('create stores snapshot with timestamp, content, wordCount', async () => {
+    const snap = await manager.create('Hello world this is a test', 'auto');
     expect(snap).toHaveProperty('id');
     expect(snap.content).toBe('Hello world this is a test');
     expect(snap.wordCount).toBe(6);
     expect(snap.label).toBe('auto');
   });
 
-  test('list returns snapshots ordered newest first', () => {
-    manager.create('first', 'auto');
-    manager.create('second', 'auto');
-    const list = manager.list();
+  test('list returns snapshots ordered newest first', async () => {
+    await manager.create('first', 'auto');
+    await manager.create('second', 'auto');
+    const list = await manager.list();
     expect(list.length).toBe(2);
     expect(list[0].content).toBe('second');
   });
 
-  test('getById returns specific snapshot', () => {
-    const snap = manager.create('find me', 'manual');
-    const found = manager.getById(snap.id);
+  test('getById returns specific snapshot', async () => {
+    const snap = await manager.create('find me', 'manual');
+    const found = await manager.getById(snap.id);
     expect(found.content).toBe('find me');
   });
 
-  test('getById returns null for missing id', () => {
-    expect(manager.getById('nope')).toBeNull();
+  test('getById returns null for missing id', async () => {
+    await expect(manager.getById('nope')).resolves.toBeNull();
   });
 
-  test('restore returns content of snapshot', () => {
-    const snap = manager.create('restore this', 'manual');
-    expect(manager.restore(snap.id)).toBe('restore this');
+  test('restore returns content of snapshot', async () => {
+    const snap = await manager.create('restore this', 'manual');
+    await expect(manager.restore(snap.id)).resolves.toBe('restore this');
   });
 
-  test('restore throws for missing snapshot', () => {
-    expect(() => manager.restore('nope')).toThrow('Snapshot not found');
+  test('restore throws for missing snapshot', async () => {
+    await expect(manager.restore('nope')).rejects.toThrow('Snapshot not found');
   });
 
-  test('delete removes a snapshot', () => {
-    const snap = manager.create('delete me', 'auto');
-    manager.delete(snap.id);
-    expect(manager.getById(snap.id)).toBeNull();
+  test('delete removes a snapshot', async () => {
+    const snap = await manager.create('delete me', 'auto');
+    await manager.delete(snap.id);
+    await expect(manager.getById(snap.id)).resolves.toBeNull();
   });
 
-  test('diff returns added/removed line counts', () => {
-    const snap = manager.create('line one\nline two\nline three', 'auto');
-    const result = manager.diff(snap.id, 'line one\nline modified\nline three\nline four');
+  test('diff returns added/removed line counts', async () => {
+    const snap = await manager.create('line one\nline two\nline three', 'auto');
+    const result = await manager.diff(snap.id, 'line one\nline modified\nline three\nline four');
     expect(result.added).toBe(2);
     expect(result.removed).toBe(1);
   });
 
-  test('diff throws for missing snapshot', () => {
-    expect(() => manager.diff('nope', 'new content')).toThrow('Snapshot not found');
+  test('diff throws for missing snapshot', async () => {
+    await expect(manager.diff('nope', 'new content')).rejects.toThrow('Snapshot not found');
   });
 
-  test('prune keeps only the N most recent snapshots', () => {
-    for (let i = 0; i < 10; i++) manager.create('snap ' + i, 'auto');
-    manager.prune(5);
-    expect(manager.list().length).toBe(5);
-    expect(manager.list()[0].content).toBe('snap 9');
+  test('prune keeps only the N most recent snapshots', async () => {
+    for (let i = 0; i < 10; i++) await manager.create('snap ' + i, 'auto');
+    await manager.prune(5);
+    const list = await manager.list();
+    expect(list.length).toBe(5);
+    expect(list[0].content).toBe('snap 9');
   });
 });

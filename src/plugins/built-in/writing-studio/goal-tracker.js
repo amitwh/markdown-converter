@@ -1,5 +1,12 @@
 const HISTORY_KEY = 'plugins.writing-studio.history';
 
+/**
+ * Tracks daily word-count history for goals, streaks, and the heatmap.
+ *
+ * All methods are async: the settings backend in the real app is the
+ * IPC-backed SettingsStore (get/set return Promises), while unit tests inject
+ * a plain synchronous object — `await` transparently handles both.
+ */
 class GoalTracker {
   /**
    * @param {object} store - { get(key), set(key, value) } settings backend
@@ -8,41 +15,41 @@ class GoalTracker {
     this.store = store;
   }
 
-  _getHistory() {
-    const raw = this.store.get(HISTORY_KEY);
+  async _getHistory() {
+    const raw = await this.store.get(HISTORY_KEY);
     return raw ? JSON.parse(raw) : {};
   }
 
-  _setHistory(history) {
-    this.store.set(HISTORY_KEY, JSON.stringify(history));
+  async _setHistory(history) {
+    await this.store.set(HISTORY_KEY, JSON.stringify(history));
   }
 
-  _setHistoryDay(dateStr, data) {
-    const history = this._getHistory();
+  async _setHistoryDay(dateStr, data) {
+    const history = await this._getHistory();
     history[dateStr] = data;
-    this._setHistory(history);
+    await this._setHistory(history);
   }
 
-  addWords(count) {
+  async addWords(count) {
     const today = new Date().toISOString().split('T')[0];
-    const history = this._getHistory();
+    const history = await this._getHistory();
     if (!history[today]) {
       history[today] = { words: 0, sessions: 0 };
     }
     history[today].words += count;
     history[today].sessions += 1;
-    this._setHistory(history);
+    await this._setHistory(history);
   }
 
-  getDailyProgress(goal) {
+  async getDailyProgress(goal) {
     const today = new Date().toISOString().split('T')[0];
-    const history = this._getHistory();
+    const history = await this._getHistory();
     const written = history[today]?.words || 0;
     return { written, goal, pct: goal > 0 ? Math.min(100, Math.round((written / goal) * 100)) : 0 };
   }
 
-  getStreak(goal) {
-    const history = this._getHistory();
+  async getStreak(goal) {
+    const history = await this._getHistory();
     let streak = 0;
     const d = new Date();
     for (let i = 0; i < 365; i++) {
@@ -58,8 +65,8 @@ class GoalTracker {
     return streak;
   }
 
-  getLast30Days() {
-    const history = this._getHistory();
+  async getLast30Days() {
+    const history = await this._getHistory();
     const days = [];
     const d = new Date();
     for (let i = 0; i < 30; i++) {
@@ -71,8 +78,8 @@ class GoalTracker {
     return days.reverse();
   }
 
-  getWeeklyTotal() {
-    const history = this._getHistory();
+  async getWeeklyTotal() {
+    const history = await this._getHistory();
     let total = 0;
     const d = new Date();
     for (let i = 0; i < 7; i++) {

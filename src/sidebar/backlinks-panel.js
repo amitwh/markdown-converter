@@ -7,8 +7,8 @@
  * @module BacklinksPanel
  */
 
-const { collectMarkdownFiles, findBacklinks } = require('../../utils/backlinks');
-const { docNameFor } = require('../../utils/wiki-links');
+const { collectMarkdownFiles, findBacklinks } = require('../utils/backlinks');
+const { docNameFor } = require('../utils/wiki-links');
 
 /**
  * Render the backlinks panel.

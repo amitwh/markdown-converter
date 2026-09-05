@@ -35,11 +35,14 @@ class WritingStudioPlugin extends PluginAPI {
   _registerCommands(context) {
     const { sprintEngine, snapshotManager, goalTracker } = this;
 
+    // NOTE: settings.get and all engine methods are async (IPC-backed
+    // backend) — every handler below awaits what it reads.
+
     context.commands.register(
       'start-sprint',
       'Studio: Start Sprint',
-      () => {
-        const duration = context.settings.get('sprintDuration') || 25;
+      async () => {
+        const duration = (await context.settings.get('sprintDuration')) || 25;
         const content = context.editor.getContent() || '';
         const words = content.split(/\s+/).filter(Boolean).length;
         sprintEngine.start(duration, words);
@@ -50,12 +53,12 @@ class WritingStudioPlugin extends PluginAPI {
     context.commands.register(
       'stop-sprint',
       'Studio: Stop Sprint',
-      () => {
+      async () => {
         if (!sprintEngine.isActive()) return;
         const content = context.editor.getContent() || '';
         const words = content.split(/\s+/).filter(Boolean).length;
         const result = sprintEngine.stop(words);
-        goalTracker.addWords(result.wordDelta);
+        await goalTracker.addWords(result.wordDelta);
         context.events.emit('sprint:stopped', result);
       },
       'Ctrl+Alt+Shift+S'
@@ -64,9 +67,9 @@ class WritingStudioPlugin extends PluginAPI {
     context.commands.register(
       'take-snapshot',
       'Studio: Take Snapshot',
-      () => {
+      async () => {
         const content = context.editor.getContent() || '';
-        snapshotManager.create(content, 'manual');
+        await snapshotManager.create(content, 'manual');
         context.events.emit('snapshot:created', {});
       },
       'Ctrl+Alt+N'
@@ -75,10 +78,10 @@ class WritingStudioPlugin extends PluginAPI {
     context.commands.register(
       'restore-last-snapshot',
       'Studio: Restore Last Snapshot',
-      () => {
-        const snaps = snapshotManager.list();
+      async () => {
+        const snaps = await snapshotManager.list();
         if (snaps.length === 0) return;
-        const content = snapshotManager.restore(snaps[0].id);
+        const content = await snapshotManager.restore(snaps[0].id);
         context.editor.insertAtCursor(content);
       },
       'Ctrl+Alt+Z'
@@ -134,9 +137,9 @@ class WritingStudioPlugin extends PluginAPI {
       extension: 'txt',
       handler: async (markdownContent, outputPath) => {
         const fs = require('fs');
-        const goal = context.settings.get('dailyGoal') || 1000;
-        const progress = goalTracker.getDailyProgress(goal);
-        const streak = goalTracker.getStreak(goal);
+        const goal = (await context.settings.get('dailyGoal')) || 1000;
+        const progress = await goalTracker.getDailyProgress(goal);
+        const streak = await goalTracker.getStreak(goal);
         const wordCount = (markdownContent || '').split(/\s+/).filter(Boolean).length;
 
         const lines = [

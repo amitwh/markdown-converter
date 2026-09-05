@@ -1,9 +1,11 @@
-function renderGoalsPanel(container, { engines, settings }) {
-  const dailyGoal = settings.get('dailyGoal') || 1000;
-  const progress = engines.goals.getDailyProgress(dailyGoal);
-  const streak = engines.goals.getStreak(dailyGoal);
-  const weekly = engines.goals.getWeeklyTotal();
-  const last30 = engines.goals.getLast30Days();
+async function renderGoalsPanel(container, { engines, settings }) {
+  // settings.get and the GoalTracker are async (IPC-backed store) — the whole
+  // panel renders after its data resolves.
+  const dailyGoal = (await settings.get('dailyGoal')) || 1000;
+  const progress = await engines.goals.getDailyProgress(dailyGoal);
+  const streak = await engines.goals.getStreak(dailyGoal);
+  const weekly = await engines.goals.getWeeklyTotal();
+  const last30 = await engines.goals.getLast30Days();
 
   container.replaceChildren();
 

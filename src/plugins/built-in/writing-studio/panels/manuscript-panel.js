@@ -1,5 +1,12 @@
-function renderManuscriptPanel(container, { engines, editor, settings }) {
-  const projectDir = settings.get('projectDir');
+/**
+ * Manuscript sidebar panel (writing-studio).
+ *
+ * All project/settings access is async (IPC-backed store), and the
+ * "New Project" flow uses an inline dialog — Electron renderers have no
+ * window.prompt, so the old prompt() call threw on click.
+ */
+async function renderManuscriptPanel(container, { engines, editor, settings }) {
+  const projectDir = await settings.get('projectDir');
 
   container.replaceChildren();
   const panel = document.createElement('div');
@@ -16,10 +23,14 @@ function renderManuscriptPanel(container, { engines, editor, settings }) {
     btn.id = 'ws-new-project';
     btn.textContent = 'New Project';
     btn.addEventListener('click', () => {
-      const name = prompt('Project name:');
-      if (!name) return;
-      settings.set('projectDir', name);
-      renderManuscriptPanel(container, { engines, editor, settings });
+      // Inline name input (window.prompt is unavailable in Electron)
+      const name = askForProjectName();
+      name.then((result) => {
+        if (!result) return;
+        settings.set('projectDir', result).then(() => {
+          renderManuscriptPanel(container, { engines, editor, settings });
+        });
+      });
     });
     empty.appendChild(btn);
     panel.appendChild(empty);
@@ -27,7 +38,7 @@ function renderManuscriptPanel(container, { engines, editor, settings }) {
     return;
   }
 
-  const project = engines.projects.loadProject(projectDir);
+  const project = await engines.projects.loadProject(projectDir);
   if (!project) {
     const empty = document.createElement('div');
     empty.className = 'ws-empty';
@@ -39,8 +50,9 @@ function renderManuscriptPanel(container, { engines, editor, settings }) {
     btn.id = 'ws-clear-project';
     btn.textContent = 'Clear Project';
     btn.addEventListener('click', () => {
-      settings.set('projectDir', null);
-      renderManuscriptPanel(container, { engines, editor, settings });
+      settings.set('projectDir', null).then(() => {
+        renderManuscriptPanel(container, { engines, editor, settings });
+      });
     });
     empty.appendChild(btn);
     panel.appendChild(empty);
@@ -48,7 +60,7 @@ function renderManuscriptPanel(container, { engines, editor, settings }) {
     return;
   }
 
-  const stats = engines.projects.getStats(projectDir);
+  const stats = await engines.projects.getStats(projectDir);
 
   // Project title + progress
   const section1 = document.createElement('div');
@@ -112,14 +124,52 @@ function renderManuscriptPanel(container, { engines, editor, settings }) {
   compileBtn.className = 'ws-btn ws-btn-primary';
   compileBtn.id = 'ws-compile';
   compileBtn.textContent = 'Compile Manuscript';
-  compileBtn.addEventListener('click', () => {
-    const compiled = engines.projects.compileManuscript(projectDir);
+  compileBtn.addEventListener('click', async () => {
+    const compiled = await engines.projects.compileManuscript(projectDir);
     editor.insertAtCursor(compiled);
   });
   section3.appendChild(compileBtn);
   panel.appendChild(section3);
 
   container.appendChild(panel);
+}
+
+/**
+ * Minimal promise-based name input (Electron has no window.prompt).
+ * @returns {Promise<string|null>} project name, or null when cancelled
+ */
+function askForProjectName() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'ai-settings-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML = `
+      <div class="ai-settings-dialog">
+        <h3>New manuscript project</h3>
+        <input type="text" data-role="name" placeholder="Project name" aria-label="Project name" />
+        <div class="ai-settings-actions">
+          <button type="button" data-role="ok">Create</button>
+          <button type="button" data-role="cancel">Cancel</button>
+        </div>
+      </div>`;
+    const input = overlay.querySelector('[data-role="name"]');
+    const done = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+    overlay.querySelector('[data-role="ok"]').addEventListener('click', () => done(input.value.trim() || null));
+    overlay.querySelector('[data-role="cancel"]').addEventListener('click', () => done(null));
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) done(null);
+    });
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') done(input.value.trim() || null);
+      if (event.key === 'Escape') done(null);
+    });
+    document.body.appendChild(overlay);
+    input.focus();
+  });
 }
 
 module.exports = { renderManuscriptPanel };

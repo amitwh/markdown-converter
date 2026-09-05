@@ -3,7 +3,10 @@
  *
  * Brings LLM assistance into the editor with multi-provider support:
  *   - OpenAI / Anthropic (cloud, API key required)
- *   - Ollama / LM Studio / any OpenAI-compatible endpoint (local, no key)
+ *   - Ollama / LM Studio (local, no key)
+ *   - Any OpenAI-compatible or Anthropic-compatible endpoint (custom base
+ *     URL; Anthropic-compatible gateways like LiteLLM proxies work with or
+ *     without a key)
  *
  * All provider traffic is proxied through the main process
  * (ai-assistant:complete / ai-assistant:status IPC) so API keys never enter
@@ -231,11 +234,18 @@ class AiAssistantPlugin extends PluginAPI {
             <option value="openai">OpenAI</option>
             <option value="anthropic">Anthropic</option>
             <option value="openai-compatible">OpenAI-compatible…</option>
+            <option value="anthropic-compatible">Anthropic-compatible…</option>
           </select>
         </label>
         <label>Model <input data-role="model" type="text" placeholder="e.g. llama3.1, gpt-4o-mini" /></label>
-        <label>Base URL <input data-role="baseUrl" type="text" placeholder="http://localhost:11434/v1" /></label>
-        <label>API Key <input data-role="apiKey" type="password" placeholder="(not needed for local)" /></label>
+        <label>Base URL
+          <input
+            data-role="baseUrl"
+            type="text"
+            placeholder="Required for …-compatible providers, e.g. http://localhost:4000"
+          />
+        </label>
+        <label>API Key <input data-role="apiKey" type="password" placeholder="(not needed for local providers)" /></label>
         <label>Temperature <input data-role="temperature" type="number" min="0" max="2" step="0.1" /></label>
         <p class="ai-settings-note">Settings are stored locally in settings.json. API keys never leave this machine.</p>
         <div class="ai-settings-actions">

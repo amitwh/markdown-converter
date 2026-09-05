@@ -4184,7 +4184,12 @@ ipcRenderer.on('show-table-generator', () => {
 
 // Show PDF Editor Dialog
 ipcRenderer.on('show-pdf-editor-dialog', (event, operation, openedFilePath) => {
-  currentPDFOperation = operation;
+  if (!operation) {
+    // File > Open PDF sends null — legit, but log unexpected variants so
+    // stray senders are traceable in the console.
+    console.info('[pdf-editor] opening with default section; operation =', operation);
+  }
+  currentPDFOperation = operation || 'merge';
   showPDFEditorDialog(operation, openedFilePath);
 });
 
@@ -4373,8 +4378,13 @@ function showPDFEditorDialog(operation, openedFilePath = null) {
       break;
     }
   }
-  title.textContent = titleText;
-  document.getElementById(sectionId).classList.remove('hidden');
+
+  // Unknown/null operations (e.g. File > Open PDF sends null meaning "open
+  // the editor with this file") fall back to the merge section instead of
+  // crashing on a missing element.
+  const section = document.getElementById(sectionId || 'pdf-merge-section');
+  title.textContent = titleText || 'PDF Editor';
+  if (section) section.classList.remove('hidden');
   window.modals.pdfEditorModal.open();
 }
 function hidePDFEditorDialog() {

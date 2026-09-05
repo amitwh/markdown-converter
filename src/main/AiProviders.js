@@ -12,6 +12,10 @@
  *   - `ollama`           → http://localhost:11434/v1 (OpenAI-compatible)
  *   - `lmstudio`         → http://localhost:1234/v1 (OpenAI-compatible)
  *   - `openai-compatible`→ any baseUrl speaking the OpenAI chat schema
+ *   - `anthropic-compatible` → any baseUrl speaking the Anthropic messages
+ *     schema (LiteLLM proxies, Bedrock gateways, local Claude-compatible
+ *     servers); baseUrl is required, the API key is optional because many
+ *     proxies are keyless or front their own auth
  *
  * The module takes an injectable `fetchImpl` (defaulting to global fetch) so
  * tests can stub the network without monkey-patching.
@@ -33,6 +37,7 @@ const PROVIDER_DEFAULTS = {
   ollama: { baseUrl: 'http://localhost:11434/v1', defaultModel: 'llama3.1' },
   lmstudio: { baseUrl: 'http://localhost:1234/v1', defaultModel: 'local-model' },
   'openai-compatible': { baseUrl: '', defaultModel: '' },
+  'anthropic-compatible': { baseUrl: '', defaultModel: 'claude-3-5-sonnet-latest' },
 };
 
 /** Provider ids that speak the OpenAI chat-completions schema. */
@@ -72,8 +77,13 @@ function resolveSettings({
     );
   }
 
-  // Local providers (ollama/lmstudio) don't need a key; remote ones do.
-  const needsKey = requireKey && provider !== 'ollama' && provider !== 'lmstudio';
+  // Local providers (ollama/lmstudio) and self-hosted *-compatible proxies
+  // don't need a key; branded cloud endpoints do.
+  const needsKey =
+    requireKey &&
+    provider !== 'ollama' &&
+    provider !== 'lmstudio' &&
+    provider !== 'anthropic-compatible';
   if (needsKey && !apiKey) {
     throw new AiProviderError(
       `The "${provider}" provider needs an API key. Add one in AI Assistant settings.`,
@@ -158,13 +168,27 @@ async function callAnthropic(settings, { system, messages }, fetchImpl, timeoutM
       system: system || undefined,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     };
-    const response = await fetchImpl(`${settings.baseUrl}/v1/messages`, {
+    const headers = {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+    };
+    if (settings.apiKey) {
+      // Official API keys travel via x-api-key; many compatible gateways
+      // (LiteLLM proxies, Bedrock fronts) expect a Bearer token instead.
+      // Sending both is harmless for the official endpoint and maximizes
+      // proxy compatibility.
+      headers['x-api-key'] = settings.apiKey;
+      headers.Authorization = `Bearer ${settings.apiKey}`;
+    }
+    // Bases may or may not already carry the /v1 prefix — handle both so a
+    // "http://host:4000" proxy base and an "http://host:4000/v1" style base
+    // both land on a single /v1/messages path.
+    const messagesUrl = settings.baseUrl.endsWith('/v1')
+      ? `${settings.baseUrl}/messages`
+      : `${settings.baseUrl}/v1/messages`;
+    const response = await fetchImpl(messagesUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': settings.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
+      headers,
       body: JSON.stringify(body),
       signal: controller.signal,
     });

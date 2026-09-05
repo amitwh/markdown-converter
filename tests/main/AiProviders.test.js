@@ -33,6 +33,10 @@ describe('AiProviders', () => {
     it('does not require an API key for local providers', () => {
       expect(() => resolveSettings({ provider: 'lmstudio' })).not.toThrow();
       expect(() => resolveSettings({ provider: 'ollama' })).not.toThrow();
+      // Self-hosted Anthropic-compatible proxies may front their own auth
+      expect(() =>
+        resolveSettings({ provider: 'anthropic-compatible', baseUrl: 'http://localhost:4000' })
+      ).not.toThrow();
     });
 
     it('requires an API key for remote providers', () => {
@@ -107,6 +111,52 @@ describe('AiProviders', () => {
       expect(init.headers['anthropic-version']).toBe('2023-06-01');
       const body = JSON.parse(init.body);
       expect(body.system).toBe('be nice');
+    });
+
+    it('routes anthropic-compatible to the custom base with Bearer + x-api-key auth', async () => {
+      const fetchImpl = okFetch({ content: [{ type: 'text', text: 'proxy ok' }] });
+      const result = await complete(
+        {
+          provider: 'anthropic-compatible',
+          baseUrl: 'http://localhost:4000',
+          apiKey: 'proxy-key',
+          messages,
+        },
+        { fetchImpl }
+      );
+
+      expect(result.content).toBe('proxy ok');
+      const [url, init] = fetchImpl.mock.calls[0];
+      // Base without a /v1 suffix gets one appended
+      expect(url).toBe('http://localhost:4000/v1/messages');
+      // Both auth styles are sent so LiteLLM/Bedrock-style gateways accept it
+      expect(init.headers['x-api-key']).toBe('proxy-key');
+      expect(init.headers.Authorization).toBe('Bearer proxy-key');
+      expect(init.headers['anthropic-version']).toBe('2023-06-01');
+    });
+
+    it('does not double the /v1 segment when the base already ends with it', async () => {
+      const fetchImpl = okFetch({ content: [{ type: 'text', text: 'ok' }] });
+      await complete(
+        {
+          provider: 'anthropic-compatible',
+          baseUrl: 'http://localhost:4000/v1/',
+          messages,
+        },
+        { fetchImpl }
+      );
+      // Trailing slash is stripped by resolveSettings, so the base ends in /v1
+      const [url, init] = fetchImpl.mock.calls[0];
+      expect(url).toBe('http://localhost:4000/v1/messages');
+      // Keyless proxies must work without auth headers
+      expect(init.headers.Authorization).toBeUndefined();
+      expect(init.headers['x-api-key']).toBeUndefined();
+    });
+
+    it('rejects anthropic-compatible without a base URL', async () => {
+      await expect(
+        complete({ provider: 'anthropic-compatible', messages }, { fetchImpl: okFetch({}) })
+      ).rejects.toThrow(/Invalid API base URL/);
     });
 
     it('surfaces HTTP failures as user-safe errors without the body', async () => {

@@ -42,17 +42,20 @@ function newCommentId(now = Date.now()) {
  * Load all comments for a document. Missing file/corrupt JSON → [] (a fresh
  * document simply has no comments yet; a corrupt store must not crash the app).
  *
+ * Async: `io.readFile`/`io.fileExists` are IPC-backed Promises in the app
+ * (plain values in tests — `await` handles both).
+ *
  * @param {string} docPath Document path
  * @param {object} io - { readFile: (path) => string|null, fileExists: (path) => bool }
  * @param {Function} pathUtil injected path module
- * @returns {Array<object>} comments sorted by line then createdAt
+ * @returns {Promise<Array<object>>} comments sorted by line then createdAt
  */
-function loadComments(docPath, io, pathUtil) {
+async function loadComments(docPath, io, pathUtil) {
   if (!docPath) return [];
   const file = commentsFilePathFor(docPath, pathUtil);
   try {
-    if (!io.fileExists(file)) return [];
-    const raw = io.readFile(file);
+    if (!(await io.fileExists(file))) return [];
+    const raw = await io.readFile(file);
     const data = JSON.parse(raw);
     if (!Array.isArray(data.comments)) return [];
     return normalizeComments(data.comments);
@@ -69,10 +72,10 @@ function loadComments(docPath, io, pathUtil) {
  * @param {object} io - { writeFile, ensureDirectory }
  * @param {Function} pathUtil injected path module
  */
-function saveComments(docPath, comments, io, pathUtil) {
+async function saveComments(docPath, comments, io, pathUtil) {
   const file = commentsFilePathFor(docPath, pathUtil);
-  io.ensureDirectory(pathUtil.dirname(file));
-  io.writeFile(
+  await io.ensureDirectory(pathUtil.dirname(file));
+  await io.writeFile(
     file,
     JSON.stringify({ version: 1, doc: pathUtil.basename(docPath), comments }, null, 2)
   );

@@ -31,7 +31,7 @@ function esc(text) {
  * @param {Function} deps.pathUtil injected path module
  * @param {string} [deps.author='me'] Display name for new comments
  */
-function renderCommentsPanel(container, deps) {
+async function renderCommentsPanel(container, deps) {
   container.replaceChildren();
   const { editor, io, pathUtil } = deps;
   const docPath = editor.getCurrentFilePath();
@@ -74,14 +74,14 @@ function renderCommentsPanel(container, deps) {
   const addBtn = document.createElement('button');
   addBtn.className = 'ws-btn ws-btn-primary';
   addBtn.textContent = 'Comment on line ' + editor.getCurrentLine();
-  addBtn.addEventListener('click', () => {
+  addBtn.addEventListener('click', async () => {
     const text = textarea.value.trim();
     if (!text) return;
     const line = editor.getCurrentLine();
     const anchorText = (getLines(editor)[line - 1] || '').trim();
-    const comments = store.loadComments(docPath, io, pathUtil);
+    const comments = await store.loadComments(docPath, io, pathUtil);
     store.addComment(comments, { line, anchorText, author: deps.author || 'me', text });
-    store.saveComments(docPath, comments, io, pathUtil);
+    await store.saveComments(docPath, comments, io, pathUtil);
     renderCommentsPanel(container, deps); // re-render with fresh list
   });
   composer.appendChild(textarea);
@@ -89,7 +89,7 @@ function renderCommentsPanel(container, deps) {
   panel.appendChild(composer);
 
   // --- List -----------------------------------------------------------------
-  const comments = store.loadComments(docPath, io, pathUtil);
+  const comments = await store.loadComments(docPath, io, pathUtil);
   const lines = getLines(editor);
 
   const list = document.createElement('div');
@@ -122,16 +122,16 @@ function renderCommentsPanel(container, deps) {
     item.querySelector('[data-action="jump"]').addEventListener('click', () => {
       editor.jumpToLine(comment.line);
     });
-    item.querySelector('[data-action="resolve"]').addEventListener('click', () => {
-      const updated = store.loadComments(docPath, io, pathUtil);
+    item.querySelector('[data-action="resolve"]').addEventListener('click', async () => {
+      const updated = await store.loadComments(docPath, io, pathUtil);
       store.toggleResolved(updated, comment.id);
-      store.saveComments(docPath, updated, io, pathUtil);
+      await store.saveComments(docPath, updated, io, pathUtil);
       renderCommentsPanel(container, deps);
     });
-    item.querySelector('[data-action="delete"]').addEventListener('click', () => {
-      const updated = store.loadComments(docPath, io, pathUtil);
+    item.querySelector('[data-action="delete"]').addEventListener('click', async () => {
+      const updated = await store.loadComments(docPath, io, pathUtil);
       store.deleteComment(updated, comment.id);
-      store.saveComments(docPath, updated, io, pathUtil);
+      await store.saveComments(docPath, updated, io, pathUtil);
       renderCommentsPanel(container, deps);
     });
     list.appendChild(item);

@@ -85,10 +85,10 @@ class CollaborationPlugin extends PluginAPI {
     document.addEventListener('keydown', this._f8Handler);
   }
 
-  _jumpToNextComment() {
+  async _jumpToNextComment() {
     const docPath = this.context.editor.getCurrentFilePath();
     if (!docPath) return;
-    const comments = store.loadComments(docPath, this._io, require('path'));
+    const comments = await store.loadComments(docPath, this._io, require('path'));
     const fromLine = this.context.editor.getCurrentLine();
     const next = store.nextUnresolved(comments, fromLine);
     if (next) this.context.editor.jumpToLine(next.line);

@@ -1,5 +1,7 @@
 const { ProjectManager } = require('../src/plugins/built-in/writing-studio/project-manager');
 
+// All ProjectManager methods are async (the real fs backend is the IPC-backed
+// file API; these tests inject a synchronous fake, which `await` handles).
 describe('ProjectManager', () => {
   let pm;
   let files;
@@ -19,8 +21,8 @@ describe('ProjectManager', () => {
     });
   });
 
-  test('createProject writes .project.json', () => {
-    const project = pm.createProject('/manuscripts/novel', {
+  test('createProject writes .project.json', async () => {
+    const project = await pm.createProject('/manuscripts/novel', {
       title: 'My Novel',
       type: 'manuscript',
       targetWords: 80000,
@@ -31,7 +33,7 @@ describe('ProjectManager', () => {
     expect(parsed.target.words).toBe(80000);
   });
 
-  test('loadProject reads and returns project data', () => {
+  test('loadProject reads and returns project data', async () => {
     files['/manuscripts/novel/.project.json'] = JSON.stringify({
       title: 'Test',
       type: 'manuscript',
@@ -39,15 +41,15 @@ describe('ProjectManager', () => {
       chapters: [],
       metadata: {},
     });
-    const project = pm.loadProject('/manuscripts/novel');
+    const project = await pm.loadProject('/manuscripts/novel');
     expect(project.title).toBe('Test');
   });
 
-  test('loadProject returns null if no project file', () => {
-    expect(pm.loadProject('/nonexistent')).toBeNull();
+  test('loadProject returns null if no project file', async () => {
+    await expect(pm.loadProject('/nonexistent')).resolves.toBeNull();
   });
 
-  test('addChapter appends chapter and saves', () => {
+  test('addChapter appends chapter and saves', async () => {
     files['/manuscripts/novel/.project.json'] = JSON.stringify({
       title: 'Test',
       type: 'manuscript',
@@ -55,7 +57,7 @@ describe('ProjectManager', () => {
       chapters: [],
       metadata: {},
     });
-    pm.addChapter('/manuscripts/novel', {
+    await pm.addChapter('/manuscripts/novel', {
       file: '01-chapter.md',
       title: 'Chapter One',
       status: 'draft',
@@ -65,7 +67,7 @@ describe('ProjectManager', () => {
     expect(parsed.chapters[0].title).toBe('Chapter One');
   });
 
-  test('compileManuscript concatenates chapter files', () => {
+  test('compileManuscript concatenates chapter files', async () => {
     files['/manuscripts/novel/.project.json'] = JSON.stringify({
       title: 'Test',
       type: 'manuscript',
@@ -78,11 +80,11 @@ describe('ProjectManager', () => {
     });
     files['/manuscripts/novel/01.md'] = 'First chapter content.';
     files['/manuscripts/novel/02.md'] = 'Second chapter content.';
-    const result = pm.compileManuscript('/manuscripts/novel');
+    const result = await pm.compileManuscript('/manuscripts/novel');
     expect(result).toBe('First chapter content.\n\n---\n\nSecond chapter content.');
   });
 
-  test('compileManuscript skips missing files', () => {
+  test('compileManuscript skips missing files', async () => {
     files['/manuscripts/novel/.project.json'] = JSON.stringify({
       title: 'Test',
       type: 'manuscript',
@@ -94,11 +96,11 @@ describe('ProjectManager', () => {
       metadata: {},
     });
     files['/manuscripts/novel/01.md'] = 'Only chapter one.';
-    const result = pm.compileManuscript('/manuscripts/novel');
+    const result = await pm.compileManuscript('/manuscripts/novel');
     expect(result).toBe('Only chapter one.');
   });
 
-  test('getStats returns total word count across chapters', () => {
+  test('getStats returns total word count across chapters', async () => {
     files['/manuscripts/novel/.project.json'] = JSON.stringify({
       title: 'Test',
       type: 'manuscript',
@@ -111,14 +113,14 @@ describe('ProjectManager', () => {
     });
     files['/manuscripts/novel/01.md'] = 'word '.repeat(100).trim();
     files['/manuscripts/novel/02.md'] = 'more '.repeat(50).trim();
-    const stats = pm.getStats('/manuscripts/novel');
+    const stats = await pm.getStats('/manuscripts/novel');
     expect(stats.totalWords).toBeGreaterThan(0);
     expect(stats.chapterCount).toBe(2);
     expect(stats.targetWords).toBe(50000);
     expect(stats.pctComplete).toBeDefined();
   });
 
-  test('updateChapter modifies a chapter by index', () => {
+  test('updateChapter modifies a chapter by index', async () => {
     files['/manuscripts/novel/.project.json'] = JSON.stringify({
       title: 'Test',
       type: 'manuscript',
@@ -126,7 +128,7 @@ describe('ProjectManager', () => {
       chapters: [{ file: '01.md', title: 'Old Title', status: 'draft' }],
       metadata: {},
     });
-    pm.updateChapter('/manuscripts/novel', 0, { title: 'New Title', status: 'revised' });
+    await pm.updateChapter('/manuscripts/novel', 0, { title: 'New Title', status: 'revised' });
     const parsed = JSON.parse(files['/manuscripts/novel/.project.json']);
     expect(parsed.chapters[0].title).toBe('New Title');
     expect(parsed.chapters[0].status).toBe('revised');
