@@ -157,13 +157,67 @@ class ZenMode {
             <span class="zen-hud-item" id="zen-reading-time">0 min read</span>
             <span class="zen-hud-sep">&middot;</span>
             <span class="zen-hud-item" id="zen-timer">00:00</span>
+            <span class="zen-hud-sep">&middot;</span>
+            <button class="zen-hud-item zen-goal-btn" id="zen-goal-btn" type="button"
+              title="Set a session word goal">&#9878; goal</button>
             <div class="zen-progress-container" id="zen-progress-container">
                 <div class="zen-progress-bar" id="zen-progress-bar"></div>
             </div>
         `;
     document.body.appendChild(hud);
     this._hud = hud;
+    this._wireGoalButton();
     this._updateHUD();
+  }
+
+  /**
+   * The word-goal progress bar reads localStorage('zen-word-goal'), but until
+   * now nothing in the app ever set it. The HUD button opens a small inline
+   * input (window.prompt is unavailable in Electron) that sets or clears it.
+   */
+  _wireGoalButton() {
+    const btn = this._hud?.querySelector('#zen-goal-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const current = localStorage.getItem('zen-word-goal') || '';
+      const overlay = document.createElement('div');
+      overlay.className = 'zen-goal-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.innerHTML = `
+        <div class="zen-goal-dialog">
+          <h3>Session word goal</h3>
+          <input type="number" min="0" step="50" value="${current}"
+            placeholder="e.g. 500 (0 clears the goal)" aria-label="Word goal" />
+          <div class="zen-goal-actions">
+            <button type="button" data-role="ok">Set</button>
+            <button type="button" data-role="cancel">Cancel</button>
+          </div>
+        </div>`;
+      const input = overlay.querySelector('input');
+      const done = () => overlay.remove();
+      overlay.querySelector('[data-role="ok"]').addEventListener('click', () => {
+        const value = parseInt(input.value, 10);
+        if (Number.isFinite(value) && value > 0) {
+          localStorage.setItem('zen-word-goal', String(value));
+        } else {
+          localStorage.removeItem('zen-word-goal');
+        }
+        done();
+        this._updateHUD();
+      });
+      overlay.querySelector('[data-role="cancel"]').addEventListener('click', done);
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) done();
+      });
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') overlay.querySelector('[data-role="ok"]').click();
+        if (event.key === 'Escape') done();
+      });
+      document.body.appendChild(overlay);
+      input.focus();
+      input.select();
+    });
   }
 
   _updateHUD() {

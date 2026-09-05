@@ -8,7 +8,7 @@ const {
   highlightActiveLine,
   drawSelection,
 } = require('@codemirror/view');
-const { EditorState } = require('@codemirror/state');
+const { EditorState, Compartment } = require('@codemirror/state');
 const { markdown, markdownLanguage } = require('@codemirror/lang-markdown');
 // Language extensions loaded lazily on first use
 let _javascript, _html, _css, _json, _python;
@@ -17,6 +17,30 @@ const { searchKeymap, highlightSelectionMatches } = require('@codemirror/search'
 const { autocompletion, completionKeymap } = require('@codemirror/autocomplete');
 const { bracketMatching, foldGutter, indentOnInput } = require('@codemirror/language');
 const { oneDark } = require('@codemirror/theme-one-dark');
+
+// Compartments allow toggling features (vim mode) on a live editor without
+// recreating the view — CodeMirror 6's intended mechanism for reconfiguration.
+const vimCompartment = new Compartment();
+// Vim is loaded lazily: most users never enable it, and the module is heavy.
+let _vimExtension = null;
+function getVimExtension() {
+  if (!_vimExtension) {
+    _vimExtension = require('@replit/codemirror-vim').vim();
+  }
+  return _vimExtension;
+}
+
+/**
+ * Toggle vim keybindings on an editor created by createEditor.
+ * @param {EditorView} view
+ * @param {boolean} enabled
+ */
+function setVimMode(view, enabled) {
+  if (!view) return;
+  view.dispatch({
+    effects: vimCompartment.reconfigure(enabled ? getVimExtension() : []),
+  });
+}
 
 // Custom theme for JetBrains Mono font
 const jetBrainsMonoTheme = EditorView.theme({
@@ -32,6 +56,37 @@ const jetBrainsMonoTheme = EditorView.theme({
 });
 
 /**
+ * Build the Tab keymap entry that expands snippets before falling through to
+ * indent. `getExpansion(prefix)` is synchronous and returns the replacement
+ * text (or null to decline), letting the host keep its snippets in a Map.
+ */
+function snippetTabKeymap(getExpansion) {
+  return {
+    key: 'Tab',
+    run: (view) => {
+      if (typeof getExpansion !== 'function') return false;
+      const { head } = view.state.selection.main;
+      const line = view.state.doc.lineAt(head);
+      // Word-before-cursor: letters, digits, underscore and hyphen
+      const before = line.text.slice(0, head - line.from);
+      const match = /[\w-]+$/.exec(before);
+      if (!match) return false;
+      const expansion = getExpansion(match[0].toLowerCase());
+      if (typeof expansion !== 'string') return false;
+      view.dispatch({
+        changes: {
+          from: head - match[0].length,
+          to: head,
+          insert: expansion,
+        },
+        selection: { anchor: head - match[0].length + expansion.length },
+      });
+      return true;
+    },
+  };
+}
+
+/**
  * Create a CodeMirror 6 editor instance.
  *
  * @param {HTMLElement} parentElement - DOM element to mount the editor in
@@ -41,6 +96,8 @@ const jetBrainsMonoTheme = EditorView.theme({
  * @param {Function} options.onUpdate       - called with the EditorView on every update (selection, doc change, etc.)
  * @param {boolean} options.isDark           - apply oneDark theme when true (default false)
  * @param {boolean} options.showLineNumbers  - show line-number gutter (default true)
+ * @param {boolean} options.vimMode          - start with vim keybindings (default false; toggle later via setVimMode)
+ * @param {Function} options.getTabExpansion - (prefix)=>string|null; Tab expands a matching snippet (default null)
  * @returns {EditorView} the created editor view
  */
 function createEditor(parentElement, options = {}) {
@@ -62,6 +119,8 @@ function createEditor(parentElement, options = {}) {
     onUpdate = null,
     isDark = false,
     showLineNumbers = true,
+    vimMode = false,
+    getTabExpansion = null,
   } = options;
 
   const extensions = [
@@ -75,13 +134,16 @@ function createEditor(parentElement, options = {}) {
     autocompletion(),
     foldGutter(),
     jetBrainsMonoTheme,
+    // Snippet Tab expansion must precede indentWithTab so it wins when matched
     keymap.of([
+      ...(getTabExpansion ? [snippetTabKeymap(getTabExpansion)] : []),
       ...defaultKeymap,
       ...historyKeymap,
       ...searchKeymap,
       ...completionKeymap,
       indentWithTab,
     ]),
+    vimCompartment.of(vimMode ? getVimExtension() : []),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         onChange(update.state.doc.toString());
@@ -146,4 +208,4 @@ function getLanguageExtension(lang) {
   return loader ? loader() : markdown({ base: markdownLanguage });
 }
 
-module.exports = { createEditor, getLanguageExtension };
+module.exports = { createEditor, getLanguageExtension, setVimMode, snippetTabKeymap };

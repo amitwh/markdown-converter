@@ -1,0 +1,44 @@
+{
+  "id": "ai-assistant",
+  "name": "AI Assistant",
+  "version": "1.0.0",
+  "description": "Multi-provider AI help: chat panel, summarize/improve/explain/translate commands, and grammar proofreading via the writing-studio Proofread panel",
+  "icon": "sparkles",
+  "extensionPoints": {
+    "sidebar": [{ "id": "chat", "title": "AI Chat", "order": 40 }],
+    "commands": [
+      { "id": "summarize-selection", "label": "AI: Summarize Selection", "shortcut": "" },
+      { "id": "improve-selection", "label": "AI: Improve Writing", "shortcut": "" },
+      { "id": "explain-selection", "label": "AI: Explain Selection", "shortcut": "" },
+      { "id": "translate-selection", "label": "AI: Translate Selection", "shortcut": "" },
+      { "id": "open-chat", "label": "AI: Open Chat", "shortcut": "" }
+    ]
+  },
+  "settings": [
+    {
+      "key": "provider",
+      "type": "string",
+      "default": "",
+      "label": "Provider (openai|anthropic|ollama|lmstudio|openai-compatible)"
+    },
+    { "key": "model", "type": "string", "default": "", "label": "Model name" },
+    {
+      "key": "baseUrl",
+      "type": "string",
+      "default": "",
+      "label": "API base URL (optional override)"
+    },
+    {
+      "key": "apiKey",
+      "type": "string",
+      "default": "",
+      "label": "API key (not required for local providers)"
+    },
+    {
+      "key": "temperature",
+      "type": "number",
+      "default": 0.7,
+      "label": "Sampling temperature (0-2)"
+    }
+  ]
+}

@@ -58,6 +58,15 @@ class PluginContext {
       getSelection: () => editor.getSelection(),
       insertAtCursor: (text) => editor.insertAtCursor(text),
       onContentChanged: (cb) => editor.onContentChanged(cb),
+      // Current tab's file path (null for untitled tabs) — plugins that store
+      // sidecar data (comments, snapshots, …) key off this.
+      getCurrentFilePath: () => (editor.getCurrentFilePath ? editor.getCurrentFilePath() : null),
+      // Scroll the active editor to a 1-based line and place the cursor there
+      jumpToLine: (line) => {
+        if (editor.jumpToLine) editor.jumpToLine(line);
+      },
+      // 1-based line of the primary cursor
+      getCurrentLine: () => (editor.getCurrentLine ? editor.getCurrentLine() : 1),
     };
 
     this.events = {

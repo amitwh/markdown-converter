@@ -40,6 +40,10 @@ const ALLOWED_SEND_CHANNELS = [
   'plugin-export-formats-registered',
   'plugin-export-format-result',
 
+  // AI Assistant plugin (completions proxied through main; keys stay there)
+  'ai-assistant:complete',
+  'ai-assistant:status',
+
   // Batch conversion
   'batch-convert',
   'select-folder',
@@ -155,6 +159,23 @@ const ALLOWED_SEND_CHANNELS = [
   // Monospace font settings
   'get-monospace-settings',
   'set-monospace-settings',
+
+  // Vim keybinding mode
+  'get-vim-mode',
+  'set-vim-mode',
+
+  // PlantUML local rendering (optional CLI)
+  'plantuml:available',
+  'plantuml:render',
+
+  // Quick Note scratchpad
+  'quick-note:save',
+
+  // Document version history
+  'version-history:list',
+  'version-history:read',
+  'version-history:save',
+  'version-history:delete',
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [

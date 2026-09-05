@@ -14,7 +14,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const sharp = require('sharp');
-const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+const { PDFDocument, StandardFonts, rgb } = require('@cantoo/pdf-lib');
 const PDFOperations = require('../../src/main/PDFOperations');
 
 describe('PDFOperations - Task 15 new operations', () => {
@@ -386,7 +386,7 @@ describe('PDFOperations - Task 16 form field fill/flatten', () => {
   });
 });
 
-describe('PDFOperations - Task 27 honest encryption failure', () => {
+describe('PDFOperations - real encryption (@cantoo/pdf-lib)', () => {
   let tmpDir, inputPath;
 
   beforeEach(async () => {
@@ -402,16 +402,16 @@ describe('PDFOperations - Task 27 honest encryption failure', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('detects the bundled pdf-lib as encryption-incapable via the module-load probe', async () => {
-    // Pins the Task 27 premise: pdf-lib 1.17.1's save() ignores password
-    // options (SaveOptions has no such fields), so the probe — which saves a
-    // tiny document with a userPassword and checks the bytes for /Encrypt —
-    // must report false. If this fails after a library swap, the probe
-    // re-enabled the ops and the honest-failure tests below no longer apply.
-    await expect(PDFOperations.pdfEncryptionSupported).resolves.toBe(false);
+  it('detects the encryption-capable library via the module-load probe', async () => {
+    // The @cantoo/pdf-lib fork adds doc.encrypt(); the probe — which encrypts
+    // a tiny document and checks the bytes for /Encrypt — must report true so
+    // the password ops are enabled in the UI. If this fails after a library
+    // change, the ops fall back to honest failure and these tests no longer
+    // apply.
+    await expect(PDFOperations.pdfEncryptionSupported).resolves.toBe(true);
   });
 
-  it('pdfEncrypt fails honestly without writing an output file', async () => {
+  it('pdfEncrypt writes an encrypted PDF that requires the password', async () => {
     const outputPath = path.join(tmpDir, 'encrypted.pdf');
     const result = await PDFOperations.pdfEncrypt({
       inputPath,
@@ -421,60 +421,90 @@ describe('PDFOperations - Task 27 honest encryption failure', () => {
       permissions: { printing: true },
     });
 
-    expect(result.success).toBe(false);
-    expect(result.message).toBe(PDFOperations.PDF_ENCRYPTION_UNAVAILABLE_MESSAGE);
-    expect(fs.existsSync(outputPath)).toBe(false);
+    expect(result.success).toBe(true);
+    expect(fs.existsSync(outputPath)).toBe(true);
+    const bytes = fs.readFileSync(outputPath);
+    expect(bytes.includes('/Encrypt')).toBe(true);
+
+    // Correct password opens it; wrong password is rejected.
+    const opened = await PDFDocument.load(bytes, { password: 'secret' });
+    expect(opened.getPageCount()).toBe(1);
+    await expect(PDFDocument.load(bytes, { password: 'wrong' })).rejects.toThrow();
   });
 
-  it('pdfDecrypt fails honestly without writing an output file', async () => {
+  it('pdfDecrypt removes password protection and writes a clean PDF', async () => {
+    const encryptedPath = path.join(tmpDir, 'encrypted.pdf');
+    const encryptResult = await PDFOperations.pdfEncrypt({
+      inputPath,
+      outputPath: encryptedPath,
+      userPassword: 'secret',
+      permissions: { printing: true },
+    });
+    expect(encryptResult.success).toBe(true);
+
     const outputPath = path.join(tmpDir, 'decrypted.pdf');
     const result = await PDFOperations.pdfDecrypt({
-      inputPath,
+      inputPath: encryptedPath,
       outputPath,
       password: 'secret',
     });
 
+    expect(result.success).toBe(true);
+    const bytes = fs.readFileSync(outputPath);
+    expect(bytes.includes('/Encrypt')).toBe(false);
+    const opened = await PDFDocument.load(bytes);
+    expect(opened.getPageCount()).toBe(1);
+  });
+
+  it('pdfDecrypt rejects a wrong password without writing output', async () => {
+    const encryptedPath = path.join(tmpDir, 'encrypted.pdf');
+    await PDFOperations.pdfEncrypt({
+      inputPath,
+      outputPath: encryptedPath,
+      userPassword: 'secret',
+      permissions: {},
+    });
+
+    const outputPath = path.join(tmpDir, 'decrypted.pdf');
+    const result = await PDFOperations.pdfDecrypt({
+      inputPath: encryptedPath,
+      outputPath,
+      password: 'wrong',
+    });
+
     expect(result.success).toBe(false);
-    expect(result.message).toBe(PDFOperations.PDF_ENCRYPTION_UNAVAILABLE_MESSAGE);
+    expect(result.error).toMatch(/password/i);
     expect(fs.existsSync(outputPath)).toBe(false);
   });
 
-  it('pdfSetPermissions fails honestly without writing an output file', async () => {
+  it('pdfSetPermissions writes an encrypted PDF with an owner password', async () => {
     const outputPath = path.join(tmpDir, 'permissions.pdf');
     const result = await PDFOperations.pdfSetPermissions({
       inputPath,
       outputPath,
       ownerPassword: 'owner-secret',
-      permissions: { printing: true },
+      permissions: { printing: true, copying: false },
     });
 
-    expect(result.success).toBe(false);
-    expect(result.message).toBe(PDFOperations.PDF_ENCRYPTION_UNAVAILABLE_MESSAGE);
-    expect(fs.existsSync(outputPath)).toBe(false);
+    expect(result.success).toBe(true);
+    const bytes = fs.readFileSync(outputPath);
+    expect(bytes.includes('/Encrypt')).toBe(true);
+    // Owner password grants full access, so loading with it must succeed.
+    const opened = await PDFDocument.load(bytes, { password: 'owner-secret' });
+    expect(opened.getPageCount()).toBe(1);
   });
 
-  it('fails honestly even before reading the input, so a missing input reports unavailability', async () => {
-    const result = await PDFOperations.pdfEncrypt({
-      inputPath: path.join(tmpDir, 'missing.pdf'),
-      outputPath: path.join(tmpDir, 'never-written.pdf'),
-      userPassword: 'secret',
-    });
-
-    expect(result.success).toBe(false);
-    expect(result.message).toBe(PDFOperations.PDF_ENCRYPTION_UNAVAILABLE_MESSAGE);
-    expect(fs.existsSync(path.join(tmpDir, 'never-written.pdf'))).toBe(false);
-  });
-
-  it('executeOperation routes the password ops to the honest failure', async () => {
+  it('executeOperation routes encrypt to the real implementation', async () => {
+    const outputPath = path.join(tmpDir, 'exec-encrypted.pdf');
     const result = await PDFOperations.executeOperation('encrypt', {
       inputPath,
-      outputPath: path.join(tmpDir, 'exec-encrypted.pdf'),
+      outputPath,
       userPassword: 'secret',
       permissions: { printing: true },
     });
 
-    expect(result.success).toBe(false);
-    expect(result.message).toBe(PDFOperations.PDF_ENCRYPTION_UNAVAILABLE_MESSAGE);
+    expect(result.success).toBe(true);
+    expect(fs.readFileSync(outputPath).includes('/Encrypt')).toBe(true);
   });
 
   it('the module-load probe does not affect other operations', async () => {

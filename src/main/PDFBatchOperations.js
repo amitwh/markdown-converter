@@ -22,10 +22,9 @@
  *     cannot supply (merge takes many inputs in one op; reorder needs each
  *     file's full page order; fillForm's field values differ per file).
  *   - formFields — a read-only query returning data, not a transform.
- *   - encrypt / decrypt / permissions — pdf-lib 1.17.1 (bundled) lacks
- *     encryption support, so since Task 27 these ops fail honestly with an
- *     "unavailable" result instead of silently writing unprotected files;
- *     a batch run would deterministically fail every file.
+ *   - encrypt / decrypt / permissions — these need per-file secrets (passwords)
+ *     that the folder-batch flow cannot supply meaningfully, so they stay
+ *     single-file operations in the PDF Editor dialog.
  *
  * @module PDFBatchOperations
  */

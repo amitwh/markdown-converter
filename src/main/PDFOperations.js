@@ -1,20 +1,20 @@
 const fs = require('fs');
 const path = require('path');
-const { PDFDocument, rgb, degrees, StandardFonts } = require('pdf-lib');
+// @cantoo/pdf-lib is a drop-in pdf-lib fork that adds real encryption support
+// (doc.encrypt() + password-protected loading), which upstream pdf-lib 1.17.1
+// lacks. Rather than trusting a pinned version string, probe the installed
+// library once at module load: encrypt a tiny in-memory document and check the
+// raw bytes for an /Encrypt dictionary (which an unencrypted document never
+// contains). A library that supports encryption passes the probe and the
+// password ops re-enable automatically. Probe errors fail closed (treated as
+// unsupported).
+const { PDFDocument, rgb, degrees, StandardFonts } = require('@cantoo/pdf-lib');
 
-// pdf-lib 1.17.1 cannot encrypt: SaveOptions has no userPassword/ownerPassword/
-// permissions fields, so save() silently ignores them and writes an unprotected
-// file, and PDFDocument.load() cannot open password-protected input (verified
-// empirically in Task 22's review). Rather than trusting a pinned version
-// string, probe the installed library once at module load: save a tiny
-// in-memory document with a userPassword and check the raw bytes for an
-// /Encrypt dictionary (which an unencrypted document never contains). A library
-// that supports encryption passes the probe and the password ops re-enable
-// automatically. Probe errors fail closed (treated as unsupported).
 const pdfEncryptionSupported = (async () => {
   try {
     const probeDoc = await PDFDocument.create();
-    const probeBytes = await probeDoc.save({ userPassword: 'encryption-capability-probe' });
+    probeDoc.encrypt({ userPassword: 'encryption-capability-probe' });
+    const probeBytes = await probeDoc.save();
     return Buffer.from(probeBytes).includes('/Encrypt');
   } catch {
     return false;
@@ -335,7 +335,7 @@ async function pdfEncrypt(data) {
     const pdfBytes = fs.readFileSync(data.inputPath);
     const pdf = await PDFDocument.load(pdfBytes);
 
-    const encryptedPdfBytes = await pdf.save({
+    pdf.encrypt({
       userPassword: data.userPassword,
       ownerPassword: data.ownerPassword || data.userPassword,
       permissions: {
@@ -349,6 +349,7 @@ async function pdfEncrypt(data) {
       },
     });
 
+    const encryptedPdfBytes = await pdf.save();
     fs.writeFileSync(data.outputPath, encryptedPdfBytes);
 
     return { success: true, message: 'Successfully added password protection to PDF' };
@@ -357,7 +358,7 @@ async function pdfEncrypt(data) {
       return {
         success: false,
         error:
-          'PDF encryption requires pdf-lib with encryption support. This feature may not be available in the current version.',
+          'PDF encryption requires @cantoo/pdf-lib with encryption support. This feature may not be available in the current version.',
       };
     }
     return { success: false, error: error.message };
@@ -372,7 +373,14 @@ async function pdfDecrypt(data) {
     const pdfBytes = fs.readFileSync(data.inputPath);
     const pdf = await PDFDocument.load(pdfBytes, { password: data.password });
 
-    const decryptedPdfBytes = await pdf.save();
+    // The loaded context retains its /Encrypt security object, so re-saving it
+    // would keep the document encrypted. Copy the pages into a fresh document
+    // instead, which produces a clean, unencrypted file.
+    const decrypted = await PDFDocument.create();
+    const copiedPages = await decrypted.copyPages(pdf, pdf.getPageIndices());
+    copiedPages.forEach((page) => decrypted.addPage(page));
+
+    const decryptedPdfBytes = await decrypted.save();
     fs.writeFileSync(data.outputPath, decryptedPdfBytes);
 
     return { success: true, message: 'Successfully removed password protection from PDF' };
@@ -393,7 +401,7 @@ async function pdfSetPermissions(data) {
     const loadOptions = data.currentPassword ? { password: data.currentPassword } : {};
     const pdf = await PDFDocument.load(pdfBytes, loadOptions);
 
-    const newPdfBytes = await pdf.save({
+    pdf.encrypt({
       ownerPassword: data.ownerPassword,
       permissions: {
         printing: data.permissions.printing ? 'highResolution' : 'lowResolution',
@@ -406,6 +414,8 @@ async function pdfSetPermissions(data) {
       },
     });
 
+    const newPdfBytes = await pdf.save();
+
     fs.writeFileSync(data.outputPath, newPdfBytes);
 
     return { success: true, message: 'Successfully updated PDF permissions' };
@@ -414,7 +424,7 @@ async function pdfSetPermissions(data) {
       return {
         success: false,
         error:
-          'PDF permissions require pdf-lib with encryption support. This feature may not be available in the current version.',
+          'PDF permissions require @cantoo/pdf-lib with encryption support. This feature may not be available in the current version.',
       };
     }
     return { success: false, error: error.message };

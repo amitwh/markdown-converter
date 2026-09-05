@@ -100,3 +100,58 @@ body.zen-mode .editor-wrapper {
 body[class*='dark'].zen-mode .zen-hud {
   background: rgba(0, 0, 0, 0.7);
 }
+
+/* Word-goal setter (HUD button + inline dialog) */
+.zen-goal-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.7;
+}
+.zen-goal-btn:hover {
+  opacity: 1;
+}
+.zen-goal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 11000;
+}
+.zen-goal-dialog {
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #222);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+.zen-goal-dialog h3 {
+  margin: 0;
+}
+.zen-goal-dialog input {
+  padding: 8px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 4px;
+  font: inherit;
+}
+.zen-goal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.zen-goal-actions button {
+  padding: 6px 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color, #ccc);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}

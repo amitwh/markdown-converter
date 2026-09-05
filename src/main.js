@@ -347,9 +347,16 @@ ipcMain.handle('set-monospace-settings', (_event, partial) => {
     store.set('monospaceLigatures', safe.monospaceLigatures === true);
   }
   return {
-    monospaceFont: readSettingsJsonCached().monospaceFont || 'jetbrains-mono',
-    monospaceLigatures: readSettingsJsonCached().monospaceLigatures === true,
+    monospaceFont: store.get('monospaceFont', 'jetbrains-mono'),
+    monospaceLigatures: store.get('monospaceLigatures', true),
   };
+});
+
+// Vim keybinding mode — same read/toggle/persist flow as the monospace font
+ipcMain.handle('get-vim-mode', () => store.get('vimMode', false) === true);
+ipcMain.handle('set-vim-mode', (_event, enabled) => {
+  store.set('vimMode', enabled === true);
+  return enabled === true;
 });
 ipcMain.handle('get-app-version', () => app.getVersion());
 
@@ -508,6 +515,11 @@ if (!gotTheLock) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
     }
+
+    // Deep link: markdownconverter://open?path=<encoded absolute path>
+    // (Windows/Linux deliver protocol URLs through the command line)
+    const deepLink = commandLine.find((arg) => arg.startsWith('markdownconverter://'));
+    if (deepLink && handleDeepLink(deepLink)) return;
 
     // Check if a file was passed to the second instance
     // commandLine is an array like: ['PanConverter.exe', 'file.md']
@@ -842,7 +854,8 @@ function createMenu() {
             {
               label: 'PDF (Enhanced)',
               click: () => exportPDFViaWordTemplate(),
-              accelerator: 'Ctrl+Shift+P',
+              // Ctrl+Shift+P is the Command Palette; use Alt to avoid the collision
+              accelerator: 'Ctrl+Alt+Shift+P',
             },
             {
               label: 'DOCX',
@@ -886,6 +899,10 @@ function createMenu() {
             {
               label: 'CSV (Tables)',
               click: () => exportSpreadsheet('csv'),
+            },
+            {
+              label: 'Excel Spreadsheet (.xlsx)',
+              click: () => exportSpreadsheet('xlsx'),
             },
             {
               type: 'separator',
@@ -1072,6 +1089,18 @@ function createMenu() {
             {
               label: 'Templates',
               click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'templates'),
+            },
+            {
+              label: 'Outline',
+              click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'outline'),
+            },
+            {
+              label: 'Backlinks',
+              click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'backlinks'),
+            },
+            {
+              label: 'Version History',
+              click: () => mainWindow.webContents.send('toggle-sidebar-panel', 'history'),
             },
           ],
         },
@@ -1265,6 +1294,15 @@ function createMenu() {
           },
         },
         {
+          // Vim keybindings for the editor (toggled live via setVimMode)
+          label: 'Vim Mode',
+          type: 'checkbox',
+          checked: store.get('vimMode', false) === true,
+          click: (menuItem) => {
+            mainWindow.webContents.send('vim-setting-change', menuItem.checked);
+          },
+        },
+        {
           type: 'separator',
         },
         {
@@ -1453,7 +1491,7 @@ function createMenu() {
               title: 'About PDF Editor',
               message: 'PDF Editor',
               detail:
-                'Comprehensive PDF editing capabilities powered by pdf-lib and pdfjs-dist.\n\nFeatures:\n• Merge multiple PDF files\n• Split PDF into separate files\n• Compress PDF to reduce file size\n• Rotate pages (90°, 180°, 270°)\n• Delete unwanted pages\n• Reorder pages\n• Add text watermarks\n• Add page numbers\n• Crop pages\n• Extract text\n• Extract embedded images\n\nSecurity Features:\n• Password protection (encryption)\n• Remove passwords (decryption)\n• Set document permissions\n\n100% offline and open-source.',
+                'Comprehensive PDF editing capabilities powered by @cantoo/pdf-lib and pdfjs-dist.\n\nFeatures:\n• Merge multiple PDF files\n• Split PDF into separate files\n• Compress PDF to reduce file size\n• Rotate pages (90°, 180°, 270°)\n• Delete unwanted pages\n• Reorder pages\n• Add text watermarks\n• Add page numbers\n• Crop pages\n• Extract text\n• Extract embedded images\n\nSecurity Features:\n• Password protection (encryption)\n• Remove passwords (decryption)\n• Set document permissions\n\n100% offline and open-source.',
               buttons: ['OK'],
             });
           },
@@ -1475,6 +1513,12 @@ function createMenu() {
         },
         {
           type: 'separator',
+        },
+        {
+          // Global scratchpad (Ctrl+Alt+Q works even when the app is unfocused)
+          label: 'Quick Note',
+          accelerator: 'CmdOrCtrl+Alt+Q',
+          click: () => openQuickNoteWindow(),
         },
         {
           label: 'Document Compare',
@@ -1722,7 +1766,7 @@ function showDependenciesDialog() {
   <h2>Bundled Libraries</h2>
 
   <div class="dep-card">
-    <div class="dep-name">pdf-lib</div>
+    <div class="dep-name">@cantoo/pdf-lib</div>
     <div class="dep-desc">PDF manipulation library for merge, split, watermark, and encryption features.</div>
   </div>
 
@@ -2487,6 +2531,17 @@ function checkConverterAvailable(tool) {
         resolve(fs.existsSync(ffmpegBin) || ffmpegBin === 'ffmpeg');
         return;
       }
+      case 'pandoc': {
+        // Pandoc is bundled (bin/<platform>/pandoc) with a system-PATH fallback
+        const pandocBin = getPandocPath();
+        if (pandocBin && pandocBin !== 'pandoc') {
+          resolve(fs.existsSync(pandocBin));
+          return;
+        }
+        // Bundled binary missing — fall through to a PATH lookup
+        toolName = 'pandoc';
+        break;
+      }
       default:
         resolve(false);
         return;
@@ -3218,17 +3273,46 @@ function exportWithPandoc(pandocArgs, outputFile, format, onComplete) {
         }
       }
 
-      // Set page size for ODT
+      // Set page size for ODT (ODF styles.xml — the DOCX-oriented
+      // setDocxPageSize cannot patch an ODT package)
       if (format === 'odt') {
         try {
-          await setDocxPageSize(outputFile); // ODT has similar structure
+          const { setOdtPageSize } = require('./main/OdtStyling');
+          await setOdtPageSize(outputFile, { ...pageSettings, pageSizes: PAGE_SIZES });
         } catch (pageSizeError) {
           console.error('Error setting page size for ODT:', pageSizeError);
         }
       }
 
-      // Add headers/footers to ODT if enabled
+      // Add headers/footers to ODT if enabled (mirrors the DOCX path above)
       if (format === 'odt' && headerFooterSettings.enabled) {
+        try {
+          const filename = currentFile
+            ? path.basename(currentFile, path.extname(currentFile))
+            : 'document';
+          const metadata = {
+            filename: filename,
+            title: filename,
+            author: '',
+          };
+          const { addHeaderFooterToOdt } = require('./main/OdtStyling');
+          await addHeaderFooterToOdt(outputFile, {
+            enabled: headerFooterSettings.enabled,
+            header: {
+              left: processDynamicFields(headerFooterSettings.header.left, metadata),
+              center: processDynamicFields(headerFooterSettings.header.center, metadata),
+              right: processDynamicFields(headerFooterSettings.header.right, metadata),
+            },
+            footer: {
+              left: processDynamicFields(headerFooterSettings.footer.left, metadata),
+              center: processDynamicFields(headerFooterSettings.footer.center, metadata),
+              right: processDynamicFields(headerFooterSettings.footer.right, metadata),
+            },
+          });
+        } catch (hfError) {
+          console.error('Error adding headers/footers to ODT:', hfError);
+          // Continue with success message even if header/footer fails
+        }
       }
       showExportSuccess(outputFile);
     }
@@ -3640,6 +3724,24 @@ function setTheme(theme) {
 
 // IPC handlers
 ipcMain.on('save-file', (event, { path, content }) => {
+  // Version history: snapshot the on-disk content before it is replaced so
+  // the user can roll back from the History panel. First save of a new file
+  // (or unchanged content) skips the snapshot to keep noise out of the list.
+  try {
+    if (fs.existsSync(path)) {
+      const previous = fs.readFileSync(path, 'utf-8');
+      if (previous !== content) {
+        VersionHistory.saveVersion({
+          docPath: path,
+          content: previous,
+          label: 'before save',
+          io: versionHistoryIo(),
+        });
+      }
+    }
+  } catch (historyError) {
+    console.error('Version history snapshot failed:', historyError);
+  }
   fs.writeFileSync(path, content, 'utf-8');
   currentFile = path;
 });
@@ -3661,6 +3763,51 @@ ipcMain.on('get-theme', (event) => {
 // Handle tab file tracking for exports
 ipcMain.on('set-current-file', (event, filePath) => {
   currentFile = filePath;
+});
+
+// ============================================
+// Version History (local rollback without Git)
+// ============================================
+const VersionHistory = require('./main/VersionHistory');
+
+/** IO bundle for VersionHistory bound to <userData>/versions. */
+function versionHistoryIo() {
+  return {
+    rootDir: path.join(app.getPath('userData'), 'versions'),
+    fs,
+    pathUtil: path,
+  };
+}
+
+ipcMain.handle('version-history:list', (_event, docPath) => {
+  if (typeof docPath !== 'string' || !docPath) return [];
+  // Never leak other documents' history via a guessed path
+  const validation = validatePath(docPath);
+  if (!validation.valid) return [];
+  return VersionHistory.listVersions({ docPath, io: versionHistoryIo() });
+});
+
+ipcMain.handle('version-history:read', (_event, { docPath, id } = {}) => {
+  const validation = typeof docPath === 'string' ? validatePath(docPath) : { valid: false };
+  if (!validation.valid) throw new Error('Invalid document path');
+  return VersionHistory.readVersion({ docPath, id, io: versionHistoryIo() });
+});
+
+ipcMain.handle('version-history:save', (_event, { docPath, content, label } = {}) => {
+  const validation = typeof docPath === 'string' ? validatePath(docPath) : { valid: false };
+  if (!validation.valid) throw new Error('Invalid document path');
+  return VersionHistory.saveVersion({
+    docPath,
+    content,
+    label: typeof label === 'string' ? label : 'manual',
+    io: versionHistoryIo(),
+  });
+});
+
+ipcMain.handle('version-history:delete', (_event, { docPath, id } = {}) => {
+  const validation = typeof docPath === 'string' ? validatePath(docPath) : { valid: false };
+  if (!validation.valid) return false;
+  return VersionHistory.deleteVersion({ docPath, id, io: versionHistoryIo() });
 });
 
 // Handle actual printing when renderer is ready
@@ -3800,6 +3947,11 @@ ipcMain.on('export-spreadsheet', (event, { content, format }) => {
           });
         });
         fs.writeFileSync(outputFile, csvContent, 'utf-8');
+      } else if (format === 'xlsx') {
+        // Native Excel workbook: one sheet per markdown table (no Pandoc needed)
+        const { buildXlsx } = require('./main/XlsxExporter');
+        const buffer = buildXlsx(tables);
+        fs.writeFileSync(outputFile, buffer);
       }
       dialog.showMessageBox(mainWindow, {
         type: 'info',
@@ -4441,13 +4593,13 @@ function buildCLIConversionArgs(content, format, outputPath) {
       }
       break;
     case 'html':
-      args.push('--self-contained', '--css');
+      // Standalone HTML; a bare --css (or --self-contained, removed in Pandoc 3.x)
+      // without a value is invalid argv and makes pandoc exit with an error.
+      args.push('--standalone');
       break;
     case 'docx':
-      args.push('--reference-doc');
-
-      // For DOCX, header/footer are handled via reference document or separate processing
-      // We'll add a note that DOCX headers/footers require reference doc or post-processing
+      // DOCX headers/footers are applied via addHeaderFooterToDocx() post-processing
+      // after export; a bare --reference-doc without a value would be invalid argv.
       break;
     case 'odt':
       // ODT headers/footers are handled via reference document
@@ -4608,6 +4760,58 @@ app.on('open-file', (event, filePath) => {
   }
 });
 
+// ============================================
+// Deep link protocol: markdownconverter://open?path=<encoded abs path>
+// ============================================
+// Lets external tools (browsers, launchers, note-taking scripts) hand a
+// document straight to a running instance. Only the 'open' action exists;
+// the path must be absolute, exist, and pass the same size guard as normal
+// opens. Returns true when the link was consumed.
+function handleDeepLink(urlString) {
+  let url;
+  try {
+    url = new URL(urlString);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'markdownconverter:') return false;
+
+  const action = url.hostname || url.pathname.replace(/^\/+/, '');
+  if (action !== 'open') {
+    dialog.showErrorBox('Deep Link', `Unknown action "${action}". Only "open" is supported.`);
+    return true;
+  }
+
+  const target = url.searchParams.get('path');
+  if (!target || !path.isAbsolute(target)) {
+    dialog.showErrorBox('Deep Link', 'The link must include an absolute ?path=… parameter.');
+    return true;
+  }
+  const validation = validatePath(target);
+  if (!validation.valid || !fs.existsSync(validation.resolved)) {
+    dialog.showErrorBox('Deep Link', 'The linked file does not exist or is not accessible.');
+    return true;
+  }
+
+  if (rendererReady) {
+    openFileFromPath(validation.resolved);
+  } else {
+    app.pendingFile = validation.resolved;
+  }
+  return true;
+}
+
+// macOS delivers protocol clicks as open-url events
+app.on('open-url', (event, urlString) => {
+  event.preventDefault();
+  handleDeepLink(urlString);
+});
+
+// Register the custom protocol once the app is ready (idempotent)
+app.whenReady().then(() => {
+  app.setAsDefaultProtocolClient('markdownconverter');
+});
+
 // Handle file opening from command line or file association
 function openFileFromPath(filePath) {
   if (fs.existsSync(filePath)) {
@@ -4654,12 +4858,77 @@ ipcMain.on('process-pdf-operation', async (event, data) => {
     });
   }
 });
-// Reports pdf-lib's encryption capability (Task 27) so the renderer can
+// Reports the PDF library's encryption capability so the renderer can
 // disable the password-protection controls instead of letting the user
 // fill the form only to see the operation fail.
 ipcMain.handle('get-pdf-capabilities', async () => ({
   passwordProtection: await PDFOperations.pdfEncryptionSupported,
 }));
+
+// ================================
+// AI Assistant plugin (main-process side)
+// ================================
+// All AI provider traffic flows through the main process: the renderer CSP
+// stays closed to AI endpoints and API keys never cross the IPC boundary.
+// Provider settings live in settings.json under plugins.ai-assistant.*
+// (written by the plugin settings store), so the handlers below read them
+// with the same store the rest of the app uses.
+const AiProviders = require('./main/AiProviders');
+
+/** Read the AI Assistant plugin's provider settings from the settings store. */
+function getAiAssistantSettings() {
+  return {
+    provider: store.get('plugins.ai-assistant.provider', ''),
+    model: store.get('plugins.ai-assistant.model', ''),
+    baseUrl: store.get('plugins.ai-assistant.baseUrl', ''),
+    apiKey: store.get('plugins.ai-assistant.apiKey', ''),
+    temperature: store.get('plugins.ai-assistant.temperature', 0.7),
+  };
+}
+
+/**
+ * Report provider/model and whether a usable configuration exists — without
+ * ever returning the key material to the renderer.
+ */
+ipcMain.handle('ai-assistant:status', async () => {
+  const settings = getAiAssistantSettings();
+  let configured = false;
+  try {
+    // resolveSettings throws when the provider is unknown or a required key
+    // is missing — exactly the "not configured" definition we want.
+    AiProviders.resolveSettings(settings);
+    configured = true;
+  } catch {
+    configured = false;
+  }
+  return {
+    configured,
+    provider: settings.provider,
+    model: settings.model || AiProviders.PROVIDER_DEFAULTS[settings.provider]?.defaultModel || '',
+  };
+});
+
+/**
+ * Run a chat completion. The payload is {system?, messages:[{role,content}]}
+ * with provider settings taken from the store, never from the caller — a
+ * compromised renderer cannot redirect requests to an attacker endpoint.
+ */
+ipcMain.handle('ai-assistant:complete', async (_event, request) => {
+  const settings = getAiAssistantSettings();
+  try {
+    return await AiProviders.complete({ ...request, ...settings });
+  } catch (error) {
+    // AiProviderError messages are already user-safe; wrap anything else
+    return {
+      error:
+        error.code === undefined
+          ? 'AI request failed. Check the provider settings and your connection.'
+          : error.message,
+      code: error.code || 'failed',
+    };
+  }
+});
+
 ipcMain.on('get-pdf-page-count', async (event, filePath) => {
   try {
     const count = await PDFOperations.getPageCount(filePath);
@@ -5073,6 +5342,108 @@ ipcMain.on('open-table-generator', () => {
   openTableGenerator();
 });
 
+// ============================================
+// Quick Note — global scratchpad window (Ctrl+Alt+Q)
+// ============================================
+// A small always-quick-to-open window for capturing thoughts without
+// disturbing the main workspace. Notes append to <userData>/notes/quick-notes.md
+// with a timestamp header, so nothing is ever lost and the file is plain
+// markdown the user can open in the main editor later.
+let quickNoteWindow = null;
+const quickNotesPath = () => path.join(app.getPath('userData'), 'notes', 'quick-notes.md');
+
+function openQuickNoteWindow() {
+  if (quickNoteWindow) {
+    quickNoteWindow.show();
+    quickNoteWindow.focus();
+    return;
+  }
+  quickNoteWindow = new BrowserWindow({
+    width: 420,
+    height: 320,
+    alwaysOnTop: true,
+    skipTaskbar: false,
+    title: 'Quick Note',
+    icon: path.join(__dirname, '../assets/icon.png'),
+    webPreferences: {
+      // Small self-contained page; nodeIntegration lets it save via IPC
+      // without shipping a dedicated preload for one textarea.
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+  quickNoteWindow.setMenuBarVisibility(false);
+  quickNoteWindow.loadURL(
+    'data:text/html;charset=utf-8,' +
+      encodeURIComponent(`<!doctype html>
+<html><head><meta charset="utf-8"><title>Quick Note</title>
+<style>
+  body { margin:0; font: 13px system-ui, sans-serif; display:flex; flex-direction:column; height:100vh; }
+  textarea { flex:1; border:0; resize:none; padding:12px; font:inherit; box-sizing:border-box; outline:none; }
+  footer { display:flex; justify-content:space-between; align-items:center; padding:6px 12px;
+           border-top:1px solid #ddd; color:#666; font-size:11px; }
+  button { padding:4px 12px; cursor:pointer; }
+</style></head>
+<body>
+  <textarea id="note" placeholder="Type a note… (Ctrl+Enter saves & clears, Esc hides)"></textarea>
+  <footer>
+    <span id="status">Appends to notes/quick-notes.md</span>
+    <button id="save" type="button">Save note</button>
+  </footer>
+<script>
+  const { ipcRenderer } = require('electron');
+  const note = document.getElementById('note');
+  const status = document.getElementById('status');
+  function save() {
+    const text = note.value.trim();
+    if (!text) return;
+    ipcRenderer.invoke('quick-note:save', text).then(() => {
+      note.value = '';
+      status.textContent = 'Saved ' + new Date().toLocaleTimeString();
+    }).catch((e) => { status.textContent = 'Save failed: ' + e.message; });
+  }
+  document.getElementById('save').addEventListener('click', save);
+  note.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); save(); }
+    if (e.key === 'Escape') ipcRenderer.send('quick-note:hide');
+  });
+  note.focus();
+</script>
+</body></html>`)
+  );
+  quickNoteWindow.on('closed', () => {
+    quickNoteWindow = null;
+  });
+}
+
+ipcMain.handle('quick-note:save', async (_event, text) => {
+  // Append with a timestamp header; folder is created on first save
+  const file = quickNotesPath();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16);
+  fs.appendFileSync(file, `\n\n## ${stamp}\n\n${String(text)}\n`, 'utf-8');
+  return { path: file };
+});
+
+// Esc in the note window hides instead of closing (keeps it one keystroke away)
+ipcMain.on('quick-note:hide', () => {
+  if (quickNoteWindow) quickNoteWindow.hide();
+});
+
+// Global shortcut works even when the app is not focused — the point of a
+// scratchpad. Registered on ready, unregistered on quit.
+app.whenReady().then(() => {
+  const { globalShortcut } = require('electron');
+  const registered = globalShortcut.register('CommandOrControl+Alt+Q', () => {
+    openQuickNoteWindow();
+  });
+  if (!registered) console.warn('Quick Note shortcut Ctrl+Alt+Q could not be registered');
+});
+app.on('will-quit', () => {
+  const { globalShortcut } = require('electron');
+  globalShortcut.unregister('CommandOrControl+Alt+Q');
+});
+
 // IPC Handler for loading document templates
 ipcMain.handle('load-template', async (event, filename) => {
   try {
@@ -5082,6 +5453,51 @@ ipcMain.handle('load-template', async (event, filename) => {
     console.error('Failed to load template:', err);
     return null;
   }
+});
+
+// ============================================
+// PlantUML local rendering (optional CLI)
+// ============================================
+// When a local `plantuml` executable is installed, diagrams render on the
+// user's machine via `-pipe` mode (diagram source on stdin, PNG on stdout)
+// instead of POSTing them to plantuml.com (the CVE-MC-007 data-exposure
+// concern). Availability is probed once and cached.
+let plantumlAvailableCache = null;
+ipcMain.handle('plantuml:available', async () => {
+  if (plantumlAvailableCache !== null) return plantumlAvailableCache;
+  plantumlAvailableCache = await new Promise((resolve) => {
+    const isWin = process.platform === 'win32';
+    execFile(isWin ? 'where' : 'which', [isWin ? 'plantuml.exe' : 'plantuml'], (error) => {
+      resolve(!error);
+    });
+  });
+  return plantumlAvailableCache;
+});
+
+ipcMain.handle('plantuml:render', async (_event, { text } = {}) => {
+  if (typeof text !== 'string' || text.length > 1024 * 1024) {
+    throw new Error('Invalid PlantUML input');
+  }
+  return new Promise((resolve, reject) => {
+    // -pipe reads the diagram from stdin and writes PNG bytes to stdout
+    const child = execFile(
+      'plantuml',
+      ['-tpng', '-pipe', '-charset', 'UTF-8'],
+      { timeout: 30000, maxBuffer: 20 * 1024 * 1024, encoding: 'buffer' },
+      (error, stdout) => {
+        if (error) {
+          reject(new Error('Local PlantUML rendering failed'));
+          return;
+        }
+        resolve({ dataUrl: 'data:image/png;base64,' + stdout.toString('base64') });
+      }
+    );
+    if (child.stdin) {
+      child.stdin.on('error', () => {}); // EPIPE if plantuml dies early
+      child.stdin.write(text, 'utf-8');
+      child.stdin.end();
+    }
+  });
 });
 
 // IPC Handler for saving pasted/dropped images

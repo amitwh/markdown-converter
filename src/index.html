@@ -22,6 +22,8 @@
     <link rel="stylesheet" href="styles-welcome.css" />
     <link rel="stylesheet" href="styles-zen.css" />
     <link rel="stylesheet" href="../node_modules/highlight.js/styles/default.css" />
+    <!-- KaTeX math rendering — bundled locally (fonts included) for offline use -->
+    <link rel="stylesheet" href="../assets/katex/katex.min.css" />
   </head>
   <body>
     <!-- Skip link for keyboard navigation -->
@@ -1256,11 +1258,9 @@
               <div class="converter-options pandoc-options hidden">
                 <div class="export-section">
                   <small
-                    >Pandoc conversions can use advanced export options from the Export menu.</small
+                    >Pandoc conversions use the same engine as the Export menu. For advanced options
+                    (metadata, TOC, templates, bibliography), use File → Export instead.</small
                   >
-                  <button id="pandoc-show-export-options" type="button">
-                    Open Export Options Dialog...
-                  </button>
                 </div>
               </div>
             </div>
@@ -2504,6 +2504,38 @@
                 <line x1="3" y1="6" x2="3.01" y2="6" />
                 <line x1="3" y1="12" x2="3.01" y2="12" />
                 <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+            </button>
+            <!-- Backlinks: local knowledge-base panel (wiki-link graph) -->
+            <button class="sidebar-icon" data-panel="backlinks" title="Backlinks">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            </button>
+            <!-- History: local version history (snapshots before saves) -->
+            <button class="sidebar-icon" data-panel="history" title="Version History">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
               </svg>
             </button>
           </div>

@@ -17,6 +17,46 @@ const { showDocumentCompareDialog } = require('./renderer/document-compare-dialo
 const { initExportPresets, refreshExportPresets } = require('./renderer/export-presets');
 const { csvToMarkdownTable } = require('./utils/csv-to-markdown-table');
 const { getFilePath } = require('./utils/file-path');
+const SessionStore = require('./utils/session-store');
+const { renderWikiLinksInHtml, resolveTargetPath } = require('./utils/wiki-links');
+const fs = require('fs');
+
+// ================================
+// Snippet Tab-expansion registry
+// ================================
+// A lowercase-name → content map rebuilt whenever snippets change; queried
+// synchronously by every editor's Tab keymap (see snippetTabKeymap).
+const snippetExpansions = new Map();
+async function refreshSnippetExpansions() {
+  try {
+    const snippets = await ipcRenderer.invoke('get-snippets');
+    snippetExpansions.clear();
+    for (const snippet of Array.isArray(snippets) ? snippets : []) {
+      if (snippet?.name && typeof snippet.content === 'string') {
+        snippetExpansions.set(snippet.name.toLowerCase(), snippet.content);
+      }
+    }
+  } catch {
+    /* snippets unavailable — Tab keeps its default indent behavior */
+  }
+}
+refreshSnippetExpansions();
+
+// ================================
+// Vim keybinding mode
+// ================================
+// Mirrors the monospace-setting flow: main menu checkbox → persisted setting
+// → renderer applies setVimMode to every live editor. window.__vimModeEnabled
+// seeds newly created editors with the right mode.
+function applyVimMode(enabled) {
+  window.__vimModeEnabled = enabled === true;
+  const { setVimMode } = require('./editor/codemirror-setup');
+  if (tabManager) {
+    for (const tab of tabManager.tabs.values()) {
+      if (tab.editorView) setVimMode(tab.editorView, window.__vimModeEnabled);
+    }
+  }
+}
 
 /**
  * Toggle body classes that drive the monospace font + ligatures CSS tokens.
@@ -278,12 +318,77 @@ marked.use({
   ],
 });
 
+// Session-scoped set of languages the user has approved for REPL execution
+// (populated by the confirm dialog on first Run click per language).
+const replExecutionConfirmed = new Set();
+
 // PlantUML hex encoding for server rendering
 function plantumlEncode(text) {
   const hex = Array.from(new TextEncoder().encode(text))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
   return '~h' + hex;
+}
+
+// ================================
+// PlantUML rendering (local-first, server fallback)
+// ================================
+// A local `plantuml` CLI (if installed) renders via the main process, so
+// diagram text never leaves the machine; otherwise the public plantuml.com
+// server is used exactly as before. The availability probe is cached per
+// session so each preview render costs at most one invoke.
+let plantumlLocalAvailability = undefined; // undefined = not probed yet
+
+/**
+ * Replace PlantUML code blocks with rendered diagrams.
+ * @param {NodeList} blocks `pre code.language-plantuml` elements
+ */
+async function renderPlantUmlBlocks(blocks) {
+  if (plantumlLocalAvailability === undefined) {
+    try {
+      plantumlLocalAvailability = (await ipcRenderer.invoke('plantuml:available')) === true;
+    } catch {
+      plantumlLocalAvailability = false;
+    }
+  }
+
+  for (const block of blocks) {
+    const code = block.textContent;
+    const pre = block.parentElement;
+
+    if (plantumlLocalAvailability) {
+      try {
+        const result = await ipcRenderer.invoke('plantuml:render', { text: code });
+        if (result?.dataUrl) {
+          replacePreWithImage(pre, result.dataUrl);
+          continue;
+        }
+      } catch {
+        // fall through to server rendering
+      }
+    }
+
+    const img = document.createElement('img');
+    img.src = `https://www.plantuml.com/plantuml/svg/${plantumlEncode(code)}`;
+    img.alt = 'PlantUML diagram';
+    img.style.maxWidth = '100%';
+    img.onerror = () => {
+      img.replaceWith(pre); // Fallback to code block on error
+    };
+    if (pre.parentElement) pre.parentElement.replaceChild(img, pre);
+  }
+}
+
+/** Swap a <pre> for a rendered <img>, keeping a fallback on error. */
+function replacePreWithImage(pre, dataUrl) {
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.alt = 'PlantUML diagram';
+  img.style.maxWidth = '100%';
+  img.onerror = () => {
+    img.replaceWith(pre);
+  };
+  if (pre.parentElement) pre.parentElement.replaceChild(img, pre);
 }
 
 // Scopes user custom CSS by prefixing all selectors to protect application UI
@@ -618,6 +723,10 @@ class TabManager {
       const isDark = document.body.className.includes('dark');
       tab.editorView = createEditor(editorContainer, {
         content: tab.content,
+        // Vim mode follows the persisted app setting for every new editor
+        vimMode: window.__vimModeEnabled === true,
+        // Tab expands a snippet when the word before the cursor matches one
+        getTabExpansion: (prefix) => snippetExpansions.get(prefix) || null,
         onChange: (newContent) => {
           tab.content = newContent;
           tab.isDirty = true;
@@ -638,6 +747,7 @@ class TabManager {
           this.updatePreview(tab.id);
           this.updateWordCount();
           this.updateTabBar();
+          this.scheduleSessionPersist(); // crash-recovery snapshot (debounced)
           if (outlinePanelContainer?._refreshOutline) outlinePanelContainer._refreshOutline();
         },
         onUpdate: (view) => {
@@ -678,6 +788,7 @@ class TabManager {
 
     // Refresh outline panel for new tab content
     if (outlinePanelContainer?._refreshOutline) outlinePanelContainer._refreshOutline();
+    this.scheduleSessionPersist(); // crash-recovery snapshot
   }
   switchToNextTab() {
     const tabIds = Array.from(this.tabs.keys());
@@ -729,6 +840,7 @@ class TabManager {
       this.switchToTab(remainingTabs[0]);
     }
     this.updateTabBar();
+    this.scheduleSessionPersist(); // crash-recovery snapshot
   }
   updateTabBar() {
     const tabBar = document.getElementById('tab-bar');
@@ -919,6 +1031,13 @@ class TabManager {
       }
       preview.innerHTML = sanitizedHtml;
 
+      // Turn [[wiki links]] into clickable links (knowledge-base mode).
+      // Applied after sanitization; renderWikiLinksInHtml itself escapes the
+      // target/label text, so no new HTML injection surface is opened.
+      if (sanitizedHtml.indexOf('[[') !== -1) {
+        preview.innerHTML = renderWikiLinksInHtml(sanitizedHtml);
+      }
+
       // Render math expressions if KaTeX is available
       if (window.katex && window.renderMathInElement) {
         try {
@@ -989,23 +1108,13 @@ class TabManager {
         }
       }
 
-      // Render PlantUML diagrams
+      // Render PlantUML diagrams — locally when a plantuml CLI is installed
+      // (keeps diagram sources on the machine), falling back to the public
+      // server otherwise. Local availability is checked once per session.
       const plantumlBlocks = preview.querySelectorAll('pre code.language-plantuml');
-      plantumlBlocks.forEach((block) => {
-        const code = block.textContent;
-        const pre = block.parentElement;
-
-        // Encode for PlantUML server using hex encoding
-        const encoded = plantumlEncode(code);
-        const img = document.createElement('img');
-        img.src = `https://www.plantuml.com/plantuml/svg/${encoded}`;
-        img.alt = 'PlantUML diagram';
-        img.style.maxWidth = '100%';
-        img.onerror = () => {
-          img.replaceWith(pre); // Fallback to code block on error
-        };
-        pre.parentElement.replaceChild(img, pre);
-      });
+      if (plantumlBlocks.length > 0) {
+        renderPlantUmlBlocks(plantumlBlocks);
+      }
 
       // Add Run buttons to executable code blocks (REPL)
       const codeBlocks = preview.querySelectorAll('pre code[class*="language-"]');
@@ -1017,6 +1126,18 @@ class TabManager {
           runBtn.textContent = '\u25B6 Run';
           runBtn.addEventListener('click', async () => {
             if (replPanel) {
+              // Code execution runs UNSANDBOXED on the user's machine
+              // (node/python/shell child processes). Confirm once per session
+              // per language so a crafted document can't silently run code
+              // the first time its Run button is clicked.
+              if (!replExecutionConfirmed.has(lang)) {
+                const ok = confirm(
+                  `Run ${lang} code blocks on this machine?\n\n` +
+                    'Code from the document will execute as a child process with your user permissions (10s timeout).'
+                );
+                if (!ok) return;
+                replExecutionConfirmed.add(lang);
+              }
               replPanel.show();
               const result = await ipcRenderer.invoke('execute-code', {
                 code: block.textContent,
@@ -1154,6 +1275,115 @@ class TabManager {
         }
       }, 300);
     }, 1500);
+  }
+
+  // ================================
+  // Session persistence (crash recovery)
+  // ================================
+
+  /**
+   * Write a session snapshot (open tabs + unsaved content) to localStorage so
+   * the next launch can offer to restore after a crash or force-quit.
+   */
+  persistSession() {
+    const session = SessionStore.captureSession(this.tabs, this.activeTabId, (tabId) =>
+      this.getEditorContent(tabId)
+    );
+    SessionStore.saveSession(localStorage, session);
+  }
+
+  /**
+   * Debounced persistSession — called on every content keystroke, so writing
+   * to localStorage synchronously each time would be wasteful.
+   */
+  scheduleSessionPersist() {
+    if (this._sessionPersistTimer) clearTimeout(this._sessionPersistTimer);
+    this._sessionPersistTimer = setTimeout(() => {
+      this._sessionPersistTimer = null;
+      this.persistSession();
+    }, 2000);
+  }
+
+  /**
+   * Restore tabs from a saved session snapshot. Returns the number of tabs
+   * actually restored (missing files and empty tabs are skipped).
+   *
+   * @param {object} session Snapshot from SessionStore.loadSession()
+   * @returns {number} restored tab count
+   */
+  restoreSession(session) {
+    if (!session || !Array.isArray(session.tabs)) return 0;
+    let restored = 0;
+
+    for (const entry of session.tabs) {
+      try {
+        if (entry.type === 'pdf') {
+          // PDF tabs are view-only; reopen from the original path when it
+          // still exists, otherwise skip silently.
+          if (entry.filePath && fs.existsSync(entry.filePath)) {
+            this.createPdfTab(entry.filePath);
+            restored++;
+          }
+          continue;
+        }
+
+        if (entry.filePath && fs.existsSync(entry.filePath)) {
+          // File-backed tab: reload the file from disk, then reapply the
+          // unsaved buffer on top when the snapshot captured one.
+          const onDisk = fs.readFileSync(entry.filePath, 'utf-8');
+          this.openFile(entry.filePath, onDisk);
+          if (entry.isDirty && typeof entry.content === 'string') {
+            const tab = this.tabs.get(this.activeTabId);
+            if (tab) {
+              this.setEditorContent(tab.id, entry.content);
+              tab.isDirty = true;
+              this.updateTabBar();
+            }
+          }
+          restored++;
+        } else if (typeof entry.content === 'string' && entry.content.length > 0) {
+          // Untitled dirty buffer — the only copy is the snapshot itself.
+          this.createNewTab();
+          const tab = this.tabs.get(this.activeTabId);
+          if (tab) {
+            this.setEditorContent(tab.id, entry.content);
+            tab.title = entry.title || 'Untitled';
+            tab.isDirty = true;
+            this.updatePreview(tab.id);
+            this.updateTabBar();
+          }
+          restored++;
+        }
+      } catch (error) {
+        console.warn('Failed to restore tab from session:', error);
+      }
+    }
+
+    // End on the tab that was active when the session was saved, if possible
+    const lastEntry = [...session.tabs].reverse().find((t) => this._findTabIdForEntry(t) !== null);
+    const targetId = lastEntry ? this._findTabIdForEntry(lastEntry) : null;
+    if (targetId !== null && this.tabs.has(targetId)) {
+      this.switchToTab(targetId);
+    }
+    if (restored > 0) this.scheduleSessionPersist();
+    return restored;
+  }
+
+  /**
+   * Best-effort mapping of a session entry back to a live tab id after a
+   * restore pass (matches by filePath, falling back to title for untitled).
+   */
+  _findTabIdForEntry(entry) {
+    if (!entry) return null;
+    for (const tab of this.tabs.values()) {
+      if (entry.filePath && tab.filePath === entry.filePath) return tab.id;
+    }
+    for (const tab of this.tabs.values()) {
+      if (!entry.filePath && !tab.filePath && tab.title === (entry.title || 'Untitled')) {
+        return tab.id;
+      }
+    }
+    return null;
   }
 
   // Recent files functionality
@@ -1608,6 +1838,7 @@ class TabManager {
     }
     this.startAutoSave();
     this.addToRecentFiles(filePath);
+    this.scheduleSessionPersist(); // crash-recovery snapshot
     this.updateTabBar();
     this.updateFilePath();
     this.updateBreadcrumb();
@@ -1708,9 +1939,82 @@ async function loadTemplateIntoNewTab(file) {
   }
 }
 
+/**
+ * Crash recovery: build and show a lightweight "restore session?" prompt.
+ * Rendered as a fixed overlay (not a ModalManager dialog) because modals are
+ * initialized inside DOMContentLoaded and this must appear above everything on
+ * the very first paint. Disappears on either choice; no opinion is recorded
+ * for future launches (the prompt appears whenever a snapshot exists).
+ *
+ * @param {object} session Snapshot from SessionStore.loadSession()
+ */
+function showRestoreSessionPrompt(session) {
+  const unsaved = session.tabs.filter((t) => t.isDirty && typeof t.content === 'string');
+  const summary =
+    `${session.tabs.length} tab${session.tabs.length === 1 ? '' : 's'}` +
+    (unsaved.length > 0 ? `, ${unsaved.length} with unsaved changes` : '');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'session-restore-prompt';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'session-restore-title');
+  overlay.style.cssText =
+    'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);' +
+    'display:flex;align-items:center;justify-content:center;z-index:10000;';
+  overlay.innerHTML = `
+    <div style="background:var(--bg-primary,#fff);color:var(--text-primary,#222);border-radius:8px;
+                padding:24px;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.3);text-align:center;">
+      <h3 id="session-restore-title" style="margin:0 0 8px;">Restore previous session?</h3>
+      <p style="margin:0 0 20px;color:var(--text-secondary,#666);">
+        The app closed with ${summary}. Restore them now?
+      </p>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button id="session-restore-yes" type="button"
+          style="padding:8px 20px;border-radius:4px;border:none;cursor:pointer;
+                 background:#4a90d9;color:#fff;">Restore session</button>
+        <button id="session-restore-no" type="button"
+          style="padding:8px 20px;border-radius:4px;border:1px solid #ccc;cursor:pointer;
+                 background:transparent;color:inherit;">Start fresh</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const dismiss = () => overlay.remove();
+  overlay.querySelector('#session-restore-yes').addEventListener('click', () => {
+    dismiss();
+    const restored = tabManager ? tabManager.restoreSession(session) : 0;
+    notifyUser(restored > 0 ? `Restored ${restored} tab(s)` : 'Nothing to restore', 'success');
+  });
+  overlay.querySelector('#session-restore-no').addEventListener('click', () => {
+    dismiss();
+    SessionStore.clearSession(localStorage);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const ModalManager = _ModalManager;
   tabManager = new TabManager();
+
+  // ================================
+  // Crash recovery: offer to restore the previous session
+  // ================================
+  // A snapshot is written on edits/tab changes (debounced), on unload, and
+  // once a minute. It is kept only when it contains something restorable;
+  // a clean single-empty-tab state clears it.
+  const previousSession = SessionStore.loadSession(localStorage);
+  if (previousSession) {
+    showRestoreSessionPrompt(previousSession);
+  }
+  // Persist synchronously on unload — the debounced timer may not have fired
+  window.addEventListener('beforeunload', () => {
+    if (tabManager) tabManager.persistSession();
+  });
+  // Periodic safety net: guarantees a snapshot at most 60s old even when the
+  // user steps away mid-edit (laptop sleep, SIGKILL, power loss, etc.)
+  setInterval(() => {
+    if (tabManager) tabManager.persistSession();
+  }, 60000);
 
   // Load saved Custom Preview CSS if present
   const savedCSSContent = localStorage.getItem('customPreviewCSSContent');
@@ -1805,8 +2109,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     render: (container) =>
       getRenderSnippetsPanel()(container, {
         getSnippets: () => ipcRenderer.invoke('get-snippets'),
-        saveSnippet: (s) => ipcRenderer.invoke('save-snippet', s),
-        deleteSnippet: (id) => ipcRenderer.invoke('delete-snippet', id),
+        // Wrap save/delete so the Tab-expansion map stays in sync
+        saveSnippet: async (s) => {
+          const result = await ipcRenderer.invoke('save-snippet', s);
+          refreshSnippetExpansions();
+          return result;
+        },
+        deleteSnippet: async (id) => {
+          const result = await ipcRenderer.invoke('delete-snippet', id);
+          refreshSnippetExpansions();
+          return result;
+        },
         onInsert: (code) => tabManager.insertAtCursor(code),
       }),
   });
@@ -1844,6 +2157,79 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
       });
     },
+  });
+
+  // Backlinks panel — "what links here?" for [[wiki links]] (knowledge-base mode)
+  const { renderBacklinksPanel } = require('./sidebar/backlinks-panel');
+  sidebarManager.registerPanel('backlinks', {
+    title: 'Backlinks',
+    render: (container) =>
+      renderBacklinksPanel(container, {
+        getCurrentFilePath: () => {
+          const tab = tabManager.tabs.get(tabManager.activeTabId);
+          return tab?.filePath || null;
+        },
+        // Bounded folder scan through the same IPC helper the Explorer uses
+        listDir: (dir) => ipcRenderer.invoke('list-directory', dir),
+        readFile: (p) => ipcRenderer.invoke('read-file', p),
+        onFileOpen: (p) => ipcRenderer.send('open-file-path', p),
+        pathUtil: require('path'),
+      }),
+  });
+
+  // History panel — local version history (snapshots captured before saves)
+  const { renderHistoryPanel } = require('./sidebar/history-panel');
+  sidebarManager.registerPanel('history', {
+    title: 'History',
+    render: (container) =>
+      renderHistoryPanel(container, {
+        getCurrentFilePath: () => {
+          const tab = tabManager.tabs.get(tabManager.activeTabId);
+          return tab?.filePath || null;
+        },
+        getCurrentContent: () => tabManager.getEditorContent(),
+        replaceContent: (content) => {
+          const tab = tabManager.tabs.get(tabManager.activeTabId);
+          if (!tab) return;
+          tabManager.setEditorContent(tab.id, content);
+          tab.isDirty = true;
+          tabManager.updatePreview(tab.id);
+          tabManager.updateTabBar();
+        },
+        history: {
+          list: (docPath) => ipcRenderer.invoke('version-history:list', docPath),
+          read: (docPath, id) => ipcRenderer.invoke('version-history:read', { docPath, id }),
+          save: (docPath, content, label) =>
+            ipcRenderer.invoke('version-history:save', { docPath, content, label }),
+          delete: (docPath, id) => ipcRenderer.invoke('version-history:delete', { docPath, id }),
+        },
+      }),
+  });
+
+  // Wiki-link navigation: open the target note (creating it on demand after
+  // confirmation). Delegated on document so it works in every tab's preview.
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest?.('.wiki-link');
+    if (!link) return;
+    event.preventDefault();
+    const target = link.getAttribute('data-wiki-target');
+    const tab = tabManager.tabs.get(tabManager.activeTabId);
+    if (!target || !tab?.filePath) return;
+
+    const pathUtil = require('path');
+    const targetPath = resolveTargetPath(target, pathUtil.dirname(tab.filePath), pathUtil);
+    if (!targetPath) return;
+
+    if (fs.existsSync(targetPath)) {
+      ipcRenderer.send('open-file-path', targetPath);
+    } else if (confirm(`"${target}" doesn't exist yet. Create it?`)) {
+      // Create then open — the note materializes with a title heading
+      ipcRenderer
+        .invoke('write-file', { path: targetPath, content: `# ${target}\n\n` })
+        .then(() => {
+          ipcRenderer.send('open-file-path', targetPath);
+        });
+    }
   });
 
   // View menu: toggle a sidebar panel by id (explorer/git/snippets/templates/outline)
@@ -1899,6 +2285,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       getSelection: () => tabManager.getSelection(),
       insertAtCursor: (text) => tabManager.insertAtCursor(text),
       onContentChanged: (cb) => pluginEventBus.on('document:changed', cb),
+      // Current file path for plugins that store per-file sidecar data
+      getCurrentFilePath: () => {
+        const tab = tabManager.tabs.get(tabManager.activeTabId);
+        return tab?.filePath || null;
+      },
+      // Jump the active editor to a 1-based line (used by comment navigation)
+      jumpToLine: (line) => {
+        const tab = tabManager.tabs.get(tabManager.activeTabId);
+        if (!tab?.editorView || !Number.isFinite(line) || line < 1) return;
+        const maxLine = tab.editorView.state.doc.lines;
+        const target = Math.min(Math.floor(line), maxLine);
+        tab.editorView.dispatch({
+          selection: { anchor: tab.editorView.state.doc.line(target).from },
+          scrollIntoView: true,
+        });
+        tab.editorView.focus();
+      },
+      getCurrentLine: () => {
+        const tab = tabManager.tabs.get(tabManager.activeTabId);
+        if (!tab?.editorView) return 1;
+        return tab.editorView.state.doc.lineAt(tab.editorView.state.selection.main.head).number;
+      },
     },
     ipc: {
       invoke: (ch, data) => window.electronAPI.invoke(ch, data),
@@ -1910,6 +2318,66 @@ document.addEventListener('DOMContentLoaded', async () => {
   const loader = new PluginLoader([builtInDir]);
   const discovered = loader.discoverPlugins();
   discovered.forEach((p) => pluginRegistry.register(p));
+
+  // Plugin panels request programmatic opening via the shared event bus
+  // (e.g. the AI Chat command). Expand the named sidebar panel in response.
+  pluginEventBus.on('sidebar:open-panel', ({ panel } = {}) => {
+    if (panel && typeof panel === 'string') sidebarManager.expand(panel);
+  });
+
+  // Wire the writing-studio plugin's sidebar panels (declared in its manifest
+  // but rendered by these panel modules): registering through the registry's
+  // context namespaces the ids to "writing-studio:<panel>" and adds rail icons.
+  const studioPlugin = pluginRegistry.getPlugin('writing-studio');
+  if (studioPlugin?.context) {
+    const ctx = studioPlugin.context;
+    const {
+      renderManuscriptPanel,
+    } = require('./plugins/built-in/writing-studio/panels/manuscript-panel');
+    const { renderGoalsPanel } = require('./plugins/built-in/writing-studio/panels/goals-panel');
+    const {
+      renderSnapshotsPanel,
+    } = require('./plugins/built-in/writing-studio/panels/snapshots-panel');
+    const {
+      renderProofreadPanel,
+    } = require('./plugins/built-in/writing-studio/panels/proofread-panel');
+    const studioIcon = (paths) =>
+      `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+    // Panels take {engines, settings, editor, events} — engines is the
+    // writing-studio plugin's engine map (sprint/goals/snapshots/projects).
+    const engines = studioPlugin.instance.getEngines ? studioPlugin.instance.getEngines() : {};
+    const panelDeps = { engines, settings: ctx.settings, editor: ctx.editor, events: ctx.events };
+
+    ctx.sidebar.registerPanel('manuscript', {
+      title: 'Manuscript',
+      icon: studioIcon(
+        '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>'
+      ),
+      render: (container) => renderManuscriptPanel(container, panelDeps),
+    });
+    ctx.sidebar.registerPanel('goals', {
+      title: 'Goals',
+      icon: studioIcon(
+        '<circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>'
+      ),
+      render: (container) => renderGoalsPanel(container, panelDeps),
+    });
+    ctx.sidebar.registerPanel('snapshots', {
+      title: 'Snapshots',
+      icon: studioIcon(
+        '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>'
+      ),
+      render: (container) => renderSnapshotsPanel(container, panelDeps),
+    });
+    ctx.sidebar.registerPanel('proofread', {
+      title: 'Proofread',
+      icon: studioIcon(
+        '<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>'
+      ),
+      render: (container) => renderProofreadPanel(container, panelDeps),
+    });
+  }
 
   // Tell the main process which export formats plugins registered, so the
   // Export menu (built in main.js, a separate process from this one) can
@@ -1972,6 +2440,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.electronAPI
       .invoke('set-monospace-settings', partial)
       .then(applyMonospaceClasses)
+      .catch(() => {});
+  });
+
+  // Vim mode: initial value from settings, then live toggles from the View menu
+  ipcRenderer
+    .invoke('get-vim-mode')
+    .then(applyVimMode)
+    .catch(() => {});
+  ipcRenderer.on('vim-setting-change', (event, enabled) => {
+    ipcRenderer
+      .invoke('set-vim-mode', enabled === true)
+      .then(() => applyVimMode(enabled === true))
       .catch(() => {});
   });
 
@@ -3922,12 +4402,13 @@ function updateMergeFilesList() {
   });
 }
 
-// Task 27: pdf-lib 1.17.1 cannot encrypt, so encrypt/decrypt/permissions fail
-// honestly in the main process. Ask main once whether password protection is
-// available and, when it is not, disable the three sections' controls with an
-// explanatory hint instead of letting the user fill the form only to see the
-// operation fail. If the capability query itself fails, leave the controls
-// enabled — main still fails the operation honestly on submit.
+// Password ops (encrypt/decrypt/permissions) are backed by @cantoo/pdf-lib,
+// which supports real encryption. Main reports its capability probe once; if a
+// build ever ships a library without encryption support, disable the three
+// sections' controls with an explanatory hint instead of letting the user fill
+// the form only to see the operation fail. If the capability query itself
+// fails, leave the controls enabled — main still fails the operation honestly
+// on submit.
 async function applyPDFPasswordProtectionAvailability() {
   let capabilities;
   try {
@@ -3947,14 +4428,14 @@ async function applyPDFPasswordProtectionAvailability() {
     const hint = document.createElement('p');
     hint.className = 'warning-message pdf-unavailable-hint';
     hint.textContent =
-      'Password protection is not available in this build (pdf-lib lacks encryption support).';
+      'Password protection is not available in this build (the PDF library lacks encryption support).';
     section.prepend(hint);
   }
 }
 
 // PDF Editor Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-  // Disable password-protection controls when pdf-lib lacks encryption support
+  // Disable password-protection controls if the PDF library lacks encryption support
   applyPDFPasswordProtectionAvailability();
 
   // Close PDF Editor Dialog
@@ -4742,33 +5223,39 @@ ipcRenderer.on('pdf-operation-progress', (event, { message, progress }) => {
   }
 });
 
-// Add math rendering support using KaTeX for enhanced preview
+// Add math rendering support using KaTeX for enhanced preview.
+// KaTeX is bundled locally (assets/katex CSS + the katex npm package) so math
+// renders offline and nothing is fetched from a CDN at runtime (the old
+// jsdelivr links broke math rendering whenever the machine was offline and
+// leaked document content requests to a third party).
 function initMathSupport() {
-  // Add KaTeX CSS
-  const katexCSS = document.createElement('link');
-  katexCSS.rel = 'stylesheet';
-  katexCSS.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css';
-  katexCSS.crossOrigin = 'anonymous';
-  document.head.appendChild(katexCSS);
+  // KaTeX CSS ships in index.html via <link href="assets/katex/katex.min.css">,
+  // including its font files. Only the JS needs wiring up here.
+  try {
+    // The renderer runs with nodeIntegration, so the locally installed npm
+    // package can be required directly — no script-tag loading needed.
+    // katex exports the katex object; the auto-render contrib exports the
+    // renderMathInElement function itself (webpack default interop), so
+    // resolve both shapes defensively.
+    const katex = require('katex');
+    const autoRender = require('katex/contrib/auto-render');
+    window.katex = katex;
+    const renderFn =
+      typeof autoRender === 'function'
+        ? autoRender
+        : autoRender.renderMathInElement || autoRender.default;
+    if (typeof renderFn !== 'function') throw new Error('auto-render export not found');
+    window.renderMathInElement = renderFn;
+  } catch (error) {
+    console.warn('Local KaTeX unavailable, math rendering disabled:', error.message);
+    return;
+  }
 
-  // Add KaTeX JS
-  const katexJS = document.createElement('script');
-  katexJS.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js';
-  katexJS.crossOrigin = 'anonymous';
-  katexJS.onload = () => {
-    // Add auto-render extension
-    const autoRenderJS = document.createElement('script');
-    autoRenderJS.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js';
-    autoRenderJS.crossOrigin = 'anonymous';
-    autoRenderJS.onload = () => {
-      // Re-render current preview to include math
-      if (tabManager) {
-        tabManager.updatePreview();
-      }
-    };
-    document.head.appendChild(autoRenderJS);
-  };
-  document.head.appendChild(katexJS);
+  // Math is now available synchronously; re-render the current preview so an
+  // already-rendered tab picks up math without waiting for the next edit.
+  if (tabManager) {
+    tabManager.updatePreview();
+  }
 }
 
 // Initialize math support on load

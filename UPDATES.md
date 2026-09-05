@@ -1,5 +1,73 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.6.0 (2026-09-05)
+
+### New Features
+
+#### AI Assistant Plugin (multi-provider)
+- Chat sidebar panel with rolling conversation history and insert-reply-into-document
+- Providers: OpenAI, Anthropic, Ollama, LM Studio, and any OpenAI-compatible endpoint
+- All provider traffic proxied through the main process — API keys never enter the renderer and the CSP stays closed to AI endpoints
+- Commands: AI Summarize / Improve / Explain / Translate selection
+- Answers the writing-studio `ai:analyze` contract, finally enabling the Proofread panel
+
+#### Collaboration Plugin (inline comments)
+- Anchor-based comments stored in `.comments/` sidecar files (never exported, never committed)
+- Comments sidebar panel: add at cursor, list, resolve, delete, jump to anchor
+- Drift detection flags moved/edited anchors; F8 navigates to the next open comment
+
+#### Local Knowledge Base (wiki-links + backlinks)
+- `[[Note]]`, `[[Note|alias]]`, `[[Note#section]]` render as links in the preview (code blocks excluded)
+- Clicking a wiki-link opens the note or offers to create it
+- Backlinks sidebar panel scans the folder (bounded BFS) for documents linking to the current one
+
+#### Crash Recovery / Session Restore
+- Open tabs (paths + unsaved buffer content) snapshotted to localStorage, debounced on edits, on tab changes, on unload, and once a minute
+- Restore prompt on launch with per-tab restore, clean-fresh option, and 2MB content budget
+
+#### Document Version History
+- Every save snapshots the previous on-disk content to `<userData>/versions/`
+- History sidebar panel: list, restore (with safety snapshot), unified diff vs. current, delete, manual "save version now"
+- Per-document pruning (20 versions), path-hash storage, id-validated reads
+
+#### Editor
+- Vim keybindings (View → Vim Mode, persisted, live toggle via CodeMirror Compartment)
+- Snippet Tab-expansion: type a snippet name and press Tab to insert it
+- Zen Mode word-goal setter (the HUD progress bar finally has UI)
+
+#### Export / Conversion
+- **Real PDF encryption**: pdf-lib swapped for @cantoo/pdf-lib — encrypt/decrypt/permissions now actually work (UI auto-enables via the capability probe)
+- **XLSX export**: markdown tables → native Excel workbook, one sheet per table (no Pandoc needed)
+- **ODT headers/footers + page size**: real ODF styles.xml patching replaces the empty stub
+- **Local PlantUML rendering**: diagrams render on-machine via the `plantuml` CLI when installed; plantuml.com stays as fallback
+- **KaTeX bundled locally** (CSS + fonts): math renders offline, no CDN calls
+- Writing heatmap (GitHub-style 30-day grid) in the writing-studio Goals panel
+
+#### Platform
+- Quick Note global scratchpad (Ctrl+Alt+Q, works when unfocused; appends to `notes/quick-notes.md`)
+- Deep link protocol `markdownconverter://open?path=…`
+- REPL confirmation dialog before first code execution per language per session (unsandboxed-execution guard rail)
+- Writing-studio's four sidebar panels (Manuscript/Goals/Snapshots/Proofread) are now actually wired with rail icons
+- Plugin sidebar panels get automatic rail icons via `registerPanel({icon})`
+
+### Bug Fixes
+- `Ctrl+Shift+P` collision: PDF (Enhanced) export now `Ctrl+Alt+Shift+P`; Command Palette keeps `Ctrl+Shift+P`
+- Universal Converter's Pandoc tool no longer always reports "not installed" (`checkConverterAvailable` gained a pandoc case with bundled-binary check)
+- CLI headless export: removed dangling `--css` / `--reference-doc` flags that made pandoc exit with an error; `--self-contained` replaced with `--standalone` (Pandoc 3.x)
+- Removed dead "Open Export Options Dialog…" button from the converter dialog
+- Removed duplicate `styles-zen.css` include
+
+### Security
+- AI provider requests carry size caps (200KB prompt), timeouts (120s), and user-safe error surfaces
+- Version-history reads validate ids against traversal; history listing requires a valid document path
+- PlantUML local rendering removes the diagram-text exfiltration path when a local CLI exists (CVE-MC-007 follow-up)
+
+### Tests
+- New suites: OdtStyling, AiProviders, ai-assistant prompts, collaboration comment-store, wiki-links/backlinks, session-store, XlsxExporter, VersionHistory
+- PDFOperations encryption tests rewritten for the real-encryption reality
+
+---
+
 ## Version 4.0.0 (2026-03-04)
 
 ### Major Changes

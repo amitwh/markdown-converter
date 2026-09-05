@@ -1,0 +1,15 @@
+{
+  "id": "collaboration",
+  "name": "Collaboration",
+  "version": "1.0.0",
+  "description": "Anchor-based inline comments stored in .comments/ sidecar files, with an F8 next-comment navigator",
+  "icon": "message-square",
+  "extensionPoints": {
+    "sidebar": [{ "id": "comments", "title": "Comments", "order": 34 }],
+    "commands": [
+      { "id": "add-comment", "label": "Comment: Add Comment at Cursor", "shortcut": "Ctrl+Alt+M" },
+      { "id": "next-comment", "label": "Comment: Next Open Comment", "shortcut": "F8" }
+    ]
+  },
+  "settings": []
+}

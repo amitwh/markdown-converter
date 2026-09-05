@@ -51,6 +51,16 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 - **ASCII Art Generator** - Create text banners and diagrams
 - **Word templates** - Use custom Word templates for enhanced exports
 - **Import documents** - Import from 30+ formats (DOCX, PDF, HTML, etc.)
+- **Excel export** - Markdown tables to native .xlsx workbooks (one sheet per table)
+- **AI Assistant** - Multi-provider AI help (OpenAI/Anthropic/Ollama/LM Studio): chat panel, summarize/improve/translate commands, grammar proofreading
+- **Inline comments** - Anchor-based document comments in `.comments/` sidecars with F8 navigation
+- **Wiki-links & Backlinks** - `[[Note]]` links with click-to-create and a "what links here?" panel (local knowledge base)
+- **Crash recovery** - Session restore of open tabs and unsaved buffers after a crash
+- **Version history** - Automatic pre-save snapshots with restore/diff/delete from the History panel
+- **Vim mode & snippet expansion** - Vim keybindings toggle; Tab expands saved snippets
+- **Quick Note** - Global scratchpad (Ctrl+Alt+Q) that appends to `notes/quick-notes.md`
+- **Real PDF encryption** - Password protection, removal, and permissions actually work
+- **Offline math & diagrams** - KaTeX bundled locally; PlantUML renders locally when the CLI is installed
 
 ## Installation
 
@@ -96,9 +106,18 @@ npm run build:linux
 | Redo | Ctrl+Shift+Z |
 | New Tab | Ctrl+T |
 | Close Tab | Ctrl+W |
-| Toggle Preview | Ctrl+Shift+P |
+| Toggle Preview | Ctrl+Shift+V |
 | Zoom In | Ctrl+Shift++ |
 | Zoom Out | Ctrl+Shift+- |
+| Command Palette | Ctrl+Shift+P |
+| Zen Mode | F11 |
+| Writing Analytics | Ctrl+Shift+A |
+| Quick Note | Ctrl+Alt+Q |
+| Universal Converter | Ctrl+Shift+C |
+| Table Generator | Ctrl+Shift+T |
+| ASCII Art Generator | Ctrl+Shift+A |
+| Next Comment | F8 |
+| Add Comment at Cursor | Ctrl+Alt+M |
 
 ## Themes
 
@@ -162,4 +181,4 @@ Amit Haridas (amit.wh@gmail.com)
 
 ## Version
 
-v4.5.0
+v4.6.0

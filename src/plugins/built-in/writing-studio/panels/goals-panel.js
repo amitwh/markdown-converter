@@ -94,7 +94,44 @@ function renderGoalsPanel(container, { engines, settings }) {
   section3.appendChild(chart);
   panel.appendChild(section3);
 
+  // GitHub-style activity heatmap over the same 30-day window: intensity is
+  // relative to the daily goal (empty / <33% / <66% / <100% / goal met).
+  const section4 = document.createElement('div');
+  section4.className = 'ws-section';
+  const heading4 = document.createElement('h3');
+  heading4.className = 'ws-heading';
+  heading4.textContent = 'Writing Heatmap';
+  section4.appendChild(heading4);
+
+  const heatmap = document.createElement('div');
+  heatmap.className = 'ws-heatmap';
+  heatmap.setAttribute('role', 'img');
+  heatmap.setAttribute('aria-label', 'Daily writing activity over the last 30 days');
+  for (const day of last30) {
+    const cell = document.createElement('span');
+    cell.className = 'ws-heatmap-cell ' + heatLevel(day.words, dailyGoal);
+    cell.title = `${day.date}: ${day.words} words${day.words >= dailyGoal ? ' — goal met' : ''}`;
+    heatmap.appendChild(cell);
+  }
+  section4.appendChild(heatmap);
+  panel.appendChild(section4);
+
   container.appendChild(panel);
+}
+
+/**
+ * Map a day's word count to a heatmap intensity class (l0 implicit…l4).
+ * @param {number} words words written that day
+ * @param {number} goal daily goal
+ * @returns {string} class suffix ('' for empty days)
+ */
+function heatLevel(words, goal) {
+  if (!words || words <= 0) return '';
+  const ratio = words / Math.max(1, goal);
+  if (ratio >= 1) return 'l4';
+  if (ratio >= 0.66) return 'l3';
+  if (ratio >= 0.33) return 'l2';
+  return 'l1';
 }
 
 module.exports = { renderGoalsPanel };
