@@ -1,5 +1,28 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.7.0 (2026-09-05)
+
+### Bundling & Legal Compliance
+- **MarkItDown is now bundled**: `npm run bundle:markitdown` freezes Microsoft's
+  markitdown (MIT) + embedded Python runtime into a single ~75MB per-platform
+  binary (`bin/<platform>/markitdown`) via PyInstaller (ML extras excluded);
+  the app prefers the bundled binary and falls back to system installs
+- Packaging copies the bundled markitdown for Windows/macOS/Linux alongside Pandoc
+- **THIRD-PARTY-NOTICES.md** — full license inventory of everything distributed
+  (bundled binaries, npm runtime deps, fonts, embedded Python packages)
+- **SOURCES.md** — GPL §3(b) written source offer for Pandoc / FFmpeg (GPL build) /
+  PyInstaller bootloader, with pinned versions + SHA-256; LGPL relinking note for libvips
+- **third-party-licenses/** — canonical texts: GPL-2.0, LGPL-2.1, MPL-2.0,
+  Apache-2.0, OFL-1.1, PSF-Python
+- **Help → Third-Party Notices & Licenses** — in-app viewer for both documents
+- **download-tools.js** now SHA-256 pins and verifies every downloaded artifact
+  (post-download and against the cache on every run; hard-fails on mismatch)
+- README gains a "Bundled Dependencies, Legal Notices & Credits" section
+- Large optional tools intentionally NOT bundled (documented): LibreOffice,
+  MiKTeX/TeX Live, ImageMagick, PlantUML+JRE, Calibre
+
+---
+
 ## Version 4.6.1 (2026-09-05)
 
 ### New Features

@@ -23,15 +23,47 @@ const CONVERT_TIMEOUT_MS = 120000;
 const MAX_OUTPUT_BUFFER = 20 * 1024 * 1024;
 
 /**
- * Candidate command templates probed in order. `argsPrefix` is prepended to
- * the user path when invoking (e.g. ['-m', 'markitdown'] for module-style
- * invocation through a python launcher).
+ * Path to the bundled markitdown binary (built by scripts/bundle-markitdown.js
+ * via PyInstaller), when the app ships one. Mirrors getPandocPath's layout:
+ * dev: bin/<platform>/markitdown · packaged: <resourcesPath>/bin/markitdown.
+ * Returns null when no bundle exists (PATH/python fallbacks apply).
  */
-const COMMAND_CANDIDATES = [
-  { command: 'markitdown', argsPrefix: [] },
-  { command: process.platform === 'win32' ? 'python' : 'python3', argsPrefix: ['-m', 'markitdown'] },
-  { command: 'python3', argsPrefix: ['-m', 'markitdown'] },
-];
+function getBundledMarkItDownPath() {
+  const pathUtil = require('path');
+  const fs = require('fs');
+  const exe = process.platform === 'win32' ? 'markitdown.exe' : 'markitdown';
+  if (typeof process === 'object' && process.resourcesPath && !process.resourcesPath.includes('node_modules')) {
+    // Packaged (Electron) — resourcesPath only exists in a real app runtime
+    try {
+      const electron = require('electron');
+      if (electron.app?.isPackaged) {
+        const packaged = pathUtil.join(process.resourcesPath, 'bin', exe);
+        if (fs.existsSync(packaged)) return packaged;
+      }
+    } catch {
+      /* not running under Electron (tests) — fall through to dev layout */
+    }
+  }
+  const dev = pathUtil.join(__dirname, '..', '..', 'bin', process.platform, exe);
+  return fs.existsSync(dev) ? dev : null;
+}
+
+/**
+ * Candidate command templates probed in order (bundled binary first). The
+ * bundled candidate is verified with the same --version probe as the rest.
+ */
+function commandCandidates() {
+  const bundled = getBundledMarkItDownPath();
+  const candidates = [];
+  if (bundled) candidates.push({ command: bundled, argsPrefix: [], bundled: true });
+  candidates.push({ command: 'markitdown', argsPrefix: [] });
+  candidates.push({
+    command: process.platform === 'win32' ? 'python' : 'python3',
+    argsPrefix: ['-m', 'markitdown'],
+  });
+  candidates.push({ command: 'python3', argsPrefix: ['-m', 'markitdown'] });
+  return candidates;
+}
 
 /** Run one probe: `--version` exits 0 when the tool is importable. */
 function probeCandidate(runner, candidate) {
@@ -61,7 +93,7 @@ function probeCandidate(runner, candidate) {
  * @returns {Promise<{command: string, argsPrefix: string[], version: string|null}|null>}
  */
 async function resolveMarkItDown(runner) {
-  for (const candidate of COMMAND_CANDIDATES) {
+  for (const candidate of commandCandidates()) {
     const resolved = await probeCandidate(runner, candidate);
     if (resolved) return resolved;
   }
@@ -153,5 +185,6 @@ async function convertToMarkdown(inputPath, options = {}) {
 module.exports = {
   resolveMarkItDown,
   convertToMarkdown,
-  COMMAND_CANDIDATES,
+  commandCandidates,
+  getBundledMarkItDownPath,
 };

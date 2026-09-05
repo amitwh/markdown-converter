@@ -161,6 +161,43 @@ Open PDF files directly in MarkdownConverter:
 - Rotate pages left or right
 - Close PDF to return to editor
 
+## Bundled Dependencies, Legal Notices & Credits
+
+MarkdownConverter ships as a self-contained package. Everything needed for the
+core workflows is **bundled**; a few large optional tools are detected from
+the system when present.
+
+### Bundled with the app
+
+| Component | License | Role |
+|---|---|---|
+| [Pandoc](https://pandoc.org) 3.9 | GPL-2.0+ (separate process) | 25+ export/import formats |
+| [FFmpeg](https://ffmpeg.org) (via ffmpeg-static) | GPL-3.0+ build (separate process) | audio/video tools |
+| [MarkItDown](https://github.com/microsoft/markitdown) (MIT) + embedded Python runtime (PSF) | MIT / PSF | any-file → Markdown import (PDF/DOCX/PPTX/XLSX/Outlook/EPUB/images/ZIP) |
+| [sharp](https://sharp.pixelplumbing.com) + libvips | Apache-2.0 / LGPL-2.1+ (dynamic) | image tools |
+| [KaTeX](https://katex.org), [marked](https://marked.js.org), [highlight.js], [DOMPurify], [mermaid], [CodeMirror 6], pdf-lib (@cantoo fork), pdfjs-dist, JSZip, simple-git | MIT / Apache-2.0 / BSD-3 / MPL-2.0 | editor, preview, PDF, Git |
+| JetBrains Mono & Fira Code fonts | SIL OFL 1.1 | editor typography |
+
+GPL-licensed tools run as **separate processes** (never linked into the app)
+and their complete corresponding sources are offered in
+[SOURCES.md](SOURCES.md). Full details: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md),
+also available inside the app under **Help → Third-Party Notices & Licenses**.
+
+### Not bundled (used when installed)
+
+LibreOffice (Office conversion), MiKTeX/TeX Live (LaTeX PDF), ImageMagick
+(extra image formats), PlantUML + Java (local diagrams), Calibre (MOBI),
+MarkItDown `[all]` extras (audio transcription / OCR).
+
+### Credits
+
+Built on open source: [Electron], [CodeMirror], [marked], [KaTeX],
+[highlight.js], [DOMPurify](https://github.com/cure53/DOMPurify),
+[mermaid](https://mermaid.js.org), [pdf-lib], [pdf.js](https://mozilla.github.io/pdf.js/),
+[sharp]/libvips, [Pandoc], [FFmpeg], [MarkItDown] by Microsoft,
+[simple-git], [JSZip], [JetBrains Mono], [Fira Code]. Thank you to all their
+authors and maintainers.
+
 ## Open Source
 
 MarkdownConverter is 100% open-source. All dependencies are permissively licensed:
@@ -183,4 +220,4 @@ Amit Haridas (amit.wh@gmail.com)
 
 ## Version
 
-v4.6.1
+v4.7.0

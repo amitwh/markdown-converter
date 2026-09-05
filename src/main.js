@@ -1562,6 +1562,12 @@ function createMenu() {
           click: () => showDependenciesDialog(),
         },
         {
+          // Legal: bundled-component licenses + GPL source offer (in-app copy
+          // of THIRD-PARTY-NOTICES.md and SOURCES.md)
+          label: 'Third-Party Notices & Licenses',
+          click: () => showThirdPartyNoticesWindow(),
+        },
+        {
           type: 'separator',
         },
         {
@@ -1685,6 +1691,68 @@ function showAboutDialog() {
 }
 
 // Show Dependencies Dialog
+/**
+ * In-app legal window: renders THIRD-PARTY-NOTICES.md and SOURCES.md (both
+ * ship inside the app — dev: repo root, packaged: asar root via build.files).
+ * The markdown is shown verbatim in a <pre> with light styling rather than
+ * rendered, so license texts stay exactly as written.
+ */
+function showThirdPartyNoticesWindow() {
+  const noticesWindow = new BrowserWindow({
+    width: 820,
+    height: 640,
+    parent: mainWindow,
+    title: 'Third-Party Notices & Licenses',
+    icon: path.join(__dirname, '../assets/icon.png'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+  noticesWindow.setMenuBarVisibility(false);
+
+  // Both files are read defensively so a packaging slip degrades gracefully
+  const readDoc = (file) => {
+    try {
+      return fs.readFileSync(path.join(__dirname, '..', file), 'utf-8');
+    } catch {
+      return `(Could not read ${file} in this installation — see the source repository.)`;
+    }
+  };
+  const esc = (s) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const html =
+    '<!doctype html><html><head><meta charset="utf-8"><title>Third-Party Notices</title><style>' +
+    'body{margin:0;font:13px/1.6 system-ui,sans-serif;background:#fafafa;color:#222}' +
+    'header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 20px;display:flex;gap:16px;align-items:center;z-index:1}' +
+    'header h1{font-size:15px;margin:0;flex:1}' +
+    'header button{padding:6px 14px;cursor:pointer;border:1px solid #d1d5db;border-radius:4px;background:#fff}' +
+    'header button.active{background:#4a90d9;color:#fff;border-color:#4a90d9}' +
+    'pre{white-space:pre-wrap;word-break:break-word;padding:20px 24px;margin:0;font:12px/1.65 ui-monospace,Menlo,Consolas,monospace}' +
+    'body.dark pre{background:#1f2937;color:#e5e7eb}body.dark{background:#111}' +
+    '</style></head><body>' +
+    '<header><h1>MarkdownConverter — Third-Party Notices</h1>' +
+    '<button id="tab-notices" class="active">Notices</button>' +
+    '<button id="tab-sources">Source Offers</button></header>' +
+    `<pre id="content"></pre>` +
+    '<script>' +
+    'const notices=' +
+    JSON.stringify(esc(readDoc('THIRD-PARTY-NOTICES.md'))) +
+    ';' +
+    'const sources=' +
+    JSON.stringify(esc(readDoc('SOURCES.md'))) +
+    ';' +
+    'const c=document.getElementById("content");' +
+    'c.textContent=notices;' +
+    'document.getElementById("tab-notices").onclick=e=>{c.textContent=notices;swap(e)};' +
+    'document.getElementById("tab-sources").onclick=e=>{c.textContent=sources;swap(e)};' +
+    'function swap(e){document.querySelectorAll("header button").forEach(b=>b.classList.remove("active"));e.target.classList.add("active")}' +
+    '</script></body></html>';
+
+  noticesWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+}
+
 function showDependenciesDialog() {
   const depsWindow = new BrowserWindow({
     width: 600,

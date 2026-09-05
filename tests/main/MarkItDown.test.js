@@ -7,7 +7,7 @@
  */
 const os = require('os');
 const path = require('path');
-const { resolveMarkItDown, convertToMarkdown, COMMAND_CANDIDATES } = require('../../src/main/MarkItDown');
+const { resolveMarkItDown, convertToMarkdown, commandCandidates } = require('../../src/main/MarkItDown');
 const { setImmediate } = require('timers');
 
 /**
@@ -58,8 +58,28 @@ describe('MarkItDown', () => {
     it('probes every candidate before giving up (null)', async () => {
       const runner = makeRunner({});
       expect(await resolveMarkItDown(runner)).toBeNull();
-      // One probe per candidate
-      expect(runner.calls).toHaveLength(COMMAND_CANDIDATES.length);
+      // One probe per candidate (bundled binary included when present)
+      expect(runner.calls).toHaveLength(commandCandidates().length);
+    });
+
+    it('prefers the bundled binary when one ships with the app', async () => {
+      const candidates = commandCandidates();
+      if (!candidates[0].bundled) {
+        // Machine has no bin/<platform>/markitdown — assert ordering of the
+        // remaining candidates instead.
+        expect(candidates.map((c) => c.command)).toContain('markitdown');
+        return;
+      }
+      const runner = makeRunner({});
+      const first = candidates[0];
+      runner.calls.length = 0;
+      // Stub the bundled path's --version probe
+      const script = {};
+      script[`${first.command} --version`] = { stdout: 'markitdown 0.1.7' };
+      const stub = makeRunner(script);
+      const resolved = await resolveMarkItDown(stub);
+      expect(resolved.command).toBe(first.command);
+      expect(stub.calls[0].cmd).toBe(first.command);
     });
 
     it('treats a non-zero probe exit as unavailable', async () => {

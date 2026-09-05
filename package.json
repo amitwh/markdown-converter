@@ -1,6 +1,6 @@
 {
   "name": "markdown-converter",
-  "version": "4.6.1",
+  "version": "4.7.0",
   "description": "Professional Markdown editor and universal file converter with PDF editing, batch processing, and syntax highlighting",
   "main": "src/main.js",
   "scripts": {
@@ -24,6 +24,7 @@
     "dist": "electron-builder --publish=never",
     "dist:all": "electron-builder -mwl",
     "download-tools": "node scripts/download-tools.js",
+    "bundle:markitdown": "node scripts/bundle-markitdown.js",
     "generate-icons": "node scripts/generate-icons.js"
   },
   "keywords": [
@@ -112,7 +113,9 @@
       "assets/**/*",
       "scripts/**/*",
       "node_modules/**/*",
-      "package.json"
+      "package.json",
+      "THIRD-PARTY-NOTICES.md",
+      "SOURCES.md"
     ],
     "asarUnpack": [
       "node_modules/ffmpeg-static/**",
@@ -147,7 +150,17 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "identity": null
+      "identity": null,
+      "extraFiles": [
+        {
+          "from": "bin/darwin/pandoc",
+          "to": "bin/pandoc"
+        },
+        {
+          "from": "bin/darwin/markitdown",
+          "to": "bin/markitdown"
+        }
+      ]
     },
     "win": {
       "target": [
@@ -179,6 +192,10 @@
         {
           "from": "bin/win32/pandoc.exe",
           "to": "bin/pandoc.exe"
+        },
+        {
+          "from": "bin/win32/markitdown.exe",
+          "to": "bin/markitdown.exe"
         }
       ]
     },
@@ -210,6 +227,10 @@
         {
           "from": "bin/linux/pandoc",
           "to": "bin/pandoc"
+        },
+        {
+          "from": "bin/linux/markitdown",
+          "to": "bin/markitdown"
         }
       ]
     },

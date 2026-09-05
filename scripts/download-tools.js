@@ -3,6 +3,11 @@
  * Downloads pandoc binary for the current build platform.
  * Run automatically via `npm run download-tools` before building.
  * Skips download if binary already exists (idempotent).
+ *
+ * Security: every artifact with a known hash is verified with SHA-256 after
+ * download AND on every run (defending the build against a tampered cache /
+ * compromised mirror). When a hash is missing for a platform, the computed
+ * hash is printed so CI can pin it — add it to KNOWN_SHA256 below.
  */
 
 const https = require('https');
@@ -10,9 +15,56 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 const PANDOC_VERSION = '3.9.0.2';
+
+/**
+ * SHA-256 of each downloaded artifact, keyed "<platform>:<file>" or
+ * "fonts:<file>". Computed with `sha256sum` from the pristine upstream
+ * artifacts; keep in sync when bumping versions.
+ */
+const KNOWN_SHA256 = {
+  'linux:pandoc': '7d124235998ecd3cdd9a463b1e5f6691a178b6461824c29a36170a0882f05597',
+  // Fill these from a trusted machine after the first download of each
+  // platform (the script prints the computed hash):
+  // 'win32:pandoc.exe': '…',
+  // 'darwin:pandoc': '…',
+  'fonts:FiraCode-Regular.ttf': '3c79d234a9161c790410ebb2a80de7efb7c15f581062c130e0fa78503ccdd0da',
+  'fonts:FiraCode-Bold.ttf': '975f26779fac1029c2cbdac1e9fac7e9ddeec05e064675e4aac63bffa121742f',
+  'fonts:FiraCode-LICENSE.txt': '1d41e10031ab125302780a05ec4c91d218e47db0c7e37cf315cce5e608cdc25c',
+};
+
+/** sha256 of a file's contents, hex-encoded. */
+function sha256File(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+/**
+ * Verify a file against KNOWN_SHA256. Throws on mismatch; prints the computed
+ * hash with a pin-me hint when no hash is recorded yet (soft-fail so new
+ * platforms bootstrap, hard-fail so tampering never passes silently).
+ */
+function verifyArtifact(key, filePath) {
+  const actual = sha256File(filePath);
+  const expected = KNOWN_SHA256[key];
+  if (!expected) {
+    console.warn(
+      `[download-tools] WARNING: no pinned SHA-256 for "${key}".\n` +
+        `  Computed: ${actual}\n` +
+        '  Verify it against the upstream artifact and add it to KNOWN_SHA256.'
+    );
+    return;
+  }
+  if (actual !== expected) {
+    throw new Error(
+      `SHA-256 mismatch for ${key}!\n  expected ${expected}\n  actual   ${actual}\n` +
+        'Delete the file and re-run; if the mismatch persists, do NOT ship it.'
+    );
+  }
+  console.log(`[download-tools] SHA-256 OK for ${key}`);
+}
 
 const PANDOC_CONFIG = {
   linux: {
@@ -119,11 +171,14 @@ async function downloadFiraCode() {
   for (const t of targets) {
     const destFile = path.join(destDir, t.out);
     if (fs.existsSync(destFile)) {
+      // Re-verify cached artifacts so a tampered cache never ships
+      verifyArtifact(`fonts:${t.out}`, destFile);
       console.log(`[download-tools] ${t.out} already present — skipping.`);
       continue;
     }
     console.log(`[download-tools] Downloading ${t.out}...`);
     await download(t.url, destFile);
+    verifyArtifact(`fonts:${t.out}`, destFile);
   }
 }
 
@@ -140,6 +195,7 @@ async function downloadPandoc() {
   const destFile = path.join(destDir, config.destFile);
 
   if (fs.existsSync(destFile)) {
+    verifyArtifact(`${platform}:${config.destFile}`, destFile);
     console.log(`[download-tools] pandoc already present at ${destFile} — skipping.`);
     return;
   }
@@ -153,6 +209,7 @@ async function downloadPandoc() {
 
   console.log(`[download-tools] Extracting to ${destDir}...`);
   config.extract(tmpArchive, destDir);
+  verifyArtifact(`${platform}:${config.destFile}`, destFile);
 
   try {
     fs.unlinkSync(tmpArchive);
