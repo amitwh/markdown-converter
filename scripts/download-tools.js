@@ -19,6 +19,7 @@ const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 const PANDOC_VERSION = '3.9.0.2';
+const FIRACODE_VERSION = '6.2';
 
 /**
  * SHA-256 of each downloaded artifact, keyed "<platform>:<file>" or
@@ -31,14 +32,29 @@ const KNOWN_SHA256 = {
   // Fill these from a trusted machine after the first download of each
   // platform (the script prints the computed hash):
   // 'darwin:pandoc': '…',
-  'fonts:FiraCode-Regular.ttf': '3c79d234a9161c790410ebb2a80de7efb7c15f581062c130e0fa78503ccdd0da',
-  'fonts:FiraCode-Bold.ttf': '975f26779fac1029c2cbdac1e9fac7e9ddeec05e064675e4aac63bffa121742f',
+  // Fira Code 6.2 (immutable GitHub release asset)
+  'fonts:FiraCode-Regular.ttf': '5992ab9640e2df491b2f609467b1de60e8bc39b2c28db184342a0592d98f6117',
+  'fonts:FiraCode-Bold.ttf': '41f6554e845e2f5b70adad3950122334b866aac436793b7742ade600067701be',
   'fonts:FiraCode-LICENSE.txt': '1d41e10031ab125302780a05ec4c91d218e47db0c7e37cf315cce5e608cdc25c',
 };
 
 /** sha256 of a file's contents, hex-encoded. */
 function sha256File(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+/** Recursively find an executable file by name inside a directory. */
+function findBinary(dir, name) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const hit = findBinary(full, name);
+      if (hit) return hit;
+    } else if (entry.name === name || entry.name === name + '.exe') {
+      return full;
+    }
+  }
+  return null;
 }
 
 /**
@@ -104,8 +120,11 @@ const PANDOC_CONFIG = {
       const tmpDir = path.join(os.tmpdir(), `pandoc-${Date.now()}`);
       fs.mkdirSync(tmpDir, { recursive: true });
       execSync(`unzip -o "${archivePath}" -d "${tmpDir}"`);
-      const src = path.join(tmpDir, `pandoc-${PANDOC_VERSION}`, 'bin', 'pandoc');
-      fs.copyFileSync(src, path.join(destDir, 'pandoc'));
+      // macOS zips don't carry a stable layout (bin/ subdir vs. flat) —
+      // locate the binary in the extracted tree instead of guessing a path
+      const found = findBinary(tmpDir, 'pandoc');
+      if (!found) throw new Error('pandoc binary not found inside the macOS archive');
+      fs.copyFileSync(found, path.join(destDir, 'pandoc'));
       fs.chmodSync(path.join(destDir, 'pandoc'), 0o755);
       fs.rmSync(tmpDir, { recursive: true, force: true });
     },
@@ -161,25 +180,34 @@ function download(url, destPath) {
 async function downloadFiraCode() {
   const destDir = path.join(__dirname, '..', 'assets', 'fonts');
   fs.mkdirSync(destDir, { recursive: true });
+  const wanted = ['FiraCode-Regular.ttf', 'FiraCode-Bold.ttf', 'FiraCode-LICENSE.txt'];
 
-  const targets = [
-    { url: 'https://github.com/tonsky/FiraCode/raw/master/distr/ttf/FiraCode-Regular.ttf', out: 'FiraCode-Regular.ttf' },
-    { url: 'https://github.com/tonsky/FiraCode/raw/master/distr/ttf/FiraCode-Bold.ttf',    out: 'FiraCode-Bold.ttf' },
-    { url: 'https://raw.githubusercontent.com/tonsky/FiraCode/master/LICENSE',            out: 'FiraCode-LICENSE.txt' },
-  ];
-
-  for (const t of targets) {
-    const destFile = path.join(destDir, t.out);
-    if (fs.existsSync(destFile)) {
-      // Re-verify cached artifacts so a tampered cache never ships
-      verifyArtifact(`fonts:${t.out}`, destFile);
-      console.log(`[download-tools] ${t.out} already present — skipping.`);
-      continue;
-    }
-    console.log(`[download-tools] Downloading ${t.out}...`);
-    await download(t.url, destFile);
-    verifyArtifact(`fonts:${t.out}`, destFile);
+  // All three present (and hash-verified) → nothing to do
+  const missing = wanted.filter((f) => !fs.existsSync(path.join(destDir, f)));
+  if (missing.length === 0) {
+    for (const f of wanted) verifyArtifact(`fonts:${f}`, path.join(destDir, f));
+    console.log('[download-tools] Fira Code already present — skipping.');
+    return;
   }
+
+  // Immutable release asset (raw/master URLs move and break hash pinning)
+  const zipUrl = `https://github.com/tonsky/FiraCode/releases/download/${FIRACODE_VERSION}/Fira_Code_v${FIRACODE_VERSION}.zip`;
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), `firacode-${Date.now()}`));
+  const tmpZip = path.join(tmpDir, 'firacode.zip');
+  console.log(`[download-tools] Downloading Fira Code ${FIRACODE_VERSION}...`);
+  await download(zipUrl, tmpZip);
+  execSync(`unzip -o -j "${tmpZip}" "ttf/FiraCode-Regular.ttf" "ttf/FiraCode-Bold.ttf" -d "${tmpDir}"`);
+
+  fs.copyFileSync(path.join(tmpDir, 'FiraCode-Regular.ttf'), path.join(destDir, 'FiraCode-Regular.ttf'));
+  fs.copyFileSync(path.join(tmpDir, 'FiraCode-Bold.ttf'), path.join(destDir, 'FiraCode-Bold.ttf'));
+  // License text from the immutable tag
+  await download(
+    `https://raw.githubusercontent.com/tonsky/FiraCode/${FIRACODE_VERSION}/LICENSE`,
+    path.join(destDir, 'FiraCode-LICENSE.txt')
+  );
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+
+  for (const f of wanted) verifyArtifact(`fonts:${f}`, path.join(destDir, f));
 }
 
 async function downloadPandoc() {

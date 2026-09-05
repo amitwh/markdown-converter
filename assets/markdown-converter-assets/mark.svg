@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Markdown Converter mark">
+  <title>Markdown Converter</title>
+  <defs>
+    <linearGradient id="mcg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FB923C"/>
+      <stop offset="100%" stop-color="#C2410C"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#mcg)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="26" y1="22" x2="26" y2="72"/>
+    <line x1="63" y1="22" x2="63" y2="75"/>
+    <polyline points="22,18 44.5,56 67,18"/>
+    <polyline points="48,60 63,76 78,60"/>
+  </g>
+</svg>

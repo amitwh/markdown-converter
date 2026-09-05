@@ -11,6 +11,7 @@ function createWelcomeContent(recentFiles = [], appVersion = '') {
   return `
     <div class="welcome-container">
         <div class="welcome-hero">
+            <img src="../assets/markdown-converter-assets/mark.svg" alt="" width="56" height="56" class="welcome-mark" />
             <h1 class="welcome-title">MarkdownConverter</h1>
             <p class="welcome-version">${appVersion ? `Version ${appVersion}` : ''}</p>
             <p class="welcome-subtitle">Professional Markdown Editor & Universal Document Converter</p>

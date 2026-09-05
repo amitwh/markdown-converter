@@ -119,3 +119,9 @@
   color: var(--gray-500);
   cursor: pointer;
 }
+
+/* Brand mark in the welcome hero (M↓ mark from the brand kit) */
+.welcome-mark {
+  display: block;
+  margin: 0 auto 10px;
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Markdown Converter app icon (flat)">
+  <title>Markdown Converter (flat)</title>
+  <rect width="1024" height="1024" rx="224" ry="224" fill="#F97316"/>
+  <g transform="translate(154, 176) scale(7.16)" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="26" y1="22" x2="26" y2="72"/>
+    <line x1="63" y1="22" x2="63" y2="75"/>
+    <polyline points="22,18 44.5,56 67,18"/>
+    <polyline points="48,60 63,76 78,60"/>
+  </g>
+</svg>

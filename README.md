@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/markdown-converter-assets/logo-horizontal.svg" alt="Markdown Converter" width="420">
+</p>
+
 # MarkdownConverter
 
 A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron. 100% open-source with no proprietary dependencies.
@@ -220,4 +224,4 @@ Amit Haridas (amit.wh@gmail.com)
 
 ## Version
 
-v4.7.0
+v4.7.1
