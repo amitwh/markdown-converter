@@ -293,7 +293,9 @@ describe('PDFBatchOperations - runPDFBatchOperation', () => {
         operation: 'compress',
         outputFolder: path.join(blocker, 'child'),
         data: {},
-        sanitizeError: (message) => message.replace(new RegExp(path.sep, 'g'), '_SANITIZED_'),
+        // path.sep is "\" on Windows — escape it for RegExp use
+        sanitizeError: (message) =>
+          message.replace(new RegExp(path.sep.replace(/\\/g, '\\\\'), 'g'), '_SANITIZED_'),
       });
 
       expect(completion.success).toBe(false);

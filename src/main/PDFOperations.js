@@ -441,10 +441,16 @@ async function loadPdfjs() {
 
 // Points pdfjs-dist at its bundled standard font metrics so it doesn't warn
 // (and degrade text-extraction fidelity) when a PDF uses a standard font.
+// pdfjs validates this as a URL that must end with a forward slash — a raw
+// Windows path (C:\...\standard_fonts\) fails that check and breaks
+// extractText/extractImages on Windows, so always hand pdfjs a file:// URL.
 function getStandardFontDataUrl() {
-  return (
-    path.join(path.dirname(require.resolve('pdfjs-dist/package.json')), 'standard_fonts') + path.sep
+  const dir = path.join(
+    path.dirname(require.resolve('pdfjs-dist/package.json')),
+    'standard_fonts'
   );
+  const url = require('url').pathToFileURL(dir);
+  return url.href.endsWith('/') ? url.href : url.href + '/';
 }
 
 async function pdfExtractText(data) {
