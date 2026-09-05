@@ -27,9 +27,9 @@ const PANDOC_VERSION = '3.9.0.2';
  */
 const KNOWN_SHA256 = {
   'linux:pandoc': '7d124235998ecd3cdd9a463b1e5f6691a178b6461824c29a36170a0882f05597',
+  'win32:pandoc.exe': 'e83f8354c0f507222b5684797b9c5ae766f03889785995d14aac27816ec456ba',
   // Fill these from a trusted machine after the first download of each
   // platform (the script prints the computed hash):
-  // 'win32:pandoc.exe': '…',
   // 'darwin:pandoc': '…',
   'fonts:FiraCode-Regular.ttf': '3c79d234a9161c790410ebb2a80de7efb7c15f581062c130e0fa78503ccdd0da',
   'fonts:FiraCode-Bold.ttf': '975f26779fac1029c2cbdac1e9fac7e9ddeec05e064675e4aac63bffa121742f',

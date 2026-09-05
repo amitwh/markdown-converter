@@ -12,17 +12,17 @@
     "lint:fix": "eslint src tests --fix",
     "format": "prettier --write src tests",
     "format:check": "prettier --check src tests",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:win-signed": "cross-env CSC_LINK=code-signing-cert.pfx electron-builder --win",
-    "build:win-unsigned": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win",
+    "build": "electron-builder --config electron-builder.config.js",
+    "build:win": "electron-builder --config electron-builder.config.js --win",
+    "build:win-signed": "cross-env CSC_LINK=code-signing-cert.pfx electron-builder --config electron-builder.config.js --win",
+    "build:win-unsigned": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config electron-builder.config.js --win",
     "create-cert": "powershell -ExecutionPolicy Bypass -File scripts/create-selfsigned-cert.ps1",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
-    "build:linux-ci": "electron-builder --linux deb AppImage",
-    "build:local": "electron-builder --linux --win",
-    "dist": "electron-builder --publish=never",
-    "dist:all": "electron-builder -mwl",
+    "build:mac": "electron-builder --config electron-builder.config.js --mac",
+    "build:linux": "electron-builder --config electron-builder.config.js --linux",
+    "build:linux-ci": "electron-builder --config electron-builder.config.js --linux deb AppImage",
+    "build:local": "electron-builder --config electron-builder.config.js --linux --win",
+    "dist": "electron-builder --config electron-builder.config.js --publish=never",
+    "dist:all": "electron-builder --config electron-builder.config.js -mwl",
     "download-tools": "node scripts/download-tools.js",
     "bundle:markitdown": "node scripts/bundle-markitdown.js",
     "generate-icons": "node scripts/generate-icons.js"
@@ -99,148 +99,5 @@
     "lodash.pick": "npm:lodash@^4.17.21",
     "lodash-es": "^4.18.1",
     "lodash": "^4.17.21"
-  },
-  "build": {
-    "appId": "com.concreteinfo.markdownconverter",
-    "productName": "MarkdownConverter",
-    "copyright": "Copyright (C) 2024-2025 ConcreteInfo",
-    "directories": {
-      "output": "dist"
-    },
-    "icon": "assets/icon",
-    "files": [
-      "src/**/*",
-      "assets/**/*",
-      "scripts/**/*",
-      "node_modules/**/*",
-      "package.json",
-      "THIRD-PARTY-NOTICES.md",
-      "SOURCES.md"
-    ],
-    "asarUnpack": [
-      "node_modules/ffmpeg-static/**",
-      "node_modules/sharp/**",
-      "node_modules/@img/**",
-      "node_modules/@napi-rs/**",
-      "assets/fonts/**"
-    ],
-    "extraFiles": [],
-    "fileAssociations": [
-      {
-        "ext": "md",
-        "name": "Markdown Document",
-        "description": "Markdown Document",
-        "mimeType": "text/markdown",
-        "role": "Editor"
-      },
-      {
-        "ext": "markdown",
-        "name": "Markdown Document",
-        "description": "Markdown Document",
-        "mimeType": "text/markdown",
-        "role": "Editor"
-      },
-      {
-        "ext": "pdf",
-        "name": "PDF Document",
-        "description": "PDF Document",
-        "mimeType": "application/pdf",
-        "role": "Editor"
-      }
-    ],
-    "mac": {
-      "category": "public.app-category.productivity",
-      "identity": null,
-      "extraFiles": [
-        {
-          "from": "bin/darwin/pandoc",
-          "to": "bin/pandoc"
-        },
-        {
-          "from": "bin/darwin/markitdown",
-          "to": "bin/markitdown"
-        }
-      ]
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "artifactName": "${productName}-${version}-${arch}.${ext}",
-      "requestedExecutionLevel": "asInvoker",
-      "legalTrademarks": "Copyright (C) 2024-2025 ConcreteInfo",
-      "verifyUpdateCodeSignature": false,
-      "signAndEditExecutable": false,
-      "extraFiles": [
-        {
-          "from": "bin/win32/pandoc.exe",
-          "to": "bin/pandoc.exe"
-        },
-        {
-          "from": "bin/win32/markitdown.exe",
-          "to": "bin/markitdown.exe"
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "displayLanguageSelector": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "MarkdownConverter",
-      "runAfterFinish": true,
-      "menuCategory": "Productivity",
-      "license": "LICENSE",
-      "warningsAsErrors": false,
-      "artifactName": "${productName}-Setup-${version}.${ext}",
-      "deleteAppDataOnUninstall": false,
-      "differentialPackage": true
-    },
-    "linux": {
-      "target": [
-        "deb",
-        "AppImage",
-        "snap"
-      ],
-      "category": "Utility",
-      "maintainer": "ConcreteInfo <amit.wh@gmail.com>",
-      "extraFiles": [
-        {
-          "from": "bin/linux/pandoc",
-          "to": "bin/pandoc"
-        },
-        {
-          "from": "bin/linux/markitdown",
-          "to": "bin/markitdown"
-        }
-      ]
-    },
-    "deb": {
-      "depends": [
-        "imagemagick",
-        "libreoffice-common"
-      ],
-      "description": "Professional Markdown editor and universal file converter",
-      "maintainer": "ConcreteInfo <amit.wh@gmail.com>"
-    }
   }
 }

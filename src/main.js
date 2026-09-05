@@ -27,11 +27,27 @@ if (process.platform === 'win32') {
   }
 }
 
+/**
+ * Directory of the bundled external tools (pandoc/markitdown) in a PACKAGED
+ * app. electron-builder extraFiles land next to the executable on Linux and
+ * Windows, and inside Contents/ on macOS — NOT in resources/bin (which is
+ * where the lookup incorrectly pointed before v4.7, making packaged builds
+ * silently fall back to system-installed tools).
+ */
+function bundledToolDir() {
+  if (process.platform === 'darwin') {
+    // resourcesPath = …/Contents/Resources → tools live in …/Contents/bin
+    return path.join(path.dirname(process.resourcesPath), 'bin');
+  }
+  // exePath = …/MarkdownConverter(.exe) → tools live in …/bin
+  return path.join(path.dirname(process.execPath), 'bin');
+}
+
 // Returns path to pandoc: bundled binary when packaged, dev bin or system fallback otherwise.
 function getPandocPath() {
   if (app.isPackaged) {
     const ext = process.platform === 'win32' ? '.exe' : '';
-    return path.join(process.resourcesPath, 'bin', `pandoc${ext}`);
+    return path.join(bundledToolDir(), `pandoc${ext}`);
   }
   // Development: prefer locally-downloaded binary in bin/<platform>/
   const devBin = path.join(

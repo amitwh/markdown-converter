@@ -24,25 +24,32 @@ const MAX_OUTPUT_BUFFER = 20 * 1024 * 1024;
 
 /**
  * Path to the bundled markitdown binary (built by scripts/bundle-markitdown.js
- * via PyInstaller), when the app ships one. Mirrors getPandocPath's layout:
- * dev: bin/<platform>/markitdown · packaged: <resourcesPath>/bin/markitdown.
- * Returns null when no bundle exists (PATH/python fallbacks apply).
+ * via PyInstaller), when the app ships one. Layout matches getPandocPath:
+ * dev: bin/<platform>/markitdown · packaged: <app dir>/bin/markitdown (next
+ * to the executable on Linux/Windows, Contents/bin on macOS — the same
+ * extraFiles destination). Returns null when absent (PATH/python fallbacks).
  */
 function getBundledMarkItDownPath() {
   const pathUtil = require('path');
   const fs = require('fs');
   const exe = process.platform === 'win32' ? 'markitdown.exe' : 'markitdown';
-  if (typeof process === 'object' && process.resourcesPath && !process.resourcesPath.includes('node_modules')) {
-    // Packaged (Electron) — resourcesPath only exists in a real app runtime
-    try {
-      const electron = require('electron');
-      if (electron.app?.isPackaged) {
-        const packaged = pathUtil.join(process.resourcesPath, 'bin', exe);
-        if (fs.existsSync(packaged)) return packaged;
-      }
-    } catch {
-      /* not running under Electron (tests) — fall through to dev layout */
+  try {
+    // Only meaningful under Electron; tests import this module under Node
+    const electron = require('electron');
+    if (electron.app?.isPackaged) {
+      const base =
+        process.platform === 'darwin'
+          ? pathUtil.dirname(electron.app.getPath('exe')) // …/Contents/MacOS
+          : pathUtil.dirname(process.execPath);
+      const packaged =
+        process.platform === 'darwin'
+          ? pathUtil.join(base, '..', 'bin', exe) // …/Contents/bin
+          : pathUtil.join(base, 'bin', exe);
+      if (fs.existsSync(packaged)) return packaged;
+      return null;
     }
+  } catch {
+    /* not running under Electron (tests) — use the dev layout below */
   }
   const dev = pathUtil.join(__dirname, '..', '..', 'bin', process.platform, exe);
   return fs.existsSync(dev) ? dev : null;

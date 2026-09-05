@@ -50,8 +50,11 @@ function listFilesRecursively(dir) {
   );
 
   test('sharp-linux-x64 ships its native binding', () => {
-    const binding = path.join(UNPACKED_IMG_DIR, 'sharp-linux-x64', 'lib', 'sharp-linux-x64.node');
-    expect(fs.existsSync(binding)).toBe(true);
+    // sharp 0.35 names the binding with a version suffix
+    // (sharp-linux-x64-0.35.4.node); 0.34 used a bare name — accept both
+    const libDir = path.join(UNPACKED_IMG_DIR, 'sharp-linux-x64', 'lib');
+    const bindings = fs.readdirSync(libDir).filter((f) => /^sharp-linux-x64.*\.node$/.test(f));
+    expect(bindings.length).toBeGreaterThan(0);
   });
 
   test('sharp-libvips-linux-x64 ships the bundled libvips shared libraries', () => {

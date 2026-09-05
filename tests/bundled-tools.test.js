@@ -87,9 +87,18 @@ describe('Legal compliance artifacts', () => {
     expect(sources).toMatch(/https:\/\/ffmpeg\.org\/releases\//);
   });
 
-  test('packaging includes the legal documents in build.files', () => {
+  test('packaging includes the legal documents in build files', () => {
+    // The build config lives in electron-builder.config.js (dynamic — it
+    // conditionally bundles the markitdown binary per platform)
+    const configSrc = fs.readFileSync(
+      path.join(rootDir, 'electron-builder.config.js'),
+      'utf-8'
+    );
+    expect(configSrc).toContain("'THIRD-PARTY-NOTICES.md'");
+    expect(configSrc).toContain("'SOURCES.md'");
+    expect(configSrc).toContain('third-party-licenses');
+    // And package.json must not carry a stale static build section anymore
     const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8'));
-    expect(pkg.build.files).toContain('THIRD-PARTY-NOTICES.md');
-    expect(pkg.build.files).toContain('SOURCES.md');
+    expect(pkg.build).toBeUndefined();
   });
 });
