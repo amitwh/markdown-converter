@@ -1,0 +1,9 @@
+# Text artifacts that are hash-pinned must check out byte-identical everywhere
+assets/fonts/FiraCode-LICENSE.txt -text
+# Binaries: never normalize
+*.ttf -text
+*.woff -text
+*.woff2 -text
+*.png -text
+*.ico -text
+*.icns -text
