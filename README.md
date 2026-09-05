@@ -51,6 +51,7 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 - **ASCII Art Generator** - Create text banners and diagrams
 - **Word templates** - Use custom Word templates for enhanced exports
 - **Import documents** - Import from 30+ formats (DOCX, PDF, HTML, etc.)
+- **MarkItDown import** - Any file → Markdown via [Microsoft MarkItDown](https://github.com/microsoft/markitdown): PDF, DOCX, PPTX, XLSX, Outlook .msg, EPUB, images, ZIP (audio/OCR with the `[all]` extras)
 - **Excel export** - Markdown tables to native .xlsx workbooks (one sheet per table)
 - **AI Assistant** - Multi-provider AI help (OpenAI/Anthropic/Ollama/LM Studio): chat panel, summarize/improve/translate commands, grammar proofreading
 - **Inline comments** - Anchor-based document comments in `.comments/` sidecars with F8 navigation
@@ -67,6 +68,7 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v16 or later)
 - [Pandoc](https://pandoc.org/installing.html) (required for export functionality)
+- Optional: [MarkItDown](https://github.com/microsoft/markitdown) (`pip install "markitdown[all]"`) for any-file → Markdown import
 
 ### Install Dependencies
 ```bash
@@ -181,4 +183,4 @@ Amit Haridas (amit.wh@gmail.com)
 
 ## Version
 
-v4.6.0
+v4.6.1

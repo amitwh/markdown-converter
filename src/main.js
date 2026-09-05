@@ -841,6 +841,12 @@ function createMenu() {
           click: importDocument,
         },
         {
+          // Microsoft MarkItDown: any file → Markdown (PDF/DOCX/PPTX/XLSX/
+          // MSG/EPUB/images/ZIP/…, audio/OCR with the [all] extras)
+          label: 'Import with MarkItDown (Any Format)...',
+          click: importWithMarkItDown,
+        },
+        {
           label: 'Export',
           submenu: [
             {
@@ -1761,6 +1767,12 @@ function showDependenciesDialog() {
     <div class="dep-name">MiKTeX / TeX Live <span class="tag tag-optional">Optional</span></div>
     <div class="dep-desc">Required for PDF export via LaTeX (higher quality PDFs).</div>
     <a class="dep-link" href="https://miktex.org/download" target="_blank">https://miktex.org/download</a>
+  </div>
+
+  <div class="dep-card optional">
+    <div class="dep-name">MarkItDown <span class="tag tag-optional">Optional</span></div>
+    <div class="dep-desc">Microsoft's any-file-to-Markdown importer (PDF, DOCX, PPTX, XLSX, Outlook .msg, EPUB, images, ZIP). Install with: pip install "markitdown[all]"</div>
+    <a class="dep-link" href="https://github.com/microsoft/markitdown" target="_blank">https://github.com/microsoft/markitdown</a>
   </div>
 
   <h2>Bundled Libraries</h2>
@@ -3717,6 +3729,97 @@ function importDocument() {
     });
   }
 }
+
+// ============================================
+// MarkItDown import (Microsoft markitdown, any file → Markdown)
+// ============================================
+const MarkItDown = require('./main/MarkItDown');
+
+// Probed once on first use; {command, argsPrefix, version} or null
+let markItDownResolved = undefined; // undefined = not probed yet
+
+/** Resolve (and cache) the markitdown command via the bridge module. */
+async function getMarkItDown() {
+  if (markItDownResolved === undefined) {
+    markItDownResolved = await MarkItDown.resolveMarkItDown(require('child_process').execFile);
+  }
+  return markItDownResolved;
+}
+
+/** IPC: availability probe for renderer hints (no version spam, cached). */
+ipcMain.handle('markitdown:available', async () => {
+  const resolved = await getMarkItDown();
+  return {
+    available: Boolean(resolved),
+    version: resolved?.version || null,
+    // How the tool was found, e.g. "markitdown" or "python3 -m markitdown"
+    via: resolved ? [resolved.command, ...resolved.argsPrefix].join(' ') : null,
+  };
+});
+
+/** IPC: convert one file to markdown (renderer-driven flows). */
+ipcMain.handle('markitdown:convert', async (_event, { path: inputPath } = {}) => {
+  const validation = validatePath(inputPath);
+  if (!validation.valid) throw new Error('Invalid file path');
+  const stats = fs.statSync(validation.resolved);
+  if (stats.size > MAX_FILE_SIZE) {
+    throw new Error(`File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+  }
+  const resolved = await getMarkItDown();
+  return MarkItDown.convertToMarkdown(validation.resolved, { resolved });
+});
+
+/**
+ * Menu flow: pick any file, convert with markitdown, write <name>.md next to
+ * the source (mirroring importDocument's UX), and open it in a new tab.
+ * Existing outputs are never overwritten — a numeric suffix is appended.
+ */
+async function importWithMarkItDown() {
+  const files = dialog.showOpenDialogSync(mainWindow, {
+    properties: ['openFile'],
+    title: 'Import with MarkItDown (any format)',
+  });
+  if (!files || !files[0]) return;
+  const inputFile = files[0];
+
+  try {
+    const stats = fs.statSync(inputFile);
+    if (stats.size > MAX_FILE_SIZE) {
+      dialog.showErrorBox('File Too Large', `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`);
+      return;
+    }
+
+    const resolved = await getMarkItDown();
+    const { content } = await MarkItDown.convertToMarkdown(inputFile, { resolved });
+
+    // <name>.md, then <name>-1.md, <name>-2.md, … when it already exists
+    const base = inputFile.replace(/\.[^/.]+$/, '');
+    let outputFile = `${base}.md`;
+    for (let i = 1; fs.existsSync(outputFile); i++) outputFile = `${base}-${i}.md`;
+    fs.writeFileSync(outputFile, content, 'utf-8');
+
+    currentFile = outputFile;
+    mainWindow.webContents.send('file-opened', { path: outputFile, content });
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'Import Complete',
+      message: `Imported as ${path.basename(outputFile)} via MarkItDown\n\nOriginal: ${path.basename(inputFile)}`,
+      buttons: ['OK'],
+    });
+  } catch (error) {
+    dialog.showErrorBox(
+      'MarkItDown Import',
+      sanitizeErrorMessage(
+        (error.code === 'not_installed'
+          ? error.message
+          : `Import failed: ${error.message}`) +
+          '\n\nMarkItDown is an optional Python tool from Microsoft (MIT):\n' +
+          '  pip install "markitdown[all]"'
+      )
+    );
+  }
+}
+
 function setTheme(theme) {
   store.set('theme', theme);
   mainWindow.webContents.send('theme-changed', theme);

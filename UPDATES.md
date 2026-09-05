@@ -1,5 +1,36 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.6.1 (2026-09-05)
+
+### New Features
+- **MarkItDown import** — "File → Import with MarkItDown (Any Format)…" embeds
+  Microsoft's [markitdown](https://github.com/microsoft/markitdown) (MIT) as an
+  any-file → Markdown path: PDF, DOCX, PPTX, XLSX, Outlook .msg/.eml, EPUB,
+  images, CSV/JSON/XML, ZIP; audio transcription and OCR with the `[all]` extras
+  - Command auto-resolution: `markitdown` binary, then `python -m markitdown` /
+    `python3 -m markitdown` (probed once, cached)
+  - Same SEC-1 argv discipline as Pandoc (execFile only, paths never through a shell),
+    50MB input cap, 120s timeout, path-sanitized errors that surface markitdown's
+    actionable `pip install 'markitdown[...]'` hints
+  - Output written next to the source as `<name>.md` (numeric suffix instead of
+    overwriting) and opened in a new tab; `markitdown:available` / `markitdown:convert`
+    IPC for future renderer flows
+- **AI Assistant: Anthropic-compatible provider** — any base URL speaking the
+  Anthropic messages schema (LiteLLM proxies, Bedrock gateways, local servers);
+  x-api-key + Bearer auth, keyless proxies supported, tolerates bases with or
+  without a trailing `/v1`
+
+### Bug Fixes
+- File → Open PDF crashed the PDF editor (null operation matched no section; now
+  defaults to Merge)
+- Backlinks panel required the wrong module path (failed at registration)
+- writing-studio engines/panels now await their IPC-backed settings/file backends
+  (eliminates `JSON.parse("[object Promise]")` crashes)
+- Manuscript panel's window.prompt (unsupported in Electron) replaced with an
+  inline dialog; collaboration comment store made async to match its IO
+
+---
+
 ## Version 4.6.0 (2026-09-05)
 
 ### New Features

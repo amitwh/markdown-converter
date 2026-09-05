@@ -168,6 +168,10 @@ const ALLOWED_SEND_CHANNELS = [
   'plantuml:available',
   'plantuml:render',
 
+  // MarkItDown import (optional Python CLI)
+  'markitdown:available',
+  'markitdown:convert',
+
   // Quick Note scratchpad
   'quick-note:save',
 
