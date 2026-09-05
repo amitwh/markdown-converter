@@ -1,5 +1,6 @@
 /**
  * @jest-environment node
+ * @jest-environment-options {"testTimeout": 30000}
  *
  * PDFOperations.js tests for Task 15's new operations: extractText, pageNumbers,
  * crop, extractImages. Uses pdf-lib to build minimal fixture PDFs at test time,
@@ -47,13 +48,19 @@ describe('PDFOperations - Task 15 new operations', () => {
   });
 
   describe('pdfExtractText', () => {
-    it('extracts text from all pages', async () => {
-      const result = await PDFOperations.pdfExtractText({ inputPath });
+    it(
+      'extracts text from all pages',
+      async () => {
+        const result = await PDFOperations.pdfExtractText({ inputPath });
 
-      expect(result.success).toBe(true);
-      expect(result.text).toContain('Hello Task 15 Page One');
-      expect(result.text).toContain('Second Page Content');
-    });
+        expect(result.success).toBe(true);
+        expect(result.text).toContain('Hello Task 15 Page One');
+        expect(result.text).toContain('Second Page Content');
+      },
+      // First pdfjs-dist legacy import can exceed the 5s default on slower
+      // CI runners (observed on windows-latest)
+      30000
+    );
 
     it('returns failure for a nonexistent file', async () => {
       const result = await PDFOperations.pdfExtractText({
@@ -150,38 +157,42 @@ describe('PDFOperations - Task 15 new operations', () => {
   });
 
   describe('pdfExtractImages', () => {
-    it('extracts embedded raster images as PNG files', async () => {
-      const imgPath = path.join(tmpDir, 'red.png');
-      await sharp({
-        create: { width: 20, height: 20, channels: 3, background: { r: 255, g: 0, b: 0 } },
-      })
-        .png()
-        .toFile(imgPath);
+    it(
+      'extracts embedded raster images as PNG files',
+      async () => {
+        const imgPath = path.join(tmpDir, 'red.png');
+        await sharp({
+          create: { width: 20, height: 20, channels: 3, background: { r: 255, g: 0, b: 0 } },
+        })
+          .png()
+          .toFile(imgPath);
 
-      const doc = await PDFDocument.create();
-      const page = doc.addPage([300, 300]);
-      const pngImage = await doc.embedPng(fs.readFileSync(imgPath));
-      page.drawImage(pngImage, { x: 50, y: 50, width: 100, height: 100 });
+        const doc = await PDFDocument.create();
+        const page = doc.addPage([300, 300]);
+        const pngImage = await doc.embedPng(fs.readFileSync(imgPath));
+        page.drawImage(pngImage, { x: 50, y: 50, width: 100, height: 100 });
 
-      const imagePdfPath = path.join(tmpDir, 'with-image.pdf');
-      fs.writeFileSync(imagePdfPath, await doc.save());
+        const imagePdfPath = path.join(tmpDir, 'with-image.pdf');
+        fs.writeFileSync(imagePdfPath, await doc.save());
 
-      const outputDir = path.join(tmpDir, 'extracted');
-      const result = await PDFOperations.pdfExtractImages({
-        inputPath: imagePdfPath,
-        outputDir,
-      });
+        const outputDir = path.join(tmpDir, 'extracted');
+        const result = await PDFOperations.pdfExtractImages({
+          inputPath: imagePdfPath,
+          outputDir,
+        });
 
-      expect(result.success).toBe(true);
-      expect(result.count).toBeGreaterThanOrEqual(1);
-      expect(result.files.length).toBe(result.count);
+        expect(result.success).toBe(true);
+        expect(result.count).toBeGreaterThanOrEqual(1);
+        expect(result.files.length).toBe(result.count);
 
-      for (const file of result.files) {
-        expect(fs.existsSync(file)).toBe(true);
-        const meta = await sharp(file).metadata();
-        expect(meta.format).toBe('png');
-      }
-    });
+        for (const file of result.files) {
+          expect(fs.existsSync(file)).toBe(true);
+          const meta = await sharp(file).metadata();
+          expect(meta.format).toBe('png');
+        }
+      },
+      30000 // pdfjs import + sharp decode on slower CI runners
+    );
 
     it('returns zero images for a text-only PDF', async () => {
       const outputDir = path.join(tmpDir, 'extracted-none');

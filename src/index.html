@@ -582,6 +582,13 @@
                   <option value="landscape">Landscape</option>
                 </select>
               </div>
+              <!-- Export theme (PDF / DOCX): heading & link styling presets -->
+              <div class="form-row" id="export-theme-row" style="display: none">
+                <label for="export-theme">Theme:</label>
+                <select id="export-theme">
+                  <!-- Populated from src/main/ExportThemes.js at dialog open -->
+                </select>
+              </div>
               <div id="custom-page-size" class="form-row" style="display: none">
                 <label>Custom Size:</label>
                 <input

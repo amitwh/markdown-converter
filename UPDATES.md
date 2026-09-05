@@ -1,5 +1,35 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.7.1 (2026-09-05)
+
+### New: Export Themes (Word + PDF)
+- Theme picker in the export dialog (basic and advanced mode) for PDF and DOCX:
+  **Default (Pandoc), Modern, Classic, Sepia, Minimal, Elegant**
+- PDF: LaTeX header recolors/reformats headings + links (xcolor/titlesec,
+  core-TeX packages only); DOCX: styles.xml surgery recolors Heading1-6/Title/
+  Subtitle/Hyperlink and swaps heading/body fonts
+- Themes persist in export presets; unknown ids in old presets fall back to
+  Default instead of failing the export
+
+### Branding
+- New M↓ brand identity: app icons, favicons, tray icon, welcome mark,
+  README wordmark (vector kit in assets/markdown-converter-assets/)
+
+### Fixes
+- **Windows**: pdfjs text/image extraction failed on Windows —
+  standardFontDataUrl is now a proper file:// URL (raw backslash paths
+  failed pdfjs's trailing-slash URL validation)
+- **Windows**: sharp temp-file cleanup (EPERM retry), path-separator test
+  assertions, and pdfjs test timeouts fixed — the Windows CI job is green
+- FiraCode tooling downloads pinned to the immutable 6.2 release;
+  .gitattributes stops CRLF checkout rewriting hash-pinned files
+- macOS pandoc extractor locates the binary in the archive (layout changed)
+- Packaged apps resolve bundled pandoc/markitdown next to the executable
+  (resourcesPath lookup was wrong since 4.5 — packaged builds silently used
+  system pandoc)
+
+---
+
 ## Version 4.7.0 (2026-09-05)
 
 ### Bundling & Legal Compliance

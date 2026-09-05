@@ -2964,6 +2964,26 @@ function initializeExportForm(format) {
     document.getElementById('custom-geometry').style.display = 'none';
   }
 
+  // Export theme picker: shown for the formats that support theming; options
+  // come straight from the shared theme definitions (labels + descriptions)
+  const themeRow = document.getElementById('export-theme-row');
+  const themeSelect = document.getElementById('export-theme');
+  if (themeRow && themeSelect) {
+    const themeable = format === 'pdf' || format === 'docx';
+    themeRow.style.display = themeable ? 'flex' : 'none';
+    if (themeSelect.options.length === 0) {
+      const { listThemes } = require('./main/ExportThemes');
+      for (const theme of listThemes()) {
+        const option = document.createElement('option');
+        option.value = theme.id;
+        option.textContent = theme.label;
+        option.title = theme.description;
+        themeSelect.appendChild(option);
+      }
+    }
+    themeSelect.value = 'default';
+  }
+
   // Toggle and reset Reveal.js-specific fields
   const revealjsOnly = document.querySelector('.revealjs-only');
   if (revealjsOnly) {
@@ -3074,6 +3094,12 @@ function collectExportOptions() {
       options.revealHistory = true;
       options.revealCenter = true;
     }
+  }
+
+  // Export theme is available in basic mode too (PDF + DOCX)
+  const themeSelect = document.getElementById('export-theme');
+  if (themeSelect && (currentExportFormat === 'pdf' || currentExportFormat === 'docx')) {
+    options.theme = themeSelect.value || 'default';
   }
 
   // Collect page size and orientation (always collected, from basic options)

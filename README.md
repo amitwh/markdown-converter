@@ -47,6 +47,7 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 - **EPUB** - E-book format
 - **LaTeX** - Academic document format
 - **RTF** - Rich Text Format
+- **Export themes** - Five visual styles (Modern, Classic, Sepia, Minimal, Elegant) for PDF and Word exports — recolored headings, links, and fonts
 
 ### Advanced Features
 - **Custom headers & footers** - Add headers/footers to exports with dynamic fields

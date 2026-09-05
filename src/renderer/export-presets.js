@@ -120,6 +120,12 @@ function captureDialogOptions() {
         : geometrySelect;
   }
 
+  // Export theme (PDF + DOCX) — stored with presets like engine/geometry
+  if (format === 'pdf' || format === 'docx') {
+    const theme = valueOf('export-theme');
+    if (theme) options.theme = theme;
+  }
+
   if (format === 'revealjs') {
     options.revealTheme = valueOf('reveal-theme');
     options.revealTransition = valueOf('reveal-transition');
@@ -204,6 +210,15 @@ function applyPresetToDialog(preset) {
     setValue('pdf-geometry', 'custom');
     setValue('custom-geometry', geometry);
     setVisible('custom-geometry', true);
+  }
+
+  // Export theme (guard: a preset saved with a newer/older theme list still
+  // applies, falling back to default for unknown ids)
+  const themeSelect = elementById('export-theme');
+  if (themeSelect) {
+    const theme = advancedOptions.theme || 'default';
+    const hasTheme = Array.from(themeSelect.options).some((opt) => opt.value === theme);
+    setValue('export-theme', hasTheme ? theme : 'default');
   }
 
   // Reveal.js options

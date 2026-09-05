@@ -2973,6 +2973,20 @@ function performExportWithOptions(format, options) {
         pandocArgs.push(`--include-in-header=${monoHeader}`);
         pandocArgs.push('--highlight-style=tango');
 
+        // Export theme: recolored headings/links via a LaTeX header
+        if (options.theme && options.theme !== 'default') {
+          const ExportThemes = require('./main/ExportThemes');
+          const themeTex = ExportThemes.buildLatexThemeHeader(options.theme);
+          if (themeTex) {
+            const themeFile = path.join(
+              require('os').tmpdir(),
+              `theme_${Date.now()}_${process.pid}.tex`
+            );
+            fs.writeFileSync(themeFile, themeTex, 'utf-8');
+            pandocArgs.push(`--include-in-header=${themeFile}`);
+          }
+        }
+
         // Add header/footer if enabled
         if (headerFooterSettings.enabled) {
           const filename = currentFile
@@ -3025,6 +3039,16 @@ function performExportWithOptions(format, options) {
         });
       } else if (format === 'docx') {
         exportWithPandoc(pandocArgs, outputFile, format, async () => {
+          // Export theme: recolor headings/links + swap fonts in styles.xml
+          if (options.theme && options.theme !== 'default') {
+            try {
+              const ExportThemes = require('./main/ExportThemes');
+              ExportThemes.applyDocxTheme(outputFile, options.theme);
+            } catch (themeErr) {
+              if (typeof console !== 'undefined')
+                console.warn('[docx] theme apply failed:', themeErr.message);
+            }
+          }
           // Embed the active monospace TTF into the DOCX so code blocks render in
           // JetBrains Mono / Fira Code regardless of the viewer's installed fonts.
           try {

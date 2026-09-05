@@ -22,7 +22,10 @@ describe('MonospaceFontConfig', () => {
       (p) => !p.includes('app.asar.unpacked') && p.endsWith('JetBrainsMono-Regular.ttf')
     );
     const p = MonospaceFontConfig.getMonoFontTtfPath('jetbrains-mono', 400);
-    expect(p).toMatch(/assets\/fonts\/JetBrainsMono-Regular\.ttf$/);
+    // Normalize separators: Windows paths are backslash-joined
+    expect(p.split(require('path').sep).join('/')).toMatch(
+      /assets\/fonts\/JetBrainsMono-Regular\.ttf$/
+    );
   });
 
   test('returns packaged asar.unpacked path when present and file exists', () => {

@@ -15,7 +15,15 @@ describe('ImageOperations', () => {
       .png()
       .toFile(inputPath);
   });
-  afterEach(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
+  // Windows: sharp can hold the file handle briefly after await returns,
+// so plain rmSync throws EPERM — retry and tolerate stale temp dirs.
+afterEach(() => {
+  try {
+    fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  } catch {
+    /* leftover temp dir is cosmetic on locked-file platforms */
+  }
+});
 
   test('imageConvert converts PNG to JPEG', async () => {
     const outputPath = path.join(tmpDir, 'out.jpg');

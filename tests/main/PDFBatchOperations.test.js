@@ -1,5 +1,6 @@
 /**
  * @jest-environment node
+ * @jest-environment-options {"testTimeout": 30000}
  *
  * PDFBatchOperations.js tests for Task 22's batch PDF operations: the folder
  * loop that applies one PDFOperations.executeOperation() op to every .pdf in an
