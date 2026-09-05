@@ -2186,7 +2186,7 @@ function processDynamicFields(text, metadata = {}) {
   return result;
 }
 
-// Add headers/footers to DOCX file using PizZip and docx4js
+// Add headers/footers to DOCX file using PizZip
 // Function to set page size in DOCX files
 async function setDocxPageSize(docxPath) {
   try {
