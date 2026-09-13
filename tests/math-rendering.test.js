@@ -65,8 +65,7 @@ describe('KaTeX math rendering pipeline', () => {
   });
 
   test('escaped delimiters \\[...\\] and \\(...\\) both render', () => {
-    container.innerHTML =
-      '<p>Display form: \\[E = mc^2\\] and inline \\(\\pi r^2\\).</p>';
+    container.innerHTML = '<p>Display form: \\[E = mc^2\\] and inline \\(\\pi r^2\\).</p>';
 
     expect(() => renderMathInElement(container, { delimiters: DELIMITERS })).not.toThrow();
 

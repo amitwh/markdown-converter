@@ -158,7 +158,9 @@ function askForProjectName() {
       overlay.remove();
       resolve(value);
     };
-    overlay.querySelector('[data-role="ok"]').addEventListener('click', () => done(input.value.trim() || null));
+    overlay
+      .querySelector('[data-role="ok"]')
+      .addEventListener('click', () => done(input.value.trim() || null));
     overlay.querySelector('[data-role="cancel"]').addEventListener('click', () => done(null));
     overlay.addEventListener('click', (event) => {
       if (event.target === overlay) done(null);

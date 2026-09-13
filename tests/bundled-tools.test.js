@@ -64,14 +64,27 @@ describe('Legal compliance artifacts', () => {
   });
 
   test('canonical copyleft license texts are present', () => {
-    for (const file of ['GPL-2.0.txt', 'LGPL-2.1.txt', 'MPL-2.0.txt', 'Apache-2.0.txt', 'OFL-1.1.txt']) {
+    for (const file of [
+      'GPL-2.0.txt',
+      'LGPL-2.1.txt',
+      'MPL-2.0.txt',
+      'Apache-2.0.txt',
+      'OFL-1.1.txt',
+    ]) {
       expect(fs.existsSync(path.join(rootDir, 'third-party-licenses', file))).toBe(true);
     }
   });
 
   test('notices mention every bundled external binary', () => {
     const notices = fs.readFileSync(path.join(rootDir, 'THIRD-PARTY-NOTICES.md'), 'utf-8');
-    for (const component of ['Pandoc', 'FFmpeg', 'MarkItDown', 'libvips', 'KaTeX', 'JetBrains Mono']) {
+    for (const component of [
+      'Pandoc',
+      'FFmpeg',
+      'MarkItDown',
+      'libvips',
+      'KaTeX',
+      'JetBrains Mono',
+    ]) {
       expect(notices).toContain(component);
     }
     // GPL source offer must reference the sources document
@@ -90,10 +103,7 @@ describe('Legal compliance artifacts', () => {
   test('packaging includes the legal documents in build files', () => {
     // The build config lives in electron-builder.config.js (dynamic — it
     // conditionally bundles the markitdown binary per platform)
-    const configSrc = fs.readFileSync(
-      path.join(rootDir, 'electron-builder.config.js'),
-      'utf-8'
-    );
+    const configSrc = fs.readFileSync(path.join(rootDir, 'electron-builder.config.js'), 'utf-8');
     expect(configSrc).toContain("'THIRD-PARTY-NOTICES.md'");
     expect(configSrc).toContain("'SOURCES.md'");
     expect(configSrc).toContain('third-party-licenses');

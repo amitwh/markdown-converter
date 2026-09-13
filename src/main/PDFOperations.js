@@ -445,10 +445,7 @@ async function loadPdfjs() {
 // Windows path (C:\...\standard_fonts\) fails that check and breaks
 // extractText/extractImages on Windows, so always hand pdfjs a file:// URL.
 function getStandardFontDataUrl() {
-  const dir = path.join(
-    path.dirname(require.resolve('pdfjs-dist/package.json')),
-    'standard_fonts'
-  );
+  const dir = path.join(path.dirname(require.resolve('pdfjs-dist/package.json')), 'standard_fonts');
   const url = require('url').pathToFileURL(dir);
   return url.href.endsWith('/') ? url.href : url.href + '/';
 }

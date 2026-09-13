@@ -180,6 +180,12 @@ const ALLOWED_SEND_CHANNELS = [
   'version-history:read',
   'version-history:save',
   'version-history:delete',
+
+  // Autosave + crash-recovery buffer
+  'autosave:write',
+  'autosave:read',
+  'autosave:clear',
+  'autosave:list',
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [

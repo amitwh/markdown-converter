@@ -7,7 +7,11 @@
  */
 const os = require('os');
 const path = require('path');
-const { resolveMarkItDown, convertToMarkdown, commandCandidates } = require('../../src/main/MarkItDown');
+const {
+  resolveMarkItDown,
+  convertToMarkdown,
+  commandCandidates,
+} = require('../../src/main/MarkItDown');
 const { setImmediate } = require('timers');
 
 /**
@@ -26,7 +30,9 @@ function makeRunner(script = {}) {
     const result = script[key];
     setImmediate(() =>
       cb(
-        result ? result.error || null : Object.assign(new Error('spawn ENOENT'), { code: 'ENOENT' }),
+        result
+          ? result.error || null
+          : Object.assign(new Error('spawn ENOENT'), { code: 'ENOENT' }),
         result?.stdout ?? '',
         result?.stderr ?? ''
       )

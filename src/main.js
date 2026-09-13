@@ -1735,8 +1735,7 @@ function showThirdPartyNoticesWindow() {
       return `(Could not read ${file} in this installation — see the source repository.)`;
     }
   };
-  const esc = (s) =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const html =
     '<!doctype html><html><head><meta charset="utf-8"><title>Third-Party Notices</title><style>' +
@@ -3918,9 +3917,7 @@ async function importWithMarkItDown() {
     dialog.showErrorBox(
       'MarkItDown Import',
       sanitizeErrorMessage(
-        (error.code === 'not_installed'
-          ? error.message
-          : `Import failed: ${error.message}`) +
+        (error.code === 'not_installed' ? error.message : `Import failed: ${error.message}`) +
           '\n\nMarkItDown is an optional Python tool from Microsoft (MIT):\n' +
           '  pip install "markitdown[all]"'
       )
@@ -3980,6 +3977,7 @@ ipcMain.on('set-current-file', (event, filePath) => {
 // Version History (local rollback without Git)
 // ============================================
 const VersionHistory = require('./main/VersionHistory');
+const AutosaveBuffer = require('./main/AutosaveBuffer');
 
 /** IO bundle for VersionHistory bound to <userData>/versions. */
 function versionHistoryIo() {
@@ -4019,6 +4017,67 @@ ipcMain.handle('version-history:delete', (_event, { docPath, id } = {}) => {
   const validation = typeof docPath === 'string' ? validatePath(docPath) : { valid: false };
   if (!validation.valid) return false;
   return VersionHistory.deleteVersion({ docPath, id, io: versionHistoryIo() });
+});
+
+// ================================
+// Autosave + crash-recovery buffer
+// ================================
+// The renderer periodically writes the current in-memory buffer here so an
+// unexpected quit (crash, force-kill, power loss) doesn't lose unsaved work.
+// On startup the renderer asks for the pending list and offers recovery; a
+// successful explicit save clears the entry because the buffer is now on
+// disk at its real path.
+function autosaveIo() {
+  return {
+    rootDir: path.join(app.getPath('userData'), 'autosave'),
+    fs,
+    pathUtil: path,
+  };
+}
+
+ipcMain.handle('autosave:write', (_event, { docPath, content } = {}) => {
+  if (typeof docPath !== 'string' || !docPath) {
+    throw new Error('Invalid docPath for autosave');
+  }
+  // Untitled tabs use synthetic keys like 'untitled-tab-<id>'; real paths go
+  // through the same validator VersionHistory uses so a renderer compromise
+  // can't escape the userData root.
+  const isSynthetic = docPath.startsWith('untitled-tab-');
+  if (!isSynthetic) {
+    const validation = validatePath(docPath);
+    if (!validation.valid) throw new Error('Invalid document path for autosave');
+  }
+  return AutosaveBuffer.writeRecovery({
+    docPath,
+    content,
+    appVersion: app.getVersion(),
+    io: autosaveIo(),
+  });
+});
+
+ipcMain.handle('autosave:read', (_event, { docPath } = {}) => {
+  if (typeof docPath !== 'string' || !docPath) return null;
+  const isSynthetic = docPath.startsWith('untitled-tab-');
+  if (!isSynthetic) {
+    const validation = validatePath(docPath);
+    if (!validation.valid) return null;
+  }
+  try {
+    return AutosaveBuffer.readRecovery({ docPath, io: autosaveIo() });
+  } catch (err) {
+    // Corrupt meta.json — surface the error so the renderer can warn, instead
+    // of swallowing it.
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('autosave:clear', (_event, { docPath } = {}) => {
+  if (typeof docPath !== 'string' || !docPath) return false;
+  return AutosaveBuffer.clearRecovery({ docPath, io: autosaveIo() });
+});
+
+ipcMain.handle('autosave:list', () => {
+  return AutosaveBuffer.listRecoveries({ io: autosaveIo() });
 });
 
 // Handle actual printing when renderer is ready

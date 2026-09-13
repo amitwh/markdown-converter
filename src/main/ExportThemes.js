@@ -152,9 +152,7 @@ function buildLatexThemeHeader(themeId) {
   // exotic minimal TeX install degrades by omission (pandoc still succeeds)
   lines.push('\\usepackage{titlesec}');
   if (p.sansHeadings) lines.push('\\renewcommand{\\familydefault}{\\sfdefault}');
-  const rule = p.sectionRule && p.ruleColor
-    ? '{\\color{mcthemerule}\\titlerule[0.6pt]}'
-    : '';
+  const rule = p.sectionRule && p.ruleColor ? '{\\color{mcthemerule}\\titlerule[0.6pt]}' : '';
   lines.push(
     `\\titleformat{\\section}{\\LARGE\\bfseries\\color{mcthemeheading}}{\\thesection}{0.8em}{}${rule}`
   );
@@ -167,7 +165,9 @@ function buildLatexThemeHeader(themeId) {
 
   // Pandoc loads hyperref itself; color links via \hypersetup in the header
   lines.push('\\usepackage{etoolbox}');
-  lines.push('\\AfterEndPreamble{\\hypersetup{colorlinks=true,linkcolor=mcthemelink,urlcolor=mcthemelink}}');
+  lines.push(
+    '\\AfterEndPreamble{\\hypersetup{colorlinks=true,linkcolor=mcthemelink,urlcolor=mcthemelink}}'
+  );
 
   return lines.join('\n') + '\n';
 }
@@ -193,7 +193,16 @@ function applyDocxTheme(docxPath, themeId, io = {}) {
   if (!stylesFile) return false;
   let xml = stylesFile.asText();
 
-  const headingIds = ['Title', 'Subtitle', 'Heading1', 'Heading2', 'Heading3', 'Heading4', 'Heading5', 'Heading6'];
+  const headingIds = [
+    'Title',
+    'Subtitle',
+    'Heading1',
+    'Heading2',
+    'Heading3',
+    'Heading4',
+    'Heading5',
+    'Heading6',
+  ];
   for (const styleId of headingIds) {
     // Match this style's <w:style …w:styleId="X">…</w:style> block (they
     // never nest), then rewrite its rPr color/rFonts
@@ -234,10 +243,7 @@ function applyDocxTheme(docxPath, themeId, io = {}) {
   // Body font: patch the docDefaults rPrDefault (affects Normal everywhere)
   if (d.bodyFont) {
     const patch = `<w:rFonts w:ascii="${d.bodyFont}" w:hAnsi="${d.bodyFont}" w:cs="${d.bodyFont}"/>`;
-    xml = xml.replace(
-      /(<w:docDefaults>\s*<w:rPrDefault>\s*<w:rPr>)/,
-      `$1${patch}`
-    );
+    xml = xml.replace(/(<w:docDefaults>\s*<w:rPrDefault>\s*<w:rPr>)/, `$1${patch}`);
   }
 
   zip.file('word/styles.xml', xml);

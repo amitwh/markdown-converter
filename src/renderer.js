@@ -4,6 +4,15 @@
  */
 
 const { ipcRenderer, webUtils } = require('electron');
+const { AutosaveController } = require('./renderer/autosave-client');
+
+// Renderer-side autosave controller. The TabManager calls into this when a
+// tab becomes dirty so the current buffer is periodically persisted under
+// <userData>/autosave/ — recoverable on next launch after a crash. A
+// successful explicit save clears the entry (the buffer is now on disk at
+// its real path); closing a tab without saving leaves it in place so the
+// user can recover later.
+const autosaveController = new AutosaveController();
 const marked = require('marked');
 const { markedHighlight } = require('marked-highlight');
 const createDOMPurify = require('dompurify');
@@ -520,6 +529,17 @@ class TabManager {
     this.createTabElements(tab);
     this.switchToTab(newTabId);
     this.startAutoSave();
+
+    // Register with the crash-recovery autosave controller so unsaved
+    // edits are persisted to <userData>/autosave/ as the user types.
+    // The controller pulls docPath/content via the closures so it always
+    // sees the latest values.
+    autosaveController.registerTab(
+      tab.id,
+      () => tab.filePath || `untitled-tab-${tab.id}`,
+      () => tab.content
+    );
+
     this.updateTabBar();
   }
   createPdfTab(filePath) {
@@ -833,6 +853,11 @@ class TabManager {
       tabContent.remove();
     }
     this.tabs.delete(tabId);
+
+    // Stop tracking this tab with the autosave controller. The persisted
+    // recovery blob is left in place; if the user reopens the file later,
+    // the recovery banner will offer to restore it.
+    autosaveController.unregisterTab(tabId);
 
     // Switch to another tab if this was active
     if (this.activeTabId === tabId) {
@@ -1261,6 +1286,12 @@ class TabManager {
       // Show brief auto-save indicator
       this.showAutoSaveIndicator();
     }
+
+    // Crash-recovery autosave (independent of the on-disk save above): any
+    // tab with a path that's dirty since its last flush gets persisted to
+    // <userData>/autosave/. This survives crashes without polluting the
+    // real file.
+    autosaveController.notifyChange(tab.id);
   }
   showAutoSaveIndicator() {
     const indicator = document.createElement('div');
@@ -1992,9 +2023,99 @@ function showRestoreSessionPrompt(session) {
   });
 }
 
+/**
+ * Show a banner offering to restore unsaved buffers that were persisted by
+ * AutosaveBuffer before an unexpected quit. Each entry is shown with its
+ * savedAt timestamp and a byte-size hint; clicking "Restore" overwrites the
+ * matching open tab (or creates one), "Dismiss" clears the autosave entry.
+ *
+ * The banner is intentionally lighter than the session-restore overlay —
+ * recovery of buffer content is best-effort and shouldn't block startup.
+ */
+function showAutosaveRecoveryBanner(pending) {
+  const overlay = document.createElement('div');
+  overlay.className = 'autosave-recovery-banner';
+  overlay.style.cssText =
+    'position:fixed;top:0;left:0;right:0;z-index:10000;background:#fff8e1;border-bottom:2px solid #f6a623;padding:10px 16px;font-family:system-ui;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,0.08);display:flex;align-items:center;gap:12px;flex-wrap:wrap;';
+
+  const summary = document.createElement('span');
+  const fileList = pending
+    .slice(0, 3)
+    .map((p) => {
+      const name =
+        String(p.docPath || '')
+          .split(/[/\\]/)
+          .pop() || p.docPath;
+      const when = new Date(p.savedAt || 0).toLocaleString();
+      return `${name} (${when})`;
+    })
+    .join(' · ');
+  const extra = pending.length > 3 ? ` · +${pending.length - 3} more` : '';
+  summary.textContent = `Unsaved work from a previous session: ${fileList}${extra}`;
+  overlay.appendChild(summary);
+
+  const restoreBtn = document.createElement('button');
+  restoreBtn.textContent = 'Restore';
+  restoreBtn.style.cssText =
+    'background:#f6a623;color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-weight:600;';
+  restoreBtn.addEventListener('click', async () => {
+    for (const entry of pending) {
+      const rec = await autosaveController.readRecovery(entry.docPath);
+      if (!rec || !rec.content) continue;
+      const tab = tabManager?.tabs?.get(tabManager.activeTabId);
+      if (tab && (tab.filePath === entry.docPath || !tab.filePath)) {
+        // Overwrite the current untitled/same-path tab with the recovered buffer.
+        if (tab.editorView) {
+          tab.editorView.dispatch({
+            changes: { from: 0, to: tab.editorView.state.doc.length, insert: rec.content },
+          });
+        }
+        tab.content = rec.content;
+        tab.isDirty = true;
+        tabManager.updatePreview?.(tab.id, true);
+        autosaveController.notifyChange(tab.id);
+      }
+      // Dismiss the entry either way — one-shot offer.
+      autosaveController.dismissRecovery(entry.docPath).catch(() => {});
+    }
+    overlay.remove();
+  });
+
+  const dismissBtn = document.createElement('button');
+  dismissBtn.textContent = 'Dismiss';
+  dismissBtn.style.cssText =
+    'background:transparent;color:#333;border:1px solid #ccc;padding:4px 12px;border-radius:4px;cursor:pointer;';
+  dismissBtn.addEventListener('click', async () => {
+    for (const entry of pending) {
+      autosaveController.dismissRecovery(entry.docPath).catch(() => {});
+    }
+    overlay.remove();
+  });
+
+  overlay.appendChild(restoreBtn);
+  overlay.appendChild(dismissBtn);
+  document.body.appendChild(overlay);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const ModalManager = _ModalManager;
   tabManager = new TabManager();
+
+  // ================================
+  // Crash recovery: offer to restore unsaved buffers from autosave
+  // ================================
+  // Independent of the session-restore prompt above: that restores the tab
+  // list, this restores the BUFFER CONTENT of any tab whose autosave entry
+  // was written before an unexpected quit. SessionStore covers tab metadata;
+  // AutosaveBuffer covers what the user actually typed.
+  try {
+    const pending = await autosaveController.checkPendingRecoveries();
+    if (Array.isArray(pending) && pending.length > 0) {
+      showAutosaveRecoveryBanner(pending);
+    }
+  } catch (err) {
+    console.warn('[autosave] recovery sweep failed:', err && err.message);
+  }
 
   // ================================
   // Crash recovery: offer to restore the previous session
@@ -2759,6 +2880,10 @@ ipcRenderer.on('get-content-for-save', (event, filePath) => {
     tabManager.updateTabBar();
     tabManager.updateFilePath();
     tabManager.updateBreadcrumb();
+
+    // Buffer is now on disk at its real path — clear the crash-recovery
+    // autosave entry so we don't offer to "recover" what was just saved.
+    autosaveController.clearForDocPath(filePath).catch(() => {});
   }
 });
 ipcRenderer.on('get-content-for-spreadsheet', (event, format) => {

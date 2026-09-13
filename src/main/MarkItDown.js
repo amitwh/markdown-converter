@@ -160,7 +160,9 @@ async function convertToMarkdown(inputPath, options = {}) {
           // Prefer the LAST informative stderr line: markitdown ends its
           // output with the actionable install hint ("pip install
           // 'markitdown[pdf]'"), while the first lines are a traceback.
-          const stderrLines = safe(stderr).split('\n').filter((l) => l.trim().length > 0);
+          const stderrLines = safe(stderr)
+            .split('\n')
+            .filter((l) => l.trim().length > 0);
           const detail =
             stderrLines[stderrLines.length - 1] ||
             safe(error.message).split('\n')[0] ||
