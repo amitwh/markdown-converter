@@ -3978,6 +3978,9 @@ ipcMain.on('set-current-file', (event, filePath) => {
 // ============================================
 const VersionHistory = require('./main/VersionHistory');
 const AutosaveBuffer = require('./main/AutosaveBuffer');
+const DailyNotes = require('./main/DailyNotes');
+const WorkspaceSearch = require('./main/WorkspaceSearch');
+const DocQA = require('./main/DocQA');
 
 /** IO bundle for VersionHistory bound to <userData>/versions. */
 function versionHistoryIo() {
@@ -5695,6 +5698,135 @@ ipcMain.handle('quick-note:save', async (_event, text) => {
   return { path: file };
 });
 
+// ================================
+// Daily notes (Zettelkasten/journal helper)
+// ================================
+// Convention: <userData>/notes/daily/YYYY-MM-DD.md — one file per local date,
+// loaded from <userData>/notes/templates/daily.md when present (built-in
+// default otherwise). The IPC channel validates the path through validatePath
+// before touching disk so a renderer compromise can't redirect us to /etc.
+function dailyNotesDir() {
+  return path.join(app.getPath('userData'), 'notes', 'daily');
+}
+function dailyNotesTemplateDir() {
+  return path.join(app.getPath('userData'), 'notes', 'templates');
+}
+
+ipcMain.handle('daily-notes:open-today', async (_event, { date } = {}) => {
+  const dir = dailyNotesDir();
+  const validation = validatePath(dir);
+  if (!validation.valid) throw new Error('Invalid daily-notes directory');
+
+  const when = date ? new Date(date) : new Date();
+  if (Number.isNaN(when.getTime())) throw new Error('Invalid date for daily-notes');
+
+  return DailyNotes.openOrCreate({
+    date: when,
+    dir,
+    templateDir: dailyNotesTemplateDir(),
+    fs,
+    pathUtil: path,
+    now: when,
+  });
+});
+
+ipcMain.handle('daily-notes:list', async () => {
+  const dir = dailyNotesDir();
+  const validation = validatePath(dir);
+  if (!validation.valid) return [];
+  return DailyNotes.listExisting({ dir, fs, pathUtil: path });
+});
+
+// ================================
+// Workspace content search (tag/wikilink-aware)
+// ================================
+// Walks a directory for .md files (non-recursive by default — most note
+// collections live in one folder) and runs the WorkspaceSearch ranking
+// algorithm. Cap at MAX_FILES so a typo'd dir doesn't pull the whole disk.
+const WORKSPACE_SEARCH_MAX_FILES = 2000;
+const WORKSPACE_SEARCH_MAX_BYTES = 1024 * 1024; // skip files > 1 MiB
+const SKIP_DIRS = new Set(['node_modules', '.git', '.svn', '.hg', 'dist', 'build', '.cache']);
+
+function collectMarkdownFiles(rootDir, maxFiles) {
+  const out = [];
+  const queue = [rootDir];
+  while (queue.length > 0 && out.length < maxFiles) {
+    const dir = queue.shift();
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue; // unreadable dir — skip silently
+    }
+    for (const entry of entries) {
+      if (out.length >= maxFiles) break;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name) || entry.name.startsWith('.')) continue;
+        queue.push(full);
+      } else if (entry.isFile() && /\.md$/i.test(entry.name)) {
+        out.push(full);
+      }
+    }
+  }
+  return out;
+}
+
+ipcMain.handle('workspace-search:query', async (_event, { query, dir, limit = 50 } = {}) => {
+  if (typeof query !== 'string' || !query.trim()) return [];
+  const validation = typeof dir === 'string' ? validatePath(dir) : { valid: false };
+  if (!validation.valid) return [];
+
+  const files = collectMarkdownFiles(dir, WORKSPACE_SEARCH_MAX_FILES);
+  const corpus = [];
+  for (const filePath of files) {
+    let content;
+    try {
+      const stat = fs.statSync(filePath);
+      if (stat.size > WORKSPACE_SEARCH_MAX_BYTES) continue;
+      content = fs.readFileSync(filePath, 'utf-8');
+      corpus.push({ path: filePath, content, mtimeMs: stat.mtimeMs });
+    } catch {
+      /* unreadable — skip */
+    }
+  }
+
+  return WorkspaceSearch.search({ query, files: corpus, limit });
+});
+
+// ================================
+// Doc-aware Q&A — ask a natural-language question, get ranked chunks
+// ================================
+// Same corpus construction as workspace-search:query, but DocQA.cleanQuestion
+// strips grammar noise (what/how/why/...) and re-ranks at the chunk level
+// so the renderer can show multiple passages from the same file. No neural
+// model — same ranking algorithm — so results stay explainable and offline.
+ipcMain.handle('doc-qa:ask', async (_event, { question, dir, topK = 5 } = {}) => {
+  if (typeof question !== 'string' || !question.trim()) {
+    return { question: '', chunks: [] };
+  }
+  const validation = typeof dir === 'string' ? validatePath(dir) : { valid: false };
+  if (!validation.valid) return { question: String(question), chunks: [] };
+
+  const files = collectMarkdownFiles(dir, WORKSPACE_SEARCH_MAX_FILES);
+  const corpus = [];
+  for (const filePath of files) {
+    try {
+      const stat = fs.statSync(filePath);
+      if (stat.size > WORKSPACE_SEARCH_MAX_BYTES) continue;
+      corpus.push({
+        path: filePath,
+        content: fs.readFileSync(filePath, 'utf-8'),
+        mtimeMs: stat.mtimeMs,
+      });
+    } catch {
+      /* unreadable — skip */
+    }
+  }
+
+  return DocQA.ask({ question, files: corpus, topK });
+});
+
 // Esc in the note window hides instead of closing (keeps it one keystroke away)
 ipcMain.on('quick-note:hide', () => {
   if (quickNoteWindow) quickNoteWindow.hide();
@@ -5708,10 +5840,33 @@ app.whenReady().then(() => {
     openQuickNoteWindow();
   });
   if (!registered) console.warn('Quick Note shortcut Ctrl+Alt+Q could not be registered');
+
+  // Daily-notes global shortcut: open (or create) today's YYYY-MM-DD.md.
+  // Ctrl+Alt+D = "diary". The handler fires even when the app is unfocused
+  // so the user can journal from anywhere on the desktop.
+  const dailyRegistered = globalShortcut.register('CommandOrControl+Alt+D', async () => {
+    try {
+      const result = DailyNotes.openOrCreate({
+        date: new Date(),
+        dir: dailyNotesDir(),
+        templateDir: dailyNotesTemplateDir(),
+        fs,
+        pathUtil: path,
+        now: new Date(),
+      });
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('file-opened', { filePath: result.path });
+      }
+    } catch (err) {
+      console.warn('[daily-notes] open failed:', err && err.message);
+    }
+  });
+  if (!dailyRegistered) console.warn('Daily Notes shortcut Ctrl+Alt+D could not be registered');
 });
 app.on('will-quit', () => {
   const { globalShortcut } = require('electron');
   globalShortcut.unregister('CommandOrControl+Alt+Q');
+  globalShortcut.unregister('CommandOrControl+Alt+D');
 });
 
 // IPC Handler for loading document templates

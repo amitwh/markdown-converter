@@ -186,6 +186,16 @@ const ALLOWED_SEND_CHANNELS = [
   'autosave:read',
   'autosave:clear',
   'autosave:list',
+
+  // Daily notes (one file per local date)
+  'daily-notes:open-today',
+  'daily-notes:list',
+
+  // Workspace content search (tag/wikilink-aware)
+  'workspace-search:query',
+
+  // Doc-aware Q&A (chunk-level ranking over the workspace)
+  'doc-qa:ask',
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [
