@@ -27,7 +27,7 @@
 
 | ID | Risk | Disposition |
 |----|------|-------------|
-| D1 | **Real PDF encryption unavailable** (pdf-lib limitation) — feature now fails honestly rather than lying | Accepted for this release. Restoring it means swapping pdf-lib for an encryption-capable fork (e.g. `@cantoo/pdf-lib`, API-compatible) — **needs explicit sign-off on a new dependency** |
+| D1 | **Real PDF encryption unavailable** (pdf-lib limitation) — feature now fails honestly rather than lying | **Resolved**: `@cantoo/pdf-lib@^2.9.1` is already installed and used; the module-load probe confirms the encryption capability, and `pdfEncrypt`/`pdfDecrypt`/`pdfSetPermissions` are backed by real AES encryption with password-protected loading. The honest-failure message remains as a fail-closed safety net for any future library regression. See `tests/main/PDFOperations.test.js` "real encryption" suite (35 tests passing). |
 | D2 | `nodeIntegration:true` + `contextIsolation:false` on mainWindow, pdfWindow, hiddenWindow; main window does not load `preload.js` (inline shim instead) — the IPC whitelist is a live control only on the two generator windows | Accepted legacy risk for this branch; owned by the react-electron migration (contextIsolation + preload-everywhere), tracked separately |
 | D3 | Generator-window preload whitelist is broad (`execute-code`, `read-file`, `write-file`, `delete-file` reachable from isolated windows) | No current content vector into those windows; flag for the migration to narrow per-window APIs |
 | D4 | CSP allows `'unsafe-inline'` / `'unsafe-eval'` (required by marked + Mermaid rendering model) | Accepted; revisit under the migration with a nonce-based CSP |

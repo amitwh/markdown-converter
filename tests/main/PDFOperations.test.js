@@ -518,6 +518,24 @@ describe('PDFOperations - real encryption (@cantoo/pdf-lib)', () => {
     expect(fs.readFileSync(outputPath).includes('/Encrypt')).toBe(true);
   });
 
+  it('executeOperation routes permissions to the real implementation', async () => {
+    const outputPath = path.join(tmpDir, 'exec-permissions.pdf');
+    const result = await PDFOperations.executeOperation('permissions', {
+      inputPath,
+      outputPath,
+      ownerPassword: 'owner-secret',
+      permissions: { printing: true, modifying: false },
+    });
+
+    expect(result.success).toBe(true);
+    expect(fs.readFileSync(outputPath).includes('/Encrypt')).toBe(true);
+    // Owner password unlocks the document for verification.
+    const opened = await PDFDocument.load(fs.readFileSync(outputPath), {
+      password: 'owner-secret',
+    });
+    expect(opened.getPageCount()).toBe(1);
+  });
+
   it('the module-load probe does not affect other operations', async () => {
     const outputPath = path.join(tmpDir, 'rotated.pdf');
     const result = await PDFOperations.pdfRotate({
