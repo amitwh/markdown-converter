@@ -2197,6 +2197,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentDir: explorerCurrentDir,
       }),
   });
+
+  // Search + Q&A panel — wires the workspace-search:query / doc-qa:ask IPC
+  // channels that the WorkspaceSearch + DocQA main-process modules back. The
+  // panel defaults its folder to whatever folder the Explorer last loaded;
+  // the user can override the input.
+  sidebarManager.registerPanel('search', {
+    title: 'Search',
+    icon:
+      '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M10 2a8 8 0 1 1-5.3 14L1 19.7 2.3 21l3.7-3.7A8 8 0 0 1 10 2zm0 2a6 6 0 1 0 0 12A6 6 0 0 0 10 4z"/></svg>',
+    render: (container) =>
+      require('./sidebar/search-panel').renderSearchPanel(container, {
+        search: ({ query, dir, limit }) =>
+          ipcRenderer.invoke('workspace-search:query', { query, dir, limit }),
+        ask: ({ question, dir, topK }) =>
+          ipcRenderer.invoke('doc-qa:ask', { question, dir, topK }),
+        getCurrentDir: () => {
+          // Re-read the explorer's path input each time the user opens the
+          // search panel; survives the explorer being remounted.
+          const el = document.getElementById('explorer-path');
+          return el ? el.value.trim() || null : null;
+        },
+        onOpenFile: (filePath /* , offset */) => {
+          ipcRenderer.send('open-file-path', filePath);
+        },
+      }),
+  });
   sidebarManager.registerPanel('git', {
     title: 'Git',
     render: (container) =>
