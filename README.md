@@ -127,7 +127,6 @@ npm run build:linux
 | ASCII Art Generator | Ctrl+Shift+A |
 | Next Comment | F8 |
 | Add Comment at Cursor | Ctrl+Alt+M |
-| Add Flow Chart Node | Insert (when panel focused) |
 | Flow Chart: Undo | Ctrl+Z |
 | Flow Chart: Redo | Ctrl+Shift+Z |
 | Flow Chart: Delete selected | Delete |
