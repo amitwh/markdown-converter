@@ -197,14 +197,12 @@
     </div>
 
     <!--
-      v4.9.6 — pure-module load order matters. shapes first, then canvas
-      (which depends on shapes), then store, then mermaid. Controller last
-      and consumes all four via window globals.
+      v4.9.8 — bundle everything into one script. The four pure modules
+      (shapes / mermaid / store / canvas) plus the controller bootstrap
+      live in src/renderer/flowchart-bundle.js. No cross-file script-tag
+      ordering, no UMD wrappers, no `require()` — the bundle sets the
+      four window globals before the controller's bootstrap() runs.
     -->
-    <script src="flowchart/flowchart-shapes.js"></script>
-    <script src="flowchart/flowchart-mermaid.js"></script>
-    <script src="flowchart/flowchart-store.js"></script>
-    <script src="flowchart/flowchart-canvas.js"></script>
-    <script src="renderer/flowchart-controller.js"></script>
+    <script src="renderer/flowchart-bundle.js"></script>
   </body>
 </html>

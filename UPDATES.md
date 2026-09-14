@@ -1,5 +1,14 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.9.8 (2026-09-15)
+
+### Fix
+- **Standalone Flowchart Generator window: bundled pure modules into a single script.** Even after the v4.9.7 `window.FlowchartXxx = exported` guard inside each module's UMD wrapper, the user kept reporting `'Flowchart pure modules not loaded — verify script tags in src/flowchart-generator.html'` in the standalone window's status bar. Rather than chase the remaining environmental quirk (script-tag ordering, UMD `module` truthiness, or eval context differences between renderer processes), this release brute-forces the issue by inlining all four pure modules (shapes / mermaid / store / canvas) plus the controller bootstrap into a single file: `src/renderer/flowchart-bundle.js`.
+  - New `src/renderer/flowchart-bundle.js` — one IIFE, ~720 lines. Sets `window.FlowchartShapes`, `window.FlowchartMermaid`, `window.FlowchartStore`, `window.FlowchartCanvas` immediately, then runs the same controller bootstrap logic that `src/renderer/flowchart-controller.js` exposes.
+  - `src/flowchart-generator.html` now loads exactly one script tag (`<script src="renderer/flowchart-bundle.js"></script>`) instead of five. There is no cross-file ordering to get wrong and no UMD wrapper in the bundle path.
+  - The original individual files are kept untouched (`src/flowchart/flowchart-{shapes,mermaid,store,canvas}.js` and `src/renderer/flowchart-controller.js`). The legacy sidebar panel in `src/renderer.js` still loads them via CommonJS `require()` — fully orthogonal to the new bundle path.
+  - Internal name changes inside the bundle (e.g. `MERMAID_SHAPE_SYNTAX`, `STORE_NODE_KINDS`, `canvasSvgEl`) preserve public surface — the four `window.FlowchartXxx` exports match the v4.9.6 / v4.9.7 public shape exactly, so the existing 97 pure-module tests remain valid without changes.
+
 ## Version 4.9.7 (2026-09-14)
 
 ### Fix
