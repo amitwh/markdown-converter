@@ -129,34 +129,61 @@ npm run build:linux
 
 ## Themes
 
-### Light Themes
-- Atom One Light (Default)
-- GitHub Light
-- Light
-- Solarized Light
-- Gruvbox Light
-- Ayu Light
-- Sepia
-- Paper
-- Rose Pine Dawn
-- Concrete Light
+37 built-in editor themes, registered in `src/main/ThemeRegistry.bootstrap.js`.
 
-### Dark Themes
-- Dark
-- One Dark
-- Dracula
-- Nord
-- Monokai
-- Material
-- Gruvbox Dark
-- Tokyo Night
-- Palenight
-- Ayu Dark
-- Ayu Mirage
-- Oceanic Next
-- Cobalt2
-- Concrete Dark
-- Concrete Warm
+### Light (14)
+
+| Theme | Id |
+|---|---|
+| Atom One Light (Default) | `atomonelight` |
+| GitHub Light | `github` |
+| Light | `light` |
+| Solarized Light | `solarized` |
+| Gruvbox Light | `gruvbox-light` |
+| Ayu Light | `ayu-light` |
+| Sepia | `sepia` |
+| Paper | `paper` |
+| Rose Pine Dawn | `rosepine-dawn` |
+| Concrete Light | `concrete-light` |
+| Catppuccin Latte | `catppuccin-latte` |
+| One Light | `one-light` |
+| Winter is Coming (Light) | `winter-is-coming-light` |
+| Spring Light *(seasonal)* | `spring-light` |
+
+### Dark (22)
+
+| Theme | Id |
+|---|---|
+| Dark | `dark` |
+| One Dark | `onedark` |
+| Dracula | `dracula` |
+| Nord | `nord` |
+| Monokai | `monokai` |
+| Material | `material` |
+| Gruvbox Dark | `gruvbox-dark` |
+| Tokyo Night | `tokyonight` |
+| Palenight | `palenight` |
+| Ayu Dark | `ayu-dark` |
+| Ayu Mirage | `ayu-mirage` |
+| Oceanic Next | `oceanic-next` |
+| Cobalt2 | `cobalt2` |
+| Concrete Dark | `concrete-dark` |
+| Concrete Warm | `concrete-warm` |
+| Catppuccin Frappé | `catppuccin-frappe` |
+| Catppuccin Macchiato | `catppuccin-macchiato` |
+| Catppuccin Mocha | `catppuccin-mocha` |
+| Tokyo Night Storm | `tokyo-night-storm` |
+| Synthwave '84 | `synthwave-84` |
+| Outrun | `outrun` |
+| Winter is Coming (Dark) | `winter-is-coming-dark` |
+
+### High-Contrast (1)
+
+| Theme | Id |
+|---|---|
+| Solarized Dark (High Contrast) | `solarized-dark-hc` |
+
+The currently-selected theme persists across restarts via `electron-store` (key `theme`, default `atomonelight`). Adding a new theme is one `register()` call in the bootstrap + one CSS file under `src/styles/themes/`.
 
 ## PDF Viewer
 
