@@ -52,6 +52,7 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 ### Advanced Features
 - **Custom headers & footers** - Add headers/footers to exports with dynamic fields
 - **Page size configuration** - A3, A4, A5, B4, B5, Letter, Legal, Tabloid, or custom sizes
+- **Visual flow chart editor** - Build Mermaid flowcharts visually; drag nodes, connect edges, live preview. Insert at cursor.
 - **Batch conversion** - Convert entire folders of markdown files
 - **ASCII Art Generator** - 17 hand-coded fonts + 400+ FIGlet fonts; text banners, boxes, and templates; insert into editor, copy to clipboard, or save to file (Ctrl+Shift+A)
 - **Word templates** - Use custom Word templates for enhanced exports
@@ -126,6 +127,10 @@ npm run build:linux
 | ASCII Art Generator | Ctrl+Shift+A |
 | Next Comment | F8 |
 | Add Comment at Cursor | Ctrl+Alt+M |
+| Add Flow Chart Node | Insert (when panel focused) |
+| Flow Chart: Undo | Ctrl+Z |
+| Flow Chart: Redo | Ctrl+Shift+Z |
+| Flow Chart: Delete selected | Delete |
 
 ## Themes
 
