@@ -1,5 +1,18 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.9.2 (2026-09-14)
+
+### Fixes
+- **Standalone ASCII Art Generator — broken stylesheet path**: `src/ascii-generator.html:7` linked `<link rel="stylesheet" href="../fonts.css" />`. The HTML loads via `BrowserWindow.loadFile(path.join(__dirname, 'ascii-generator.html'))` where `__dirname` is `src/`, so `../fonts.css` escaped the `src/` directory and resolved to a non-existent `<project>/fonts.css`. Changed to `fonts.css` (same file, src/-relative — mirrors `src/index.html:29`). The window rendered without its font rules, leaving the header in the fallback system stack.
+- **Standalone ASCII Art Generator — dead Box/Templates UI**: the controller (`src/renderer/ascii-controller.js`) shipped three mode tabs (`Text Banner` / `Box-Frame` / `Templates`), 18 `.template-btn[data-template]` buttons, and a Box form (`#box-text` / `#box-style` / `#box-padding`) but wired none of them. Clicking any tab or button was a no-op. Wired all of them:
+  - `setMode(mode)` toggles `.active` on the right `.mode-tab` and the matching `.mode-section` (`text-mode` / `box-mode` / `templates-mode`).
+  - Template buttons call `api.generate({ text: '', font: 'template:<id>' })` so the orchestrator owns template content; preview updates and the button gets `.active`.
+  - Box mode renders the user text with a border using the chosen style (`single` / `double` / `rounded` / `bold` / `ascii`) and padding, exposed as a pure `window.ASCIIBoxRenderer.renderBox(text, style, padding)` helper.
+  - All 11 brief-required behaviours (text-input / font-picker / font-search / insert / copy / save / generate, last-font persistence, debounced preview) remain intact.
+
+### Tests
+- New `tests/ascii-controller.test.js` — 6 tests covering the stylesheet path (no `..` escape), pure box renderer (single + ascii styles), mode-tab switching (Box and Templates), and template button → preview wiring.
+
 ## Version 4.9.1 (2026-09-14)
 
 ### Fixes
