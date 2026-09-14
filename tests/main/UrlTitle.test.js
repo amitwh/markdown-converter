@@ -57,7 +57,9 @@ describe('UrlTitle.decodeTitle', () => {
 describe('UrlTitle.extractTitleFromHtml', () => {
   test('extracts the first <title> in the body', () => {
     expect(
-      UrlTitle.extractTitleFromHtml('<html><head><title>Hello World</title></head><body></body></html>')
+      UrlTitle.extractTitleFromHtml(
+        '<html><head><title>Hello World</title></head><body></body></html>'
+      )
     ).toBe('Hello World');
   });
 
@@ -174,7 +176,9 @@ describe('UrlTitle.fetchTitle — failure paths', () => {
       headers: { get: () => 'text/html' },
       text: async () => '<title>t</title>' + 'x'.repeat(200),
     });
-    expect(await UrlTitle.fetchTitle({ url: 'https://x.com', fetch: fakeFetch, maxBytes: 100 })).toBeNull();
+    expect(
+      await UrlTitle.fetchTitle({ url: 'https://x.com', fetch: fakeFetch, maxBytes: 100 })
+    ).toBeNull();
   });
 
   test('respects a streaming body that exceeds maxBytes (cancels the reader)', async () => {

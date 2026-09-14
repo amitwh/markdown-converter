@@ -151,7 +151,9 @@ describe('mountFootnotePreview', () => {
     document.body.appendChild(root);
 
     const unmount = mountFootnotePreview(root, { delayMs: 0 });
-    root.querySelector('a[data-footnote-ref]').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    root
+      .querySelector('a[data-footnote-ref]')
+      .dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     jest.advanceTimersByTime(0);
     expect(document.querySelector('.footnote-preview')).not.toBeNull();
 
@@ -160,7 +162,9 @@ describe('mountFootnotePreview', () => {
     expect(document.querySelector('.footnote-preview')).toBeNull();
 
     // Re-hovering after unmount is a no-op (no popover recreated)
-    root.querySelector('a[data-footnote-ref]').dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    root
+      .querySelector('a[data-footnote-ref]')
+      .dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     jest.advanceTimersByTime(0);
     expect(document.querySelector('.footnote-preview')).toBeNull();
   });

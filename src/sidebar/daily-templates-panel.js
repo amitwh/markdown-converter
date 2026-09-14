@@ -160,7 +160,10 @@ function renderDailyTemplatesPanel(container, deps) {
       const list = await listTemplates();
       entries = Array.isArray(list) ? list : [];
       renderList();
-      if (!keepStatus) setStatus(entries.length === 0 ? '' : `${entries.length} template${entries.length === 1 ? '' : 's'}`);
+      if (!keepStatus)
+        setStatus(
+          entries.length === 0 ? '' : `${entries.length} template${entries.length === 1 ? '' : 's'}`
+        );
     } catch (err) {
       setStatus(`Error: ${err && err.message ? err.message : 'unknown'}`);
       entries = [];

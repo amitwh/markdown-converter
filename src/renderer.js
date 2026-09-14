@@ -2228,14 +2228,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // the user can override the input.
   sidebarManager.registerPanel('search', {
     title: 'Search',
-    icon:
-      '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M10 2a8 8 0 1 1-5.3 14L1 19.7 2.3 21l3.7-3.7A8 8 0 0 1 10 2zm0 2a6 6 0 1 0 0 12A6 6 0 0 0 10 4z"/></svg>',
+    icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M10 2a8 8 0 1 1-5.3 14L1 19.7 2.3 21l3.7-3.7A8 8 0 0 1 10 2zm0 2a6 6 0 1 0 0 12A6 6 0 0 0 10 4z"/></svg>',
     render: (container) =>
       require('./sidebar/search-panel').renderSearchPanel(container, {
         search: ({ query, dir, limit }) =>
           ipcRenderer.invoke('workspace-search:query', { query, dir, limit }),
-        ask: ({ question, dir, topK }) =>
-          ipcRenderer.invoke('doc-qa:ask', { question, dir, topK }),
+        ask: ({ question, dir, topK }) => ipcRenderer.invoke('doc-qa:ask', { question, dir, topK }),
         getCurrentDir: () => {
           // Re-read the explorer's path input each time the user opens the
           // search panel; survives the explorer being remounted.
@@ -2254,8 +2252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // file-opened IPC path, which already handles any daily-notes path).
   sidebarManager.registerPanel('daily-notes', {
     title: 'Daily Notes',
-    icon:
-      '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>',
+    icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>',
     render: (container) =>
       require('./sidebar/daily-notes-panel').renderDailyNotesPanel(container, {
         openToday: ({ date } = {}) => ipcRenderer.invoke('daily-notes:open-today', { date }),
@@ -2269,8 +2266,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // note via daily-templates:apply.
   sidebarManager.registerPanel('daily-templates', {
     title: 'Daily Templates',
-    icon:
-      '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 5a2 2 0 0 1 2-2h11l-2 2H5v12h14V9l2-2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm5 0h2v2H8V5zm0 4h2v2H8V9zm0 4h2v2H8v-2z"/></svg>',
+    icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 5a2 2 0 0 1 2-2h11l-2 2H5v12h14V9l2-2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm5 0h2v2H8V5zm0 4h2v2H8V9zm0 4h2v2H8v-2z"/></svg>',
     render: (container) =>
       require('./sidebar/daily-templates-panel').renderDailyTemplatesPanel(container, {
         listTemplates: () => ipcRenderer.invoke('daily-templates:list'),

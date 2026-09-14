@@ -38,7 +38,7 @@ function stripMarkdown(content) {
   // Links: keep the text, drop the URL part
   s = s.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
   // Wikilinks: keep the visible label
-  s = s.replace(/\[\[([^\]|]+)(\|([^\]]+))?\]\]/g, (_, a, _b, c) => (c || a));
+  s = s.replace(/\[\[([^\]|]+)(\|([^\]]+))?\]\]/g, (_, a, _b, c) => c || a);
   // Headings at line start
   s = s.replace(/^\s{0,3}#{1,6}\s+/gm, '');
   // Blockquote markers
@@ -62,9 +62,7 @@ function splitSentences(prose) {
   if (!prose) return [];
   // Split on . ! ? followed by whitespace or end. Keep abbreviations rough.
   const parts = prose.split(/(?<=[.!?])\s+/);
-  return parts
-    .map((s) => s.trim())
-    .filter((s) => /[A-Za-z0-9À-ɏ]/.test(s) && s.length >= 2);
+  return parts.map((s) => s.trim()).filter((s) => /[A-Za-z0-9À-ɏ]/.test(s) && s.length >= 2);
 }
 
 /**
@@ -85,7 +83,7 @@ function countSyllablesInWord(word) {
 }
 
 function countSyllables(prose) {
-  const words = (prose.match(/\b[A-Za-z'À-ɏ]+\b/g) || []);
+  const words = prose.match(/\b[A-Za-z'À-ɏ]+\b/g) || [];
   let total = 0;
   for (const w of words) total += countSyllablesInWord(w);
   return total;
@@ -117,7 +115,8 @@ function computeStats(content, opts = {}) {
   const words = countWords(prose);
   const sentences = splitSentences(prose).length;
   const syllables = countSyllables(prose);
-  const wpm = typeof opts.wordsPerMinute === 'number' && opts.wordsPerMinute > 0 ? opts.wordsPerMinute : 220;
+  const wpm =
+    typeof opts.wordsPerMinute === 'number' && opts.wordsPerMinute > 0 ? opts.wordsPerMinute : 220;
   const readingTimeMinutes = words > 0 ? words / wpm : 0;
 
   let grade = null;

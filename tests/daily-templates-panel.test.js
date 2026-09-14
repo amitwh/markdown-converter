@@ -10,9 +10,12 @@ function mountPanel(deps = {}) {
   document.body.appendChild(container);
   const api = renderDailyTemplatesPanel(container, {
     listTemplates: deps.listTemplates || jest.fn().mockResolvedValue([]),
-    saveTemplate: deps.saveTemplate || jest.fn().mockResolvedValue({ name: 'x.md', label: 'X', content: '' }),
+    saveTemplate:
+      deps.saveTemplate || jest.fn().mockResolvedValue({ name: 'x.md', label: 'X', content: '' }),
     deleteTemplate: deps.deleteTemplate || jest.fn().mockResolvedValue(true),
-    applyTemplate: deps.applyTemplate || jest.fn().mockResolvedValue({ path: '/d/2026-09-14.md', content: '', created: true }),
+    applyTemplate:
+      deps.applyTemplate ||
+      jest.fn().mockResolvedValue({ path: '/d/2026-09-14.md', content: '', created: true }),
     onOpenFile: deps.onOpenFile || jest.fn(),
     ...deps,
   });
@@ -53,9 +56,9 @@ describe('renderDailyTemplatesPanel — mounting', () => {
 
   test('escapeHtml-style safety: a label with <script> does not produce a node', async () => {
     const { container } = mountPanel({
-      listTemplates: jest.fn().mockResolvedValue([
-        { name: 'evil.md', label: '<script>alert(1)</script>', content: '' },
-      ]),
+      listTemplates: jest
+        .fn()
+        .mockResolvedValue([{ name: 'evil.md', label: '<script>alert(1)</script>', content: '' }]),
     });
     await flush();
     expect(container.querySelector('script')).toBeNull();
@@ -72,7 +75,9 @@ describe('renderDailyTemplatesPanel — Use button', () => {
     const { container } = mountPanel({
       applyTemplate,
       onOpenFile,
-      listTemplates: jest.fn().mockResolvedValue([{ name: 'morning.md', label: 'Morning', content: '# M' }]),
+      listTemplates: jest
+        .fn()
+        .mockResolvedValue([{ name: 'morning.md', label: 'Morning', content: '# M' }]),
     });
     await flush();
     container.querySelector('[data-action="apply"]').click();
@@ -83,7 +88,9 @@ describe('renderDailyTemplatesPanel — Use button', () => {
 
   test('reports an error when applyTemplate rejects', async () => {
     const applyTemplate = jest.fn().mockRejectedValue(new Error('write fail'));
-    const listTemplates = jest.fn().mockResolvedValue([{ name: 'morning.md', label: 'Morning', content: '' }]);
+    const listTemplates = jest
+      .fn()
+      .mockResolvedValue([{ name: 'morning.md', label: 'Morning', content: '' }]);
     const { container } = mountPanel({ applyTemplate, listTemplates });
     await flush();
     container.querySelector('[data-action="apply"]').click();
@@ -128,11 +135,10 @@ describe('renderDailyTemplatesPanel — Delete button', () => {
 
 describe('renderDailyTemplatesPanel — New template', () => {
   test('clicking + New prompts for name + content, then saves', async () => {
-    const saveTemplate = jest.fn().mockResolvedValue({ name: 'custom.md', label: 'Custom', content: '# X' });
-    window.prompt = jest
+    const saveTemplate = jest
       .fn()
-      .mockReturnValueOnce('custom')
-      .mockReturnValueOnce('# X');
+      .mockResolvedValue({ name: 'custom.md', label: 'Custom', content: '# X' });
+    window.prompt = jest.fn().mockReturnValueOnce('custom').mockReturnValueOnce('# X');
 
     const { container } = mountPanel({ saveTemplate });
     await flush();
@@ -158,9 +164,10 @@ describe('renderDailyTemplatesPanel — New template', () => {
 
 describe('renderDailyTemplatesPanel — refresh', () => {
   test('refresh button re-fetches the list', async () => {
-    const listTemplates = jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([
-      { name: 'a.md', label: 'A', content: '' },
-    ]);
+    const listTemplates = jest
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ name: 'a.md', label: 'A', content: '' }]);
     const { container, api } = mountPanel({ listTemplates });
     await flush();
     expect(container.querySelectorAll('.daily-templates-item')).toHaveLength(0);
@@ -172,7 +179,9 @@ describe('renderDailyTemplatesPanel — refresh', () => {
   });
 
   test('shows an error when listTemplates rejects', async () => {
-    const { container } = mountPanel({ listTemplates: jest.fn().mockRejectedValue(new Error('nope')) });
+    const { container } = mountPanel({
+      listTemplates: jest.fn().mockRejectedValue(new Error('nope')),
+    });
     await flush();
     expect(container.querySelector('#daily-templates-status').textContent).toMatch(/nope/);
   });

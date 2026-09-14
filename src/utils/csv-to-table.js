@@ -171,7 +171,9 @@ function looksLikeCsv(text) {
   // Every non-empty line must have the same number of delimiters as the
   // first, allowing a ±1 slack for trailing empties.
   const delim = detectDelimiter(text);
-  const counts = lines.slice(0, 5).map((l) => (l.match(new RegExp(escapeRegex(delim), 'g')) || []).length);
+  const counts = lines
+    .slice(0, 5)
+    .map((l) => (l.match(new RegExp(escapeRegex(delim), 'g')) || []).length);
   const first = counts[0];
   if (first < 1) return false;
   return counts.every((c) => Math.abs(c - first) <= 1);

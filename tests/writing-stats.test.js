@@ -30,7 +30,9 @@ describe('stripMarkdown', () => {
 
   test('keeps link text but drops URLs', () => {
     expect(stripMarkdown('read [the docs](https://docs.example.com) now')).toMatch(/the docs/);
-    expect(stripMarkdown('read [the docs](https://docs.example.com) now')).not.toMatch(/docs\.example/);
+    expect(stripMarkdown('read [the docs](https://docs.example.com) now')).not.toMatch(
+      /docs\.example/
+    );
   });
 
   test('keeps wikilink visible labels', () => {

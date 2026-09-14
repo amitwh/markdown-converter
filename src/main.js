@@ -5902,35 +5902,38 @@ ipcMain.handle('workspace-search:query', async (_event, { query, dir, limit = 50
 // strips grammar noise (what/how/why/...) and re-ranks at the chunk level
 // so the renderer can show multiple passages from the same file. No neural
 // model — same ranking algorithm — so results stay explainable and offline.
-ipcMain.handle('doc-qa:ask', async (_event, { question, dir, topK = 5, engine: engineName } = {}) => {
-  if (typeof question !== 'string' || !question.trim()) {
-    return { question: '', chunks: [] };
-  }
-  const validation = typeof dir === 'string' ? validatePath(dir) : { valid: false };
-  if (!validation.valid) return { question: String(question), chunks: [] };
-
-  const files = collectMarkdownFiles(dir, WORKSPACE_SEARCH_MAX_FILES);
-  const corpus = [];
-  for (const filePath of files) {
-    try {
-      const stat = fs.statSync(filePath);
-      if (stat.size > WORKSPACE_SEARCH_MAX_BYTES) continue;
-      corpus.push({
-        path: filePath,
-        content: fs.readFileSync(filePath, 'utf-8'),
-        mtimeMs: stat.mtimeMs,
-      });
-    } catch {
-      /* unreadable — skip */
+ipcMain.handle(
+  'doc-qa:ask',
+  async (_event, { question, dir, topK = 5, engine: engineName } = {}) => {
+    if (typeof question !== 'string' || !question.trim()) {
+      return { question: '', chunks: [] };
     }
-  }
+    const validation = typeof dir === 'string' ? validatePath(dir) : { valid: false };
+    if (!validation.valid) return { question: String(question), chunks: [] };
 
-  // Resolve the engine up-front. If the user asked for neural and the dep
-  // is missing, SemanticEngine.getEngine() falls back to tf-idf with a
-  // single console warning — callers always get a usable engine.
-  const engine = await SemanticEngine.getEngine(engineName || 'tf-idf');
-  return DocQA.ask({ question, files: corpus, topK, engine });
-});
+    const files = collectMarkdownFiles(dir, WORKSPACE_SEARCH_MAX_FILES);
+    const corpus = [];
+    for (const filePath of files) {
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.size > WORKSPACE_SEARCH_MAX_BYTES) continue;
+        corpus.push({
+          path: filePath,
+          content: fs.readFileSync(filePath, 'utf-8'),
+          mtimeMs: stat.mtimeMs,
+        });
+      } catch {
+        /* unreadable — skip */
+      }
+    }
+
+    // Resolve the engine up-front. If the user asked for neural and the dep
+    // is missing, SemanticEngine.getEngine() falls back to tf-idf with a
+    // single console warning — callers always get a usable engine.
+    const engine = await SemanticEngine.getEngine(engineName || 'tf-idf');
+    return DocQA.ask({ question, files: corpus, topK, engine });
+  }
+);
 
 // ================================
 // Smart-paste: URL → page title

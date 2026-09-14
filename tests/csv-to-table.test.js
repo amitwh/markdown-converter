@@ -3,7 +3,13 @@
  *
  * csv-to-table tests — pure module.
  */
-const { detectDelimiter, csvToTable, looksLikeCsv, parseRows, escapeCell } = require('../src/utils/csv-to-table');
+const {
+  detectDelimiter,
+  csvToTable,
+  looksLikeCsv,
+  parseRows,
+  escapeCell,
+} = require('../src/utils/csv-to-table');
 
 describe('detectDelimiter', () => {
   test('prefers tabs over commas when both are present', () => {
@@ -155,7 +161,7 @@ describe('looksLikeCsv', () => {
     expect(looksLikeCsv('a,b,c')).toBe(false);
   });
 
-  test('returns false when the column counts don\'t line up at all', () => {
+  test("returns false when the column counts don't line up at all", () => {
     expect(looksLikeCsv('a,b,c\n1\n2,3,4,5')).toBe(false);
   });
 
@@ -166,6 +172,8 @@ describe('looksLikeCsv', () => {
   });
 
   test('returns false for prose (no delimiter)', () => {
-    expect(looksLikeCsv('The quick brown fox jumps over the lazy dog.\nThe cat sat on the mat.')).toBe(false);
+    expect(
+      looksLikeCsv('The quick brown fox jumps over the lazy dog.\nThe cat sat on the mat.')
+    ).toBe(false);
   });
 });

@@ -108,9 +108,9 @@ describe('renderSearchPanel — search mode', () => {
 
   test('clicking a result calls onOpenFile with the right path', async () => {
     const onOpenFile = jest.fn();
-    const search = jest.fn().mockResolvedValue([
-      { filePath: '/notes/x.md', snippet: 's', score: 1, matchedTerms: [] },
-    ]);
+    const search = jest
+      .fn()
+      .mockResolvedValue([{ filePath: '/notes/x.md', snippet: 's', score: 1, matchedTerms: [] }]);
     const { container } = mountPanel({ search, onOpenFile });
     container.querySelector('#search-input').value = 'x';
     container.querySelector('#search-run').click();
@@ -246,9 +246,7 @@ describe('renderSearchPanel — escaping', () => {
 
 describe('renderSearchPanel — clear/escape behaviors', () => {
   test('Escape on the input clears the query and results', async () => {
-    const search = jest.fn().mockResolvedValue([
-      { filePath: '/a.md', snippet: 's', score: 1 },
-    ]);
+    const search = jest.fn().mockResolvedValue([{ filePath: '/a.md', snippet: 's', score: 1 }]);
     const { container, container: c2 } = mountPanel({ search });
     const input = container.querySelector('#search-input');
     input.value = 'x';

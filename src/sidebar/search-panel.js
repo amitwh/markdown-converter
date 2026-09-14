@@ -92,8 +92,9 @@ function renderSearchPanel(container, { search, ask, getCurrentDir, onOpenFile }
   }
 
   function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+    return String(s).replace(
+      /[&<>"']/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
     );
   }
 
@@ -166,7 +167,9 @@ function renderSearchPanel(container, { search, ask, getCurrentDir, onOpenFile }
       if (mode === 'ask') {
         const r = await ask({ question: q, dir, topK: 5 });
         lastResults = (r && r.chunks) || [];
-        setStatus(`Asked: "${q}" — ${lastResults.length} passage${lastResults.length === 1 ? '' : 's'}`);
+        setStatus(
+          `Asked: "${q}" — ${lastResults.length} passage${lastResults.length === 1 ? '' : 's'}`
+        );
       } else {
         const r = await search({ query: q, dir, limit: 50 });
         lastResults = Array.isArray(r) ? r : [];

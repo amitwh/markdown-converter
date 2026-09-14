@@ -9,7 +9,9 @@ function mountPanel(deps = {}) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const api = renderDailyNotesPanel(container, {
-    openToday: deps.openToday || jest.fn().mockResolvedValue({ path: '/notes/2026-09-14.md', created: true }),
+    openToday:
+      deps.openToday ||
+      jest.fn().mockResolvedValue({ path: '/notes/2026-09-14.md', created: true }),
     listExisting: deps.listExisting || jest.fn().mockResolvedValue([]),
     onOpenFile: deps.onOpenFile || jest.fn(),
     ...deps,
@@ -39,11 +41,13 @@ describe('renderDailyNotesPanel — mounting', () => {
 
   test('renders one row per filename', async () => {
     const { container } = mountPanel({
-      listExisting: jest.fn().mockResolvedValue([
-        '/notes/daily/2026-09-14.md',
-        '/notes/daily/2026-09-13.md',
-        '/notes/daily/2026-09-10.md',
-      ]),
+      listExisting: jest
+        .fn()
+        .mockResolvedValue([
+          '/notes/daily/2026-09-14.md',
+          '/notes/daily/2026-09-13.md',
+          '/notes/daily/2026-09-10.md',
+        ]),
     });
     await flush();
     const items = container.querySelectorAll('.daily-notes-item');
@@ -107,14 +111,13 @@ describe('renderDailyNotesPanel — Today button', () => {
 });
 
 describe('renderDailyNotesPanel — click an existing entry', () => {
-  test('clicking a row calls onOpenFile with that row\'s path', async () => {
+  test("clicking a row calls onOpenFile with that row's path", async () => {
     const onOpenFile = jest.fn();
     const { container } = mountPanel({
       onOpenFile,
-      listExisting: jest.fn().mockResolvedValue([
-        '/notes/daily/2026-09-14.md',
-        '/notes/daily/2026-09-10.md',
-      ]),
+      listExisting: jest
+        .fn()
+        .mockResolvedValue(['/notes/daily/2026-09-14.md', '/notes/daily/2026-09-10.md']),
     });
     await flush();
     const items = container.querySelectorAll('.daily-notes-item');
@@ -139,7 +142,10 @@ describe('renderDailyNotesPanel — click an existing entry', () => {
 
 describe('renderDailyNotesPanel — refresh', () => {
   test('refresh button re-fetches the list', async () => {
-    const listExisting = jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce(['2026-09-14.md']);
+    const listExisting = jest
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(['2026-09-14.md']);
     const { container, api } = mountPanel({ listExisting });
     await flush();
     expect(container.querySelectorAll('.daily-notes-item')).toHaveLength(0);

@@ -98,7 +98,12 @@ function isHttpUrl(value) {
  * @param {typeof fetch} [args.fetch] injectable for tests
  * @returns {Promise<{url:string, title:string} | null>}
  */
-async function fetchTitle({ url, timeoutMs = 5000, maxBytes = 2 * 1024 * 1024, fetch = globalThis.fetch }) {
+async function fetchTitle({
+  url,
+  timeoutMs = 5000,
+  maxBytes = 2 * 1024 * 1024,
+  fetch = globalThis.fetch,
+}) {
   if (!isHttpUrl(url) || typeof fetch !== 'function') return null;
 
   const controller = new AbortController();
@@ -114,7 +119,8 @@ async function fetchTitle({ url, timeoutMs = 5000, maxBytes = 2 * 1024 * 1024, f
     if (!ctype.toLowerCase().includes('text/html')) return null;
 
     // Read up to maxBytes + 1 so we can detect overflow
-    const reader = res.body && typeof res.body.getReader === 'function' ? res.body.getReader() : null;
+    const reader =
+      res.body && typeof res.body.getReader === 'function' ? res.body.getReader() : null;
     let body = '';
     if (reader) {
       while (true) {

@@ -84,9 +84,10 @@ function openOrCreate({ date, dir, templateDir, fs, pathUtil, now = new Date(), 
     // Use the explicit seedContent when provided (e.g. a non-default
     // template chosen via the gallery); otherwise fall back to the
     // template-loader (which honors templateDir + the built-in default).
-    content = typeof seedContent === 'string' && seedContent.length > 0
-      ? seedContent
-      : loadTemplate({ date, templateDir, fs, pathUtil, now });
+    content =
+      typeof seedContent === 'string' && seedContent.length > 0
+        ? seedContent
+        : loadTemplate({ date, templateDir, fs, pathUtil, now });
     fs.writeFileSync(notePath, content, 'utf-8');
     created = true;
   }

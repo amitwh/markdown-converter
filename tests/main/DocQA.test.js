@@ -144,9 +144,7 @@ describe('DocQA.ask with a custom engine', () => {
   test('passes the question + chunks to a custom engine.rank()', async () => {
     const customEngine = {
       isNeural: true,
-      rank: jest.fn().mockResolvedValue([
-        { filePath: '/x.md#0', snippet: 'ranked', score: 0.9 },
-      ]),
+      rank: jest.fn().mockResolvedValue([{ filePath: '/x.md#0', snippet: 'ranked', score: 0.9 }]),
     };
     const r = await DocQA.ask({ question: 'rust', files, engine: customEngine });
     expect(customEngine.rank).toHaveBeenCalled();

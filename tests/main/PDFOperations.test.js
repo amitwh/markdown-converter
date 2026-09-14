@@ -54,8 +54,7 @@ describe('PDFOperations - Task 15 new operations', () => {
       expect(result.success).toBe(true);
       expect(result.text).toContain('Hello Task 15 Page One');
       expect(result.text).toContain('Second Page Content');
-    }, // CI runners (observed on windows-latest) // First pdfjs-dist legacy import can exceed the 5s default on slower
-    30000);
+    }, 30000); // CI runners (observed on windows-latest) // First pdfjs-dist legacy import can exceed the 5s default on slower
 
     it('returns failure for a nonexistent file', async () => {
       const result = await PDFOperations.pdfExtractText({

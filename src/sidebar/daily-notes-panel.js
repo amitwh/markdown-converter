@@ -101,11 +101,12 @@ function renderDailyNotesPanel(container, deps) {
       // listExisting returns absolute paths (newest first). Pair each path
       // with its basename for display.
       const paths = Array.isArray(list) ? list : [];
-      entries = paths
-        .filter((p) => /\.md$/i.test(p))
-        .map((p) => ({ path: p, name: basename(p) }));
+      entries = paths.filter((p) => /\.md$/i.test(p)).map((p) => ({ path: p, name: basename(p) }));
       renderList();
-      if (!keepStatus) setStatus(entries.length === 0 ? '' : `${entries.length} note${entries.length === 1 ? '' : 's'}`);
+      if (!keepStatus)
+        setStatus(
+          entries.length === 0 ? '' : `${entries.length} note${entries.length === 1 ? '' : 's'}`
+        );
     } catch (err) {
       setStatus(`Error: ${err && err.message ? err.message : 'unknown'}`);
       renderList();

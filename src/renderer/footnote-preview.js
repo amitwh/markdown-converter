@@ -43,7 +43,8 @@ function mountFootnotePreview(previewRoot, opts = {}) {
     // CSS.escape() is in modern browsers but not in every test env; fallback
     // strips characters that would break the selector without escaping the
     // whole id (footnote ids are integers, so this is safe).
-    const safeId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id.replace(/[^a-zA-Z0-9_-]/g, '');
+    const safeId =
+      typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id.replace(/[^a-zA-Z0-9_-]/g, '');
     const target = previewRoot.querySelector(`#${safeId}`);
     return target || null;
   }

@@ -178,13 +178,7 @@ function chunkDocument(content, maxChunkChars = 800) {
  *   swap in semantic embeddings.
  * @returns {{question:string, chunks:Array<{filePath:string, snippet:string, score:number, mtimeMs:number}>}}
  */
-async function ask({
-  question,
-  files,
-  topK = 5,
-  nowMs = Date.now(),
-  engine = null,
-}) {
+async function ask({ question, files, topK = 5, nowMs = Date.now(), engine = null }) {
   const cleaned = cleanQuestion(question);
   if (!cleaned || !Array.isArray(files) || files.length === 0) {
     return { question: String(question || ''), chunks: [] };
@@ -241,8 +235,7 @@ async function ask({
       offset,
       snippet: h.snippet,
       score: h.score,
-      mtimeMs:
-        chunkCorpus.find((c) => c.path === h.filePath)?.mtimeMs || h.mtimeMs || 0,
+      mtimeMs: chunkCorpus.find((c) => c.path === h.filePath)?.mtimeMs || h.mtimeMs || 0,
     };
   });
 
