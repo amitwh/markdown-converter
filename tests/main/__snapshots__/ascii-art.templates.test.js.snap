@@ -1,0 +1,179 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`AsciiArt.templates arrow-down 1`] = `
+"        │
+        ▼
+┌───────────────┐
+│   Process     │
+└───────────────┘
+        │
+        ▼"
+`;
+
+exports[`AsciiArt.templates arrow-right 1`] = `
+"    ┌─────────────────────┐
+──▶│  Process or Action  │──▶
+    └─────────────────────┘"
+`;
+
+exports[`AsciiArt.templates arrow-up 1`] = `
+"        ▲
+        │
+┌───────────────┐
+│   Process     │
+└───────────────┘
+        │
+        ▲"
+`;
+
+exports[`AsciiArt.templates banner 1`] = `
+"★══════════════════════════════════════★
+║          YOUR TITLE HERE            ║
+★══════════════════════════════════════★"
+`;
+
+exports[`AsciiArt.templates checklist 1`] = `
+"☐ Task 1 - Not completed
+☑ Task 2 - Completed  
+☐ Task 3 - Not completed
+☐ Task 4 - Not completed"
+`;
+
+exports[`AsciiArt.templates decision 1`] = `
+"       ╱╲
+      ╱  ╲
+     ╱ ?  ╲
+    ╱      ╲
+   ╱────────╲
+  ╱          ╲
+ YES        NO
+  │          │
+  ▼          ▼"
+`;
+
+exports[`AsciiArt.templates divider 1`] = `"════════════════════════════════════════"`;
+
+exports[`AsciiArt.templates flowchart 1`] = `
+"┌─────────────┐
+│   START    │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Process A  │
+└──────┬──────┘
+       │
+       ▼
+   ╱────────╲
+  ╱ Decision ╲
+  ╲    ?    ╱
+   ╲────────╱
+    │      │
+   YES    NO
+    │      │
+    ▼      ▼
+┌──────┐ ┌──────┐
+│  B   │ │  C   │
+└──────┘ └──────┘"
+`;
+
+exports[`AsciiArt.templates header 1`] = `
+"╔════════════════════════════════════╗
+║            SECTION TITLE           ║
+╚════════════════════════════════════╝"
+`;
+
+exports[`AsciiArt.templates hierarchy 1`] = `
+"            ┌─────────┐
+            │   CEO   │
+            └────┬────┘
+       ┌─────────┼─────────┐
+       │         │         │
+   ┌───┴───┐ ┌───┴───┐ ┌───┴───┐
+   │  VP1  │ │  VP2  │ │  VP3  │
+   └───┬───┘ └───┬───┘ └───┬───┘
+       │         │         │
+   ┌───┴───┐ ┌───┴───┐ ┌───┴───┐
+   │ Team1 │ │ Team2 │ │ Team3 │
+   └───────┘ └───────┘ └───────┘"
+`;
+
+exports[`AsciiArt.templates info 1`] = `
+"╭────────────────────────────────────╮
+│  ℹ️  INFO                          │
+│                                    │
+│  Helpful information here.         │
+╰────────────────────────────────────╯"
+`;
+
+exports[`AsciiArt.templates network 1`] = `
+"          ┌─────────┐
+          │ Server  │
+          └────┬────┘
+               │
+     ┌─────────┼─────────┐
+     │         │         │
+┌────┴────┐ ┌──┴──┐ ┌────┴────┐
+│ Client1 │ │ DB  │ │ Client2 │
+└─────────┘ └─────┘ └─────────┘"
+`;
+
+exports[`AsciiArt.templates note 1`] = `
+"┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  NOTE:                         ┃
+┃  This is an important note     ┃
+┃  that requires attention!      ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+`;
+
+exports[`AsciiArt.templates process 1`] = `
+"┌─────┐   ┌─────┐   ┌─────┐
+│  1  │──▶│  2  │──▶│  3  │
+└─────┘   └─────┘   └─────┘"
+`;
+
+exports[`AsciiArt.templates progress-bar 1`] = `
+"
+Progress:  [████████████░░░░░░░░] 60%
+           0%                    100%"
+`;
+
+exports[`AsciiArt.templates separator 1`] = `
+"╭──────────────────────────────────────╮
+│                                      │
+╰──────────────────────────────────────╯"
+`;
+
+exports[`AsciiArt.templates sequence 1`] = `
+" User      System     Database
+   │           │           │
+   │  Request  │           │
+   ├──────────►│           │
+   │           │  Query    │
+   │           ├──────────►│
+   │           │           │
+   │           │  Result   │
+   │           │◄──────────┤
+   │  Response │           │
+   │◄──────────┤           │
+   │           │           │"
+`;
+
+exports[`AsciiArt.templates table-simple 1`] = `
+"
+┌──────────┬──────────┬──────────┐
+│ Header 1 │ Header 2 │ Header 3 │
+├──────────┼──────────┼──────────┤
+│  Data 1  │  Data 2  │  Data 3  │
+├──────────┼──────────┼──────────┤
+│  Data 4  │  Data 5  │  Data 6  │
+└──────────┴──────────┴──────────┘"
+`;
+
+exports[`AsciiArt.templates warning 1`] = `
+"╔════════════════════════════════════╗
+║  ⚠️  WARNING                       ║
+║                                    ║
+║  Critical information here!        ║
+╚════════════════════════════════════╝"
+`;
