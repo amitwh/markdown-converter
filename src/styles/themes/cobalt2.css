@@ -1,0 +1,72 @@
+/* Theme: Cobalt2 — id=cobalt2 — category=dark */
+body.theme-cobalt2 {
+  background: #193549;
+  color: #ffffff;
+}
+
+body.theme-cobalt2 .tab-bar {
+  background: #15232d;
+  border-bottom-color: #2a4a5d;
+}
+
+body.theme-cobalt2 .tab {
+  background: #0d3a58;
+  border-color: #2a4a5d;
+  color: #ffffff;
+}
+
+body.theme-cobalt2 .tab.active {
+  background: #193549;
+  border-color: #ffc600;
+}
+
+body.theme-cobalt2 .toolbar {
+  background: #15232d;
+  border-bottom-color: #2a4a5d;
+}
+
+body.theme-cobalt2 .toolbar button {
+  color: #ffffff;
+}
+
+body.theme-cobalt2 .toolbar button:hover {
+  background: #0d3a58;
+  border-color: #2a4a5d;
+}
+
+body.theme-cobalt2 .editor-textarea {
+  background: #193549;
+  color: #ffffff;
+}
+
+body.theme-cobalt2 .pane:last-child {
+  background: #193549;
+}
+
+body.theme-cobalt2 .preview-content {
+  color: #ffffff;
+}
+
+body.theme-cobalt2 .preview-content h1,
+body.theme-cobalt2 .preview-content h2 {
+  border-bottom-color: #2a4a5d;
+  color: #ffc600;
+}
+
+body.theme-cobalt2 .preview-content code {
+  background-color: #0d3a58;
+}
+
+body.theme-cobalt2 .preview-content pre {
+  background-color: #0d3a58;
+}
+
+body.theme-cobalt2 .preview-content a {
+  color: #3ad900;
+}
+
+body.theme-cobalt2 .status-bar {
+  background: #15232d;
+  border-top-color: #2a4a5d;
+  color: #ffffff;
+}

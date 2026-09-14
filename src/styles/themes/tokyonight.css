@@ -1,0 +1,88 @@
+/* Theme: Tokyo Night — id=tokyonight — category=dark */
+body.theme-tokyonight,
+body.theme-tokyo-night {
+  background: #1a1b26;
+  color: #c0caf5;
+}
+
+body.theme-tokyonight .tab-bar,
+body.theme-tokyo-night .tab-bar {
+  background: #16161e;
+  border-bottom-color: #24283b;
+}
+
+body.theme-tokyonight .tab,
+body.theme-tokyo-night .tab {
+  background: #24283b;
+  border-color: #414868;
+  color: #c0caf5;
+}
+
+body.theme-tokyonight .tab.active,
+body.theme-tokyo-night .tab.active {
+  background: #1a1b26;
+  border-color: #7aa2f7;
+}
+
+body.theme-tokyonight .toolbar,
+body.theme-tokyo-night .toolbar {
+  background: #16161e;
+  border-bottom-color: #24283b;
+}
+
+body.theme-tokyonight .toolbar button,
+body.theme-tokyo-night .toolbar button {
+  color: #c0caf5;
+}
+
+body.theme-tokyonight .toolbar button:hover,
+body.theme-tokyo-night .toolbar button:hover {
+  background: #24283b;
+  border-color: #414868;
+}
+
+body.theme-tokyonight .editor-textarea,
+body.theme-tokyo-night .editor-textarea {
+  background: #1a1b26;
+  color: #c0caf5;
+}
+
+body.theme-tokyonight .pane:last-child,
+body.theme-tokyo-night .pane:last-child {
+  background: #1a1b26;
+}
+
+body.theme-tokyonight .preview-content,
+body.theme-tokyo-night .preview-content {
+  color: #c0caf5;
+}
+
+body.theme-tokyonight .preview-content h1,
+body.theme-tokyonight .preview-content h2,
+body.theme-tokyo-night .preview-content h1,
+body.theme-tokyo-night .preview-content h2 {
+  border-bottom-color: #24283b;
+  color: #7aa2f7;
+}
+
+body.theme-tokyonight .preview-content code,
+body.theme-tokyo-night .preview-content code {
+  background-color: #24283b;
+}
+
+body.theme-tokyonight .preview-content pre,
+body.theme-tokyo-night .preview-content pre {
+  background-color: #24283b;
+}
+
+body.theme-tokyonight .preview-content a,
+body.theme-tokyo-night .preview-content a {
+  color: #7dcfff;
+}
+
+body.theme-tokyonight .status-bar,
+body.theme-tokyo-night .status-bar {
+  background: #16161e;
+  border-top-color: #24283b;
+  color: #c0caf5;
+}

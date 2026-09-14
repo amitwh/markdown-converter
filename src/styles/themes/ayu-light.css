@@ -1,0 +1,72 @@
+/* Theme: Ayu Light — id=ayu-light — category=light */
+body.theme-ayu-light {
+  background: #fafafa;
+  color: #5c6166;
+}
+
+body.theme-ayu-light .tab-bar {
+  background: #f3f4f5;
+  border-bottom-color: #e7e8e9;
+}
+
+body.theme-ayu-light .tab {
+  background: #e7e8e9;
+  border-color: #d9dadb;
+  color: #5c6166;
+}
+
+body.theme-ayu-light .tab.active {
+  background: #fafafa;
+  border-color: #ff6a00;
+}
+
+body.theme-ayu-light .toolbar {
+  background: #f3f4f5;
+  border-bottom-color: #e7e8e9;
+}
+
+body.theme-ayu-light .toolbar button {
+  color: #5c6166;
+}
+
+body.theme-ayu-light .toolbar button:hover {
+  background: #e7e8e9;
+  border-color: #d9dadb;
+}
+
+body.theme-ayu-light .editor-textarea {
+  background: #fafafa;
+  color: #5c6166;
+}
+
+body.theme-ayu-light .pane:last-child {
+  background: #fafafa;
+}
+
+body.theme-ayu-light .preview-content {
+  color: #5c6166;
+}
+
+body.theme-ayu-light .preview-content h1,
+body.theme-ayu-light .preview-content h2 {
+  border-bottom-color: #e7e8e9;
+  color: #ff6a00;
+}
+
+body.theme-ayu-light .preview-content code {
+  background-color: #f3f4f5;
+}
+
+body.theme-ayu-light .preview-content pre {
+  background-color: #f3f4f5;
+}
+
+body.theme-ayu-light .preview-content a {
+  color: #399ee6;
+}
+
+body.theme-ayu-light .status-bar {
+  background: #f3f4f5;
+  border-top-color: #e7e8e9;
+  color: #5c6166;
+}

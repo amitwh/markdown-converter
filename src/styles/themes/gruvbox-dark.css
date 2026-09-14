@@ -1,0 +1,72 @@
+/* Theme: Gruvbox Dark — id=gruvbox-dark — category=dark */
+body.theme-gruvbox-dark {
+  background: #282828;
+  color: #ebdbb2;
+}
+
+body.theme-gruvbox-dark .tab-bar {
+  background: #3c3836;
+  border-bottom-color: #504945;
+}
+
+body.theme-gruvbox-dark .tab {
+  background: #504945;
+  border-color: #665c54;
+  color: #ebdbb2;
+}
+
+body.theme-gruvbox-dark .tab.active {
+  background: #282828;
+  border-color: #fabd2f;
+}
+
+body.theme-gruvbox-dark .toolbar {
+  background: #3c3836;
+  border-bottom-color: #504945;
+}
+
+body.theme-gruvbox-dark .toolbar button {
+  color: #ebdbb2;
+}
+
+body.theme-gruvbox-dark .toolbar button:hover {
+  background: #504945;
+  border-color: #665c54;
+}
+
+body.theme-gruvbox-dark .editor-textarea {
+  background: #282828;
+  color: #ebdbb2;
+}
+
+body.theme-gruvbox-dark .pane:last-child {
+  background: #282828;
+}
+
+body.theme-gruvbox-dark .preview-content {
+  color: #ebdbb2;
+}
+
+body.theme-gruvbox-dark .preview-content h1,
+body.theme-gruvbox-dark .preview-content h2 {
+  border-bottom-color: #504945;
+  color: #fabd2f;
+}
+
+body.theme-gruvbox-dark .preview-content code {
+  background-color: #3c3836;
+}
+
+body.theme-gruvbox-dark .preview-content pre {
+  background-color: #3c3836;
+}
+
+body.theme-gruvbox-dark .preview-content a {
+  color: #83a598;
+}
+
+body.theme-gruvbox-dark .status-bar {
+  background: #3c3836;
+  border-top-color: #504945;
+  color: #ebdbb2;
+}

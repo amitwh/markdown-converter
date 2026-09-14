@@ -1,0 +1,88 @@
+/* Theme: One Dark — id=onedark — category=dark */
+body.theme-onedark,
+body.theme-one-dark {
+  background: #282c34;
+  color: #abb2bf;
+}
+
+body.theme-onedark .tab-bar,
+body.theme-one-dark .tab-bar {
+  background: #21252b;
+  border-bottom-color: #181a1f;
+}
+
+body.theme-onedark .tab,
+body.theme-one-dark .tab {
+  background: #2c313a;
+  border-color: #3e4451;
+  color: #abb2bf;
+}
+
+body.theme-onedark .tab.active,
+body.theme-one-dark .tab.active {
+  background: #282c34;
+  border-color: #61afef;
+}
+
+body.theme-onedark .toolbar,
+body.theme-one-dark .toolbar {
+  background: #21252b;
+  border-bottom-color: #181a1f;
+}
+
+body.theme-onedark .toolbar button,
+body.theme-one-dark .toolbar button {
+  color: #abb2bf;
+}
+
+body.theme-onedark .toolbar button:hover,
+body.theme-one-dark .toolbar button:hover {
+  background: #2c313a;
+  border-color: #3e4451;
+}
+
+body.theme-onedark .editor-textarea,
+body.theme-one-dark .editor-textarea {
+  background: #282c34;
+  color: #abb2bf;
+}
+
+body.theme-onedark .pane:last-child,
+body.theme-one-dark .pane:last-child {
+  background: #282c34;
+}
+
+body.theme-onedark .preview-content,
+body.theme-one-dark .preview-content {
+  color: #abb2bf;
+}
+
+body.theme-onedark .preview-content h1,
+body.theme-onedark .preview-content h2,
+body.theme-one-dark .preview-content h1,
+body.theme-one-dark .preview-content h2 {
+  border-bottom-color: #3e4451;
+  color: #61afef;
+}
+
+body.theme-onedark .preview-content code,
+body.theme-one-dark .preview-content code {
+  background-color: #21252b;
+}
+
+body.theme-onedark .preview-content pre,
+body.theme-one-dark .preview-content pre {
+  background-color: #21252b;
+}
+
+body.theme-onedark .preview-content a,
+body.theme-one-dark .preview-content a {
+  color: #56b6c2;
+}
+
+body.theme-onedark .status-bar,
+body.theme-one-dark .status-bar {
+  background: #21252b;
+  border-top-color: #181a1f;
+  color: #abb2bf;
+}

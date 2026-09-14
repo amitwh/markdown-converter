@@ -1,0 +1,72 @@
+/* Theme: Dracula — id=dracula — category=dark */
+body.theme-dracula {
+  background: #282a36;
+  color: #f8f8f2;
+}
+
+body.theme-dracula .tab-bar {
+  background: #343746;
+  border-bottom-color: #44475a;
+}
+
+body.theme-dracula .tab {
+  background: #44475a;
+  border-color: #6272a4;
+  color: #f8f8f2;
+}
+
+body.theme-dracula .tab.active {
+  background: #282a36;
+  border-color: #bd93f9;
+}
+
+body.theme-dracula .toolbar {
+  background: #343746;
+  border-bottom-color: #44475a;
+}
+
+body.theme-dracula .toolbar button {
+  color: #f8f8f2;
+}
+
+body.theme-dracula .toolbar button:hover {
+  background: #44475a;
+  border-color: #6272a4;
+}
+
+body.theme-dracula .editor-textarea {
+  background: #282a36;
+  color: #f8f8f2;
+}
+
+body.theme-dracula .pane:last-child {
+  background: #282a36;
+}
+
+body.theme-dracula .preview-content {
+  color: #f8f8f2;
+}
+
+body.theme-dracula .preview-content h1,
+body.theme-dracula .preview-content h2 {
+  border-bottom-color: #44475a;
+  color: #bd93f9;
+}
+
+body.theme-dracula .preview-content code {
+  background-color: #44475a;
+}
+
+body.theme-dracula .preview-content pre {
+  background-color: #44475a;
+}
+
+body.theme-dracula .preview-content a {
+  color: #8be9fd;
+}
+
+body.theme-dracula .status-bar {
+  background: #343746;
+  border-top-color: #44475a;
+  color: #f8f8f2;
+}

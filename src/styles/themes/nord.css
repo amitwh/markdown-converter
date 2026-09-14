@@ -1,0 +1,72 @@
+/* Theme: Nord — id=nord — category=dark */
+body.theme-nord {
+  background: #2e3440;
+  color: #d8dee9;
+}
+
+body.theme-nord .tab-bar {
+  background: #3b4252;
+  border-bottom-color: #4c566a;
+}
+
+body.theme-nord .tab {
+  background: #434c5e;
+  border-color: #4c566a;
+  color: #d8dee9;
+}
+
+body.theme-nord .tab.active {
+  background: #2e3440;
+  border-color: #88c0d0;
+}
+
+body.theme-nord .toolbar {
+  background: #3b4252;
+  border-bottom-color: #4c566a;
+}
+
+body.theme-nord .toolbar button {
+  color: #d8dee9;
+}
+
+body.theme-nord .toolbar button:hover {
+  background: #434c5e;
+  border-color: #4c566a;
+}
+
+body.theme-nord .editor-textarea {
+  background: #2e3440;
+  color: #d8dee9;
+}
+
+body.theme-nord .pane:last-child {
+  background: #2e3440;
+}
+
+body.theme-nord .preview-content {
+  color: #d8dee9;
+}
+
+body.theme-nord .preview-content h1,
+body.theme-nord .preview-content h2 {
+  border-bottom-color: #4c566a;
+  color: #88c0d0;
+}
+
+body.theme-nord .preview-content code {
+  background-color: #3b4252;
+}
+
+body.theme-nord .preview-content pre {
+  background-color: #3b4252;
+}
+
+body.theme-nord .preview-content a {
+  color: #81a1c1;
+}
+
+body.theme-nord .status-bar {
+  background: #3b4252;
+  border-top-color: #4c566a;
+  color: #d8dee9;
+}

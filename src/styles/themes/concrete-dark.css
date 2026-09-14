@@ -1,0 +1,144 @@
+/* Theme: Concrete Dark — id=concrete-dark — category=dark */
+body.theme-concrete-dark {
+  background: #0d0b09;
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .tab-bar {
+  background: #1a1816;
+  border-bottom-color: #464646;
+}
+
+body.theme-concrete-dark .tab {
+  background: #464646;
+  border-color: #9a9696;
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .tab.active {
+  background: #0d0b09;
+  border-color: #e5461f;
+}
+
+body.theme-concrete-dark .toolbar {
+  background: #1a1816;
+  border-bottom-color: #464646;
+}
+
+body.theme-concrete-dark .toolbar button {
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .toolbar button:hover {
+  background: #464646;
+  border-color: #e5461f;
+}
+
+body.theme-concrete-dark .editor-textarea {
+  background: #0d0b09;
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .pane:last-child {
+  background: #0d0b09;
+}
+
+body.theme-concrete-dark .preview-content {
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .preview-content h1,
+body.theme-concrete-dark .preview-content h2 {
+  border-bottom-color: #464646;
+  color: #e5461f;
+}
+
+body.theme-concrete-dark .preview-content code {
+  background-color: #464646;
+}
+
+body.theme-concrete-dark .preview-content pre {
+  background-color: #464646;
+}
+
+body.theme-concrete-dark .preview-content a {
+  color: #e5461f;
+}
+
+body.theme-concrete-dark .status-bar {
+  background: #1a1816;
+  border-top-color: #464646;
+  color: #9a9696;
+}
+
+body.theme-concrete-dark .toolbar {
+  background: linear-gradient(135deg, #0d0b09 0%, #1a1a1a 100%);
+  border-bottom: 3px solid #e5461f;
+}
+
+body.theme-concrete-dark .toolbar button:hover {
+  background: #e5461f;
+}
+
+body.theme-concrete-dark .tab-bar {
+  background: #0d0b09;
+  border-bottom: 2px solid #e5461f;
+}
+
+body.theme-concrete-dark .tab {
+  background: #2a2a2a;
+  color: #e3e3e3;
+  border-radius: 4px 4px 0 0;
+}
+
+body.theme-concrete-dark .tab.active {
+  background: #464646;
+  border-bottom: 2px solid #e5461f;
+}
+
+body.theme-concrete-dark .editor-pane {
+  background: #1a1a1a;
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .status-bar {
+  background: #0d0b09;
+  color: #9a9696;
+  border-top: 1px solid #464646;
+}
+
+body.theme-concrete-dark .export-dialog-content,
+body.theme-concrete-dark .batch-dialog-content {
+  background: #2a2a2a;
+  color: #e3e3e3;
+}
+
+body.theme-concrete-dark .export-dialog-header,
+body.theme-concrete-dark .batch-dialog-header {
+  background: #1a1a1a;
+  border-bottom: 2px solid #e5461f;
+}
+
+body.theme-concrete-dark .export-dialog-footer,
+body.theme-concrete-dark .batch-dialog-footer {
+  background: #1a1a1a;
+}
+
+body.theme-concrete-dark input,
+body.theme-concrete-dark select,
+body.theme-concrete-dark textarea {
+  background: #1a1a1a;
+  color: #e3e3e3;
+  border-color: #464646;
+}
+
+body.theme-concrete-dark input:focus,
+body.theme-concrete-dark select:focus,
+body.theme-concrete-dark textarea:focus {
+  border-color: #e5461f;
+}
+
+body.theme-concrete-dark .line-numbers {
+  background: #0d0b09;
+  color: #9a9696;
+}

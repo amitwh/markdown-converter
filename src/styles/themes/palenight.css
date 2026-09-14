@@ -1,0 +1,72 @@
+/* Theme: Palenight — id=palenight — category=dark */
+body.theme-palenight {
+  background: #292d3e;
+  color: #a6accd;
+}
+
+body.theme-palenight .tab-bar {
+  background: #32374d;
+  border-bottom-color: #444267;
+}
+
+body.theme-palenight .tab {
+  background: #444267;
+  border-color: #676e95;
+  color: #a6accd;
+}
+
+body.theme-palenight .tab.active {
+  background: #292d3e;
+  border-color: #82aaff;
+}
+
+body.theme-palenight .toolbar {
+  background: #32374d;
+  border-bottom-color: #444267;
+}
+
+body.theme-palenight .toolbar button {
+  color: #a6accd;
+}
+
+body.theme-palenight .toolbar button:hover {
+  background: #444267;
+  border-color: #676e95;
+}
+
+body.theme-palenight .editor-textarea {
+  background: #292d3e;
+  color: #a6accd;
+}
+
+body.theme-palenight .pane:last-child {
+  background: #292d3e;
+}
+
+body.theme-palenight .preview-content {
+  color: #a6accd;
+}
+
+body.theme-palenight .preview-content h1,
+body.theme-palenight .preview-content h2 {
+  border-bottom-color: #444267;
+  color: #82aaff;
+}
+
+body.theme-palenight .preview-content code {
+  background-color: #32374d;
+}
+
+body.theme-palenight .preview-content pre {
+  background-color: #32374d;
+}
+
+body.theme-palenight .preview-content a {
+  color: #89ddff;
+}
+
+body.theme-palenight .status-bar {
+  background: #32374d;
+  border-top-color: #444267;
+  color: #a6accd;
+}

@@ -1,0 +1,72 @@
+/* Theme: Oceanic Next — id=oceanic-next — category=dark */
+body.theme-oceanic-next {
+  background: #1b2b34;
+  color: #cdd3de;
+}
+
+body.theme-oceanic-next .tab-bar {
+  background: #20353f;
+  border-bottom-color: #343d46;
+}
+
+body.theme-oceanic-next .tab {
+  background: #343d46;
+  border-color: #4f5b66;
+  color: #cdd3de;
+}
+
+body.theme-oceanic-next .tab.active {
+  background: #1b2b34;
+  border-color: #6699cc;
+}
+
+body.theme-oceanic-next .toolbar {
+  background: #20353f;
+  border-bottom-color: #343d46;
+}
+
+body.theme-oceanic-next .toolbar button {
+  color: #cdd3de;
+}
+
+body.theme-oceanic-next .toolbar button:hover {
+  background: #343d46;
+  border-color: #4f5b66;
+}
+
+body.theme-oceanic-next .editor-textarea {
+  background: #1b2b34;
+  color: #cdd3de;
+}
+
+body.theme-oceanic-next .pane:last-child {
+  background: #1b2b34;
+}
+
+body.theme-oceanic-next .preview-content {
+  color: #cdd3de;
+}
+
+body.theme-oceanic-next .preview-content h1,
+body.theme-oceanic-next .preview-content h2 {
+  border-bottom-color: #343d46;
+  color: #6699cc;
+}
+
+body.theme-oceanic-next .preview-content code {
+  background-color: #20353f;
+}
+
+body.theme-oceanic-next .preview-content pre {
+  background-color: #20353f;
+}
+
+body.theme-oceanic-next .preview-content a {
+  color: #5fb3b3;
+}
+
+body.theme-oceanic-next .status-bar {
+  background: #20353f;
+  border-top-color: #343d46;
+  color: #cdd3de;
+}

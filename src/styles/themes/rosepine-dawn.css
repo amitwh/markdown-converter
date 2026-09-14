@@ -1,0 +1,127 @@
+/* Theme: Rose Pine Dawn — id=rosepine-dawn — category=light */
+body.theme-rosepine-dawn {
+  background: #faf4ed;
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .tab-bar {
+  background: #f2e9e1;
+  border-bottom-color: #dfdad9;
+}
+
+body.theme-rosepine-dawn .tab {
+  background: #f2e9e1;
+  border-color: #dfdad9;
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .tab.active {
+  background: #faf4ed;
+  border-bottom-color: #907aa9;
+}
+
+body.theme-rosepine-dawn .toolbar {
+  background: #f2e9e1;
+  border-bottom-color: #dfdad9;
+}
+
+body.theme-rosepine-dawn .toolbar button {
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .toolbar button:hover {
+  background: #dfdad9;
+}
+
+body.theme-rosepine-dawn .editor-textarea {
+  background: #faf4ed;
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .pane:last-child {
+  background: #faf4ed;
+}
+
+body.theme-rosepine-dawn .preview-content {
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .preview-content h1,
+body.theme-rosepine-dawn .preview-content h2 {
+  color: #286983;
+  border-bottom-color: #dfdad9;
+}
+
+body.theme-rosepine-dawn .preview-content code {
+  background: #f2e9e1;
+  color: #b4637a;
+}
+
+body.theme-rosepine-dawn .preview-content pre {
+  background: #f2e9e1;
+  border-color: #dfdad9;
+}
+
+body.theme-rosepine-dawn .preview-content a {
+  color: #56949f;
+}
+
+body.theme-rosepine-dawn .preview-content blockquote {
+  border-left-color: #907aa9;
+  background: #f2e9e1;
+  color: #797593;
+}
+
+body.theme-rosepine-dawn .status-bar {
+  background: #f2e9e1;
+  border-top-color: #dfdad9;
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .pdf-viewer-toolbar {
+  background: linear-gradient(180deg, #faf4ed 0%, #f2e9e1 100%) !important;
+  border-bottom-color: #ddd8d1 !important;
+}
+
+body.theme-rosepine-dawn .pdf-viewer {
+  background: #e6e0d8 !important;
+}
+
+body.theme-rosepine-dawn .export-dialog-content,
+body.theme-rosepine-dawn .batch-dialog-content,
+body.theme-rosepine-dawn .pdf-editor-content {
+  background: rgba(250, 244, 237, 0.98);
+  border-color: #dfdad9;
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .export-dialog-header,
+body.theme-rosepine-dawn .batch-dialog-header {
+  background: #f2e9e1;
+  border-bottom-color: #dfdad9;
+}
+
+body.theme-rosepine-dawn .export-dialog-header h3,
+body.theme-rosepine-dawn .batch-dialog-header h3 {
+  color: #286983;
+}
+
+body.theme-rosepine-dawn .export-section label,
+body.theme-rosepine-dawn .batch-section label {
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .export-section select,
+body.theme-rosepine-dawn .export-section input,
+body.theme-rosepine-dawn .batch-section select,
+body.theme-rosepine-dawn .batch-section input {
+  background: #faf4ed;
+  border-color: #dfdad9;
+  color: #575279;
+}
+
+body.theme-rosepine-dawn .export-dialog-footer,
+body.theme-rosepine-dawn .batch-dialog-footer {
+  background: #f2e9e1;
+  border-top-color: #dfdad9;
+}

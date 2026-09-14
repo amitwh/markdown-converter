@@ -1,0 +1,72 @@
+/* Theme: Atom One Light (Default) — id=atomonelight — category=light */
+body.theme-atomonelight {
+  background: #fafafa;
+  color: #383a42;
+}
+
+body.theme-atomonelight .tab-bar {
+  background: #f0f0f0;
+  border-bottom-color: #e0e0e0;
+}
+
+body.theme-atomonelight .tab {
+  background: #e5e5e6;
+  border-color: #d0d0d0;
+  color: #383a42;
+}
+
+body.theme-atomonelight .tab.active {
+  background: #fafafa;
+  border-color: #4078f2;
+}
+
+body.theme-atomonelight .toolbar {
+  background: #f0f0f0;
+  border-bottom-color: #e0e0e0;
+}
+
+body.theme-atomonelight .toolbar button {
+  color: #383a42;
+}
+
+body.theme-atomonelight .toolbar button:hover {
+  background: #e5e5e6;
+  border-color: #d0d0d0;
+}
+
+body.theme-atomonelight .editor-textarea {
+  background: #fafafa;
+  color: #383a42;
+}
+
+body.theme-atomonelight .pane:last-child {
+  background: #fafafa;
+}
+
+body.theme-atomonelight .preview-content {
+  color: #383a42;
+}
+
+body.theme-atomonelight .preview-content h1,
+body.theme-atomonelight .preview-content h2 {
+  border-bottom-color: #e0e0e0;
+  color: #4078f2;
+}
+
+body.theme-atomonelight .preview-content code {
+  background-color: #f0f0f0;
+}
+
+body.theme-atomonelight .preview-content pre {
+  background-color: #f0f0f0;
+}
+
+body.theme-atomonelight .preview-content a {
+  color: #0184bc;
+}
+
+body.theme-atomonelight .status-bar {
+  background: #f0f0f0;
+  border-top-color: #e0e0e0;
+  color: #383a42;
+}

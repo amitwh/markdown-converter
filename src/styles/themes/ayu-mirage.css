@@ -1,0 +1,72 @@
+/* Theme: Ayu Mirage — id=ayu-mirage — category=dark */
+body.theme-ayu-mirage {
+  background: #1f2430;
+  color: #cbccc6;
+}
+
+body.theme-ayu-mirage .tab-bar {
+  background: #232834;
+  border-bottom-color: #343d4b;
+}
+
+body.theme-ayu-mirage .tab {
+  background: #343d4b;
+  border-color: #465268;
+  color: #cbccc6;
+}
+
+body.theme-ayu-mirage .tab.active {
+  background: #1f2430;
+  border-color: #ffa759;
+}
+
+body.theme-ayu-mirage .toolbar {
+  background: #232834;
+  border-bottom-color: #343d4b;
+}
+
+body.theme-ayu-mirage .toolbar button {
+  color: #cbccc6;
+}
+
+body.theme-ayu-mirage .toolbar button:hover {
+  background: #343d4b;
+  border-color: #465268;
+}
+
+body.theme-ayu-mirage .editor-textarea {
+  background: #1f2430;
+  color: #cbccc6;
+}
+
+body.theme-ayu-mirage .pane:last-child {
+  background: #1f2430;
+}
+
+body.theme-ayu-mirage .preview-content {
+  color: #cbccc6;
+}
+
+body.theme-ayu-mirage .preview-content h1,
+body.theme-ayu-mirage .preview-content h2 {
+  border-bottom-color: #343d4b;
+  color: #ffa759;
+}
+
+body.theme-ayu-mirage .preview-content code {
+  background-color: #232834;
+}
+
+body.theme-ayu-mirage .preview-content pre {
+  background-color: #232834;
+}
+
+body.theme-ayu-mirage .preview-content a {
+  color: #5ccfe6;
+}
+
+body.theme-ayu-mirage .status-bar {
+  background: #232834;
+  border-top-color: #343d4b;
+  color: #cbccc6;
+}

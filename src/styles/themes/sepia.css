@@ -1,0 +1,126 @@
+/* Theme: Sepia — id=sepia — category=light */
+body.theme-sepia {
+  background: #f4ecd8;
+  color: #5b4636;
+}
+
+body.theme-sepia .tab-bar {
+  background: #e8dcc8;
+  border-bottom-color: #d4c4a8;
+}
+
+body.theme-sepia .tab {
+  background: #e8dcc8;
+  border-color: #d4c4a8;
+  color: #5b4636;
+}
+
+body.theme-sepia .tab.active {
+  background: #f4ecd8;
+  border-bottom-color: #8b7355;
+}
+
+body.theme-sepia .toolbar {
+  background: #e8dcc8;
+  border-bottom-color: #d4c4a8;
+}
+
+body.theme-sepia .toolbar button {
+  color: #5b4636;
+}
+
+body.theme-sepia .toolbar button:hover {
+  background: #d4c4a8;
+}
+
+body.theme-sepia .editor-textarea {
+  background: #f4ecd8;
+  color: #5b4636;
+}
+
+body.theme-sepia .pane:last-child {
+  background: #f4ecd8;
+}
+
+body.theme-sepia .preview-content {
+  color: #5b4636;
+}
+
+body.theme-sepia .preview-content h1,
+body.theme-sepia .preview-content h2 {
+  color: #3d2914;
+  border-bottom-color: #d4c4a8;
+}
+
+body.theme-sepia .preview-content code {
+  background: #e8dcc8;
+  color: #8b4513;
+}
+
+body.theme-sepia .preview-content pre {
+  background: #e8dcc8;
+  border-color: #d4c4a8;
+}
+
+body.theme-sepia .preview-content a {
+  color: #8b4513;
+}
+
+body.theme-sepia .preview-content blockquote {
+  border-left-color: #8b7355;
+  background: #e8dcc8;
+}
+
+body.theme-sepia .status-bar {
+  background: #e8dcc8;
+  border-top-color: #d4c4a8;
+  color: #5b4636;
+}
+
+body.theme-sepia .pdf-viewer-toolbar {
+  background: linear-gradient(180deg, #f4f0e8 0%, #e8e4dc 100%) !important;
+  border-bottom-color: #cdc8c0 !important;
+}
+
+body.theme-sepia .pdf-viewer {
+  background: #d8d4cc !important;
+}
+
+body.theme-sepia .export-dialog-content,
+body.theme-sepia .batch-dialog-content,
+body.theme-sepia .pdf-editor-content {
+  background: rgba(244, 236, 216, 0.98);
+  border-color: #d4c4a8;
+  color: #5b4636;
+}
+
+body.theme-sepia .export-dialog-header,
+body.theme-sepia .batch-dialog-header {
+  background: #e8dcc8;
+  border-bottom-color: #d4c4a8;
+}
+
+body.theme-sepia .export-dialog-header h3,
+body.theme-sepia .batch-dialog-header h3 {
+  color: #3d2914;
+}
+
+body.theme-sepia .export-section label,
+body.theme-sepia .batch-section label {
+  color: #5b4636;
+}
+
+body.theme-sepia .export-section select,
+body.theme-sepia .export-section input,
+body.theme-sepia .batch-section select,
+body.theme-sepia .batch-section input {
+  background: #f4ecd8;
+  border-color: #d4c4a8;
+  color: #5b4636;
+}
+
+body.theme-sepia .export-dialog-footer,
+body.theme-sepia .batch-dialog-footer {
+  background: #e8dcc8;
+  border-top-color: #d4c4a8;
+}

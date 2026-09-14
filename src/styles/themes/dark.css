@@ -1,0 +1,170 @@
+/* Theme: Dark — id=dark — category=dark */
+body.theme-dark .pane-resizer {
+  background: linear-gradient(to right, #333, #444, #333);
+}
+
+body.theme-dark .pane-resizer:hover {
+  background: #61afef;
+}
+
+body.theme-dark .pdf-viewer-toolbar {
+  background: linear-gradient(180deg, #2d2d2d 0%, #252525 100%) !important;
+  border-bottom: 1px solid #1a1a1a !important;
+}
+
+body.theme-dark .pdf-viewer-toolbar button {
+  background: #3d3d3d !important;
+  border: 1px solid #4d4d4d !important;
+  color: #e0e0e0 !important;
+}
+
+body.theme-dark .pdf-viewer-toolbar button:hover {
+  background: #4d4d4d !important;
+  border-color: #5d5d5d !important;
+}
+
+body.theme-dark .pdf-viewer {
+  background: #1a1a1a !important;
+}
+
+body.theme-dark .pdf-viewer-container {
+  background: #1a1a1a !important;
+}
+
+body.theme-dark #pdf-page-input {
+  background: #3d3d3d !important;
+  border: 1px solid #4d4d4d !important;
+  color: #e0e0e0 !important;
+}
+
+body.theme-dark .pdf-toolbar-separator {
+  background: #3d3d3d !important;
+}
+
+body.theme-dark .preview-content,
+body.theme-dark [id^='preview-'] {
+  color: #e6e6e6;
+  background: transparent;
+}
+
+body.theme-dark .preview-content h1,
+body.theme-dark .preview-content h2,
+body.theme-dark .preview-content h3,
+body.theme-dark .preview-content h4,
+body.theme-dark .preview-content h5,
+body.theme-dark .preview-content h6 {
+  color: #f0f0f0;
+  border-bottom-color: #444;
+}
+
+body.theme-dark .preview-content p,
+body.theme-dark .preview-content li,
+body.theme-dark .preview-content td {
+  color: #d4d4d4;
+}
+
+body.theme-dark .preview-content pre {
+  background: #1e1e1e;
+  border-color: #333;
+  color: #d4d4d4;
+}
+
+body.theme-dark .preview-content code {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #444;
+  color: #e06c75;
+}
+
+body.theme-dark .preview-content blockquote {
+  background: rgba(255, 255, 255, 0.05);
+  border-left-color: #555;
+  color: #aaa;
+}
+
+body.theme-dark .preview-content a {
+  color: #61afef;
+}
+
+body.theme-dark .preview-content table {
+  border-color: #444;
+}
+
+body.theme-dark .preview-content table th {
+  background: #2d2d2d;
+  color: #e6e6e6;
+  border-color: #444;
+}
+
+body.theme-dark .preview-content table td {
+  border-color: #444;
+}
+
+body.theme-dark .preview-content table tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.theme-dark .preview-content hr {
+  border-color: #444;
+  background: #444;
+}
+
+body.theme-dark .export-dialog-content,
+body.theme-dark .batch-dialog-content,
+body.theme-dark .pdf-editor-content {
+  background: #2d2d2d !important;
+  border-color: #444 !important;
+  color: #e6e6e6 !important;
+}
+
+body.theme-dark .export-dialog-header,
+body.theme-dark .batch-dialog-header {
+  background: #1a1a1a !important;
+  border-bottom-color: #333 !important;
+}
+
+body.theme-dark .export-dialog-header h3,
+body.theme-dark .batch-dialog-header h3 {
+  color: #fff !important;
+}
+
+body.theme-dark .export-dialog-body,
+body.theme-dark .batch-dialog-body {
+  background: transparent;
+}
+
+body.theme-dark .export-section label,
+body.theme-dark .batch-section label {
+  color: #ccc;
+}
+
+body.theme-dark .export-section select,
+body.theme-dark .export-section input,
+body.theme-dark .batch-section select,
+body.theme-dark .batch-section input {
+  background: #2d2d2d;
+  border-color: #444;
+  color: #e6e6e6;
+}
+
+body.theme-dark .export-dialog-footer,
+body.theme-dark .batch-dialog-footer {
+  background: #1a1a1a;
+  border-top-color: #333;
+}
+
+body.theme-dark .app-header {
+  background: #1f2937;
+  border-bottom-color: #374151;
+}
+
+body.theme-dark .app-title {
+  color: #f3f4f6;
+}
+
+body.theme-dark .app-version {
+  color: #9ca3af;
+}
+
+body.theme-dark .app-logo {
+  filter: none;
+}

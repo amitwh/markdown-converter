@@ -1,0 +1,126 @@
+/* Theme: GitHub Light — id=github — category=light */
+body.theme-github {
+  background: #fff;
+  color: #24292e;
+}
+
+body.theme-github .tab-bar {
+  background: #fafbfc;
+  border-bottom-color: #e1e4e8;
+}
+
+body.theme-github .tab {
+  background: #f6f8fa;
+  border-color: #e1e4e8;
+  color: #24292e;
+}
+
+body.theme-github .tab.active {
+  background: #fff;
+  border-color: #0366d6;
+}
+
+body.theme-github .tab-close {
+  color: #586069;
+}
+
+body.theme-github .tab-close:hover {
+  background: #e1e4e8;
+  color: #cb2431;
+}
+
+body.theme-github .new-tab-button {
+  border-color: #e1e4e8;
+  color: #586069;
+}
+
+body.theme-github .new-tab-button:hover {
+  background: #f6f8fa;
+}
+
+body.theme-github .toolbar {
+  background: #fafbfc;
+  border-bottom-color: #e1e4e8;
+}
+
+body.theme-github .toolbar button {
+  color: #586069;
+}
+
+body.theme-github .toolbar button:hover {
+  background: #f6f8fa;
+  border-color: #e1e4e8;
+}
+
+body.theme-github #editor {
+  background: #fff;
+  color: #24292e;
+}
+
+body.theme-github #preview,
+body.theme-github .preview-content {
+  color: #24292e;
+}
+
+body.theme-github #preview h1,
+body.theme-github #preview h2,
+body.theme-github .preview-content h1,
+body.theme-github .preview-content h2 {
+  border-bottom-color: #eaecef;
+}
+
+body.theme-github #preview code,
+body.theme-github .preview-content code {
+  background-color: rgba(27, 31, 35, 0.05);
+}
+
+body.theme-github #preview pre,
+body.theme-github .preview-content pre {
+  background-color: #f6f8fa;
+}
+
+body.theme-github #preview blockquote,
+body.theme-github .preview-content blockquote {
+  color: #6a737d;
+  border-left-color: #dfe2e5;
+}
+
+body.theme-github #preview a,
+body.theme-github .preview-content a {
+  color: #0366d6;
+}
+
+body.theme-github .status-bar {
+  background: #fafbfc;
+  border-top-color: #e1e4e8;
+  color: #586069;
+}
+
+body.theme-github .line-numbers {
+  background: #fafbfc;
+  border-right-color: #e1e4e8;
+  color: #586069;
+}
+
+body.theme-github .export-mode-toggle {
+  border-color: #e1e4e8;
+}
+
+body.theme-github .export-help {
+  color: #586069;
+}
+
+body.theme-github .basic-options {
+  background: #f6f8fa;
+  border-color: #e1e4e8;
+}
+
+body.theme-github .enhanced-stats {
+  color: #586069;
+  border-color: #e1e4e8;
+}
+
+body.theme-github .mermaid {
+  background: #f6f8fa;
+  border-color: #e1e4e8;
+}
