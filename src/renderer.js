@@ -6,6 +6,7 @@
 const { ipcRenderer, webUtils } = require('electron');
 const { AutosaveController } = require('./renderer/autosave-client');
 const writingStats = require('./utils/writing-stats');
+const { mountFootnotePreview } = require('./renderer/footnote-preview');
 
 // Renderer-side autosave controller. The TabManager calls into this when a
 // tab becomes dirty so the current buffer is periodically persisted under
@@ -1180,6 +1181,14 @@ class TabManager {
       console.error('Error rendering preview:', error);
       preview.innerHTML =
         '<p class="error">Error rendering preview. Please check your markdown syntax.</p>';
+    }
+
+    // Wire the footnote hover preview once per preview pane. mountFootnotePreview
+    // is idempotent per element via the dataset marker; subsequent re-renders
+    // don't accumulate listeners.
+    if (!preview.dataset.footnotePreviewMounted) {
+      mountFootnotePreview(preview);
+      preview.dataset.footnotePreviewMounted = 'true';
     }
   }
   updatePreviewVisibility() {

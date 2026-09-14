@@ -62,6 +62,8 @@ module.exports = [
         HTMLInputElement: 'readonly',
         HTMLTextAreaElement: 'readonly',
         getComputedStyle: 'readonly',
+        CSS: 'readonly',
+        Element: 'readonly',
         // Electron
         electronAPI: 'readonly',
         // Libraries
