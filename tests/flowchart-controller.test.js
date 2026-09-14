@@ -360,17 +360,20 @@ describe('flowchart-bundle: inline modal helpers (v4.9.9)', () => {
   });
 });
 
-// v4.10.0 — the standalone Flowchart Generator window now ships a
-// *visible* selection toolbar inside the canvas panel. When a node is
-// selected, the toolbar exposes shape buttons + a label input + a
-// Delete button — no right-click hidden menus, no window.prompt calls.
-// These tests load the real bundle into jsdom and exercise the toolbar
-// via the public FlowchartController.setSelection helper.
-describe('flowchart-bundle: visible selection toolbar (v4.10.0)', () => {
+// v4.11.0 — the standalone Flowchart Generator window's click-on-canvas
+// interactions were unreliable in the user's Electron runtime (the
+// v4.10.0 floating selection toolbar still depended on SVG click hit-
+// testing). Replaced with a button-driven node-list panel (#fc-nodelist)
+// below the canvas. Every mutation — add/delete node, change kind, edit
+// label, add/delete edge, change edge kind, edit edge label — is wired
+// to explicit buttons and form controls. These tests load the real
+// bundle into jsdom and exercise the panel via the real DOM, asserting
+// the resulting store mutations.
+describe('flowchart-bundle: button-driven node-list panel (v4.11.0)', () => {
   const BUNDLE_PATH = path.join(__dirname, '..', 'src', 'renderer', 'flowchart-bundle.js');
   const HTML_PATH_BUNDLE = path.join(__dirname, '..', 'src', 'flowchart-generator.html');
 
-  async function loadBundleWithNodes() {
+  async function loadBundle() {
     const html = fs.readFileSync(HTML_PATH_BUNDLE, 'utf-8');
     const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
     document.body.innerHTML = bodyMatch ? bodyMatch[1] : html;
@@ -389,107 +392,162 @@ describe('flowchart-bundle: visible selection toolbar (v4.10.0)', () => {
     for (let i = 0; i < 5; i += 1) {
       await Promise.resolve();
     }
-    const store = window.FlowchartController.store;
-    store.addNode({ kind: 'process', x: 10, y: 10, label: 'Alpha' });
-    store.addNode({ kind: 'decision', x: 200, y: 10, label: 'Beta' });
-    store.connect(store.getGraph().nodes[0].id, store.getGraph().nodes[1].id, 'solid');
-    return store;
+    return window.FlowchartController.store;
   }
 
-  test('toolbar is hidden when nothing is selected', async () => {
-    await loadBundleWithNodes();
-    const toolbar = document.getElementById('fc-selection-toolbar');
-    expect(toolbar.hidden).toBe(true);
-    expect(toolbar.innerHTML).toBe('');
-  });
-
-  test('selecting a node populates the toolbar with shape buttons + label input + Delete', async () => {
-    const store = await loadBundleWithNodes();
-    const toolbar = document.getElementById('fc-selection-toolbar');
-    const alpha = store.getGraph().nodes[0];
-
-    window.FlowchartController.setSelection(alpha.id, 'node');
-
-    expect(toolbar.hidden).toBe(false);
-    const shapeButtons = toolbar.querySelectorAll('button[data-shape]');
-    expect(shapeButtons).toHaveLength(5);
-    const labels = Array.from(shapeButtons).map((b) => b.textContent);
-    expect(labels).toEqual(['Process', 'Decision', 'Terminator', 'Subroutine', 'Document']);
-    const active = toolbar.querySelector('button[data-shape].active');
-    expect(active).not.toBeNull();
-    expect(active.getAttribute('data-shape')).toBe('process');
-    const labelInput = toolbar.querySelector('input.fc-tb-label-input');
-    expect(labelInput).not.toBeNull();
-    expect(labelInput.value).toBe('Alpha');
-    const deleteBtn = toolbar.querySelector('button.fc-tb-delete');
-    expect(deleteBtn).not.toBeNull();
-    expect(deleteBtn.textContent).toBe('Delete');
-  });
-
-  test('clicking a shape button updates the node kind', async () => {
-    const store = await loadBundleWithNodes();
-    const alpha = store.getGraph().nodes[0];
-
-    window.FlowchartController.setSelection(alpha.id, 'node');
-    const decisionBtn = document.querySelector(
-      '#fc-selection-toolbar button[data-shape="decision"]'
-    );
-    expect(decisionBtn).not.toBeNull();
-    decisionBtn.click();
-
-    expect(store.getGraph().nodes[0].kind).toBe('decision');
-    const active = document.querySelector('#fc-selection-toolbar button[data-shape].active');
-    expect(active.getAttribute('data-shape')).toBe('decision');
-  });
-
-  test('typing into the label input updates the node label (debounced)', async () => {
-    jest.useFakeTimers();
-    try {
-      const store = await loadBundleWithNodes();
-      const alpha = store.getGraph().nodes[0];
-
-      window.FlowchartController.setSelection(alpha.id, 'node');
-      const input = document.querySelector('#fc-selection-toolbar input.fc-tb-label-input');
-      input.value = 'Renamed';
-      input.dispatchEvent(new window.Event('input', { bubbles: true }));
-      // Debounce is 100ms — before that, store is unchanged.
-      expect(store.getGraph().nodes[0].label).toBe('Alpha');
-      jest.advanceTimersByTime(150);
-      expect(store.getGraph().nodes[0].label).toBe('Renamed');
-    } finally {
-      jest.useRealTimers();
+  test('all 5 Add Node buttons create a node with the matching kind', async () => {
+    const store = await loadBundle();
+    const expectedKinds = ['process', 'decision', 'terminator', 'subroutine', 'document'];
+    for (const kind of expectedKinds) {
+      const btn = document.querySelector(`.fc-add-row .fc-btn[data-add="${kind}"]`);
+      expect(btn).not.toBeNull();
+      btn.click();
+    }
+    const nodes = store.getGraph().nodes;
+    expect(nodes).toHaveLength(5);
+    for (let i = 0; i < expectedKinds.length; i += 1) {
+      expect(nodes[i].kind).toBe(expectedKinds[i]);
     }
   });
 
-  test('selecting an edge populates the toolbar with edge-kind buttons', async () => {
-    const store = await loadBundleWithNodes();
-    const edge = store.getGraph().edges[0];
-    const toolbar = document.getElementById('fc-selection-toolbar');
+  test('node list re-renders with one <li> per node, each with kind-select + label-input + delete', async () => {
+    const store = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'One' });
+    store.addNode({ kind: 'decision', x: 100, y: 0, label: 'Two' });
 
-    window.FlowchartController.setSelection(edge.id, 'edge');
+    const ul = document.getElementById('fc-nodelist-ul');
+    const items = ul.querySelectorAll('li');
+    expect(items).toHaveLength(2);
 
-    expect(toolbar.hidden).toBe(false);
-    const edgeButtons = toolbar.querySelectorAll('button[data-kind]');
-    expect(edgeButtons).toHaveLength(3);
-    const labels = Array.from(edgeButtons).map((b) => b.textContent);
-    expect(labels).toEqual(['Solid', 'Dotted', 'Thick']);
-    const active = toolbar.querySelector('button[data-kind].active');
-    expect(active.getAttribute('data-kind')).toBe('solid');
+    for (const li of items) {
+      expect(li.querySelector('.fc-node-id')).not.toBeNull();
+      expect(li.querySelector('select')).not.toBeNull();
+      expect(li.querySelector('input')).not.toBeNull();
+      expect(li.querySelector('button.fc-delete')).not.toBeNull();
+    }
+    expect(document.getElementById('fc-node-count').textContent).toBe('2');
   });
 
-  test('Delete button removes the selected node and clears the toolbar', async () => {
-    const store = await loadBundleWithNodes();
-    const alpha = store.getGraph().nodes[0];
-    const toolbar = document.getElementById('fc-selection-toolbar');
+  test('changing the per-node kind <select> updates the store', async () => {
+    const store = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'X' });
+    const li = document.getElementById('fc-nodelist-ul').querySelector('li');
+    const sel = li.querySelector('select');
+    sel.value = 'terminator';
+    sel.dispatchEvent(new window.Event('change', { bubbles: true }));
+    expect(store.getGraph().nodes[0].kind).toBe('terminator');
+  });
 
-    window.FlowchartController.setSelection(alpha.id, 'node');
-    expect(toolbar.hidden).toBe(false);
+  test('editing the per-node label <input> updates the store', async () => {
+    const store = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'Old' });
+    const li = document.getElementById('fc-nodelist-ul').querySelector('li');
+    const input = li.querySelector('input');
+    input.value = 'New';
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(store.getGraph().nodes[0].label).toBe('New');
+  });
 
-    const deleteBtn = toolbar.querySelector('button.fc-tb-delete');
-    deleteBtn.click();
+  test('clicking the per-node delete × removes the node from the store', async () => {
+    const store = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'Bye' });
+    const li = document.getElementById('fc-nodelist-ul').querySelector('li');
+    li.querySelector('button.fc-delete').click();
+    expect(store.getGraph().nodes).toHaveLength(0);
+    expect(document.getElementById('fc-nodelist-ul').querySelectorAll('li')).toHaveLength(0);
+  });
 
-    expect(store.getGraph().nodes.find((n) => n.id === alpha.id)).toBeUndefined();
-    // The deleted node's id is gone — selection collapses.
-    expect(toolbar.hidden).toBe(true);
+  test('+ Edge button (with from + to selects) creates an edge in the store', async () => {
+    const store = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'A' });
+    store.addNode({ kind: 'process', x: 200, y: 0, label: 'B' });
+
+    // Both selects should have one option per node (re-rendered on subscribe).
+    const fromSel = document.getElementById('fc-connect-from');
+    const toSel = document.getElementById('fc-connect-to');
+    expect(fromSel.querySelectorAll('option')).toHaveLength(2);
+    expect(toSel.querySelectorAll('option')).toHaveLength(2);
+
+    fromSel.value = store.getGraph().nodes[0].id;
+    toSel.value = store.getGraph().nodes[1].id;
+    document.getElementById('fc-connect-btn').click();
+
+    const edges = store.getGraph().edges;
+    expect(edges).toHaveLength(1);
+    expect(edges[0].fromNodeId).toBe(store.getGraph().nodes[0].id);
+    expect(edges[0].toNodeId).toBe(store.getGraph().nodes[1].id);
+    expect(edges[0].kind).toBe('solid');
+  });
+
+  test('selecting the same node for from + to is a no-op (no self-loop edge)', async () => {
+    const store = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'Solo' });
+    const fromSel = document.getElementById('fc-connect-from');
+    const toSel = document.getElementById('fc-connect-to');
+    fromSel.value = store.getGraph().nodes[0].id;
+    toSel.value = store.getGraph().nodes[0].id;
+    document.getElementById('fc-connect-btn').click();
+    expect(store.getGraph().edges).toHaveLength(0);
+  });
+
+  test('edge list shows each edge with kind-select + label-input + delete ×', async () => {
+    const store = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'A' });
+    store.addNode({ kind: 'decision', x: 200, y: 0, label: 'B' });
+    store.connect(store.getGraph().nodes[0].id, store.getGraph().nodes[1].id, 'dotted');
+
+    const ul = document.getElementById('fc-edgelist-ul');
+    const items = ul.querySelectorAll('li');
+    expect(items).toHaveLength(1);
+    const li = items[0];
+    expect(li.querySelector('.fc-node-id')).not.toBeNull();
+    expect(li.querySelector('select')).not.toBeNull();
+    expect(li.querySelector('input')).not.toBeNull();
+    expect(li.querySelector('button.fc-delete')).not.toBeNull();
+    expect(document.getElementById('fc-edge-count').textContent).toBe('1');
+  });
+
+  test('changing the per-edge kind <select> updates the store', async () => {
+    const store = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'A' });
+    store.addNode({ kind: 'process', x: 200, y: 0, label: 'B' });
+    store.connect(store.getGraph().nodes[0].id, store.getGraph().nodes[1].id, 'solid');
+
+    const li = document.getElementById('fc-edgelist-ul').querySelector('li');
+    const sel = li.querySelector('select');
+    sel.value = 'thick';
+    sel.dispatchEvent(new window.Event('change', { bubbles: true }));
+    expect(store.getGraph().edges[0].kind).toBe('thick');
+  });
+
+  test('clicking the per-edge delete × removes the edge from the store', async () => {
+    const store = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'A' });
+    store.addNode({ kind: 'process', x: 200, y: 0, label: 'B' });
+    store.connect(store.getGraph().nodes[0].id, store.getGraph().nodes[1].id, 'solid');
+
+    const li = document.getElementById('fc-edgelist-ul').querySelector('li');
+    li.querySelector('button.fc-delete').click();
+    expect(store.getGraph().edges).toHaveLength(0);
+  });
+
+  test('subscribe re-renders the lists on every store mutation', async () => {
+    const store = await loadBundle();
+    const nodelistUl = document.getElementById('fc-nodelist-ul');
+    const edgelistUl = document.getElementById('fc-edgelist-ul');
+    expect(nodelistUl.querySelectorAll('li')).toHaveLength(0);
+    expect(edgelistUl.querySelectorAll('li')).toHaveLength(0);
+
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'X' });
+    store.addNode({ kind: 'decision', x: 200, y: 0, label: 'Y' });
+    expect(nodelistUl.querySelectorAll('li')).toHaveLength(2);
+
+    store.connect(store.getGraph().nodes[0].id, store.getGraph().nodes[1].id, 'solid');
+    expect(edgelistUl.querySelectorAll('li')).toHaveLength(1);
+
+    store.removeNode(store.getGraph().nodes[0].id);
+    expect(nodelistUl.querySelectorAll('li')).toHaveLength(1);
+    // Removing a node cascades into removing its edges.
+    expect(edgelistUl.querySelectorAll('li')).toHaveLength(0);
   });
 });

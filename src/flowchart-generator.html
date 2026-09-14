@@ -9,6 +9,12 @@
       Stylesheets are src/-relative (mirrors src/index.html). NO ../ escape —
       the standalone BrowserWindow's document base is src/, so a ../fonts.css
       would resolve outside src/ and fail to load.
+
+      v4.11.0 — Added a node-list panel (#fc-nodelist) below the canvas
+      that exposes every mutation via buttons and form controls. The
+      canvas itself is purely visual now (the v4.10.0 floating selection
+      toolbar that fired on click hit-testing was unreliable in the
+      user's Electron runtime). Removed #fc-selection-toolbar.
     -->
     <link rel="stylesheet" href="fonts.css" />
     <link rel="stylesheet" href="styles.css" />
@@ -96,9 +102,19 @@
         flex: 1;
         min-height: 0;
       }
-      .fc-canvas-host {
+      /* v4.11.0 — left column holds both the canvas and the node-list panel.
+       * Flex-column so the canvas expands to fill remaining space and the
+       * nodelist sits below with a fixed max-height. */
+      .fc-left {
         flex: 7;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .fc-canvas-host {
+        flex: 1;
+        min-width: 0;
+        min-height: 200px;
         position: relative;
         background: #fafafa;
         border-right: 1px solid var(--fc-border);
@@ -107,7 +123,7 @@
         width: 100%;
         height: 100%;
         display: block;
-        cursor: crosshair;
+        cursor: default;
       }
       .fc-preview-host {
         flex: 3;
@@ -156,95 +172,91 @@
       .flowchart-edge {
         stroke: #1f2328 !important;
       }
-      .flowchart-node.selected rect,
-      .flowchart-node.selected polygon {
-        fill: #e3f0ff !important;
-        stroke: var(--fc-accent) !important;
-        stroke-width: 3;
-      }
-      .flowchart-edge.selected {
-        stroke: var(--fc-accent) !important;
-        stroke-width: 3;
-      }
-      /* v4.10.0 — visible selection toolbar inside the canvas panel.
-       * Positioned absolutely at the bottom of the canvas host so it
-       * never overlaps the SVG permanently and never relies on hidden
-       * right-click menus. Empty when nothing is selected. */
-      .fc-floating-toolbar {
-        position: absolute;
-        left: 50%;
-        bottom: 12px;
-        transform: translateX(-50%);
-        z-index: 10;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 12px;
-        background: #ffffff;
-        border: 1px solid var(--fc-border);
-        border-radius: 8px;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-        font-family: system-ui, sans-serif;
-        font-size: 0.8rem;
-        max-width: calc(100% - 24px);
-      }
-      .fc-floating-toolbar[hidden] {
-        display: none;
-      }
-      .fc-floating-toolbar .fc-tb-label {
-        color: #6e7681;
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        margin-right: 2px;
-      }
-      .fc-floating-toolbar button {
-        padding: 4px 10px;
-        border: 1px solid var(--fc-border);
-        background: #f6f8fa;
-        color: var(--fc-text);
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.78rem;
-      }
-      .fc-floating-toolbar button:hover {
-        border-color: var(--fc-accent);
-      }
-      .fc-floating-toolbar button.active {
-        background: var(--fc-accent);
-        color: #fff;
-        border-color: var(--fc-accent);
-      }
-      .fc-floating-toolbar button.fc-tb-delete {
-        background: #cf222e;
-        color: #fff;
-        border-color: #cf222e;
-        margin-left: 4px;
-      }
-      .fc-floating-toolbar button.fc-tb-delete:hover {
-        background: #a40e26;
-        border-color: #a40e26;
-      }
-      .fc-floating-toolbar input.fc-tb-label-input {
-        min-width: 160px;
-        padding: 4px 8px;
-        border: 1px solid var(--fc-border);
-        border-radius: 4px;
-        font-size: 0.8rem;
-        font-family: inherit;
-      }
-      .fc-floating-toolbar hr.fc-tb-sep {
-        border: none;
-        border-left: 1px solid var(--fc-border);
-        height: 22px;
-        margin: 0 4px;
-      }
       /* v4.10.0 — preview-render info card explaining the layout */
       .fc-preview-render-note {
         font-size: 0.75rem;
         color: #6e7681;
         font-style: italic;
+      }
+
+      /* ============ v4.11.0 — node-list panel (button-driven UI) ============ */
+      .fc-nodelist {
+        border-top: 1px solid var(--fc-border);
+        padding: 16px 20px;
+        background: #fff;
+        max-height: 40vh;
+        overflow-y: auto;
+      }
+      .fc-section-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #57606a;
+        margin: 12px 0 8px;
+        font-weight: 600;
+      }
+      .fc-section-title:first-child {
+        margin-top: 0;
+      }
+      .fc-add-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .fc-ul {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 12px;
+      }
+      .fc-ul li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--fc-border);
+      }
+      .fc-ul li .fc-node-id {
+        font-family: monospace;
+        color: #57606a;
+        min-width: 80px;
+      }
+      .fc-ul li input {
+        flex: 1;
+        padding: 4px 6px;
+        border: 1px solid var(--fc-border);
+        border-radius: 4px;
+      }
+      .fc-ul li select {
+        padding: 4px;
+        border: 1px solid var(--fc-border);
+        border-radius: 4px;
+      }
+      .fc-ul li button {
+        padding: 4px 10px;
+        border: 1px solid var(--fc-border);
+        background: #f6f8fa;
+        color: #1f2328;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .fc-ul li button.fc-delete {
+        background: #cf222e;
+        color: #fff;
+        border-color: #cf222e;
+      }
+      .fc-connect-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 12px 0;
+        flex-wrap: wrap;
+      }
+      .fc-connect-row select {
+        padding: 4px;
+        border: 1px solid var(--fc-border);
+        border-radius: 4px;
+        min-width: 100px;
       }
     </style>
   </head>
@@ -252,7 +264,8 @@
     <div class="fc-header">
       <h1>Flowchart Generator</h1>
       <span class="fc-hint"
-        >Click empty canvas to add nodes · Alt+drag to connect · Double-click node to edit</span
+        >Use the panel below the canvas to add nodes and edges &middot; Click Insert at Cursor to
+        send to editor</span
       >
     </div>
 
@@ -269,19 +282,38 @@
     </div>
 
     <div class="fc-split">
-      <div class="fc-canvas-host" id="canvas-host">
+      <div class="fc-left">
+        <div class="fc-canvas-host" id="canvas-host"></div>
         <!--
-          v4.10.0 — visible selection toolbar. Populated dynamically by
-          the bundle controller when a node or edge is selected. Hidden
-          when nothing is selected (no overlap, no hidden UI affordance).
+          v4.11.0 — button-driven UI. Every mutation (add/delete node,
+          add/delete edge, change label, change kind) goes through the
+          controls in this panel. The canvas is purely visual now.
         -->
-        <div
-          id="fc-selection-toolbar"
-          class="fc-floating-toolbar"
-          role="toolbar"
-          aria-label="Selection actions"
-          hidden
-        ></div>
+        <div id="fc-nodelist" class="fc-nodelist">
+          <h3 class="fc-section-title">Add Node</h3>
+          <div class="fc-add-row">
+            <button class="fc-btn" data-add="process">+ Process</button>
+            <button class="fc-btn" data-add="decision">+ Decision</button>
+            <button class="fc-btn" data-add="terminator">+ Terminator</button>
+            <button class="fc-btn" data-add="subroutine">+ Subroutine</button>
+            <button class="fc-btn" data-add="document">+ Document</button>
+          </div>
+
+          <h3 class="fc-section-title">Nodes <span id="fc-node-count">0</span></h3>
+          <ul id="fc-nodelist-ul" class="fc-ul"></ul>
+
+          <h3 class="fc-section-title">Edges <span id="fc-edge-count">0</span></h3>
+          <ul id="fc-edgelist-ul" class="fc-ul"></ul>
+
+          <div class="fc-connect-row">
+            <label for="fc-connect-from">From:</label>
+            <select id="fc-connect-from"></select>
+            <label for="fc-connect-to">To:</label>
+            <select id="fc-connect-to"></select>
+            <button class="fc-btn" id="fc-connect-btn">+ Edge</button>
+            <button class="fc-btn" id="fc-connect-cancel">Refresh</button>
+          </div>
+        </div>
       </div>
       <div class="fc-preview-host" id="preview-host">
         <pre class="fc-preview-source" id="preview-source"></pre>
@@ -295,6 +327,10 @@
       live in src/renderer/flowchart-bundle.js. No cross-file script-tag
       ordering, no UMD wrappers, no `require()` — the bundle sets the
       four window globals before the controller's bootstrap() runs.
+
+      v4.11.0 — the bundle's controller bootstrap wires up the
+      #fc-nodelist panel. The legacy #fc-selection-toolbar floating
+      toolbar is gone.
     -->
     <script src="renderer/flowchart-bundle.js"></script>
   </body>

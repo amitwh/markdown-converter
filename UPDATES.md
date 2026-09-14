@@ -1,5 +1,19 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.11.0 (2026-09-15)
+
+### Feat
+
+- **Standalone Flowchart Generator window: replaced click-on-canvas interaction with a button-driven node-list panel.** The v4.10.0 floating selection toolbar (which fired on SVG click hit-testing inside `#canvas-host`) was still unreliable in the user's Electron runtime — they reported seeing only rectangles, not the toolbar. Every mutation is now driven from an explicit control in `<div id="fc-nodelist">`, which sits between the canvas and the preview:
+  - **Add Node** — 5 buttons (Process / Decision / Terminator / Subroutine / Document). Each click appends a node of that kind at the next free grid spot.
+  - **Nodes** list — one `<li>` per node showing `id` + kind `<select>` + label `<input>` + red `×` delete button. The kind `<select>` change calls `store.setNodeKind`; the label `<input>` calls `store.setNodeLabel`; the delete `×` calls `store.removeNode`.
+  - **Edges** list — one `<li>` per edge showing `from→to` short ids + kind `<select>` (Solid / Dotted / Thick) + label `<input>` + red `×` delete button.
+  - **Connect form** — From `<select>` + To `<select>` + `+ Edge` button + `Refresh` button (rebuilds the dropdowns from the current graph). `+ Edge` calls `store.connect(from, to, 'solid')`; identical from/to is a no-op with a status hint.
+- **Canvas is purely visual now.** Removed the v4.10.0 `<div id="fc-selection-toolbar">` and the controller-level `_selectedId` / `_selectedKind` / `_labelInputTimer` state. Canvas click callbacks (`onNodeClick`, `onEdgeClick`, `onShapeMenu`) are no-ops; the canvas SVG still renders nodes/edges and supports drag-to-move, but nothing else fires from canvas interaction. The keyboard Delete/Backspace shortcut is gone (use the `×` buttons).
+- **Header hint updated.** "Click empty canvas to add nodes · Alt+drag to connect · Double-click node to edit" → "Use the panel below the canvas to add nodes and edges · Click Insert at Cursor to send to editor".
+- **`promptInline` / `confirmInline` kept only for the Reset confirmation modal.** No more `window.prompt` / `window.confirm` paths in the bundle.
+- **11 new tests in `tests/flowchart-controller.test.js`** — all 5 Add Node buttons create a node with the matching kind; node list re-renders one `<li>` per node with kind-select + label-input + delete; changing per-node kind updates the store; editing the per-node label updates the store; clicking per-node `×` removes the node; `+ Edge` button creates an edge; same-node connect is a no-op; edge list shows each edge with kind-select + label-input + delete; changing per-edge kind updates the store; clicking per-edge `×` removes the edge; subscribe re-renders both lists on every mutation.
+
 ## Version 4.10.0 (2026-09-15)
 
 ### Feat
