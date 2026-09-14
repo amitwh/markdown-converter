@@ -154,6 +154,14 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
   };
 }
 
+// Lazy-loaded: filesystem helpers used by the flowchart panel for
+// <userData>/flowchart-session.json auto-save.
+const flowchartIO = {
+  getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
+  readFile: (p) => ipcRenderer.invoke('read-text-file', p),
+  writeFile: (p, content) => ipcRenderer.invoke('write-text-file', { path: p, content }),
+};
+
 // Use window.ModalManager if already set by script tag, otherwise require it.
 // This prevents "Identifier 'ModalManager' has already been declared" when
 // both the script tag in index.html and CommonJS require() declare it.
@@ -2403,6 +2411,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             ipcRenderer.invoke('version-history:save', { docPath, content, label }),
           delete: (docPath, id) => ipcRenderer.invoke('version-history:delete', { docPath, id }),
         },
+      }),
+  });
+
+  // Flow Chart Editor panel — visual Mermaid flowchart builder.
+  // Persists to <userData>/flowchart-session.json via injected IPC helpers.
+  // Reuses tabManager.insertAtCursor for the "Insert at Cursor" button.
+  const { renderFlowChartPanel } = require('./sidebar/flowchart-panel');
+  // Reuse the existing Mermaid render path used by the preview pane
+  // (src/renderer.js:1106-1142). Lazily loads mermaid on first use.
+  const renderFlowChartMermaid = (source, targetEl) => {
+    targetEl.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = source;
+    targetEl.appendChild(div);
+    if (!window.mermaid) {
+      const mermaidModule = require('mermaid');
+      window.mermaid = mermaidModule.default || mermaidModule;
+    }
+    const theme = document.body.className.includes('theme-dark') ? 'dark' : 'default';
+    window.mermaid.initialize({ startOnLoad: false, theme, securityLevel: 'loose' });
+    window.mermaid
+      .run({ nodes: [div] })
+      .catch((err) => console.warn('flowchart preview render failed:', err));
+  };
+  sidebarManager.registerPanel('flowchart', {
+    title: 'Flow Chart',
+    render: (container) =>
+      renderFlowChartPanel(container, {
+        getUserDataPath: flowchartIO.getUserDataPath,
+        readFile: flowchartIO.readFile,
+        writeFile: flowchartIO.writeFile,
+        insertAtCursor: (text) => tabManager.insertAtCursor(text),
+        renderMermaid: renderFlowChartMermaid,
       }),
   });
 

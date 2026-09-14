@@ -1023,3 +1023,91 @@ body[class*='dark'] .preview-content a.wiki-link {
   color: var(--text-secondary, inherit);
   opacity: 0.75;
 }
+
+/* === Flow Chart Editor panel === */
+.flowchart-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  outline: none;
+}
+.flowchart-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color, #444);
+}
+.flowchart-insert-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--accent, #4a9eff);
+  background: var(--accent, #4a9eff);
+  color: var(--accent-fg, #fff);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.flowchart-status {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted, #888);
+}
+.flowchart-split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.flowchart-canvas-host {
+  flex: 7;
+  min-width: 0;
+  position: relative;
+  background: var(--bg-secondary, #1e1e1e);
+}
+.flowchart-canvas-host svg.flowchart-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+.flowchart-preview-host {
+  flex: 3;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-color, #444);
+}
+.flowchart-preview-source {
+  flex: 1;
+  margin: 0;
+  padding: 8px;
+  font-family: var(--mono-font, monospace);
+  font-size: 11px;
+  overflow: auto;
+  white-space: pre;
+  border-bottom: 1px solid var(--border-color, #444);
+}
+.flowchart-preview-render {
+  flex: 1;
+  padding: 8px;
+  overflow: auto;
+}
+.flowchart-node {
+  cursor: grab;
+}
+.flowchart-node.selected rect,
+.flowchart-node.selected polygon {
+  stroke: var(--accent, #4a9eff);
+  stroke-width: 2;
+}
+.flowchart-edge.selected {
+  stroke: var(--accent, #4a9eff);
+}
+.flowchart-label-input {
+  font-size: 13px;
+  text-align: center;
+  border: 1px solid var(--accent, #4a9eff);
+  background: var(--bg-primary, #fff);
+  color: inherit;
+  z-index: 100;
+}

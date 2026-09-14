@@ -6111,6 +6111,29 @@ ipcMain.handle('read-file', async (event, filePath) => {
   }
   return fs.readFileSync(validation.resolved, 'utf-8');
 });
+ipcMain.handle('get-user-data-path', () => app.getPath('userData'));
+
+ipcMain.handle('read-text-file', async (_event, filePath) => {
+  // Reuse the same path validation as the existing read-file handler.
+  const safe = path.resolve(filePath);
+  if (!safe.startsWith(path.resolve(app.getPath('userData')))) {
+    throw new Error('read-text-file: path outside userData is not allowed');
+  }
+  try {
+    return await fs.promises.readFile(safe, 'utf-8');
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
+});
+
+ipcMain.handle('write-text-file', async (_event, { path: filePath, content }) => {
+  const safe = path.resolve(filePath);
+  if (!safe.startsWith(path.resolve(app.getPath('userData')))) {
+    throw new Error('write-text-file: path outside userData is not allowed');
+  }
+  await fs.promises.writeFile(safe, content, 'utf-8');
+});
 ipcMain.handle('write-file', async (event, payload) => {
   const validation = resolveWritablePath(payload?.path);
   if (!validation.valid) {
