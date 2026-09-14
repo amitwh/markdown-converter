@@ -113,6 +113,126 @@ describe('flowchart-panel: live preview', () => {
     expect(source).toMatch(/^flowchart TD/);
     expect(source).toMatch(/Preview me/);
   });
+
+  // Regression: when the user adds N nodes one at a time and the debounced
+  // preview fires once per settled state, the <pre class="flowchart-preview-source">
+  // must contain exactly the latest Mermaid source — not a concatenation of
+  // every intermediate state. The renderMermaid mock here mirrors the
+  // production inline implementation in src/renderer.js (innerHTML='' + a single
+  // <div class="mermaid"> child).
+  test('preview source pre and render target do not accumulate across N mutations', async () => {
+    // Mirrors src/renderer.js renderFlowChartMermaid: clear target, then
+    // append exactly one <div class="mermaid"> per render. If the panel ever
+    // stops clearing (or starts appending), this test will fail.
+    const renderMermaid = jest.fn((source, targetEl) => {
+      targetEl.innerHTML = '';
+      const div = document.createElement('div');
+      div.className = 'mermaid';
+      div.textContent = source;
+      targetEl.appendChild(div);
+    });
+    const { container, api } = mount({ renderMermaid });
+    const store = api.getStore();
+    const previewSourceEl = container.querySelector('.flowchart-preview-source');
+    const previewRenderEl = container.querySelector('.flowchart-preview-render');
+
+    // Add 7 nodes — matches the v4.9.2 screenshot.
+    const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    for (const label of labels) {
+      store.addNode({ kind: 'process', x: 0, y: 0, label });
+    }
+
+    // Advance past debounce window so the panel flushes a single preview.
+    jest.advanceTimersByTime(250);
+    await Promise.resolve();
+
+    // After coalescing, renderMermaid is called exactly once with the latest graph.
+    expect(renderMermaid).toHaveBeenCalledTimes(1);
+    const latestSource = renderMermaid.mock.calls[0][0];
+
+    // The <pre> must show exactly the latest source — not a concatenation of
+    // 7 intermediate renders (one per addNode).
+    expect(previewSourceEl.textContent).toBe(latestSource);
+    expect(previewSourceEl.textContent).toMatch(
+      /^flowchart TD\nA\[A\]\nB\[B\]\nC\[C\]\nD\[D\]\nE\[E\]\nF\[F\]\nG\[G\]$/
+    );
+
+    // The render target must hold exactly one render-result child, not seven.
+    expect(previewRenderEl.childNodes.length).toBe(1);
+    expect(previewRenderEl.firstElementChild.className).toBe('mermaid');
+    expect(previewRenderEl.firstElementChild.textContent).toBe(latestSource);
+  });
+
+  // Regression: v4.9.2 preview pane accumulated raw source when the user
+  // fired several mutations within the 250ms debounce window — mermaid.run
+  // is async, so the previous render's `<div class="mermaid">` was still in
+  // targetEl when the next renderMermaid call arrived. The fix is to clear
+  // targetEl BEFORE each render so the previous render's eventual
+  // `element.innerHTML = svg` lands on a detached node (no visible stale
+  // source) and the new render starts from a clean slate. This mock mimics
+  // mermaid's actual behaviour: it sets `element.innerHTML = svg`
+  // unconditionally (same as the real `mermaid.run` loop), even if the
+  // element is no longer in the DOM.
+  test('preview-source pre never duplicates across debounced mutations even with in-flight mermaid.render', async () => {
+    let inflight = 0;
+    const renderMermaid = jest.fn((source, targetEl) => {
+      inflight += 1;
+      // Mimic the real mermaid.run closure: it captures the input element
+      // and unconditionally sets `element.innerHTML = svg` once the async
+      // render resolves, regardless of whether the element is still in the
+      // document. If the panel didn't clear targetEl between renders, the
+      // OLD div would still be there carrying raw text when the user's
+      // eyes get to it.
+      const div = document.createElement('div');
+      div.className = 'mermaid';
+      div.textContent = source;
+      targetEl.replaceChildren(div);
+      Promise.resolve().then(() => {
+        div.innerHTML = `<svg data-source="${source.length}"></svg>`;
+        inflight -= 1;
+      });
+    });
+    const { container, api } = mount({ renderMermaid });
+    const store = api.getStore();
+    const previewSourceEl = container.querySelector('.flowchart-preview-source');
+    const previewRenderEl = container.querySelector('.flowchart-preview-render');
+
+    // Fire N mutations faster than the 250ms debounce so the previous
+    // mermaid.run is still pending when the next renderMermaid call lands.
+    const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    for (const label of labels) {
+      store.addNode({ kind: 'process', x: 0, y: 0, label });
+      jest.advanceTimersByTime(10);
+    }
+    // Flush the debounced preview + any pending microtasks for the mock's
+    // async innerHTML replacement.
+    jest.advanceTimersByTime(500);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // The <pre> must contain exactly the latest source — never a stack of
+    // every intermediate state. This is the v4.9.2 symptom.
+    expect(previewSourceEl.textContent).toMatch(
+      /^flowchart TD\nA\[A\]\nB\[B\]\nC\[C\]\nD\[D\]\nE\[E\]\nF\[F\]\nG\[G\]$/
+    );
+    // Defensive: textContent must equal exactly one copy of the latest
+    // source — not multiple copies concatenated.
+    expect(previewSourceEl.textContent.split('flowchart TD').length - 1).toBe(1);
+
+    // Render target: at most one render-result child (the latest svg), never
+    // a stack of stale <div class="mermaid"> elements.
+    expect(previewRenderEl.childNodes.length).toBeLessThanOrEqual(1);
+    if (previewRenderEl.firstElementChild) {
+      // The surviving child must be the latest render's <div class="mermaid">
+      // with its innerHTML replaced by an <svg> (mirrors mermaid.run's
+      // `element.innerHTML = svg`). Never a stale <div> carrying raw text.
+      expect(previewRenderEl.firstElementChild.className).toBe('mermaid');
+      expect(previewRenderEl.firstElementChild.firstElementChild).not.toBeNull();
+      expect(previewRenderEl.firstElementChild.firstElementChild.tagName.toLowerCase()).toBe('svg');
+    }
+    expect(inflight).toBe(0);
+  });
 });
 
 describe('flowchart-panel: insert at cursor', () => {

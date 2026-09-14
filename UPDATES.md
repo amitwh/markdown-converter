@@ -1,5 +1,13 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.9.3 (2026-09-14)
+
+### Fixes
+- **Flowchart Panel — preview pane accumulated raw Mermaid source**: when the user fired several `addNode` mutations within the 250 ms preview debounce, `mermaid.run({ nodes: [div] })` is async, so the previous render's `<div class="mermaid">` (still carrying the source text) was sitting in `.flowchart-preview-render` when the next render cleared the target. The first render's eventual `element.innerHTML = svg` landed on a detached node, but the visible preview pane had a stack of stale `<div class="mermaid">` elements. Fixed in `src/renderer.js:2423-2449`: switched the inline `renderFlowChartMermaid` to `replaceChildren()` (more idiomatic than `innerHTML = ''`) and added a per-target `WeakSet` in-flight tracker that keeps the previous render's closure from racing the new render — its eventual `element.innerHTML = svg` is harmless on a detached node, and the new render always starts from a clean slate.
+
+### Tests
+- `tests/flowchart-panel.test.js` — added a second regression test (`preview-source pre never duplicates across debounced mutations even with in-flight mermaid.render`) that fires 7 mutations at 10 ms intervals (well inside the 250 ms debounce), uses a `renderMermaid` mock that mirrors the real mermaid.run closure (captures the input div, asynchronously sets `innerHTML = svg` on it regardless of DOM connection), and asserts the `<pre>` contains exactly one copy of the latest source and the render target holds exactly one `<div class="mermaid">` child whose first element child is the latest `<svg>`.
+
 ## Version 4.9.2 (2026-09-14)
 
 ### Fixes

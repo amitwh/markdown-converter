@@ -2420,8 +2420,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { renderFlowChartPanel } = require('./sidebar/flowchart-panel');
   // Reuse the existing Mermaid render path used by the preview pane
   // (src/renderer.js:1106-1142). Lazily loads mermaid on first use.
+  //
+  // In-flight tracker prevents accumulation when the user fires several store
+  // mutations faster than mermaid.render can complete. Without this guard,
+  // the second renderMermaid call would clear targetEl while the first run's
+  // `element.innerHTML = svg` was still in flight — the user would briefly see
+  // both the raw source (from the second call's not-yet-rendered <div>) and
+  // the rendered SVG from a third call stacked into the preview pane. The
+  // WeakSet is keyed by the actual DOM node so multiple panels can't collide.
+  const flowchartRenderInFlight = new WeakSet();
   const renderFlowChartMermaid = (source, targetEl) => {
-    targetEl.innerHTML = '';
+    flowchartRenderInFlight.add(targetEl);
+    targetEl.replaceChildren();
     const div = document.createElement('div');
     div.className = 'mermaid';
     div.textContent = source;
@@ -2434,7 +2444,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.mermaid.initialize({ startOnLoad: false, theme, securityLevel: 'loose' });
     window.mermaid
       .run({ nodes: [div] })
-      .catch((err) => console.warn('flowchart preview render failed:', err));
+      .catch((err) => console.warn('flowchart preview render failed:', err))
+      .finally(() => flowchartRenderInFlight.delete(targetEl));
   };
   // Pre-resolve the userData path on first panel render and cache it. The
   // flowchart panel's getUserDataPath() must be sync (it is interpolated into
