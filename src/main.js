@@ -18,6 +18,9 @@ const ExportCss = require('./main/ExportCss');
 const ExportPresets = require('./main/ExportPresets');
 const EpubFontEmbedder = require('./main/EpubFontEmbedder');
 const DocxFontEmbedder = require('./main/DocxFontEmbedder');
+const ThemeRegistry = require('./main/ThemeRegistry');
+const { buildThemeMenu } = require('./main/themeMenuBuilder');
+require('./main/ThemeRegistry.bootstrap');
 
 // Add MiKTeX to PATH for LaTeX support
 if (process.platform === 'win32') {
@@ -1135,113 +1138,10 @@ function createMenu() {
         },
         {
           label: 'Theme',
-          submenu: [
-            // Light Themes (grouped first)
-            {
-              label: 'Atom One Light (Default)',
-              click: () => setTheme('atomonelight'),
-            },
-            {
-              label: 'GitHub Light',
-              click: () => setTheme('github'),
-            },
-            {
-              label: 'Light',
-              click: () => setTheme('light'),
-            },
-            {
-              label: 'Solarized Light',
-              click: () => setTheme('solarized'),
-            },
-            {
-              label: 'Gruvbox Light',
-              click: () => setTheme('gruvbox-light'),
-            },
-            {
-              label: 'Ayu Light',
-              click: () => setTheme('ayu-light'),
-            },
-            {
-              label: 'Sepia',
-              click: () => setTheme('sepia'),
-            },
-            {
-              label: 'Paper',
-              click: () => setTheme('paper'),
-            },
-            {
-              label: 'Rose Pine Dawn',
-              click: () => setTheme('rosepine-dawn'),
-            },
-            {
-              label: 'Concrete Light',
-              click: () => setTheme('concrete-light'),
-            },
-            {
-              type: 'separator',
-            },
-            // Dark Themes
-            {
-              label: 'Dark',
-              click: () => setTheme('dark'),
-            },
-            {
-              label: 'One Dark',
-              click: () => setTheme('onedark'),
-            },
-            {
-              label: 'Dracula',
-              click: () => setTheme('dracula'),
-            },
-            {
-              label: 'Nord',
-              click: () => setTheme('nord'),
-            },
-            {
-              label: 'Monokai',
-              click: () => setTheme('monokai'),
-            },
-            {
-              label: 'Material',
-              click: () => setTheme('material'),
-            },
-            {
-              label: 'Gruvbox Dark',
-              click: () => setTheme('gruvbox-dark'),
-            },
-            {
-              label: 'Tokyo Night',
-              click: () => setTheme('tokyonight'),
-            },
-            {
-              label: 'Palenight',
-              click: () => setTheme('palenight'),
-            },
-            {
-              label: 'Ayu Dark',
-              click: () => setTheme('ayu-dark'),
-            },
-            {
-              label: 'Ayu Mirage',
-              click: () => setTheme('ayu-mirage'),
-            },
-            {
-              label: 'Oceanic Next',
-              click: () => setTheme('oceanic-next'),
-            },
-            {
-              label: 'Cobalt2',
-              click: () => setTheme('cobalt2'),
-            },
-            {
-              label: 'Concrete Dark',
-              click: () => setTheme('concrete-dark'),
-            },
-            {
-              label: 'Concrete Warm',
-              click: () => setTheme('concrete-warm'),
-            },
-          ],
+          submenu: buildThemeMenu({
+            setTheme: (id) => setTheme(id),
+            getCurrentThemeId: () => store.get('theme', 'atomonelight'),
+          }),
         },
         {
           type: 'separator',
@@ -3950,8 +3850,14 @@ async function importWithMarkItDown() {
 }
 
 function setTheme(theme) {
-  store.set('theme', theme);
-  mainWindow.webContents.send('theme-changed', theme);
+  // Stored id may not exist anymore (e.g. after downgrade or if a theme id
+  // was renamed). Fall back to the default so the UI never goes blank.
+  const safeId = ThemeRegistry.get(theme) ? theme : 'atomonelight';
+  if (safeId !== theme) {
+    console.warn(`[theme] unknown theme id "${theme}", falling back to ${safeId}`);
+  }
+  store.set('theme', safeId);
+  mainWindow.webContents.send('theme-changed', safeId);
 }
 
 // IPC handlers
