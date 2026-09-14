@@ -127,8 +127,6 @@ describe('Preload Security', () => {
       'pdf-operation-complete',
       'pdf-operation-error',
       'pdf-operation-progress',
-      'show-ascii-generator-window',
-      'show-ascii-generator',
       'show-table-generator-window',
       'open-header-footer-dialog',
       'insert-content',

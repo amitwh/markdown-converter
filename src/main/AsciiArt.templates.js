@@ -1,10 +1,9 @@
 /**
  * ASCII art templates — named pre-drawn diagrams and frames.
  *
- * Sourced from src/ascii-generator.html:596-626 and src/renderer.js:6542-6697
- * (the `getASCIITemplate()` function). 19 entries; unknown names resolve to ''.
- * `arrow-up` is the only template authored for this module — it completes the
- * arrow triplet (right, down, up) and does not exist verbatim in either source.
+ * 19 entries; unknown names resolve to ''. `arrow-up` is the only template
+ * authored for this module — it completes the arrow triplet (right, down, up)
+ * and is not present in the legacy templates.
  *
  * @module AsciiArt.templates
  */

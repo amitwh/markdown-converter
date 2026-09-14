@@ -299,10 +299,6 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'pdf-operation-error',
   'pdf-batch-complete',
 
-  // ASCII Art Generator
-  'show-ascii-generator-window',
-  'show-ascii-generator',
-
   // Table Generator
   'show-table-generator-window',
 

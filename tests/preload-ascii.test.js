@@ -25,8 +25,7 @@ describe('preload.js ASCII channels', () => {
     expect(preloadSrc).toContain(`'${channel}'`);
   });
 
-  // DEFERRED to T11 — channels still in allow-list until T11 deletes them.
-  test.skip.each(DEAD_CHANNELS)('removed %s from allow-list', (channel) => {
+  test.each(DEAD_CHANNELS)('removed %s from allow-list', (channel) => {
     expect(preloadSrc).not.toContain(`'${channel}'`);
   });
 
