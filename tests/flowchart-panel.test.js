@@ -422,6 +422,70 @@ describe('flowchart-panel: selection wiring (canvas click → panel state + SVG 
   });
 });
 
+describe('flowchart-panel: render target sizing (v4.9.5 regression)', () => {
+  // Regression: v4.9.4 left the rendered Mermaid SVG invisible at runtime.
+  // The panel rendered the SVG into `.flowchart-preview-render` correctly,
+  // but the element had no `min-height`, so when the parent flex column
+  // shrank (sidebar collapsed, takeover not active) the render target
+  // collapsed to 0 height and the SVG — though attached — was invisible.
+  // jsdom doesn't compute layout, but it does let us read the CSS rules
+  // we ship and confirm the fix is in the stylesheet.
+  function findCssRules() {
+    // jsdom doesn't expose document.styleSheets[].cssRules reliably across
+    // versions, so grep the file directly. That matches what the user will
+    // actually load at runtime via <link rel="stylesheet" href="…">.
+    const fs = require('fs');
+    const path = require('path');
+    const cssPath = path.join(__dirname, '..', 'src', 'styles-sidebar.css');
+    const css = fs.readFileSync(cssPath, 'utf8');
+    return css;
+  }
+
+  test('stylesheet defines a non-zero min-height on .flowchart-preview-render', () => {
+    const css = findCssRules();
+    // Pull out the rule block for `.flowchart-preview-render { … }` and
+    // assert it contains a `min-height` declaration with a non-zero value.
+    const re = /\.flowchart-preview-render\s*\{([^}]*)\}/;
+    const match = css.match(re);
+    expect(match).not.toBeNull();
+    const body = match[1];
+    const mh = body.match(/min-height\s*:\s*(\d+)\s*px/);
+    expect(mh).not.toBeNull();
+    expect(parseInt(mh[1], 10)).toBeGreaterThan(0);
+  });
+
+  test('stylesheet forces light backgrounds on canvas + preview hosts', () => {
+    // Regression: v4.9.4 left the canvas and preview hosts with the body's
+    // theme color (dark), which produced dark-on-dark nodes that were
+    // effectively invisible. The v4.9.5 fix forces a light background
+    // on both surfaces regardless of the body's theme class.
+    const css = findCssRules();
+    const hostsRule = /\.flowchart-canvas-host\s*,\s*\.flowchart-preview-host\s*\{([^}]*)\}/;
+    const match = css.match(hostsRule);
+    expect(match).not.toBeNull();
+    expect(match[1]).toMatch(/background\s*:\s*#[a-f0-9]+/i);
+    expect(match[1]).toMatch(/!important/);
+  });
+
+  test('stylesheet defines a fill + thicker stroke on .flowchart-node.selected', () => {
+    // Regression: v4.9.4 painted selection as a 2px stroke on the rect's
+    // existing (dark) fill, which was invisible against the dark canvas.
+    // v4.9.5 changes the fill to a soft accent and bumps stroke-width to 3.
+    const css = findCssRules();
+    const re =
+      /\.flowchart-node\.selected\s+rect,\s*\.flowchart-node\.selected\s+polygon\s*\{([^}]*)\}/;
+    const match = css.match(re);
+    expect(match).not.toBeNull();
+    const body = match[1];
+    // Fill must be explicitly set (not just a stroke change).
+    expect(body).toMatch(/fill\s*:\s*[^;]+/);
+    // Stroke must be at least 3px so the highlight is unmissable.
+    const sw = body.match(/stroke-width\s*:\s*(\d+)/);
+    expect(sw).not.toBeNull();
+    expect(parseInt(sw[1], 10)).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe('flowchart-panel: maximize / takeover', () => {
   // Wrap the panel container in a fake `.main-content` so the takeover's
   // findMainContent() walker can locate it. Mirrors the real DOM layout in

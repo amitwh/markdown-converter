@@ -1,5 +1,21 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.9.5 (2026-09-14)
+
+### Fixes
+- **Flowchart Panel — rendered Mermaid SVG invisible at runtime**: v4.9.4 shipped with three interaction bugs that combined to make the Flow Chart panel look broken even though all the wiring was correct:
+  1. **Render target had zero height.** `.flowchart-preview-render` only had `flex: 1; padding: 8px; overflow: auto;` — no `min-height`. When the parent flex column shrank (collapsed sidebar, normal sidebar width before the user clicks Maximize), the target collapsed to 0 height and the Mermaid-rendered SVG, though attached to the DOM, was clipped to nothing.
+  2. **Dark-on-dark surfaces.** The canvas host and preview host inherited the project's `body.theme-concreteinfo` dark theme. Mermaid's `dark` theme was selected automatically in `src/renderer.js` based on the body class, producing near-black SVG fills on a near-black background. Node labels "Node" were barely legible.
+  3. **Selection highlight invisible.** `.flowchart-node.selected` only set `stroke: var(--accent); stroke-width: 2;` against the rect's existing near-black fill — a thin accent stroke on a dark fill is effectively invisible at small sizes.
+
+  Fix in three places:
+  - `src/styles-sidebar.css` — gave `.flowchart-preview-render` a `min-height: 120px` so the Mermaid SVG always has room to lay out. Added a `!important` light background (`#fafafa` / `#1f2328` text) to `.flowchart-canvas-host` and `.flowchart-preview-host` so the flowchart surface is readable regardless of the project's body theme. Forced explicit fills and strokes on `.flowchart-node rect` / `.flowchart-node polygon` / `.flowchart-node text` / `.flowchart-edge` (white fill, dark stroke, dark text). Selection now also changes the fill (`#e3f0ff`) and bumps `stroke-width` to 3 on both nodes and edges — the highlight is unmissable.
+  - `src/renderer.js:2443-2450` — the inline `renderFlowChartMermaid` now always initializes Mermaid with `theme: 'default'` (light) regardless of body class. Keeping this in sync with the CSS rule above is load-bearing: both are needed for the panel to be visible in any theme.
+- **Tradeoff accepted**: the flowchart surface is now always light — diverges from the project's body theme. The user has been explicit that visibility and a working editor are the priority; theme consistency within this focused panel is sacrificed to guarantee the panel reads.
+
+### Tests
+- `tests/flowchart-panel.test.js` — new `describe('flowchart-panel: render target sizing (v4.9.5 regression)')` block (3 tests) reading the shipped CSS to assert: (a) `.flowchart-preview-render` has a non-zero `min-height`, (b) `.flowchart-canvas-host` / `.flowchart-preview-host` carry a forced background declaration with `!important`, (c) `.flowchart-node.selected rect/polygon` carry an explicit fill and `stroke-width >= 3`. Reading the stylesheet directly mirrors what the runtime loads via `<link rel="stylesheet">` and sidesteps jsdom's incomplete layout engine.
+
 ## Version 4.9.4 (2026-09-14)
 
 ### Fixes

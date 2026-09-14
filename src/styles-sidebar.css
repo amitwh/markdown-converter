@@ -1089,19 +1089,55 @@ body[class*='dark'] .preview-content a.wiki-link {
 }
 .flowchart-preview-render {
   flex: 1;
+  /* Non-zero CSS height guarantees the Mermaid-rendered SVG has room to lay
+   * out — without this, flex children in a collapsed parent can compute to 0
+   * height and mermaid's <svg> ends up invisible even though it parsed and
+   * attached to the DOM. */
+  min-height: 120px;
   padding: 8px;
   overflow: auto;
+}
+/* v4.9.5 — force light, readable surfaces inside the flowchart canvas and
+ * preview regardless of the project's theme class on <body>. The flowchart
+ * is a focused editor surface (similar to the PDF viewer) and the previous
+ * "inherit body theme" approach left users with dark-on-dark rectangles and
+ * dark-on-dark Mermaid SVG output, both effectively invisible. Keeping this
+ * surface light trades theme consistency for guaranteed visibility — the
+ * user has been explicit that WORKING > consistent with body theme. */
+.flowchart-canvas-host,
+.flowchart-preview-host {
+  background: #fafafa !important;
+  color: #1f2328 !important;
+}
+.flowchart-node rect,
+.flowchart-node polygon {
+  fill: #ffffff !important;
+  stroke: #1f2328 !important;
+  stroke-width: 1.25;
+}
+.flowchart-node text {
+  fill: #1f2328 !important;
+}
+.flowchart-edge {
+  stroke: #1f2328 !important;
+  stroke-width: 1.25;
 }
 .flowchart-node {
   cursor: grab;
 }
+/* v4.9.5 — selection highlight: prior to this rule set, `.selected` only
+ * painted a 2px stroke on a near-black fill — barely visible against the
+ * dark canvas. Add a fill change AND bump stroke-width so the highlight is
+ * unmissable. Same logic for edges. */
 .flowchart-node.selected rect,
 .flowchart-node.selected polygon {
-  stroke: var(--accent, #4a9eff);
-  stroke-width: 2;
+  fill: #e3f0ff !important;
+  stroke: #4a9eff !important;
+  stroke-width: 3;
 }
 .flowchart-edge.selected {
-  stroke: var(--accent, #4a9eff);
+  stroke: #4a9eff !important;
+  stroke-width: 3;
 }
 .flowchart-label-input {
   font-size: 13px;

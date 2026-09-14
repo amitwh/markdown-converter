@@ -2440,7 +2440,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       const mermaidModule = require('mermaid');
       window.mermaid = mermaidModule.default || mermaidModule;
     }
-    const theme = document.body.className.includes('theme-dark') ? 'dark' : 'default';
+    // v4.9.5 — force the Mermaid theme to 'default' (light) regardless of the
+    // project's <body class="theme-…">. The flowchart preview lives next to
+    // the editor inside a sidebar that we deliberately render on a forced
+    // light surface (see .flowchart-canvas-host / .flowchart-preview-host in
+    // src/styles-sidebar.css). Mermaid's `dark` theme produces near-black
+    // SVG fills, which against a near-white background are unreadable and
+    // against a dark background completely invisible. Keep this in sync with
+    // the CSS rule above — both are needed.
+    const theme = 'default';
     window.mermaid.initialize({ startOnLoad: false, theme, securityLevel: 'loose' });
     window.mermaid
       .run({ nodes: [div] })
