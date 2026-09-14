@@ -98,6 +98,14 @@ const ALLOWED_SEND_CHANNELS = [
   // ASCII generator (separate window)
   'open-ascii-generator',
 
+  // ASCII art generator (standalone window — invoke channels)
+  'ascii:generate',
+  'ascii:list-fonts',
+  'ascii:get-font-meta',
+  'ascii:save',
+  'ascii:copy',
+  'ascii:last-font',
+
   // Table generator (separate window)
   'open-table-generator',
 
@@ -510,6 +518,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generators: {
     openAscii: () => ipcRenderer.send('open-ascii-generator'),
     openTable: () => ipcRenderer.send('open-table-generator'),
+    ascii: {
+      listFonts: () => ipcRenderer.invoke('ascii:list-fonts'),
+      getFontMeta: (id) => ipcRenderer.invoke('ascii:get-font-meta', id),
+      generate: (args) => ipcRenderer.invoke('ascii:generate', args),
+      copy: (text) => ipcRenderer.invoke('ascii:copy', text),
+      save: (args) => ipcRenderer.invoke('ascii:save', args),
+      lastFont: (font) => ipcRenderer.invoke('ascii:last-font', { font }),
+    },
   },
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
