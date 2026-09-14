@@ -1,0 +1,37 @@
+/* Theme: Synthwave '84 — id=synthwave-84 — category=dark */
+
+body.theme-synthwave-84 {
+  --bg: #262335;
+  --fg: #ffffff;
+  --accent: #ff7edb;
+  --link: #36f9f6;
+  --code-bg: #2b213a;
+  --border: #495495;
+  --muted: #848bbd;
+}
+
+body.theme-synthwave-84 .app-header,
+body.theme-synthwave-84 .toolbar,
+body.theme-synthwave-84 #editor,
+body.theme-synthwave-84 #preview,
+body.theme-synthwave-84 .preview-content,
+body.theme-synthwave-84 .status-bar,
+body.theme-synthwave-84 .tab-bar,
+body.theme-synthwave-84 .tab,
+body.theme-synthwave-84 .modal-content {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+body.theme-synthwave-84 a,
+body.theme-synthwave-84 .preview-content a {
+  color: var(--link);
+}
+
+body.theme-synthwave-84 #preview code,
+body.theme-synthwave-84 .preview-content code,
+body.theme-synthwave-84 #preview pre,
+body.theme-synthwave-84 .preview-content pre {
+  background: var(--code-bg);
+}

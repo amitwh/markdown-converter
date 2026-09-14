@@ -1,0 +1,37 @@
+/* Theme: Spring Light — id=spring-light — category=seasonal */
+
+body.theme-spring-light {
+  --bg: #fdf6e3;
+  --fg: #586e75;
+  --accent: #859900;
+  --link: #2aa198;
+  --code-bg: #eee8d5;
+  --border: #d8d1bd;
+  --muted: #93a1a1;
+}
+
+body.theme-spring-light .app-header,
+body.theme-spring-light .toolbar,
+body.theme-spring-light #editor,
+body.theme-spring-light #preview,
+body.theme-spring-light .preview-content,
+body.theme-spring-light .status-bar,
+body.theme-spring-light .tab-bar,
+body.theme-spring-light .tab,
+body.theme-spring-light .modal-content {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+body.theme-spring-light a,
+body.theme-spring-light .preview-content a {
+  color: var(--link);
+}
+
+body.theme-spring-light #preview code,
+body.theme-spring-light .preview-content code,
+body.theme-spring-light #preview pre,
+body.theme-spring-light .preview-content pre {
+  background: var(--code-bg);
+}

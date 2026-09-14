@@ -1,0 +1,37 @@
+/* Theme: Catppuccin Macchiato — id=catppuccin-macchiato — category=dark */
+
+body.theme-catppuccin-macchiato {
+  --bg: #24273a;
+  --fg: #cad3f5;
+  --accent: #8aadf4;
+  --link: #f5bde6;
+  --code-bg: #363a4f;
+  --border: #5b6078;
+  --muted: #8087a2;
+}
+
+body.theme-catppuccin-macchiato .app-header,
+body.theme-catppuccin-macchiato .toolbar,
+body.theme-catppuccin-macchiato #editor,
+body.theme-catppuccin-macchiato #preview,
+body.theme-catppuccin-macchiato .preview-content,
+body.theme-catppuccin-macchiato .status-bar,
+body.theme-catppuccin-macchiato .tab-bar,
+body.theme-catppuccin-macchiato .tab,
+body.theme-catppuccin-macchiato .modal-content {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+body.theme-catppuccin-macchiato a,
+body.theme-catppuccin-macchiato .preview-content a {
+  color: var(--link);
+}
+
+body.theme-catppuccin-macchiato #preview code,
+body.theme-catppuccin-macchiato .preview-content code,
+body.theme-catppuccin-macchiato #preview pre,
+body.theme-catppuccin-macchiato .preview-content pre {
+  background: var(--code-bg);
+}

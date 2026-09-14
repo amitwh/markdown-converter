@@ -1,0 +1,40 @@
+/* Theme: Outrun — id=outrun — category=dark */
+/* Note: brief palette omits --border. Chosen --border: #1a0626 as a deeper purple
+   that sits between the very dark --bg #0d0221 and the mid --muted #3a1453,
+   giving structural separation without colliding with the magenta accent. */
+
+body.theme-outrun {
+  --bg: #0d0221;
+  --fg: #f0eff0;
+  --accent: #ff0080;
+  --link: #00f9ff;
+  --code-bg: #240b36;
+  --border: #1a0626;
+  --muted: #3a1453;
+}
+
+body.theme-outrun .app-header,
+body.theme-outrun .toolbar,
+body.theme-outrun #editor,
+body.theme-outrun #preview,
+body.theme-outrun .preview-content,
+body.theme-outrun .status-bar,
+body.theme-outrun .tab-bar,
+body.theme-outrun .tab,
+body.theme-outrun .modal-content {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+body.theme-outrun a,
+body.theme-outrun .preview-content a {
+  color: var(--link);
+}
+
+body.theme-outrun #preview code,
+body.theme-outrun .preview-content code,
+body.theme-outrun #preview pre,
+body.theme-outrun .preview-content pre {
+  background: var(--code-bg);
+}

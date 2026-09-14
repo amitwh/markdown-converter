@@ -1,0 +1,37 @@
+/* Theme: Solarized Dark (High Contrast) — id=solarized-dark-hc — category=high-contrast */
+
+body.theme-solarized-dark-hc {
+  --bg: #001f29;
+  --fg: #fdf6e3;
+  --accent: #b58900;
+  --link: #268bd2;
+  --code-bg: #002b36;
+  --border: #586e75;
+  --muted: #93a1a1;
+}
+
+body.theme-solarized-dark-hc .app-header,
+body.theme-solarized-dark-hc .toolbar,
+body.theme-solarized-dark-hc #editor,
+body.theme-solarized-dark-hc #preview,
+body.theme-solarized-dark-hc .preview-content,
+body.theme-solarized-dark-hc .status-bar,
+body.theme-solarized-dark-hc .tab-bar,
+body.theme-solarized-dark-hc .tab,
+body.theme-solarized-dark-hc .modal-content {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+body.theme-solarized-dark-hc a,
+body.theme-solarized-dark-hc .preview-content a {
+  color: var(--link);
+}
+
+body.theme-solarized-dark-hc #preview code,
+body.theme-solarized-dark-hc .preview-content code,
+body.theme-solarized-dark-hc #preview pre,
+body.theme-solarized-dark-hc .preview-content pre {
+  background: var(--code-bg);
+}

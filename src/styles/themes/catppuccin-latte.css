@@ -1,0 +1,37 @@
+/* Theme: Catppuccin Latte — id=catppuccin-latte — category=light */
+
+body.theme-catppuccin-latte {
+  --bg: #eff1f5;
+  --fg: #4c4f69;
+  --accent: #1e66f5;
+  --link: #fe640b;
+  --code-bg: #e6e9ef;
+  --border: #bcc0cc;
+  --muted: #9ca0b0;
+}
+
+body.theme-catppuccin-latte .app-header,
+body.theme-catppuccin-latte .toolbar,
+body.theme-catppuccin-latte #editor,
+body.theme-catppuccin-latte #preview,
+body.theme-catppuccin-latte .preview-content,
+body.theme-catppuccin-latte .status-bar,
+body.theme-catppuccin-latte .tab-bar,
+body.theme-catppuccin-latte .tab,
+body.theme-catppuccin-latte .modal-content {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+body.theme-catppuccin-latte a,
+body.theme-catppuccin-latte .preview-content a {
+  color: var(--link);
+}
+
+body.theme-catppuccin-latte #preview code,
+body.theme-catppuccin-latte .preview-content code,
+body.theme-catppuccin-latte #preview pre,
+body.theme-catppuccin-latte .preview-content pre {
+  background: var(--code-bg);
+}

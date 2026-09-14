@@ -1,0 +1,37 @@
+/* Theme: Tokyo Night Storm — id=tokyo-night-storm — category=dark */
+
+body.theme-tokyo-night-storm {
+  --bg: #24283b;
+  --fg: #c0caf5;
+  --accent: #7aa2f7;
+  --link: #bb9af7;
+  --code-bg: #1f2335;
+  --border: #3b4261;
+  --muted: #565f89;
+}
+
+body.theme-tokyo-night-storm .app-header,
+body.theme-tokyo-night-storm .toolbar,
+body.theme-tokyo-night-storm #editor,
+body.theme-tokyo-night-storm #preview,
+body.theme-tokyo-night-storm .preview-content,
+body.theme-tokyo-night-storm .status-bar,
+body.theme-tokyo-night-storm .tab-bar,
+body.theme-tokyo-night-storm .tab,
+body.theme-tokyo-night-storm .modal-content {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+body.theme-tokyo-night-storm a,
+body.theme-tokyo-night-storm .preview-content a {
+  color: var(--link);
+}
+
+body.theme-tokyo-night-storm #preview code,
+body.theme-tokyo-night-storm .preview-content code,
+body.theme-tokyo-night-storm #preview pre,
+body.theme-tokyo-night-storm .preview-content pre {
+  background: var(--code-bg);
+}

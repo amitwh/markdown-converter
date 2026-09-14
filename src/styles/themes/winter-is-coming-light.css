@@ -1,0 +1,37 @@
+/* Theme: Winter is Coming (Light) — id=winter-is-coming-light — category=light */
+
+body.theme-winter-is-coming-light {
+  --bg: #f4f4f4;
+  --fg: #20313a;
+  --accent: #5d879b;
+  --link: #a47298;
+  --code-bg: #e9ecef;
+  --border: #cfd8dc;
+  --muted: #7b8a92;
+}
+
+body.theme-winter-is-coming-light .app-header,
+body.theme-winter-is-coming-light .toolbar,
+body.theme-winter-is-coming-light #editor,
+body.theme-winter-is-coming-light #preview,
+body.theme-winter-is-coming-light .preview-content,
+body.theme-winter-is-coming-light .status-bar,
+body.theme-winter-is-coming-light .tab-bar,
+body.theme-winter-is-coming-light .tab,
+body.theme-winter-is-coming-light .modal-content {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+body.theme-winter-is-coming-light a,
+body.theme-winter-is-coming-light .preview-content a {
+  color: var(--link);
+}
+
+body.theme-winter-is-coming-light #preview code,
+body.theme-winter-is-coming-light .preview-content code,
+body.theme-winter-is-coming-light #preview pre,
+body.theme-winter-is-coming-light .preview-content pre {
+  background: var(--code-bg);
+}

@@ -1,0 +1,37 @@
+/* Theme: Catppuccin Frappe — id=catppuccin-frappe — category=dark */
+
+body.theme-catppuccin-frappe {
+  --bg: #303446;
+  --fg: #c6d0f5;
+  --accent: #8caaee;
+  --link: #f4b8e4;
+  --code-bg: #414559;
+  --border: #626880;
+  --muted: #838ba7;
+}
+
+body.theme-catppuccin-frappe .app-header,
+body.theme-catppuccin-frappe .toolbar,
+body.theme-catppuccin-frappe #editor,
+body.theme-catppuccin-frappe #preview,
+body.theme-catppuccin-frappe .preview-content,
+body.theme-catppuccin-frappe .status-bar,
+body.theme-catppuccin-frappe .tab-bar,
+body.theme-catppuccin-frappe .tab,
+body.theme-catppuccin-frappe .modal-content {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+body.theme-catppuccin-frappe a,
+body.theme-catppuccin-frappe .preview-content a {
+  color: var(--link);
+}
+
+body.theme-catppuccin-frappe #preview code,
+body.theme-catppuccin-frappe .preview-content code,
+body.theme-catppuccin-frappe #preview pre,
+body.theme-catppuccin-frappe .preview-content pre {
+  background: var(--code-bg);
+}

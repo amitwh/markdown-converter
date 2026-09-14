@@ -1,0 +1,37 @@
+/* Theme: Winter is Coming (Dark) — id=winter-is-coming-dark — category=dark */
+
+body.theme-winter-is-coming-dark {
+  --bg: #011627;
+  --fg: #d6deeb;
+  --accent: #7fdbca;
+  --link: #ff5874;
+  --code-bg: #0b2942;
+  --border: #1d3b53;
+  --muted: #5f7e97;
+}
+
+body.theme-winter-is-coming-dark .app-header,
+body.theme-winter-is-coming-dark .toolbar,
+body.theme-winter-is-coming-dark #editor,
+body.theme-winter-is-coming-dark #preview,
+body.theme-winter-is-coming-dark .preview-content,
+body.theme-winter-is-coming-dark .status-bar,
+body.theme-winter-is-coming-dark .tab-bar,
+body.theme-winter-is-coming-dark .tab,
+body.theme-winter-is-coming-dark .modal-content {
+  background: var(--bg);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+body.theme-winter-is-coming-dark a,
+body.theme-winter-is-coming-dark .preview-content a {
+  color: var(--link);
+}
+
+body.theme-winter-is-coming-dark #preview code,
+body.theme-winter-is-coming-dark .preview-content code,
+body.theme-winter-is-coming-dark #preview pre,
+body.theme-winter-is-coming-dark .preview-content pre {
+  background: var(--code-bg);
+}
