@@ -15,6 +15,7 @@
  * @returns {import('@codemirror/view').Extension}
  */
 const { EditorView } = require('@codemirror/view');
+const { csvToTable, looksLikeCsv } = require('../utils/csv-to-table');
 
 const URL_ONLY_RE = /^\s*(https?:\/\/[^\s]+)\s*$/i;
 const TIMEOUT_MS = 4000;
@@ -28,14 +29,27 @@ function smartPaste(deps) {
   return EditorView.domEventHandlers({
     paste(event, view) {
       const text = event.clipboardData && event.clipboardData.getData('text/plain');
-      const match = text && URL_ONLY_RE.exec(text);
-      if (!match) return; // not a URL-only paste — let the default handler run
+      if (!text) return;
 
-      const url = match[1];
+      // CSV/TSV flavor first — it's instant and self-contained (no async).
+      if (looksLikeCsv(text)) {
+        event.preventDefault();
+        const table = csvToTable(text);
+        if (!table) return;
+        const head = view.state.selection.main.head;
+        view.dispatch({
+          changes: { from: head, insert: table },
+          selection: { anchor: head + table.length },
+        });
+        return;
+      }
+
+      // URL flavor — paste the URL immediately, then rewrite with the title.
+      const urlMatch = URL_ONLY_RE.exec(text);
+      if (!urlMatch) return; // not our department — let the default handler run
+
+      const url = urlMatch[1];
       event.preventDefault();
-
-      // Insert the URL immediately so the paste isn't lost on slow networks,
-      // then async-fetch the title and rewrite the just-pasted range.
       const head = view.state.selection.main.head;
       const from = head;
 
@@ -44,16 +58,12 @@ function smartPaste(deps) {
         selection: { anchor: from + url.length },
       });
 
-      // Best-effort fetch; if it fails, leave the URL as-is.
       Promise.race([
         fetchTitle({ url, timeoutMs: TIMEOUT_MS }),
         new Promise((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
       ])
         .then((result) => {
           if (!result || !result.title) return;
-          // The user may have continued typing in the meantime. Cap the
-          // rewrite at the original insertion length so we don't clobber
-          // anything else.
           const currentLen = view.state.doc.length;
           const rewriteTo = Math.min(from + url.length, currentLen);
           if (rewriteTo <= from) return;
