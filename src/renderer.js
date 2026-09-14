@@ -5,6 +5,7 @@
 
 const { ipcRenderer, webUtils } = require('electron');
 const { AutosaveController } = require('./renderer/autosave-client');
+const writingStats = require('./utils/writing-stats');
 
 // Renderer-side autosave controller. The TabManager calls into this when a
 // tab becomes dirty so the current buffer is periodically persisted under
@@ -1203,17 +1204,25 @@ class TabManager {
     const tab = this.tabs.get(this.activeTabId);
     if (!tab) return;
     const content = tab.content;
-    const words = content.trim()
-      ? content
-          .trim()
-          .split(/\s+/)
-          .filter((word) => word.length > 0).length
-      : 0;
+    // Words/chars used the raw buffer before — reading-time + grade level
+    // need the markdown chrome (code fences, link URLs, image syntax) stripped
+    // out, which writing-stats.stripMarkdown() does.
+    const stats = writingStats.computeStats(content || '');
     const chars = content.length;
     const wordEl = document.getElementById('word-count');
     const charEl = document.getElementById('char-count');
-    if (wordEl) wordEl.textContent = `Words: ${words}`;
+    const timeEl = document.getElementById('reading-time');
+    const gradeEl = document.getElementById('grade-level');
+    if (wordEl) wordEl.textContent = `Words: ${stats.wordCount}`;
     if (charEl) charEl.textContent = `Chars: ${chars}`;
+    if (timeEl) {
+      const mins = stats.readingTimeMinutes;
+      timeEl.textContent = mins < 1 ? '<1 min read' : `~${Math.ceil(mins)} min read`;
+    }
+    if (gradeEl) {
+      gradeEl.textContent =
+        stats.fleschKincaidGrade === null ? 'Grade —' : `Grade ${stats.fleschKincaidGrade}`;
+    }
   }
   updateCursorPosition(view) {
     if (!view) return;
