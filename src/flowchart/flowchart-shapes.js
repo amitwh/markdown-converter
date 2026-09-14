@@ -55,11 +55,27 @@ function shapeSvg(kind, x, y, width, height) {
   }
 }
 
-module.exports = {
-  shapeSvg,
-  SHAPE_KINDS,
-  DEFAULT_WIDTH,
-  DEFAULT_HEIGHT,
-  LABEL_PADDING_X,
-  LABEL_PADDING_Y,
-};
+// v4.9.6 UMD wrapper — exposes the same surface as a CommonJS module
+// (used by src/sidebar/flowchart-panel.js via require()) AND as a browser
+// global (used by src/renderer/flowchart-controller.js via <script> tag).
+// The standalone BrowserWindow runs with contextIsolation:true +
+// nodeIntegration:false, so the renderer cannot require() these modules;
+// loading them as <script> tags in src/flowchart-generator.html attaches
+// them to window.FlowchartShapes.
+(function (root, factory) {
+  const exported = factory();
+  if (typeof module === 'object' && module.exports) {
+    module.exports = exported;
+  } else {
+    root.FlowchartShapes = exported;
+  }
+})(typeof window !== 'undefined' ? window : globalThis, function () {
+  return {
+    shapeSvg,
+    SHAPE_KINDS,
+    DEFAULT_WIDTH,
+    DEFAULT_HEIGHT,
+    LABEL_PADDING_X,
+    LABEL_PADDING_Y,
+  };
+});

@@ -257,4 +257,4 @@ Amit Haridas (amit.wh@gmail.com)
 
 ## Version
 
-v4.9.5
+v4.9.6

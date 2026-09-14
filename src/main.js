@@ -1434,6 +1434,12 @@ function createMenu() {
           click: () => openAsciiGenerator(),
         },
         {
+          // v4.9.6 — replaces the sidebar Flow Chart panel.
+          label: 'Flowchart Generator',
+          accelerator: 'CmdOrCtrl+Alt+F',
+          click: () => openFlowchartGenerator(),
+        },
+        {
           type: 'separator',
         },
         {
@@ -5483,6 +5489,45 @@ ipcMain.on('select-image-folder', (event, inputId) => {
       path: folder[0],
     });
   }
+});
+
+// ============================================
+// Flowchart Generator Window (v4.9.6)
+// ============================================
+// Standalone BrowserWindow hosting the flowchart editor. The previous
+// sidebar-panel implementation (src/sidebar/flowchart-panel.js, Ctrl+Alt+F
+// through `Toggle Sidebar: Flow Chart`) has been retained as legacy but is
+// no longer registered with sidebarManager — see src/renderer.js where the
+// registerPanel('flowchart', …) call is now commented out. The standalone
+// window mirrors the ASCII Art Generator pattern (src/ascii-generator.html
+// + src/renderer/ascii-controller.js).
+let flowchartGeneratorWindow = null;
+function openFlowchartGenerator() {
+  if (flowchartGeneratorWindow) {
+    flowchartGeneratorWindow.focus();
+    return;
+  }
+  flowchartGeneratorWindow = new BrowserWindow({
+    width: 1100,
+    height: 720,
+    parent: mainWindow,
+    modal: false,
+    title: 'Flowchart Generator',
+    icon: path.join(__dirname, '../assets/icon.png'),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  });
+  flowchartGeneratorWindow.loadFile(path.join(__dirname, 'flowchart-generator.html'));
+  flowchartGeneratorWindow.setMenuBarVisibility(false);
+  flowchartGeneratorWindow.on('closed', () => {
+    flowchartGeneratorWindow = null;
+  });
+}
+ipcMain.on('open-flowchart-generator', () => {
+  openFlowchartGenerator();
 });
 
 // ============================================

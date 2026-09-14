@@ -154,13 +154,10 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
   };
 }
 
-// Lazy-loaded: filesystem helpers used by the flowchart panel for
-// <userData>/flowchart-session.json auto-save.
-const flowchartIO = {
-  getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
-  readFile: (p) => ipcRenderer.invoke('read-text-file', p),
-  writeFile: (p, content) => ipcRenderer.invoke('write-text-file', { path: p, content }),
-};
+// v4.9.6 — flowchart panel was removed (now a standalone window); the
+// thin IPC helpers it used are now defined inside the standalone window's
+// controller (src/renderer/flowchart-controller.js) under
+// window.electronAPI.flowchart.*, exposed via src/preload.js.
 
 // Use window.ModalManager if already set by script tag, otherwise require it.
 // This prevents "Identifier 'ModalManager' has already been declared" when
@@ -2414,6 +2411,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       }),
   });
 
+  // v4.9.6 — Flow Chart Editor now lives in a standalone BrowserWindow
+  // (src/flowchart-generator.html + src/renderer/flowchart-controller.js),
+  // launched from Tools → Flowchart Generator (Cmd/Ctrl+Alt+F). The sidebar
+  // panel implementation below is preserved as legacy and the unit tests
+  // (tests/flowchart-panel.test.js, tests/flowchart-canvas.test.js, etc.)
+  // remain green. The standalone-window controller reuses the same pure
+  // modules — see the UMD wrappers at the bottom of flowchart-shapes.js,
+  // flowchart-mermaid.js, flowchart-store.js, and flowchart-canvas.js.
+  //
+  // The `flowchart` sidebar panel is no longer registered with
+  // sidebarManager; the corresponding command-palette entry is also
+  // commented out below. To restore the sidebar experience, uncomment the
+  // block below AND the matching commandPalette.register('Toggle Sidebar:
+  // Flow Chart', …) call.
+  /*
   // Flow Chart Editor panel — visual Mermaid flowchart builder.
   // Persists to <userData>/flowchart-session.json via injected IPC helpers.
   // Reuses tabManager.insertAtCursor for the "Insert at Cursor" button.
@@ -2474,6 +2486,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     },
   });
+  */
 
   // Wiki-link navigation: open the target note (creating it on demand after
   // confirmation). Delegated on document so it works in every tab's preview.
@@ -2874,9 +2887,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   commandPalette.register('Toggle Sidebar: Outline', 'Ctrl+Shift+O', () =>
     sidebarManager.togglePanel('outline')
   );
+  // v4.9.6 — sidebar Flow Chart panel is no longer registered (see comment
+  // block above); the standalone window owns Cmd/Ctrl+Alt+F via the Tools
+  // menu. Kept the legacy entry commented out for rollback.
+  /*
   commandPalette.register('Toggle Sidebar: Flow Chart', 'Ctrl+Alt+F', () =>
     sidebarManager.togglePanel('flowchart')
   );
+  */
   commandPalette.register('Print Preview', 'Ctrl+P', () => {
     const tab = tabManager.tabs.get(tabManager.activeTabId);
     const preview = document.getElementById(`preview-${tab.id}`);

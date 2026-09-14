@@ -258,4 +258,16 @@ function create(io) {
   };
 }
 
-module.exports = { create, NODE_KINDS, EDGE_KINDS };
+// v4.9.6 UMD wrapper — same CommonJS export shape + browser global
+// (window.FlowchartStore) so the standalone window's controller can load
+// this module via <script> tag without nodeIntegration.
+(function (root, factory) {
+  const exported = factory();
+  if (typeof module === 'object' && module.exports) {
+    module.exports = exported;
+  } else {
+    root.FlowchartStore = exported;
+  }
+})(typeof window !== 'undefined' ? window : globalThis, function () {
+  return { create, NODE_KINDS, EDGE_KINDS };
+});

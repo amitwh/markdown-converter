@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flowchart Generator - MarkdownConverter</title>
+    <!--
+      v4.9.6 — Standalone Flowchart Generator window.
+      Stylesheets are src/-relative (mirrors src/index.html). NO ../ escape —
+      the standalone BrowserWindow's document base is src/, so a ../fonts.css
+      would resolve outside src/ and fail to load.
+    -->
+    <link rel="stylesheet" href="fonts.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles-modern.css" />
+    <link rel="stylesheet" href="styles-concreteinfo.css" />
+    <link rel="stylesheet" href="styles-sidebar.css" />
+    <link rel="stylesheet" href="styles-zen.css" />
+    <link rel="stylesheet" href="styles-welcome.css" />
+    <link rel="stylesheet" href="katex.min.css" />
+    <style>
+      :root {
+        --fc-bg: #fafafa;
+        --fc-text: #1f2328;
+        --fc-border: #d0d7de;
+        --fc-accent: #e5461f;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: var(--fc-bg);
+        color: var(--fc-text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .fc-header {
+        background: linear-gradient(135deg, #464646 0%, #0d0b09 100%);
+        padding: 12px 20px;
+        border-bottom: 3px solid var(--fc-accent);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .fc-header h1 {
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+      .fc-hint {
+        color: #9a9696;
+        font-size: 0.75rem;
+      }
+      .fc-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--fc-border);
+        background: #fff;
+      }
+      .fc-btn {
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        border: 1px solid var(--fc-border);
+        background: #fff;
+        color: var(--fc-text);
+      }
+      .fc-btn:hover {
+        border-color: var(--fc-accent);
+      }
+      .fc-btn.primary {
+        background: var(--fc-accent);
+        color: #fff;
+        border-color: var(--fc-accent);
+      }
+      .fc-btn.primary:hover {
+        background: #c93a18;
+      }
+      .fc-status {
+        margin-left: auto;
+        font-size: 0.75rem;
+        color: #6e7681;
+      }
+      .fc-split {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+      .fc-canvas-host {
+        flex: 7;
+        min-width: 0;
+        position: relative;
+        background: #fafafa;
+        border-right: 1px solid var(--fc-border);
+      }
+      .fc-canvas-host svg.flowchart-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        cursor: crosshair;
+      }
+      .fc-preview-host {
+        flex: 3;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: #fafafa;
+      }
+      .fc-preview-source {
+        flex: 1;
+        min-height: 120px;
+        margin: 0;
+        padding: 12px;
+        font-family: var(--mono-font, 'JetBrains Mono', monospace);
+        font-size: 12px;
+        overflow: auto;
+        white-space: pre;
+        border-bottom: 1px solid var(--fc-border);
+        background: #fff;
+        color: var(--fc-text);
+      }
+      .fc-preview-render {
+        flex: 1;
+        min-height: 120px;
+        padding: 12px;
+        overflow: auto;
+        background: #fff;
+      }
+      /* v4.9.6 — forced light surfaces inside the standalone window.
+       * Diverges from body theme to guarantee readability, mirroring the
+       * v4.9.5 fix in src/styles-sidebar.css for the (now-legacy) sidebar. */
+      .fc-canvas-host,
+      .fc-preview-host {
+        background: #fafafa !important;
+        color: #1f2328 !important;
+      }
+      .flowchart-node rect,
+      .flowchart-node polygon {
+        fill: #ffffff !important;
+        stroke: #1f2328 !important;
+        stroke-width: 1.25;
+      }
+      .flowchart-node text {
+        fill: #1f2328 !important;
+      }
+      .flowchart-edge {
+        stroke: #1f2328 !important;
+      }
+      .flowchart-node.selected rect,
+      .flowchart-node.selected polygon {
+        fill: #e3f0ff !important;
+        stroke: var(--fc-accent) !important;
+        stroke-width: 3;
+      }
+      .flowchart-edge.selected {
+        stroke: var(--fc-accent) !important;
+        stroke-width: 3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="fc-header">
+      <h1>Flowchart Generator</h1>
+      <span class="fc-hint"
+        >Click empty canvas to add nodes · Alt+drag to connect · Double-click node to edit</span
+      >
+    </div>
+
+    <div class="fc-toolbar">
+      <button
+        class="fc-btn primary"
+        id="fc-btn-insert"
+        title="Insert Mermaid block at cursor in main editor"
+      >
+        Insert at Cursor
+      </button>
+      <button class="fc-btn" id="fc-btn-reset" title="Clear all nodes and edges">Reset</button>
+      <span class="fc-status" id="fc-status" aria-live="polite"></span>
+    </div>
+
+    <div class="fc-split">
+      <div class="fc-canvas-host" id="canvas-host"></div>
+      <div class="fc-preview-host" id="preview-host">
+        <pre class="fc-preview-source" id="preview-source"></pre>
+        <div class="fc-preview-render" id="preview-render"></div>
+      </div>
+    </div>
+
+    <!--
+      v4.9.6 — pure-module load order matters. shapes first, then canvas
+      (which depends on shapes), then store, then mermaid. Controller last
+      and consumes all four via window globals.
+    -->
+    <script src="flowchart/flowchart-shapes.js"></script>
+    <script src="flowchart/flowchart-mermaid.js"></script>
+    <script src="flowchart/flowchart-store.js"></script>
+    <script src="flowchart/flowchart-canvas.js"></script>
+    <script src="renderer/flowchart-controller.js"></script>
+  </body>
+</html>

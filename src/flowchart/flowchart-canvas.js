@@ -13,7 +13,12 @@
 
 'use strict';
 
-const { DEFAULT_WIDTH, DEFAULT_HEIGHT, shapeSvg, SHAPE_KINDS } = require('./flowchart-shapes');
+// v4.9.6 — CommonJS sibling import when running under Node (the renderer.js
+// sidebar panel still uses require()), browser global fallback when loaded as
+// a <script> tag in the standalone window (no nodeIntegration).
+const shapesModule =
+  (typeof window !== 'undefined' && window.FlowchartShapes) || require('./flowchart-shapes');
+const { DEFAULT_WIDTH, DEFAULT_HEIGHT, shapeSvg, SHAPE_KINDS } = shapesModule;
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -322,4 +327,16 @@ function createCanvas(container, store, opts = {}) {
   return { destroy, getSvg: () => svg };
 }
 
-module.exports = { createCanvas, SHAPE_KINDS };
+// v4.9.6 UMD wrapper — same CommonJS export shape + browser global
+// (window.FlowchartCanvas) so the standalone window's controller can load
+// this module via <script> tag without nodeIntegration.
+(function (root, factory) {
+  const exported = factory();
+  if (typeof module === 'object' && module.exports) {
+    module.exports = exported;
+  } else {
+    root.FlowchartCanvas = exported;
+  }
+})(typeof window !== 'undefined' ? window : globalThis, function () {
+  return { createCanvas, SHAPE_KINDS };
+});

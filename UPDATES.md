@@ -1,5 +1,21 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.9.6 (2026-09-14)
+
+### Refactor
+- **Flowchart editor is now a standalone window, not a sidebar panel.** Five fix rounds (v4.9.1 → v4.9.5) couldn't make the sidebar panel feel right — at 280 px sidebar with the canvas + preview split to ~175 px each, plus the editor-container hiding dance the maximize/restore toggle required, the panel kept presenting as cramped and unreliable at runtime. Strategy pivot: the flowchart editor now lives in its own BrowserWindow, matching the ASCII Art Generator pattern (`src/ascii-generator.html` + `src/renderer/ascii-controller.js`).
+  - New `src/flowchart-generator.html` — standalone HTML with its own header, toolbar (Insert at Cursor / Reset), canvas host, and preview host (text-only — the canvas on the left IS the visual preview). All stylesheet `href`s are `src/`-relative — no `../` escape (lesson learned from v4.9.2). Forced light surface (`background: #fafafa !important; color: #1f2328 !important`) on the canvas + preview regardless of the project's body theme, mirroring the v4.9.5 CSS fix that traded theme consistency for guaranteed visibility.
+  - New `src/renderer/flowchart-controller.js` — pure browser IIFE. Wires the canvas + preview, hydrates from `<userData>/flowchart-session.json` once on mount, persists on every store mutation with a 500 ms debounce. Insert at Cursor wraps the generated `flowchart TD` source in a fenced ```` ```mermaid ```` block and sends it through the existing `insert-content` IPC channel — same one the renderer.js sidebar panel used. Keyboard shortcuts (Ctrl/Cmd+Z / Ctrl/Cmd+Shift+Z / Delete / Backspace) handled at document level.
+  - New `openFlowchartGenerator()` in `src/main.js` — `BrowserWindow` (1100×720, parent: mainWindow, `contextIsolation: true, nodeIntegration: false`) launched by an `ipcMain.on('open-flowchart-generator')` listener. Tools menu now has a "Flowchart Generator" entry with accelerator `CmdOrCtrl+Alt+F`.
+  - New `window.electronAPI.flowchart.*` namespace in `src/preload.js` — `getUserDataPath` / `readFile` / `writeFile` / `insertAtCursor`. Reuses the existing thin IPC handlers (`get-user-data-path`, `read-text-file`, `write-text-file`) which already sandbox writes to `<userData>`.
+  - The four pure modules (`flowchart-shapes.js`, `flowchart-mermaid.js`, `flowchart-store.js`, `flowchart-canvas.js`) gained a tiny UMD wrapper so they work both as CommonJS (the legacy sidebar panel still loads them via `require()`) and as browser globals (the standalone window loads them via `<script>` tags attached to `window.FlowchartShapes`, etc.). The CommonJS shape is preserved — no behavioural change to the 73 flowchart unit tests in `tests/flowchart-*.test.js`.
+
+### Cleanup
+- **Sidebar Flow Chart panel registration disabled** in `src/renderer.js` — the `sidebarManager.registerPanel('flowchart', …)` call and the matching `commandPalette.register('Toggle Sidebar: Flow Chart', …)` entry are now both commented out. The legacy panel implementation (`src/sidebar/flowchart-panel.js`) and its unit tests (`tests/flowchart-panel.test.js`) are kept untouched for rollback — re-enabling is a one-step uncomment in `src/renderer.js`. The unused `flowchartIO` helper that the panel needed was also removed.
+
+### Tests
+- New `tests/flowchart-controller.test.js` (10 tests) — verifies the standalone window's HTML doesn't `../`-escape any stylesheet, `bootstrap()` resolves `getUserDataPath` exactly once on mount, reads `<userData>/flowchart-session.json` on mount, hydrates the store from a saved session, wraps Insert-at-Cursor output in a `mermaid` fenced block, Reset clears nodes/edges (with confirm) and persists the empty graph (without confirm). Two regression tests assert that `src/renderer.js` no longer contains a live `sidebarManager.registerPanel('flowchart', …)` call or a live `commandPalette.register('Toggle Sidebar: Flow Chart', …)` entry.
+
 ## Version 4.9.5 (2026-09-14)
 
 ### Fixes

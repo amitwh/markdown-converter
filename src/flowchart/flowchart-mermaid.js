@@ -90,4 +90,16 @@ function toMermaid(graph) {
   return lines.join('\n');
 }
 
-module.exports = { toMermaid, escapeLabel, nodeDeclaration, edgeDeclaration };
+// v4.9.6 UMD wrapper — same CommonJS export shape + browser global
+// (window.FlowchartMermaid) so the standalone window's controller can load
+// this module via <script> tag without nodeIntegration.
+(function (root, factory) {
+  const exported = factory();
+  if (typeof module === 'object' && module.exports) {
+    module.exports = exported;
+  } else {
+    root.FlowchartMermaid = exported;
+  }
+})(typeof window !== 'undefined' ? window : globalThis, function () {
+  return { toMermaid, escapeLabel, nodeDeclaration, edgeDeclaration };
+});

@@ -98,6 +98,9 @@ const ALLOWED_SEND_CHANNELS = [
   // ASCII generator (separate window)
   'open-ascii-generator',
 
+  // Flowchart generator (standalone window — v4.9.6)
+  'open-flowchart-generator',
+
   // ASCII art generator (standalone window — invoke channels)
   'ascii:generate',
   'ascii:list-fonts',
@@ -513,6 +516,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Generator Windows
   generators: {
     openAscii: () => ipcRenderer.send('open-ascii-generator'),
+    openFlowchart: () => ipcRenderer.send('open-flowchart-generator'),
     openTable: () => ipcRenderer.send('open-table-generator'),
     ascii: {
       listFonts: () => ipcRenderer.invoke('ascii:list-fonts'),
@@ -522,6 +526,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
       save: (args) => ipcRenderer.invoke('ascii:save', args),
       lastFont: (font) => ipcRenderer.invoke('ascii:last-font', { font }),
     },
+  },
+
+  // v4.9.6 — Flowchart Generator standalone window's IO bridge. Reuses the
+  // existing thin text-file IPC handlers (get-user-data-path, read-text-file,
+  // write-text-file) which sandbox writes to <userData>. Insert at cursor
+  // sends the Mermaid-fenced source through the existing 'insert-content'
+  // channel which the renderer.js sidebar panel also uses.
+  flowchart: {
+    getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
+    readFile: (p) => ipcRenderer.invoke('read-text-file', p),
+    writeFile: (p, content) => ipcRenderer.invoke('write-text-file', { path: p, content }),
+    insertAtCursor: (text) => ipcRenderer.send('insert-content', text),
   },
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
