@@ -1,5 +1,76 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.9.0 (2026-09-14)
+
+### New: Visual Flow Chart Editor (Sidebar panel → "Flow Chart")
+- Pure `flowchart-store.js` — graph data store with bounded undo/redo (depth 50)
+  and injectable persistence IO (testable without touching the filesystem)
+- 5 node shapes (process, decision, terminator, subroutine, document) × 3 edge
+  kinds (solid, dotted, thick) with full keyboard accessibility
+- Hand-rolled SVG canvas: drag nodes, double-click to edit labels, Alt+drag from
+  a node edge to wire connections, in-place label editing, delete + backspace
+  to remove the selection
+- `flowchart-shapes.js` — pure SVG path templates (no DOM, fully unit-tested)
+- `flowchart-mermaid.js` — translates the graph to Mermaid `flowchart TD` source
+  that renders identically in the preview pane
+- Sidebar panel `src/sidebar/flowchart-panel.js` with debounced preview (250 ms),
+  debounced persistence (500 ms), and Ctrl+Z / Ctrl+Shift+Z / Delete / Backspace
+  shortcuts
+- 3 thin IPC channels (`get-user-data-path`, `read-text-file`, `write-text-file`)
+  sandboxed to `app.getPath('userData')` via path validation
+- Auto-save to `<userData>/flowchart-session.json`; restores on reopen
+- Rail button in the sidebar; toggle the panel with `Ctrl+Alt+F`
+- Insert-at-Cursor wraps the generated Mermaid in a fenced ` ```mermaid ` block
+  at the current cursor position in the active editor tab
+- 73 new tests
+
+### New: ASCII Art Generator upgrade
+- Pure `AsciiArt` orchestrator (`generate / listFonts / getFontMeta`) unifying
+  hand-coded fonts + figlet + 19 named templates behind one API
+- 17 hand-coded font tables extracted from inline renderer code (5 existing +
+  12 new: Big, Small, Lean, Slant, Isometric1-4, 3-D, 3x5, ANSI Shadow, Calvin S)
+- 19 named ASCII templates (arrows, flowcharts, banners, frames)
+- `figlet@^1.8.0` dep with lazy-load + cache adapter (≥328 bundled fonts; pure
+  JS, no native bindings)
+- 6 IPC handlers: `ascii:generate / list-fonts / get-font-meta / save / copy /
+  last-font`
+- Standalone window rewrite: removed the ~385-line inline script; added a
+  searchable font picker, Copy to Clipboard, and Save to File
+- Major cleanup: -1029 net lines of dead code (the in-app modal
+  `#ascii-art-dialog`, the 800-line renderer controller, the
+  `show-ascii-generator*` preload channels, and the obsolete
+  `textToASCII`/`createASCIIBox`/etc. helpers)
+- 97 new tests
+
+### New: Editor Theme Registry (extension)
+- 12 new themes added: Catppuccin Latte / Frappé / Macchiato / Mocha, One Light,
+  Tokyo Night Storm, Synthwave '84, Outrun, Winter is Coming (Light + Dark),
+  Solarized Dark High Contrast, Spring Light
+- Total: 37 themes (15 light + 22 dark incl. 1 high-contrast), sorted into
+  Light / Dark / High-Contrast tables in the README
+- Pure `ThemeRegistry` module; the View menu generator now reads
+  `list() + categories()`; new per-theme CSS files live at
+  `src/styles/themes/<id>.css`
+- `<link disabled>` preload + `<link>` toggle pattern (sub-millisecond theme
+  switch — no flash, no re-fetch)
+- Aria-friendly: the high-contrast option is announced to assistive tech
+
+### Bug fixes
+- Plan 3: rail button tooltip `Ctrl+Alt+F` now actually wired (the shortcut
+  existed but the panel toggle was missing)
+- Plan 3: `destroy()` cleanup on panel unmount — timers, listeners, and the
+  store subscription are all released (no leaks when toggling repeatedly)
+- Plan 2: standalone window `<script src>` path corrected (was escaping `src/`)
+- Plan 2: font substitutions reverted — `Isometric1-4` and `Calvin S` are
+  actually restored from figlet's bundled fonts
+
+### Housekeeping
+- 1093 tests passing across 36 snapshots in 90 suites
+- Lint + Prettier clean across all 3 plans
+- Linux build verified end-to-end (AppImage + deb + snap produced)
+
+---
+
 ## Version 4.7.1 (2026-09-05)
 
 ### New: Export Themes (Word + PDF)
