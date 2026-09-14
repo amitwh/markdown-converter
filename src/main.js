@@ -1543,6 +1543,30 @@ function createMenu() {
           click: () => openQuickNoteWindow(),
         },
         {
+          // Daily journal: opens (or creates) today's YYYY-MM-DD.md and
+          // loads it in the existing tab. Global Ctrl+Alt+D works even
+          // when the app is unfocused.
+          label: "Today's Daily Note",
+          accelerator: 'CmdOrCtrl+Alt+D',
+          click: () => {
+            try {
+              const result = DailyNotes.openOrCreate({
+                date: new Date(),
+                dir: dailyNotesDir(),
+                templateDir: dailyNotesTemplateDir(),
+                fs,
+                pathUtil: path,
+                now: new Date(),
+              });
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('file-opened', { filePath: result.path });
+              }
+            } catch (err) {
+              console.warn('[daily-notes] menu open failed:', err && err.message);
+            }
+          },
+        },
+        {
           label: 'Document Compare',
           click: () => mainWindow.webContents.send('show-document-compare'),
         },
