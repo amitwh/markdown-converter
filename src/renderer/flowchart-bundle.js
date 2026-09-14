@@ -1,5 +1,5 @@
 /**
- * v4.9.8 — Bundled single-file Flowchart Generator loader.
+ * v4.9.9 — Bundled single-file Flowchart Generator loader.
  *
  * Inlines the four pure modules (flowchart-shapes / flowchart-mermaid /
  * flowchart-store / flowchart-canvas) plus the renderer controller
@@ -19,6 +19,11 @@
  *            brute-force bundle everything into one self-contained file. No
  *            cross-file script ordering, no UMD wrapper, no `require()`. The
  *            standalone window now has exactly one script dependency.
+ *   v4.9.9 — Electron renderer contexts disable `window.prompt` and
+ *            `window.confirm`, so shape change / edge kind / edge label /
+ *            reset confirmation did nothing. Replaced with `promptInline`
+ *            and `confirmInline` (custom DOM-overlay modals). Exposed as
+ *            `window.FlowchartModals` for jsdom tests.
  *
  * The legacy individual files under src/flowchart/* and
  * src/renderer/flowchart-controller.js are kept untouched — the
@@ -814,6 +819,218 @@
     }, PERSIST_DEBOUNCE_MS);
   }
 
+  // ========== Inline modal dialog (replacement for window.prompt/confirm) ==========
+  // v4.9.9 — window.prompt and window.confirm are disabled in Electron
+  // renderer contexts (the BrowserWindow of a BrowserView/WebContentsView
+  // returns undefined when called). Build minimal modal interactions on top
+  // of plain DOM nodes. Resolves with the entered string (or null on
+  // cancel/Esc/backdrop-click) for promptInline, and with a boolean for
+  // confirmInline.
+  function promptInline({ title, message, defaultValue = '', kind = 'text' }) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      Object.assign(overlay.style, {
+        position: 'fixed',
+        inset: '0',
+        background: 'rgba(0,0,0,0.45)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 99999,
+      });
+      const box = document.createElement('div');
+      Object.assign(box.style, {
+        background: '#ffffff',
+        color: '#1f2328',
+        border: '1px solid #d0d7de',
+        borderRadius: '8px',
+        padding: '20px 24px',
+        minWidth: '320px',
+        maxWidth: '480px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+        fontFamily: 'system-ui, sans-serif',
+      });
+      if (title) {
+        const h = document.createElement('div');
+        h.textContent = title;
+        Object.assign(h.style, { fontSize: '14px', fontWeight: '600', marginBottom: '12px' });
+        box.appendChild(h);
+      }
+      if (message) {
+        const m = document.createElement('div');
+        m.textContent = message;
+        Object.assign(m.style, {
+          fontSize: '12px',
+          color: '#57606a',
+          marginBottom: '12px',
+          whiteSpace: 'pre-wrap',
+        });
+        box.appendChild(m);
+      }
+      const input = document.createElement('input');
+      input.type = kind === 'number' ? 'number' : 'text';
+      input.value = defaultValue;
+      Object.assign(input.style, {
+        width: '100%',
+        padding: '8px 10px',
+        fontSize: '13px',
+        border: '1px solid #d0d7de',
+        borderRadius: '4px',
+        boxSizing: 'border-box',
+      });
+      box.appendChild(input);
+
+      const buttons = document.createElement('div');
+      Object.assign(buttons.style, {
+        marginTop: '14px',
+        display: 'flex',
+        gap: '8px',
+        justifyContent: 'flex-end',
+      });
+      const ok = document.createElement('button');
+      ok.textContent = 'OK';
+      Object.assign(ok.style, {
+        padding: '6px 14px',
+        border: 'none',
+        borderRadius: '4px',
+        background: '#1f883d',
+        color: '#ffffff',
+        fontSize: '13px',
+        cursor: 'pointer',
+      });
+      const cancel = document.createElement('button');
+      cancel.textContent = 'Cancel';
+      Object.assign(cancel.style, {
+        padding: '6px 14px',
+        border: '1px solid #d0d7de',
+        borderRadius: '4px',
+        background: '#f6f8fa',
+        color: '#1f2328',
+        fontSize: '13px',
+        cursor: 'pointer',
+      });
+      buttons.appendChild(cancel);
+      buttons.appendChild(ok);
+      box.appendChild(buttons);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      let resolved = false;
+      const cleanup = (val) => {
+        if (resolved) return;
+        resolved = true;
+        document.body.removeChild(overlay);
+        resolve(val);
+      };
+      ok.addEventListener('click', () => cleanup(input.value || null));
+      cancel.addEventListener('click', () => cleanup(null));
+      overlay.addEventListener('click', (ev) => {
+        if (ev.target === overlay) cleanup(null);
+      });
+      input.addEventListener('keydown', (kev) => {
+        if (kev.key === 'Enter') cleanup(input.value || null);
+        if (kev.key === 'Escape') cleanup(null);
+      });
+      setTimeout(() => input.focus(), 0);
+    });
+  }
+
+  function confirmInline({ title, message, danger = false }) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      Object.assign(overlay.style, {
+        position: 'fixed',
+        inset: '0',
+        background: 'rgba(0,0,0,0.45)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 99999,
+      });
+      const box = document.createElement('div');
+      Object.assign(box.style, {
+        background: '#ffffff',
+        color: '#1f2328',
+        border: '1px solid #d0d7de',
+        borderRadius: '8px',
+        padding: '20px 24px',
+        minWidth: '320px',
+        maxWidth: '480px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+        fontFamily: 'system-ui, sans-serif',
+      });
+      if (title) {
+        const h = document.createElement('div');
+        h.textContent = title;
+        Object.assign(h.style, { fontSize: '14px', fontWeight: '600', marginBottom: '12px' });
+        box.appendChild(h);
+      }
+      if (message) {
+        const m = document.createElement('div');
+        m.textContent = message;
+        Object.assign(m.style, {
+          fontSize: '13px',
+          color: '#1f2328',
+          marginBottom: '14px',
+          whiteSpace: 'pre-wrap',
+        });
+        box.appendChild(m);
+      }
+      const buttons = document.createElement('div');
+      Object.assign(buttons.style, { display: 'flex', gap: '8px', justifyContent: 'flex-end' });
+      const ok = document.createElement('button');
+      ok.textContent = danger ? 'Delete' : 'OK';
+      Object.assign(ok.style, {
+        padding: '6px 14px',
+        border: 'none',
+        borderRadius: '4px',
+        background: danger ? '#cf222e' : '#1f883d',
+        color: '#ffffff',
+        fontSize: '13px',
+        cursor: 'pointer',
+      });
+      const cancel = document.createElement('button');
+      cancel.textContent = 'Cancel';
+      Object.assign(cancel.style, {
+        padding: '6px 14px',
+        border: '1px solid #d0d7de',
+        borderRadius: '4px',
+        background: '#f6f8fa',
+        color: '#1f2328',
+        fontSize: '13px',
+        cursor: 'pointer',
+      });
+      buttons.appendChild(cancel);
+      buttons.appendChild(ok);
+      box.appendChild(buttons);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      let resolved = false;
+      const cleanup = (val) => {
+        if (resolved) return;
+        resolved = true;
+        document.body.removeChild(overlay);
+        resolve(val);
+      };
+      ok.addEventListener('click', () => cleanup(true));
+      cancel.addEventListener('click', () => cleanup(false));
+      overlay.addEventListener('click', (ev) => {
+        if (ev.target === overlay) cleanup(false);
+      });
+      document.addEventListener('keydown', function onKey(ev) {
+        if (ev.key === 'Enter') {
+          cleanup(true);
+          document.removeEventListener('keydown', onKey);
+        }
+        if (ev.key === 'Escape') {
+          cleanup(false);
+          document.removeEventListener('keydown', onKey);
+        }
+      });
+    });
+  }
+
   async function bootstrap() {
     // Resolve the userData path ONCE on mount. The persistence path is
     // interpolated into a string on every read/write; calling the async
@@ -836,14 +1053,22 @@
     });
 
     _canvas = createCanvas(els.canvasHost, _store, {
-      onEdgeClick: (edgeId) => {
+      onEdgeClick: async (edgeId) => {
         const edge = _store.getGraph().edges.find((e) => e.id === edgeId);
         if (!edge) return;
-        const nextKind = window.prompt('Edge kind (solid, dotted, thick):', edge.kind);
+        const nextKind = await promptInline({
+          title: 'Edge kind',
+          message: 'Enter the new edge kind for this connection.',
+          defaultValue: edge.kind,
+        });
         if (nextKind && ['solid', 'dotted', 'thick'].includes(nextKind)) {
           _store.setEdgeKind(edgeId, nextKind);
         }
-        const nextLabel = window.prompt('Edge label (empty to clear):', edge.label || '');
+        const nextLabel = await promptInline({
+          title: 'Edge label',
+          message: 'Enter a label for this edge (leave blank to clear).',
+          defaultValue: edge.label || '',
+        });
         if (nextLabel !== null) {
           _store.setEdgeLabel(edgeId, nextLabel);
         }
@@ -852,10 +1077,11 @@
         // Canvas already paints the .selected highlight; nothing else
         // needed here for selection state.
       },
-      onShapeMenu: (nodeId) => {
-        const next = window.prompt(
-          'New shape (process, decision, terminator, subroutine, document):'
-        );
+      onShapeMenu: async (nodeId) => {
+        const next = await promptInline({
+          title: 'Change shape',
+          message: 'New shape (process, decision, terminator, subroutine, document):',
+        });
         if (next) _store.setNodeKind(nodeId, next);
       },
     });
@@ -884,9 +1110,14 @@
     }
 
     if (els.btnReset) {
-      els.btnReset.addEventListener('click', () => {
+      els.btnReset.addEventListener('click', async () => {
         if (!_store) return;
-        if (!window.confirm('Clear all nodes and edges?')) return;
+        const ok = await confirmInline({
+          title: 'Reset diagram',
+          message: 'Clear all nodes and edges? This cannot be undone.',
+          danger: true,
+        });
+        if (!ok) return;
         _store.deserialize({ nodes: [], edges: [] });
         setStatus('Reset');
       });
@@ -944,6 +1175,11 @@
       return _canvas;
     },
   };
+
+  // Expose the inline modal helpers (v4.9.9) so jsdom tests can drive them
+  // directly without rebuilding the bundle's IIFE. Production code accesses
+  // these by closure; this handle exists purely for unit tests.
+  window.FlowchartModals = { promptInline, confirmInline };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootstrap);

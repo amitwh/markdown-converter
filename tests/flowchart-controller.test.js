@@ -81,6 +81,7 @@ afterEach(() => {
   delete window.FlowchartMermaid;
   delete window.FlowchartStore;
   delete window.FlowchartCanvas;
+  delete window.FlowchartModals;
 });
 
 describe('flowchart-generator.html — stylesheet links', () => {
@@ -232,5 +233,129 @@ describe('flowchart pure modules — UMD browser-global assignment (v4.9.7)', ()
   test.each(cases)('%s assigns window.%s = exported', (rel, globalName) => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'src', rel), 'utf-8');
     expect(src).toMatch(new RegExp(`window\\.${globalName}\\s*=\\s*exported`));
+  });
+});
+
+// v4.9.9 — Electron renderer contexts disable `window.prompt` and
+// `window.confirm` (the BrowserWindow returns undefined when called),
+// which broke shape change / edge kind / edge label / reset confirm in
+// the standalone Flowchart Generator window. The bundle now ships
+// `promptInline` and `confirmInline` (custom DOM overlay modals) and
+// exposes them as `window.FlowchartModals` for testing. These tests load
+// the real bundle into jsdom so we exercise the actual overlay code.
+describe('flowchart-bundle: inline modal helpers (v4.9.9)', () => {
+  const BUNDLE_PATH = path.join(__dirname, '..', 'src', 'renderer', 'flowchart-bundle.js');
+  const HTML_PATH_BUNDLE = path.join(__dirname, '..', 'src', 'flowchart-generator.html');
+
+  async function loadBundle() {
+    const html = fs.readFileSync(HTML_PATH_BUNDLE, 'utf-8');
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    document.body.innerHTML = bodyMatch ? bodyMatch[1] : html;
+    window.electronAPI = {
+      flowchart: {
+        getUserDataPath: jest.fn(async () => '/userdata'),
+        readFile: jest.fn(async () => null),
+        writeFile: jest.fn(async () => undefined),
+        insertAtCursor: jest.fn(),
+      },
+    };
+    const bundleSrc = fs.readFileSync(BUNDLE_PATH, 'utf-8');
+    // eslint-disable-next-line no-new-func
+    new Function('window', 'document', bundleSrc)(window, document);
+    // Flush microtasks so the bootstrap chain settles before tests run.
+    for (let i = 0; i < 5; i += 1) {
+      await Promise.resolve();
+    }
+  }
+
+  test('promptInline resolves with the entered value on OK click', async () => {
+    await loadBundle();
+    expect(typeof window.FlowchartModals.promptInline).toBe('function');
+    const promise = window.FlowchartModals.promptInline({
+      title: 'Edge kind',
+      message: 'Enter the new edge kind.',
+      defaultValue: 'solid',
+    });
+    const input = document.querySelector('input');
+    expect(input).not.toBeNull();
+    input.value = 'dotted';
+    const okButton = Array.from(document.querySelectorAll('button')).find(
+      (b) => b.textContent === 'OK'
+    );
+    expect(okButton).toBeDefined();
+    okButton.click();
+    await expect(promise).resolves.toBe('dotted');
+    expect(document.querySelector('input')).toBeNull();
+  });
+
+  test('promptInline resolves null on Cancel click', async () => {
+    await loadBundle();
+    const promise = window.FlowchartModals.promptInline({
+      title: 'Edge label',
+      message: 'Enter a label.',
+      defaultValue: '',
+    });
+    const cancelButton = Array.from(document.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Cancel'
+    );
+    expect(cancelButton).toBeDefined();
+    cancelButton.click();
+    await expect(promise).resolves.toBeNull();
+    expect(document.querySelector('input')).toBeNull();
+  });
+
+  test('promptInline resolves null on Escape key', async () => {
+    await loadBundle();
+    const promise = window.FlowchartModals.promptInline({
+      title: 'Edge kind',
+      defaultValue: 'solid',
+    });
+    const input = document.querySelector('input');
+    const ev = new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+    input.dispatchEvent(ev);
+    await expect(promise).resolves.toBeNull();
+  });
+
+  test('confirmInline resolves true on OK click', async () => {
+    await loadBundle();
+    const promise = window.FlowchartModals.confirmInline({
+      title: 'Reset diagram',
+      message: 'Clear all nodes and edges?',
+    });
+    const okButton = Array.from(document.querySelectorAll('button')).find(
+      (b) => b.textContent === 'OK'
+    );
+    expect(okButton).toBeDefined();
+    okButton.click();
+    await expect(promise).resolves.toBe(true);
+  });
+
+  test('confirmInline resolves false on Cancel click', async () => {
+    await loadBundle();
+    const promise = window.FlowchartModals.confirmInline({
+      title: 'Reset diagram',
+      message: 'Clear all nodes and edges?',
+    });
+    const cancelButton = Array.from(document.querySelectorAll('button')).find(
+      (b) => b.textContent === 'Cancel'
+    );
+    expect(cancelButton).toBeDefined();
+    cancelButton.click();
+    await expect(promise).resolves.toBe(false);
+  });
+
+  test('confirmInline with danger flag renders a Delete primary button', async () => {
+    await loadBundle();
+    const promise = window.FlowchartModals.confirmInline({
+      title: 'Reset diagram',
+      message: 'Clear all nodes and edges?',
+      danger: true,
+    });
+    const buttons = Array.from(document.querySelectorAll('button'));
+    const primary = buttons.find((b) => b.textContent === 'Delete');
+    expect(primary).toBeDefined();
+    expect(primary.style.background).toBe('rgb(207, 34, 46)');
+    primary.click();
+    await expect(promise).resolves.toBe(true);
   });
 });

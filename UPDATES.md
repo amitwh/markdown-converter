@@ -1,5 +1,12 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.9.9 (2026-09-15)
+
+### Fix
+- **Standalone Flowchart Generator window: replaced broken `window.prompt` / `window.confirm` with an inline DOM-modal dialog.** Electron renderer contexts (the BrowserWindow hosting the standalone window) return `undefined` when `window.prompt(...)` or `window.confirm(...)` is called — meaning every shape menu, edge-kind change, edge-label edit, and reset confirmation silently did nothing. The bundle now ships two helpers (`promptInline`, `confirmInline`) that build a small overlay with a styled title, message, OK / Cancel buttons, and Enter / Escape / backdrop-click handling. The four call sites (`onEdgeClick` for kind + label, `onShapeMenu`, and the Reset click handler) are now `async` and await the helpers.
+- New `window.FlowchartModals = { promptInline, confirmInline }` export on the bundle so jsdom tests can drive the modals directly without rebuilding the IIFE.
+- 6 new tests in `tests/flowchart-controller.test.js` — OK / Cancel / Escape resolution paths for `promptInline`, OK / Cancel for `confirmInline`, and the `danger` flag renders a red "Delete" primary button.
+
 ## Version 4.9.8 (2026-09-15)
 
 ### Fix
