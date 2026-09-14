@@ -291,3 +291,198 @@ describe('flowchart-panel: keyboard shortcuts', () => {
     expect(store.getGraph().nodes).toHaveLength(0);
   });
 });
+
+describe('flowchart-panel: selection wiring (canvas click → panel state + SVG class)', () => {
+  // Match the SVG viewBox (1000x700) so client→svg mapping is 1:1 for the
+  // canvas's getSvgPoint. Mirrors the layout prime in
+  // tests/flowchart-canvas.test.js — duplicated here so the panel tests
+  // stay self-contained.
+  function primeCanvasLayout(container, nodes) {
+    const svg = container.querySelector('svg.flowchart-canvas');
+    if (!svg) return;
+    svg.getBoundingClientRect = () => ({
+      x: 0,
+      y: 0,
+      width: 1000,
+      height: 700,
+      top: 0,
+      left: 0,
+      bottom: 700,
+      right: 1000,
+    });
+    for (const n of nodes) {
+      const g = container.querySelector(`g[data-node-id="${n.id}"]`);
+      if (!g) continue;
+      g.getBoundingClientRect = () => ({
+        x: n.x,
+        y: n.y,
+        width: 80,
+        height: 40,
+        top: n.y,
+        left: n.x,
+        bottom: n.y + 40,
+        right: n.x + 80,
+      });
+    }
+  }
+  function dispatch(target, type, opts) {
+    const ev = new Event(type, { bubbles: true, cancelable: true });
+    Object.assign(ev, opts || {});
+    target.dispatchEvent(ev);
+  }
+
+  test('clicking a node applies .selected class to the matching SVG <g>', () => {
+    const { container, api } = mount();
+    const store = api.getStore();
+    const a = store.addNode({ kind: 'process', x: 100, y: 100, label: 'A' });
+    const b = store.addNode({ kind: 'process', x: 400, y: 100, label: 'B' });
+    primeCanvasLayout(container, [
+      { id: a.id, x: 100, y: 100 },
+      { id: b.id, x: 400, y: 100 },
+    ]);
+    const nodeA = container.querySelector(`g[data-node-id="${a.id}"]`);
+    // jsdom doesn't carry CSSOM class assertions from stylesheets — assert
+    // on the SVG `class` attribute, which is what render() writes.
+    expect(nodeA.getAttribute('class')).not.toMatch(/selected/);
+
+    dispatch(nodeA, 'pointerdown', { clientX: 120, clientY: 110, pointerId: 1 });
+
+    const updated = container.querySelector(`g[data-node-id="${a.id}"]`);
+    expect(updated.getAttribute('class')).toMatch(/selected/);
+    // The other node must remain un-selected.
+    const other = container.querySelector(`g[data-node-id="${b.id}"]`);
+    expect(other.getAttribute('class')).not.toMatch(/selected/);
+  });
+
+  test('clicking a second node moves .selected from the first to the second', () => {
+    const { container, api } = mount();
+    const store = api.getStore();
+    const a = store.addNode({ kind: 'process', x: 100, y: 100, label: 'A' });
+    const b = store.addNode({ kind: 'process', x: 400, y: 100, label: 'B' });
+    primeCanvasLayout(container, [
+      { id: a.id, x: 100, y: 100 },
+      { id: b.id, x: 400, y: 100 },
+    ]);
+    const nodeA = container.querySelector(`g[data-node-id="${a.id}"]`);
+    // Click A.
+    dispatch(nodeA, 'pointerdown', { clientX: 120, clientY: 110, pointerId: 1 });
+    // SVG elements are replaced on each render() — re-query, then assert.
+    const afterA = container.querySelector(`g[data-node-id="${a.id}"]`);
+    const otherAfterA = container.querySelector(`g[data-node-id="${b.id}"]`);
+    expect(afterA.getAttribute('class')).toMatch(/selected/);
+    expect(otherAfterA.getAttribute('class')).not.toMatch(/selected/);
+
+    // Re-prime the layout for the new B element (old one is detached) and
+    // click B by re-querying it before dispatching.
+    const freshB = container.querySelector(`g[data-node-id="${b.id}"]`);
+    primeCanvasLayout(container, [{ id: b.id, x: 400, y: 100 }]);
+    dispatch(freshB, 'pointerdown', { clientX: 420, clientY: 110, pointerId: 1 });
+    const newA = container.querySelector(`g[data-node-id="${a.id}"]`);
+    const newB = container.querySelector(`g[data-node-id="${b.id}"]`);
+    expect(newA.getAttribute('class')).not.toMatch(/selected/);
+    expect(newB.getAttribute('class')).toMatch(/selected/);
+  });
+
+  test('clicking an edge applies .selected class to the matching SVG <line>', () => {
+    const { container, api } = mount();
+    const store = api.getStore();
+    const a = store.addNode({ kind: 'process', x: 100, y: 100, label: 'A' });
+    const b = store.addNode({ kind: 'process', x: 400, y: 100, label: 'B' });
+    const e = store.connect(a.id, b.id, 'solid');
+    primeCanvasLayout(container, [
+      { id: a.id, x: 100, y: 100 },
+      { id: b.id, x: 400, y: 100 },
+    ]);
+    const edgeLine = container.querySelector(`line[data-edge-id="${e.id}"]`);
+    expect(edgeLine.getAttribute('class')).not.toMatch(/selected/);
+
+    // The panel's onEdgeClick handler calls window.prompt — replace it
+    // with a no-op jest.fn so the test doesn't hang or throw in jsdom.
+    window.prompt = jest.fn().mockReturnValue(null);
+    dispatch(edgeLine, 'pointerdown', { clientX: 280, clientY: 120, pointerId: 1 });
+
+    const updated = container.querySelector(`line[data-edge-id="${e.id}"]`);
+    expect(updated.getAttribute('class')).toMatch(/selected/);
+  });
+
+  test('clicking a node populates panel selection state so Delete removes it', () => {
+    // Regression: v4.9.3 left the panel's `selectedNodeId` untouched on a
+    // canvas click — only programmatic selectNode() worked. The result was
+    // Delete/Backspace silently no-op'ing on a freshly-clicked node.
+    const { container, api } = mount();
+    const store = api.getStore();
+    const a = store.addNode({ kind: 'process', x: 100, y: 100, label: 'A' });
+    primeCanvasLayout(container, [{ id: a.id, x: 100, y: 100 }]);
+    const nodeA = container.querySelector(`g[data-node-id="${a.id}"]`);
+    dispatch(nodeA, 'pointerdown', { clientX: 120, clientY: 110, pointerId: 1 });
+
+    expect(store.getGraph().nodes).toHaveLength(1);
+    container.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+    expect(store.getGraph().nodes).toHaveLength(0);
+  });
+});
+
+describe('flowchart-panel: maximize / takeover', () => {
+  // Wrap the panel container in a fake `.main-content` so the takeover's
+  // findMainContent() walker can locate it. Mirrors the real DOM layout in
+  // src/index.html where `.sidebar-panel-content` lives inside `.sidebar`,
+  // which lives inside `.main-content`.
+  function mountWithMainContent(deps = {}) {
+    const mainContent = document.createElement('div');
+    mainContent.className = 'main-content';
+    const sidebar = document.createElement('div');
+    sidebar.className = 'sidebar';
+    const panelContent = document.createElement('div');
+    panelContent.className = 'sidebar-panel-content';
+    panelContent.id = 'sidebar-panel-content';
+    mainContent.appendChild(sidebar);
+    sidebar.appendChild(panelContent);
+    document.body.appendChild(mainContent);
+    const api = renderFlowChartPanel(panelContent, {
+      getUserDataPath: deps.getUserDataPath || (() => '/tmp/userdata'),
+      readFile: deps.readFile || jest.fn().mockResolvedValue(null),
+      writeFile: deps.writeFile || jest.fn().mockResolvedValue(undefined),
+      insertAtCursor: deps.insertAtCursor || jest.fn(),
+      renderMermaid: deps.renderMermaid || jest.fn(),
+      ...deps,
+    });
+    return { mainContent, container: panelContent, api };
+  }
+
+  test('mount exposes a maximize button in the toolbar', () => {
+    const { container } = mountWithMainContent();
+    const btn = container.querySelector('.flowchart-maximize-btn');
+    expect(btn).not.toBeNull();
+    expect(btn.textContent).toMatch(/Maximize/);
+  });
+
+  test('clicking maximize toggles flowchart-takeover on .main-content', () => {
+    const { mainContent, container } = mountWithMainContent();
+    const btn = container.querySelector('.flowchart-maximize-btn');
+    expect(mainContent.classList.contains('flowchart-takeover')).toBe(false);
+
+    btn.click();
+    expect(mainContent.classList.contains('flowchart-takeover')).toBe(true);
+    // Button label flips to "Restore" so the user knows a second click
+    // reverses the action.
+    expect(btn.textContent).toMatch(/Restore/);
+    expect(btn.classList.contains('active')).toBe(true);
+
+    btn.click();
+    expect(mainContent.classList.contains('flowchart-takeover')).toBe(false);
+    expect(btn.textContent).toMatch(/Maximize/);
+    expect(btn.classList.contains('active')).toBe(false);
+  });
+
+  test('destroy() clears the takeover class so the editor stays usable', () => {
+    // Regression guard: if destroy() doesn't clear the takeover class,
+    // switching panels (or closing the flowchart panel) leaves the editor
+    // hidden for the rest of the session — a bad surprise.
+    const { mainContent, container, api } = mountWithMainContent();
+    const btn = container.querySelector('.flowchart-maximize-btn');
+    btn.click();
+    expect(mainContent.classList.contains('flowchart-takeover')).toBe(true);
+    api.destroy();
+    expect(mainContent.classList.contains('flowchart-takeover')).toBe(false);
+  });
+});

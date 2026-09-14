@@ -1,5 +1,22 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.9.4 (2026-09-14)
+
+### Fixes
+- **Flowchart Panel — selection was invisible**: clicking a node or edge updated the canvas's internal `selectedNodeId` / `selectedEdgeId` but never repainted, so the `.flowchart-node.selected` / `.flowchart-edge.selected` CSS highlight only appeared when the user actually dragged (which triggers `store.subscribe` → `render()`). A bare click left the canvas looking unchanged, and the panel's own `selectedNodeId` (used by the panel-scoped Delete/Backspace shortcut) stayed `null`, so Delete on a freshly-clicked node silently no-op'd. Wired `opts.onNodeClick(id)` end-to-end:
+  - `src/flowchart/flowchart-canvas.js` — added an `opts.onNodeClick` callback parallel to the existing `opts.onEdgeClick`; on click, both branches now call a new surgical `applySelectionHighlight()` that toggles the `.selected` class on the existing `<g data-node-id>` / `<line data-edge-id>` elements without going through `render()` (which would detach the very element the user's pointer is still on, breaking `pointermove`/`pointerup` bubbling during a drag).
+  - `src/sidebar/flowchart-panel.js` — the panel's `onNodeClick` handler mirrors the id into the panel's `selectedNodeId` (clearing `selectedEdgeId`) so Delete/Backspace routes correctly. Same symmetry was already in place for `onEdgeClick`.
+- **Flowchart Panel — narrow sidebar cramped the canvas + preview**: the panel lives in the 280 px sidebar, which split the canvas vs. preview to ~175 px each — too tight to edit a flowchart. Added a "Maximize / Restore" button to the panel toolbar (between the status text and the right edge). Clicking it toggles a `flowchart-takeover` class on `.main-content`:
+  - `src/styles-sidebar.css` — new `.main-content.flowchart-takeover` rules hide `.editor-container` (`display: none`) and let `.sidebar` / `.sidebar-panel` grow with `flex: 1` so the canvas + preview split the full window width instead of the 280 px sidebar.
+  - The button label flips between "Maximize" and "Restore", `aria-label` and `title` update, and the button gets an `.active` highlight while takeover is on. `destroy()` clears the class so leaving the panel doesn't leave the editor hidden for the rest of the session.
+  - The class lookup walks up from the panel container to the nearest `.main-content` ancestor (with a `document.querySelector('.main-content')` fallback) so the panel doesn't need to know whether the sidebar lives inside `#sidebar` or any future container.
+
+### Tests
+- `tests/flowchart-panel.test.js` — added two new `describe` blocks (8 tests total):
+  - "selection wiring (canvas click → panel state + SVG class)": clicking a node applies `.selected` to the matching `<g>`, clicking a second node moves `.selected` from the first to the second, clicking an edge applies `.selected` to the matching `<line>`, and a regression test verifying Delete removes a freshly-clicked node (was broken in v4.9.3 because the panel's `selectedNodeId` was never updated by canvas clicks).
+  - "maximize / takeover": the maximize button is exposed in the toolbar, clicking it toggles `.flowchart-takeover` on `.main-content` and flips the button label/active class, and `destroy()` clears the class so the editor stays usable.
+- New `mountWithMainContent()` helper wraps the panel container in a fake `.main-content` (mirroring the real DOM layout in `src/index.html:2341`) so the takeover's class-toggling is observable from the test.
+
 ## Version 4.9.3 (2026-09-14)
 
 ### Fixes

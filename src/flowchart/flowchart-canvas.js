@@ -131,6 +131,28 @@ function createCanvas(container, store, opts = {}) {
     }
   }
 
+  // Surgical selection highlight — toggles the `.selected` class on the
+  // existing SVG <g> / <line> elements without going through render() (which
+  // replaces all children and would detach the very element the user's
+  // pointer is still on, breaking pointermove/pointerup bubbling on the
+  // same node during a drag). Called from onPointerDown after the internal
+  // selectedNodeId/selectedEdgeId update. The existing
+  // .flowchart-node.selected / .flowchart-edge.selected CSS rules (see
+  // src/styles-sidebar.css) handle the visual highlight.
+  function applySelectionHighlight() {
+    if (destroyed) return;
+    const nodeEls = nodesLayer.querySelectorAll('g[data-node-id]');
+    nodeEls.forEach((g) => {
+      const id = g.getAttribute('data-node-id');
+      g.classList.toggle('selected', id === selectedNodeId);
+    });
+    const edgeEls = edgesLayer.querySelectorAll('line[data-edge-id]');
+    edgeEls.forEach((l) => {
+      const id = l.getAttribute('data-edge-id');
+      l.classList.toggle('selected', id === selectedEdgeId);
+    });
+  }
+
   // ----- pointer events -----
   let dragState = null;
 
@@ -152,6 +174,13 @@ function createCanvas(container, store, opts = {}) {
       if (!node) return;
       selectedNodeId = nodeId;
       selectedEdgeId = null;
+      // Paint the .flowchart-node.selected highlight immediately on a bare
+      // click (without a drag). store.subscribe would normally trigger
+      // render() after moveNode; a click-only path has no store mutation, so
+      // we apply the highlight ourselves. Surgical toggle — not a full
+      // render() — so the pointerdown target stays attached and subsequent
+      // pointermove/pointerup can still bubble on the same element.
+      applySelectionHighlight();
       const start = getSvgPoint(ev.clientX, ev.clientY);
       if (ev.altKey) {
         // Alt+drag = create a new edge from this node to wherever the pointer
@@ -167,6 +196,11 @@ function createCanvas(container, store, opts = {}) {
           pointerY: start.y,
         };
       }
+      // Notify the panel so its internal selection state (used by Delete /
+      // Backspace keyboard shortcuts) tracks the canvas selection.
+      if (typeof opts.onNodeClick === 'function') {
+        opts.onNodeClick(nodeId, ev);
+      }
       ev.preventDefault();
       return;
     }
@@ -174,6 +208,10 @@ function createCanvas(container, store, opts = {}) {
     if (edgeLine) {
       selectedEdgeId = edgeLine.getAttribute('data-edge-id');
       selectedNodeId = null;
+      // Same reasoning as the node branch above: paint the edge highlight
+      // immediately so a click-without-drag isn't invisible until the next
+      // store mutation triggers a re-render.
+      applySelectionHighlight();
       if (typeof opts.onEdgeClick === 'function') {
         opts.onEdgeClick(selectedEdgeId, ev);
       }

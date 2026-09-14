@@ -1111,3 +1111,66 @@ body[class*='dark'] .preview-content a.wiki-link {
   color: inherit;
   z-index: 100;
 }
+
+/* Takeover mode — the Flow Chart panel promotes itself to fill the main
+ * area, hiding the editor-container so the canvas + preview split the full
+ * window width instead of the 280px sidebar. Toggled by the maximize
+ * button in src/sidebar/flowchart-panel.js (adds/removes
+ * `.flowchart-takeover` on `.main-content`). Restore on second click or on
+ * panel destroy(). */
+.main-content.flowchart-takeover .editor-container {
+  display: none;
+}
+.main-content.flowchart-takeover .sidebar {
+  width: auto;
+  flex: 1;
+}
+.main-content.flowchart-takeover .sidebar:not(.collapsed) {
+  /* The takeover is only meaningful with the flowchart panel open, so the
+   * 48px collapsed-state width doesn't apply. Force the wide layout. */
+  width: auto;
+}
+.main-content.flowchart-takeover .sidebar-panel {
+  flex: 1;
+  width: auto;
+}
+.main-content.flowchart-takeover .sidebar-panel-content {
+  padding: 0;
+}
+/* The panel itself should fill the panel-content column instead of being
+ * constrained by the normal 12px padding-block flow. */
+.main-content.flowchart-takeover .flowchart-panel {
+  height: 100%;
+}
+
+/* Maximize button — small icon+label pill in the panel toolbar. */
+.flowchart-maximize-btn {
+  margin-left: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color, #444);
+  background: var(--bg-primary, #fff);
+  color: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.flowchart-maximize-btn:hover {
+  border-color: var(--accent, #4a9eff);
+  color: var(--accent, #4a9eff);
+}
+.flowchart-maximize-btn:focus-visible {
+  outline: 2px solid var(--accent, #4a9eff);
+  outline-offset: 2px;
+}
+.flowchart-maximize-btn.active {
+  background: var(--accent, #4a9eff);
+  border-color: var(--accent, #4a9eff);
+  color: var(--accent-fg, #fff);
+}
+.flowchart-maximize-icon {
+  font-size: 14px;
+  line-height: 1;
+}
