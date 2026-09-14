@@ -3912,6 +3912,7 @@ const DailyNotes = require('./main/DailyNotes');
 const DailyNotesTemplates = require('./main/DailyNotesTemplates');
 const WorkspaceSearch = require('./main/WorkspaceSearch');
 const DocQA = require('./main/DocQA');
+const AsciiArt = require('./main/AsciiArt');
 const SemanticEngine = require('./main/SemanticEngine');
 const UrlTitle = require('./main/UrlTitle');
 
@@ -5840,6 +5841,52 @@ ipcMain.handle(
     return DocQA.ask({ question, files: corpus, topK, engine });
   }
 );
+
+// ============================================
+// ASCII Art Generator (standalone window)
+// ============================================
+// Renders text banners, boxes, and templates via the pure AsciiArt module.
+// Font list is requested once on renderer mount. Save-to-file uses the
+// active window as the parent of the save dialog. Last-used font is
+// persisted to <userData>/settings.json via the JSON store helper.
+
+ipcMain.handle('ascii:list-fonts', () => AsciiArt.listFonts());
+
+ipcMain.handle('ascii:get-font-meta', (_event, id) => AsciiArt.getFontMeta(id));
+
+ipcMain.handle('ascii:generate', (_event, { text, font, options } = {}) => {
+  return AsciiArt.generate({ text, font, options });
+});
+
+ipcMain.handle('ascii:copy', (_event, text) => {
+  const { clipboard } = require('electron');
+  clipboard.writeText(typeof text === 'string' ? text : '');
+  return true;
+});
+
+ipcMain.handle('ascii:save', async (event, { text, defaultName } = {}) => {
+  const { dialog } = require('electron');
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showSaveDialog(win || undefined, {
+    title: 'Save ASCII Art',
+    defaultPath: typeof defaultName === 'string' && defaultName ? defaultName : 'ascii-art.txt',
+    filters: [
+      { name: 'Text', extensions: ['txt'] },
+      { name: 'All', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled || !result.filePath) return { canceled: true };
+  await require('fs').promises.writeFile(result.filePath, text ?? '', 'utf-8');
+  return { canceled: false, path: result.filePath };
+});
+
+ipcMain.handle('ascii:last-font', (_event, { font } = {}) => {
+  if (typeof font === 'string') {
+    store.set('ascii:lastFont', font);
+    return font;
+  }
+  return store.get('ascii:lastFont', null);
+});
 
 // ================================
 // Smart-paste: URL → page title
