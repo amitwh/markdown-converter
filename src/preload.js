@@ -191,6 +191,12 @@ const ALLOWED_SEND_CHANNELS = [
   'daily-notes:open-today',
   'daily-notes:list',
 
+  // Daily-note template gallery
+  'daily-templates:list',
+  'daily-templates:save',
+  'daily-templates:delete',
+  'daily-templates:apply',
+
   // Workspace content search (tag/wikilink-aware)
   'workspace-search:query',
 

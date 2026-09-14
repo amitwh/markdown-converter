@@ -2263,6 +2263,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         onOpenFile: (filePath) => ipcRenderer.send('open-file-path', { path: filePath }),
       }),
   });
+
+  // Daily-note template gallery — list / create / apply / delete the .md
+  // templates in <userData>/notes/templates/. Picking one seeds today's
+  // note via daily-templates:apply.
+  sidebarManager.registerPanel('daily-templates', {
+    title: 'Daily Templates',
+    icon:
+      '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 5a2 2 0 0 1 2-2h11l-2 2H5v12h14V9l2-2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm5 0h2v2H8V5zm0 4h2v2H8V9zm0 4h2v2H8v-2z"/></svg>',
+    render: (container) =>
+      require('./sidebar/daily-templates-panel').renderDailyTemplatesPanel(container, {
+        listTemplates: () => ipcRenderer.invoke('daily-templates:list'),
+        saveTemplate: ({ name, content }) =>
+          ipcRenderer.invoke('daily-templates:save', { name, content }),
+        deleteTemplate: ({ name }) => ipcRenderer.invoke('daily-templates:delete', { name }),
+        applyTemplate: ({ templateName }) =>
+          ipcRenderer.invoke('daily-templates:apply', { templateName }),
+        onOpenFile: (filePath) => ipcRenderer.send('open-file-path', { path: filePath }),
+      }),
+  });
   sidebarManager.registerPanel('git', {
     title: 'Git',
     render: (container) =>

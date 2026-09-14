@@ -71,7 +71,7 @@ function loadTemplate({
  * Caller (main.js IPC handler) decides what to do with `created` —
  * typically: open in the existing tab if any, else createNewTab.
  */
-function openOrCreate({ date, dir, templateDir, fs, pathUtil, now = new Date() }) {
+function openOrCreate({ date, dir, templateDir, fs, pathUtil, now = new Date(), seedContent }) {
   if (!dir) throw new Error('DailyNotes: dir is required');
   fs.mkdirSync(dir, { recursive: true });
   const notePath = pathFor(date, dir, pathUtil);
@@ -81,7 +81,12 @@ function openOrCreate({ date, dir, templateDir, fs, pathUtil, now = new Date() }
     content = fs.readFileSync(notePath, 'utf-8');
   } catch (err) {
     if (err.code !== 'ENOENT') throw err;
-    content = loadTemplate({ date, templateDir, fs, pathUtil, now });
+    // Use the explicit seedContent when provided (e.g. a non-default
+    // template chosen via the gallery); otherwise fall back to the
+    // template-loader (which honors templateDir + the built-in default).
+    content = typeof seedContent === 'string' && seedContent.length > 0
+      ? seedContent
+      : loadTemplate({ date, templateDir, fs, pathUtil, now });
     fs.writeFileSync(notePath, content, 'utf-8');
     created = true;
   }

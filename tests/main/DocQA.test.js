@@ -79,18 +79,18 @@ describe('DocQA.ask', () => {
     },
   ];
 
-  test('returns empty chunks for a question with no substantive terms', () => {
-    const r = DocQA.ask({ question: 'what is this?', files });
+  test('returns empty chunks for a question with no substantive terms', async () => {
+    const r = await DocQA.ask({ question: 'what is this?', files });
     expect(r.chunks).toEqual([]);
   });
 
-  test('returns empty chunks when no files match', () => {
-    const r = DocQA.ask({ question: 'quantum entanglement', files });
+  test('returns empty chunks when no files match', async () => {
+    const r = await DocQA.ask({ question: 'quantum entanglement', files });
     expect(r.chunks).toEqual([]);
   });
 
-  test('returns relevant chunks for a substantive question', () => {
-    const r = DocQA.ask({ question: 'how does rust async work', files, topK: 3 });
+  test('returns relevant chunks for a substantive question', async () => {
+    const r = await DocQA.ask({ question: 'how does rust async work', files, topK: 3 });
     expect(r.chunks.length).toBeGreaterThan(0);
     // The first hit should be from rust.md (highest relevance)
     expect(r.chunks[0].filePath).toBe('/notes/rust.md');
@@ -98,25 +98,25 @@ describe('DocQA.ask', () => {
     expect(r.chunks[0].score).toBeGreaterThan(0);
   });
 
-  test('honors topK', () => {
-    const r = DocQA.ask({ question: 'rust', files, topK: 2 });
+  test('honors topK', async () => {
+    const r = await DocQA.ask({ question: 'rust', files, topK: 2 });
     expect(r.chunks.length).toBeLessThanOrEqual(2);
   });
 
-  test('includes the original question in the response', () => {
-    const r = DocQA.ask({ question: 'how do I configure pandoc', files });
+  test('includes the original question in the response', async () => {
+    const r = await DocQA.ask({ question: 'how do I configure pandoc', files });
     expect(r.question).toBe('how do I configure pandoc');
   });
 
-  test('handles missing or empty file list gracefully', () => {
-    const r = DocQA.ask({ question: 'rust', files: [] });
+  test('handles missing or empty file list gracefully', async () => {
+    const r = await DocQA.ask({ question: 'rust', files: [] });
     expect(r.chunks).toEqual([]);
 
-    const r2 = DocQA.ask({ question: 'rust', files: null });
+    const r2 = await DocQA.ask({ question: 'rust', files: null });
     expect(r2.chunks).toEqual([]);
   });
 
-  test('rank prefers recent edits when scores tie (recency nudge)', () => {
+  test('rank prefers recent edits when scores tie (recency nudge)', async () => {
     const now = Date.now();
     const filesWithMtime = [
       {
@@ -130,7 +130,52 @@ describe('DocQA.ask', () => {
         mtimeMs: now - 60 * 24 * 60 * 60 * 1000, // 60 days ago
       },
     ];
-    const r = DocQA.ask({ question: 'rust overview', files: filesWithMtime, topK: 5 });
+    const r = await DocQA.ask({ question: 'rust overview', files: filesWithMtime, topK: 5 });
     expect(r.chunks[0].filePath).toBe('/fresh.md');
+  });
+});
+
+describe('DocQA.ask with a custom engine', () => {
+  const files = [
+    { path: '/x.md', content: 'rust language is systems-level and safe.' },
+    { path: '/y.md', content: 'unrelated content' },
+  ];
+
+  test('passes the question + chunks to a custom engine.rank()', async () => {
+    const customEngine = {
+      isNeural: true,
+      rank: jest.fn().mockResolvedValue([
+        { filePath: '/x.md#0', snippet: 'ranked', score: 0.9 },
+      ]),
+    };
+    const r = await DocQA.ask({ question: 'rust', files, engine: customEngine });
+    expect(customEngine.rank).toHaveBeenCalled();
+    const args = customEngine.rank.mock.calls[0];
+    expect(args[0]).toMatch(/rust/);
+    expect(args[1].length).toBeGreaterThan(0);
+    expect(r.chunks[0].filePath).toBe('/x.md');
+    expect(r.chunks[0].offset).toBe(0);
+  });
+
+  test('falls back to default engine when none provided', async () => {
+    const r = await DocQA.ask({ question: 'rust', files });
+    // Default engine is tf-idf — chunks come back
+    expect(r.chunks.length).toBeGreaterThan(0);
+  });
+
+  test('translates neural-engine hits into the public chunks shape', async () => {
+    const engine = {
+      isNeural: true,
+      rank: jest.fn().mockResolvedValue([
+        { filePath: '/x.md#42', snippet: 'rust snippet', score: 0.85, mtimeMs: 99 },
+        { filePath: '/y.md#7', snippet: 'other', score: 0.1, mtimeMs: 1 },
+      ]),
+    };
+    const r = await DocQA.ask({ question: 'rust', files, engine });
+    expect(r.chunks).toHaveLength(2);
+    expect(r.chunks[0].filePath).toBe('/x.md');
+    expect(r.chunks[0].offset).toBe(42);
+    expect(r.chunks[0].snippet).toBe('rust snippet');
+    expect(r.chunks[0].mtimeMs).toBe(99);
   });
 });

@@ -21,6 +21,7 @@
  */
 
 const WorkspaceSearch = require('./WorkspaceSearch');
+const SemanticEngine = require('./SemanticEngine');
 
 const QUESTION_WORDS = new Set([
   'what',
@@ -172,51 +173,76 @@ function chunkDocument(content, maxChunkChars = 800) {
  * @param {Array<{path:string, content:string, mtimeMs?:number}>} args.files
  * @param {number} [args.topK=5] number of chunks to return
  * @param {number} [args.nowMs=Date.now()]
+ * @param {object} [args.engine] Optional SemanticEngine instance. When
+ *   omitted, the default TF-idF engine is used. Pass a neural engine to
+ *   swap in semantic embeddings.
  * @returns {{question:string, chunks:Array<{filePath:string, snippet:string, score:number, mtimeMs:number}>}}
  */
-function ask({ question, files, topK = 5, nowMs = Date.now() }) {
+async function ask({
+  question,
+  files,
+  topK = 5,
+  nowMs = Date.now(),
+  engine = null,
+}) {
   const cleaned = cleanQuestion(question);
   if (!cleaned || !Array.isArray(files) || files.length === 0) {
     return { question: String(question || ''), chunks: [] };
   }
 
-  // First, find the docs that match at all (cheap, broad pass).
-  const docHits = WorkspaceSearch.search({ query: cleaned, files, limit: 20, nowMs });
-
-  // Then re-rank at the chunk level within those docs.
+  // Chunk the corpus up front — both default and neural engines rank at
+  // chunk granularity.
   const chunkCorpus = [];
-  for (const hit of docHits) {
-    const file = files.find((f) => f.path === hit.filePath);
+  for (const file of files) {
     if (!file || typeof file.content !== 'string') continue;
     const chunks = chunkDocument(file.content);
     for (const chunk of chunks) {
       chunkCorpus.push({
-        path: `${hit.filePath}#${chunk.start}`,
+        path: `${file.path}#${chunk.start}`,
         content: chunk.text,
+        offset: chunk.start,
         mtimeMs: file.mtimeMs,
       });
     }
   }
+  if (chunkCorpus.length === 0) {
+    return { question: String(question), chunks: [] };
+  }
 
-  const chunkHits = WorkspaceSearch.search({
-    query: cleaned,
-    files: chunkCorpus,
-    limit: topK,
-    nowMs,
-  });
+  // Resolve engine (default = tf-idf)
+  const eng = engine || SemanticEngine.defaultEngine();
 
-  // Translate the per-chunk hits back into the public shape. The fake path
-  // "<file>#<offset>" carries the chunk start; the renderer's existing
-  // file-opened handler can split it on '#' if it wants to deep-link.
-  const chunks = chunkHits.map((h) => {
+  let chunkHits;
+  if (eng.isNeural) {
+    // Neural: rank directly on the question against the chunk corpus.
+    chunkHits = await eng.rank(cleaned, chunkCorpus);
+  } else {
+    // TF-idF: broad doc pass first (caps the chunk corpus), then chunk rank.
+    const docHits = WorkspaceSearch.search({ query: cleaned, files, limit: 20, nowMs });
+    const docPaths = new Set(docHits.map((h) => h.filePath));
+    const filtered = chunkCorpus.filter((c) => {
+      const filePath = c.path.replace(/#\d+$/, '');
+      return docPaths.has(filePath);
+    });
+    chunkHits = WorkspaceSearch.search({
+      query: cleaned,
+      files: filtered.length > 0 ? filtered : chunkCorpus,
+      limit: topK,
+      nowMs,
+    });
+  }
+
+  // Translate the per-chunk hits back into the public shape.
+  const chunks = chunkHits.slice(0, topK).map((h) => {
     const offsetMatch = /#(\d+)$/.exec(h.filePath);
-    const offset = offsetMatch ? Number(offsetMatch[1]) : 0;
+    const offset = offsetMatch ? Number(offsetMatch[1]) : h.offset || 0;
     return {
       filePath: h.filePath.replace(/#\d+$/, ''),
       offset,
       snippet: h.snippet,
       score: h.score,
-      mtimeMs: chunkCorpus.find((c) => c.path === h.filePath)?.mtimeMs || 0,
+      mtimeMs:
+        chunkCorpus.find((c) => c.path === h.filePath)?.mtimeMs || h.mtimeMs || 0,
     };
   });
 

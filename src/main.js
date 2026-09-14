@@ -4003,8 +4003,10 @@ ipcMain.on('set-current-file', (event, filePath) => {
 const VersionHistory = require('./main/VersionHistory');
 const AutosaveBuffer = require('./main/AutosaveBuffer');
 const DailyNotes = require('./main/DailyNotes');
+const DailyNotesTemplates = require('./main/DailyNotesTemplates');
 const WorkspaceSearch = require('./main/WorkspaceSearch');
 const DocQA = require('./main/DocQA');
+const SemanticEngine = require('./main/SemanticEngine');
 const UrlTitle = require('./main/UrlTitle');
 
 /** IO bundle for VersionHistory bound to <userData>/versions. */
@@ -5765,6 +5767,77 @@ ipcMain.handle('daily-notes:list', async () => {
   return filenames.map((name) => path.join(dir, name));
 });
 
+// Daily-note template gallery: the user can keep multiple .md skeletons in
+// <userData>/notes/templates/. The first one (`daily.md`) is the default.
+// Other files become selectable in the gallery.
+ipcMain.handle('daily-templates:list', async () => {
+  const dir = dailyNotesTemplateDir();
+  const validation = validatePath(dir);
+  if (!validation.valid) return [];
+  return DailyNotesTemplates.listTemplates({ dir, fs, pathUtil: path });
+});
+
+ipcMain.handle('daily-templates:save', async (_event, { name, content } = {}) => {
+  const dir = dailyNotesTemplateDir();
+  const validation = validatePath(dir);
+  if (!validation.valid) throw new Error('Invalid templates directory');
+  if (typeof name !== 'string' || !name.trim()) throw new Error('Template name is required');
+  return DailyNotesTemplates.saveTemplate({
+    dir,
+    name: name.trim(),
+    content: typeof content === 'string' ? content : '',
+    fs,
+    pathUtil: path,
+  });
+});
+
+ipcMain.handle('daily-templates:delete', async (_event, { name } = {}) => {
+  const dir = dailyNotesTemplateDir();
+  const validation = validatePath(dir);
+  if (!validation.valid) return false;
+  if (typeof name !== 'string' || !name) return false;
+  return DailyNotesTemplates.deleteTemplate({ dir, name, fs, pathUtil: path });
+});
+
+// Pick a template for today's note. The renderer / daily-notes panel calls
+// this with the chosen template name; main writes the rendered content via
+// DailyNotes.openOrCreate so the rest of the flow stays unchanged.
+ipcMain.handle('daily-templates:apply', async (_event, { templateName } = {}) => {
+  const dir = dailyNotesDir();
+  const tplDir = dailyNotesTemplateDir();
+  const validation = validatePath(dir);
+  if (!validation.valid) throw new Error('Invalid daily-notes directory');
+  // Resolve the template (or fall back to default)
+  let body = null;
+  if (templateName && typeof templateName === 'string') {
+    const tpl = path.join(tplDir, templateName);
+    try {
+      body = fs.readFileSync(tpl, 'utf-8');
+    } catch {
+      /* fall through to default */
+    }
+  }
+  const when = new Date();
+  if (body) {
+    body = body
+      .replace(/\{date\}/g, DailyNotes.dateKey(when))
+      .replace(/\{weekday\}/g, when.toLocaleDateString('en-US', { weekday: 'long' }));
+  }
+  // openOrCreate will load the default template if body is null and the
+  // file doesn't exist; if the file exists we just open it (no clobber).
+  return DailyNotes.openOrCreate({
+    date: when,
+    dir,
+    templateDir: tplDir,
+    fs,
+    pathUtil: path,
+    now: when,
+    // If we resolved a custom template, write it as the seed content for a
+    // NEW note. openOrCreate only writes when the file is missing.
+    seedContent: body,
+  });
+});
+
 // ================================
 // Workspace content search (tag/wikilink-aware)
 // ================================
@@ -5829,7 +5902,7 @@ ipcMain.handle('workspace-search:query', async (_event, { query, dir, limit = 50
 // strips grammar noise (what/how/why/...) and re-ranks at the chunk level
 // so the renderer can show multiple passages from the same file. No neural
 // model — same ranking algorithm — so results stay explainable and offline.
-ipcMain.handle('doc-qa:ask', async (_event, { question, dir, topK = 5 } = {}) => {
+ipcMain.handle('doc-qa:ask', async (_event, { question, dir, topK = 5, engine: engineName } = {}) => {
   if (typeof question !== 'string' || !question.trim()) {
     return { question: '', chunks: [] };
   }
@@ -5852,7 +5925,11 @@ ipcMain.handle('doc-qa:ask', async (_event, { question, dir, topK = 5 } = {}) =>
     }
   }
 
-  return DocQA.ask({ question, files: corpus, topK });
+  // Resolve the engine up-front. If the user asked for neural and the dep
+  // is missing, SemanticEngine.getEngine() falls back to tf-idf with a
+  // single console warning — callers always get a usable engine.
+  const engine = await SemanticEngine.getEngine(engineName || 'tf-idf');
+  return DocQA.ask({ question, files: corpus, topK, engine });
 });
 
 // ================================
