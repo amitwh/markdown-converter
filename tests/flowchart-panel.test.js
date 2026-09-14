@@ -67,6 +67,37 @@ describe('flowchart-panel: persistence', () => {
     const readFile = jest.fn().mockResolvedValue('{not-json');
     expect(() => mount({ readFile })).not.toThrow();
   });
+
+  // Regression: src/renderer.js used to pass flowchartIO.getUserDataPath
+  // (which returns ipcRenderer.invoke's Promise) directly into the panel.
+  // The panel then coerced that Promise to "[object Promise]" in the
+  // template literal, producing a persistence path that fell outside the
+  // userData sandbox and was rejected by write-text-file. The fix is to
+  // await the path on the renderer side and cache it, then hand the panel
+  // a sync getter. This test mirrors that pattern: simulate the renderer's
+  // pre-resolve + cache, and assert the panel's persistence path is a
+  // real resolved string on mount.
+  test('handles an async getUserDataPath via renderer-side pre-resolve + cache', async () => {
+    const asyncGetUserDataPath = jest.fn().mockResolvedValue('/abs/path/to/userdata');
+    // Pre-resolve exactly the way src/renderer.js now does.
+    let cachedUserDataPath = null;
+    if (!cachedUserDataPath) cachedUserDataPath = await asyncGetUserDataPath();
+    const syncGetUserDataPath = () => cachedUserDataPath;
+
+    const writeFile = jest.fn().mockResolvedValue(undefined);
+    const { api } = mount({ getUserDataPath: syncGetUserDataPath, writeFile });
+
+    // read on mount must use the resolved (real) path, not "[object Promise]".
+    await Promise.resolve();
+    expect(asyncGetUserDataPath).toHaveBeenCalledTimes(1);
+
+    // mutate -> debounced write -> assert writeFile is called with the real path.
+    api.getStore().addNode({ kind: 'process', x: 0, y: 0, label: 'async-cache' });
+    jest.advanceTimersByTime(500);
+    await Promise.resolve();
+    expect(writeFile).toHaveBeenCalledTimes(1);
+    expect(writeFile.mock.calls[0][0]).toBe('/abs/path/to/userdata/flowchart-session.json');
+  });
 });
 
 describe('flowchart-panel: live preview', () => {

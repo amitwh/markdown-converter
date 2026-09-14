@@ -2436,16 +2436,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       .run({ nodes: [div] })
       .catch((err) => console.warn('flowchart preview render failed:', err));
   };
+  // Pre-resolve the userData path on first panel render and cache it. The
+  // flowchart panel's getUserDataPath() must be sync (it is interpolated into
+  // the persistence path on mount); calling flowchartIO.getUserDataPath()
+  // directly would coerce the IPC Promise to "[object Promise]" and break
+  // every write/read against <userData>/flowchart-session.json.
+  let cachedUserDataPath = null;
   sidebarManager.registerPanel('flowchart', {
     title: 'Flow Chart',
-    render: (container) =>
-      renderFlowChartPanel(container, {
-        getUserDataPath: flowchartIO.getUserDataPath,
+    render: async (container) => {
+      if (!cachedUserDataPath) cachedUserDataPath = await flowchartIO.getUserDataPath();
+      return renderFlowChartPanel(container, {
+        getUserDataPath: () => cachedUserDataPath,
         readFile: flowchartIO.readFile,
         writeFile: flowchartIO.writeFile,
         insertAtCursor: (text) => tabManager.insertAtCursor(text),
         renderMermaid: renderFlowChartMermaid,
-      }),
+      });
+    },
   });
 
   // Wiki-link navigation: open the target note (creating it on demand after

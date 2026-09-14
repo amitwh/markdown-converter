@@ -11,7 +11,7 @@
  *
  * @param {HTMLElement} container Mount point inside the sidebar panel
  * @param {object} deps
- * @param {() => string} deps.getUserDataPath   Absolute userData directory
+ * @param {() => string} deps.getUserDataPath   Absolute userData directory (renderer pre-resolves and caches this on first mount — must be synchronous and return a real string, not a Promise)
  * @param {(path:string) => Promise<string|null>} deps.readFile
  * @param {(path:string, content:string) => Promise<void>} deps.writeFile
  * @param {(text:string) => void} deps.insertAtCursor

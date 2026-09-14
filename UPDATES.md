@@ -1,5 +1,10 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.9.1 (2026-09-14)
+
+### Fixes
+- **Flowchart Panel save failed**: `getUserDataPath()` IPC was not awaited in `src/renderer.js:2439-2449`, so the persistence path was computed as `"[object Promise]/flowchart-session.json"` and rejected by the `write-text-file` userData sandbox. Pre-resolved the path on panel register and cached it; persistence (read and write) now works correctly.
+
 ## Version 4.9.0 (2026-09-14)
 
 ### New: Visual Flow Chart Editor (Sidebar panel → "Flow Chart")
