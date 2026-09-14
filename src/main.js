@@ -3981,6 +3981,7 @@ const AutosaveBuffer = require('./main/AutosaveBuffer');
 const DailyNotes = require('./main/DailyNotes');
 const WorkspaceSearch = require('./main/WorkspaceSearch');
 const DocQA = require('./main/DocQA');
+const UrlTitle = require('./main/UrlTitle');
 
 /** IO bundle for VersionHistory bound to <userData>/versions. */
 function versionHistoryIo() {
@@ -5825,6 +5826,18 @@ ipcMain.handle('doc-qa:ask', async (_event, { question, dir, topK = 5 } = {}) =>
   }
 
   return DocQA.ask({ question, files: corpus, topK });
+});
+
+// ================================
+// Smart-paste: URL → page title
+// ================================
+// The renderer pastes a URL and asks for the page's <title> so it can be
+// turned into "[Title](url)" automatically. Network access from the main
+// process is preferred over the renderer because (a) CSP stays simpler and
+// (b) any proxy/firewall logic can live here later.
+ipcMain.handle('url-title:fetch', async (_event, { url, timeoutMs } = {}) => {
+  if (typeof url !== 'string') return null;
+  return UrlTitle.fetchTitle({ url, timeoutMs });
 });
 
 // Esc in the note window hides instead of closing (keeps it one keystroke away)

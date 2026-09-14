@@ -121,6 +121,7 @@ function createEditor(parentElement, options = {}) {
     showLineNumbers = true,
     vimMode = false,
     getTabExpansion = null,
+    smartPasteFetcher = null,
   } = options;
 
   const extensions = [
@@ -154,6 +155,13 @@ function createEditor(parentElement, options = {}) {
     }),
     EditorView.lineWrapping,
   ];
+
+  // Smart-paste: a URL-only paste is intercepted and rewritten to a
+  // markdown link once the page title comes back from the main process.
+  // The host (renderer) injects the IPC-backed fetcher; null disables.
+  if (smartPasteFetcher) {
+    extensions.push(require('./smart-paste').smartPaste({ fetchTitle: smartPasteFetcher }));
+  }
 
   if (showLineNumbers) {
     extensions.push(lineNumbers());

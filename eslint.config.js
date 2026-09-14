@@ -64,6 +64,10 @@ module.exports = [
         getComputedStyle: 'readonly',
         CSS: 'readonly',
         Element: 'readonly',
+        // Modern Web APIs available in Node 20+ and Chromium
+        AbortController: 'readonly',
+        TextDecoder: 'readonly',
+        TextEncoder: 'readonly',
         // Electron
         electronAPI: 'readonly',
         // Libraries

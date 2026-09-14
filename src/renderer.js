@@ -749,6 +749,11 @@ class TabManager {
         vimMode: window.__vimModeEnabled === true,
         // Tab expands a snippet when the word before the cursor matches one
         getTabExpansion: (prefix) => snippetExpansions.get(prefix) || null,
+        // Smart-paste: URL-only pastes get rewritten to a markdown link
+        // using the page's title. Wrapped in ipcRenderer.invoke so the
+        // actual fetch happens in main.
+        smartPasteFetcher: ({ url, timeoutMs }) =>
+          ipcRenderer.invoke('url-title:fetch', { url, timeoutMs }),
         onChange: (newContent) => {
           tab.content = newContent;
           tab.isDirty = true;

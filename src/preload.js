@@ -196,6 +196,9 @@ const ALLOWED_SEND_CHANNELS = [
 
   // Doc-aware Q&A (chunk-level ranking over the workspace)
   'doc-qa:ask',
+
+  // Smart-paste: URL → page title
+  'url-title:fetch',
 ];
 
 const ALLOWED_RECEIVE_CHANNELS = [
