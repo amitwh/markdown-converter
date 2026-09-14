@@ -3002,8 +3002,35 @@ ipcRenderer.on('toggle-find', () => {
     document.getElementById('find-input').focus();
   }
 });
+/**
+ * Switch the active theme by toggling the `disabled` attribute on the
+ * preloaded `<link id="theme-<id>">` tags injected by src/index.html.
+ * Preloading all themes at startup avoids a network roundtrip on every
+ * switch; toggling `disabled` is a sub-millisecond DOM mutation that the
+ * browser applies on the next style-recalc. We keep `body.className` set
+ * to `theme-<id>` so any legacy rule (and the `_base.css`-style helpers)
+ * that depend on the body class still match.
+ */
+function applyThemeByLinkToggle(id) {
+  const all = document.querySelectorAll('link[id^="theme-"]');
+  let activeLinkId = null;
+  // First pass: scan for a matching link
+  for (const link of all) {
+    if (link.id === `theme-${id}`) activeLinkId = link.id;
+  }
+  if (activeLinkId !== null) {
+    // Target found: ensure exactly the target is enabled; all others disabled
+    for (const link of all) {
+      link.disabled = link.id !== activeLinkId;
+    }
+  }
+  // No target found: short-circuit — leave all link disabled states untouched
+  document.body.className = `theme-${id}`;
+  return activeLinkId;
+}
+
 ipcRenderer.on('theme-changed', (event, theme) => {
-  document.body.className = `theme-${theme}`;
+  applyThemeByLinkToggle(theme);
 
   // After theme is applied, wait for next frame then signal renderer is ready
   // This ensures complete UI initialization before files are opened
