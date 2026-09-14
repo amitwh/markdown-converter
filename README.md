@@ -53,7 +53,7 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 - **Custom headers & footers** - Add headers/footers to exports with dynamic fields
 - **Page size configuration** - A3, A4, A5, B4, B5, Letter, Legal, Tabloid, or custom sizes
 - **Batch conversion** - Convert entire folders of markdown files
-- **ASCII Art Generator** - Create text banners and diagrams
+- **ASCII Art Generator** - 17 hand-coded fonts + 400+ FIGlet fonts; text banners, boxes, and templates; insert into editor, copy to clipboard, or save to file (Ctrl+Shift+A)
 - **Word templates** - Use custom Word templates for enhanced exports
 - **Import documents** - Import from 30+ formats (DOCX, PDF, HTML, etc.)
 - **MarkItDown import** - Any file → Markdown via [Microsoft MarkItDown](https://github.com/microsoft/markitdown). **Bundled** (MIT + PSF Python runtime) — no installation required for the core formats (PDF, DOCX, PPTX, XLSX, Outlook .msg, EPUB, HTML, images, ZIP, CSV, JSON, XML). For **audio transcription** and **OCR**, install `markitdown[all]` system-side (multi-GB ML models; not bundled).
