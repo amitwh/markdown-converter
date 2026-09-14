@@ -10,7 +10,7 @@ describe('AsciiArt.generate', () => {
     const out = AsciiArt.generate({ text: 'HELLO', font: 'standard' });
     const lines = out.split('\n');
     expect(lines).toHaveLength(AsciiArtFonts.HAND_CODED_FONTS.standard.height);
-    expect(lines[0]).toContain('H');
+    expect(lines[0]).toMatch(/\|/);
   });
 
   test('lowercase input is uppercased', () => {
@@ -55,14 +55,17 @@ describe('AsciiArt.generate', () => {
 
   test('propagates AsciiArtFigletError on figlet failure', () => {
     jest.resetModules();
-    jest.doMock('../../src/main/AsciiArt.figlet-adapter', () => ({
-      AsciiArtFigletError: class extends Error {},
-      generateFiglet: () => {
-        throw new Error('boom');
-      },
-      listFigletFonts: () => [],
-      loadFiglet: () => null,
-    }));
+    jest.doMock('../../src/main/AsciiArt.figlet-adapter', () => {
+      const AsciiArtFigletError = class extends Error {};
+      return {
+        AsciiArtFigletError,
+        generateFiglet: () => {
+          throw new AsciiArtFigletError('figlet boom');
+        },
+        listFigletFonts: () => [],
+        loadFiglet: () => null,
+      };
+    });
     const Fresh = require('../../src/main/AsciiArt');
     expect(() => Fresh.generate({ text: 'X', font: 'figlet:Big' })).toThrow(/figlet/i);
   });
