@@ -2847,6 +2847,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   commandPalette.register('Toggle Sidebar: Outline', 'Ctrl+Shift+O', () =>
     sidebarManager.togglePanel('outline')
   );
+  commandPalette.register('Toggle Sidebar: Flow Chart', 'Ctrl+Alt+F', () =>
+    sidebarManager.togglePanel('flowchart')
+  );
   commandPalette.register('Print Preview', 'Ctrl+P', () => {
     const tab = tabManager.tabs.get(tabManager.activeTabId);
     const preview = document.getElementById(`preview-${tab.id}`);
