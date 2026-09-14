@@ -56,7 +56,7 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 - **ASCII Art Generator** - Create text banners and diagrams
 - **Word templates** - Use custom Word templates for enhanced exports
 - **Import documents** - Import from 30+ formats (DOCX, PDF, HTML, etc.)
-- **MarkItDown import** - Any file → Markdown via [Microsoft MarkItDown](https://github.com/microsoft/markitdown): PDF, DOCX, PPTX, XLSX, Outlook .msg, EPUB, images, ZIP (audio/OCR with the `[all]` extras)
+- **MarkItDown import** - Any file → Markdown via [Microsoft MarkItDown](https://github.com/microsoft/markitdown). **Bundled** (MIT + PSF Python runtime) — no installation required for the core formats (PDF, DOCX, PPTX, XLSX, Outlook .msg, EPUB, HTML, images, ZIP, CSV, JSON, XML). For **audio transcription** and **OCR**, install `markitdown[all]` system-side (multi-GB ML models; not bundled).
 - **Excel export** - Markdown tables to native .xlsx workbooks (one sheet per table)
 - **AI Assistant** - Multi-provider AI help (OpenAI/Anthropic/Ollama/LM Studio): chat panel, summarize/improve/translate commands, grammar proofreading
 - **Inline comments** - Anchor-based document comments in `.comments/` sidecars with F8 navigation
@@ -71,9 +71,10 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 ## Installation
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v16 or later)
-- [Pandoc](https://pandoc.org/installing.html) (required for export functionality)
-- Optional: [MarkItDown](https://github.com/microsoft/markitdown) (`pip install "markitdown[all]"`) for any-file → Markdown import
+- [Node.js](https://nodejs.org/) (v16 or later) — only for development builds
+- [Pandoc](https://pandoc.org/installing.html) — **bundled** inside the app, no install needed
+- [MarkItDown](https://github.com/microsoft/markitdown) — **bundled** inside the app (MIT + embedded PSF Python runtime via PyInstaller), no install needed for PDF / DOCX / PPTX / XLSX / Outlook / EPUB / HTML / images / ZIP / CSV / JSON / XML
+- Optional for advanced import only: `pip install "markitdown[all]"` adds **audio transcription** (Whisper) and **OCR** (EasyOCR/Tesseract) — these are multi-GB model downloads and are not bundled for size reasons
 
 ### Install Dependencies
 ```bash

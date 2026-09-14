@@ -68,9 +68,27 @@ jobs:
 
       - name: Bundle MarkItDown (optional, best effort)
         # Windows runners ship python + venv; non-fatal on failure — the
-        # package then omits the bundled binary by design
-        run: npm run bundle:markitdown
+        # package then omits the bundled binary by design. We capture the
+        # log so a silent failure is visible in the GitHub Actions step UI
+        # instead of disappearing into stdout.
+        run: |
+          python -m pip install --upgrade pip wheel setuptools 2>&1 | tee bundle-pip.log
+          npm run bundle:markitdown 2>&1 | tee bundle-markitdown.log
+          if [ ! -f bin/win32/markitdown.exe ]; then
+            echo "::warning::bin/win32/markitdown.exe was not produced — see bundle-markitdown.log"
+          fi
         continue-on-error: true
+        shell: bash
+
+      - name: Upload MarkItDown bundle logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-bundle-logs
+          path: |
+            bundle-pip.log
+            bundle-markitdown.log
+          retention-days: 5
 
       - name: Run tests
         run: npm test
