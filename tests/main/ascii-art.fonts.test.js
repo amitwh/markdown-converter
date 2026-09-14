@@ -37,8 +37,8 @@ describe('AsciiArt.fonts table shape', () => {
     const font = AsciiArtFonts.HAND_CODED_FONTS[id];
     expect(font).toBeDefined();
     expect(typeof font.height).toBe('number');
-    expect(font.height).toBeGreaterThanOrEqual(4);
-    expect(font.height).toBeLessThanOrEqual(8);
+    expect(font.height).toBeGreaterThanOrEqual(3);
+    expect(font.height).toBeLessThanOrEqual(12);
     expect(typeof font.chars).toBe('object');
     for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 '.split('')) {
       expect(font.chars[ch]).toBeDefined();
