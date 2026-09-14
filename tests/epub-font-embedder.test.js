@@ -4,7 +4,8 @@ const JSZip = require('jszip');
 const EpubFontEmbedder = require('../src/main/EpubFontEmbedder');
 
 describe('EpubFontEmbedder.patchManifest', () => {
-  const fixturesDir = path.join(__dirname, 'fixtures');
+  // Per-test fixture dir (not the shared tests/fixtures/ used by snapshot fixtures).
+  const fixturesDir = path.join(__dirname, 'fixtures-epub');
   const epubPath = path.join(fixturesDir, 'fake.epub');
   const fontPath = path.join(fixturesDir, 'fake.ttf');
 

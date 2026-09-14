@@ -3,7 +3,8 @@ const path = require('path');
 const ExportCss = require('../src/main/ExportCss');
 
 describe('ExportCss.build', () => {
-  const fakeFontPath = path.join(__dirname, 'fixtures', 'fake.woff2');
+  // Per-test fixture dir (not the shared tests/fixtures/ used by snapshot fixtures).
+  const fakeFontPath = path.join(__dirname, 'fixtures-css', 'fake.woff2');
   const fixture = Buffer.from('woff2-binary-fake-data');
 
   beforeAll(() => {
