@@ -22,6 +22,7 @@ const DOMPurify = createDOMPurify(window);
 const hljs = require('highlight.js');
 const { createEditor } = require('./editor/codemirror-setup');
 const { undo, redo } = require('@codemirror/commands');
+const { EditorView } = require('@codemirror/view');
 const { showMediaOperationsDialog } = require('./renderer/media-operations-dialog');
 const { showPdfBatchDialog } = require('./renderer/pdf-batch-dialog');
 const { showDocumentCompareDialog } = require('./renderer/document-compare-dialog');
@@ -2241,9 +2242,25 @@ document.addEventListener('DOMContentLoaded', async () => {
           const el = document.getElementById('explorer-path');
           return el ? el.value.trim() || null : null;
         },
-        onOpenFile: (filePath /* , offset */) => {
-          ipcRenderer.send('open-file-path', filePath);
+        onOpenFile: (filePath, offset) => {
+          ipcRenderer.send('open-file-path', { path: filePath, offset });
         },
+      }),
+  });
+
+  // Daily notes journal browser — lists existing YYYY-MM-DD.md files and
+  // surfaces a "Today" button that creates/opens today's entry. Renders
+  // paths as a placeholder string; main rewrites them on click (via the
+  // file-opened IPC path, which already handles any daily-notes path).
+  sidebarManager.registerPanel('daily-notes', {
+    title: 'Daily Notes',
+    icon:
+      '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>',
+    render: (container) =>
+      require('./sidebar/daily-notes-panel').renderDailyNotesPanel(container, {
+        openToday: ({ date } = {}) => ipcRenderer.invoke('daily-notes:open-today', { date }),
+        listExisting: () => ipcRenderer.invoke('daily-notes:list'),
+        onOpenFile: (filePath) => ipcRenderer.send('open-file-path', { path: filePath }),
       }),
   });
   sidebarManager.registerPanel('git', {
@@ -2900,6 +2917,22 @@ ipcRenderer.on('file-opened', (event, data) => {
 
   if (tabManager) {
     tabManager.openFile(data.path, data.content);
+    // Deep-link from search/Q&A: scroll the editor to the matching offset.
+    // openFile() loads the doc into the active tab; once it returns the
+    // CodeMirror view exists and we can dispatch a selection.
+    if (data && typeof data.offset === 'number' && data.offset > 0) {
+      const tab = tabManager.tabs.get(tabManager.activeTabId);
+      const view = tab && tab.editorView;
+      if (view) {
+        const docLen = view.state.doc.length;
+        const pos = Math.min(data.offset, docLen);
+        view.dispatch({
+          selection: { anchor: pos, head: pos },
+          effects: EditorView.scrollIntoView(pos, { y: 'center' }),
+        });
+        view.focus();
+      }
+    }
   } else {
     console.error('[RENDERER] tabManager not initialized!');
   }

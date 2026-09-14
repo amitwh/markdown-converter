@@ -5759,7 +5759,10 @@ ipcMain.handle('daily-notes:list', async () => {
   const dir = dailyNotesDir();
   const validation = validatePath(dir);
   if (!validation.valid) return [];
-  return DailyNotes.listExisting({ dir, fs, pathUtil: path });
+  // Return absolute paths so the renderer can pass them straight to
+  // open-file-path without re-synthesizing.
+  const filenames = DailyNotes.listExisting({ dir, fs, pathUtil: path });
+  return filenames.map((name) => path.join(dir, name));
 });
 
 // ================================
@@ -6172,8 +6175,17 @@ ipcMain.handle('move-path', async (event, payload) => {
   };
 });
 
-// Open a file by path (from explorer panel)
-ipcMain.on('open-file-path', (event, filePath) => {
+// Open a file by path (from explorer panel). Accepts an optional `offset`
+// (char offset in the file) so deep-links from search results / Q&A hits
+// can scroll to the matching passage.
+ipcMain.on('open-file-path', (event, payload) => {
+  // Backwards-compatible: callers passing a plain string still work.
+  let filePath = payload;
+  let offset = 0;
+  if (payload && typeof payload === 'object') {
+    filePath = payload.path;
+    offset = typeof payload.offset === 'number' && payload.offset >= 0 ? payload.offset : 0;
+  }
   try {
     // Validate path to prevent traversal attacks
     const validation = validatePath(filePath);
@@ -6191,6 +6203,7 @@ ipcMain.on('open-file-path', (event, filePath) => {
     mainWindow.webContents.send('file-opened', {
       path: validation.resolved,
       content,
+      offset,
     });
   } catch (err) {
     console.error('open-file-path error:', err);
