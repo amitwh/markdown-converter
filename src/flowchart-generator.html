@@ -166,6 +166,86 @@
         stroke: var(--fc-accent) !important;
         stroke-width: 3;
       }
+      /* v4.10.0 — visible selection toolbar inside the canvas panel.
+       * Positioned absolutely at the bottom of the canvas host so it
+       * never overlaps the SVG permanently and never relies on hidden
+       * right-click menus. Empty when nothing is selected. */
+      .fc-floating-toolbar {
+        position: absolute;
+        left: 50%;
+        bottom: 12px;
+        transform: translateX(-50%);
+        z-index: 10;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        background: #ffffff;
+        border: 1px solid var(--fc-border);
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        font-family: system-ui, sans-serif;
+        font-size: 0.8rem;
+        max-width: calc(100% - 24px);
+      }
+      .fc-floating-toolbar[hidden] {
+        display: none;
+      }
+      .fc-floating-toolbar .fc-tb-label {
+        color: #6e7681;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-right: 2px;
+      }
+      .fc-floating-toolbar button {
+        padding: 4px 10px;
+        border: 1px solid var(--fc-border);
+        background: #f6f8fa;
+        color: var(--fc-text);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.78rem;
+      }
+      .fc-floating-toolbar button:hover {
+        border-color: var(--fc-accent);
+      }
+      .fc-floating-toolbar button.active {
+        background: var(--fc-accent);
+        color: #fff;
+        border-color: var(--fc-accent);
+      }
+      .fc-floating-toolbar button.fc-tb-delete {
+        background: #cf222e;
+        color: #fff;
+        border-color: #cf222e;
+        margin-left: 4px;
+      }
+      .fc-floating-toolbar button.fc-tb-delete:hover {
+        background: #a40e26;
+        border-color: #a40e26;
+      }
+      .fc-floating-toolbar input.fc-tb-label-input {
+        min-width: 160px;
+        padding: 4px 8px;
+        border: 1px solid var(--fc-border);
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-family: inherit;
+      }
+      .fc-floating-toolbar hr.fc-tb-sep {
+        border: none;
+        border-left: 1px solid var(--fc-border);
+        height: 22px;
+        margin: 0 4px;
+      }
+      /* v4.10.0 — preview-render info card explaining the layout */
+      .fc-preview-render-note {
+        font-size: 0.75rem;
+        color: #6e7681;
+        font-style: italic;
+      }
     </style>
   </head>
   <body>
@@ -189,7 +269,20 @@
     </div>
 
     <div class="fc-split">
-      <div class="fc-canvas-host" id="canvas-host"></div>
+      <div class="fc-canvas-host" id="canvas-host">
+        <!--
+          v4.10.0 — visible selection toolbar. Populated dynamically by
+          the bundle controller when a node or edge is selected. Hidden
+          when nothing is selected (no overlap, no hidden UI affordance).
+        -->
+        <div
+          id="fc-selection-toolbar"
+          class="fc-floating-toolbar"
+          role="toolbar"
+          aria-label="Selection actions"
+          hidden
+        ></div>
+      </div>
       <div class="fc-preview-host" id="preview-host">
         <pre class="fc-preview-source" id="preview-source"></pre>
         <div class="fc-preview-render" id="preview-render"></div>

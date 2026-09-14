@@ -359,3 +359,137 @@ describe('flowchart-bundle: inline modal helpers (v4.9.9)', () => {
     await expect(promise).resolves.toBe(true);
   });
 });
+
+// v4.10.0 — the standalone Flowchart Generator window now ships a
+// *visible* selection toolbar inside the canvas panel. When a node is
+// selected, the toolbar exposes shape buttons + a label input + a
+// Delete button — no right-click hidden menus, no window.prompt calls.
+// These tests load the real bundle into jsdom and exercise the toolbar
+// via the public FlowchartController.setSelection helper.
+describe('flowchart-bundle: visible selection toolbar (v4.10.0)', () => {
+  const BUNDLE_PATH = path.join(__dirname, '..', 'src', 'renderer', 'flowchart-bundle.js');
+  const HTML_PATH_BUNDLE = path.join(__dirname, '..', 'src', 'flowchart-generator.html');
+
+  async function loadBundleWithNodes() {
+    const html = fs.readFileSync(HTML_PATH_BUNDLE, 'utf-8');
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    document.body.innerHTML = bodyMatch ? bodyMatch[1] : html;
+    window.electronAPI = {
+      flowchart: {
+        getUserDataPath: jest.fn(async () => '/userdata'),
+        readFile: jest.fn(async () => null),
+        writeFile: jest.fn(async () => undefined),
+        insertAtCursor: jest.fn(),
+      },
+    };
+    const bundleSrc = fs.readFileSync(BUNDLE_PATH, 'utf-8');
+    // eslint-disable-next-line no-new-func
+    new Function('window', 'document', bundleSrc)(window, document);
+    // Flush microtasks so bootstrap's awaits settle before tests run.
+    for (let i = 0; i < 5; i += 1) {
+      await Promise.resolve();
+    }
+    const store = window.FlowchartController.store;
+    store.addNode({ kind: 'process', x: 10, y: 10, label: 'Alpha' });
+    store.addNode({ kind: 'decision', x: 200, y: 10, label: 'Beta' });
+    store.connect(store.getGraph().nodes[0].id, store.getGraph().nodes[1].id, 'solid');
+    return store;
+  }
+
+  test('toolbar is hidden when nothing is selected', async () => {
+    await loadBundleWithNodes();
+    const toolbar = document.getElementById('fc-selection-toolbar');
+    expect(toolbar.hidden).toBe(true);
+    expect(toolbar.innerHTML).toBe('');
+  });
+
+  test('selecting a node populates the toolbar with shape buttons + label input + Delete', async () => {
+    const store = await loadBundleWithNodes();
+    const toolbar = document.getElementById('fc-selection-toolbar');
+    const alpha = store.getGraph().nodes[0];
+
+    window.FlowchartController.setSelection(alpha.id, 'node');
+
+    expect(toolbar.hidden).toBe(false);
+    const shapeButtons = toolbar.querySelectorAll('button[data-shape]');
+    expect(shapeButtons).toHaveLength(5);
+    const labels = Array.from(shapeButtons).map((b) => b.textContent);
+    expect(labels).toEqual(['Process', 'Decision', 'Terminator', 'Subroutine', 'Document']);
+    const active = toolbar.querySelector('button[data-shape].active');
+    expect(active).not.toBeNull();
+    expect(active.getAttribute('data-shape')).toBe('process');
+    const labelInput = toolbar.querySelector('input.fc-tb-label-input');
+    expect(labelInput).not.toBeNull();
+    expect(labelInput.value).toBe('Alpha');
+    const deleteBtn = toolbar.querySelector('button.fc-tb-delete');
+    expect(deleteBtn).not.toBeNull();
+    expect(deleteBtn.textContent).toBe('Delete');
+  });
+
+  test('clicking a shape button updates the node kind', async () => {
+    const store = await loadBundleWithNodes();
+    const alpha = store.getGraph().nodes[0];
+
+    window.FlowchartController.setSelection(alpha.id, 'node');
+    const decisionBtn = document.querySelector(
+      '#fc-selection-toolbar button[data-shape="decision"]'
+    );
+    expect(decisionBtn).not.toBeNull();
+    decisionBtn.click();
+
+    expect(store.getGraph().nodes[0].kind).toBe('decision');
+    const active = document.querySelector('#fc-selection-toolbar button[data-shape].active');
+    expect(active.getAttribute('data-shape')).toBe('decision');
+  });
+
+  test('typing into the label input updates the node label (debounced)', async () => {
+    jest.useFakeTimers();
+    try {
+      const store = await loadBundleWithNodes();
+      const alpha = store.getGraph().nodes[0];
+
+      window.FlowchartController.setSelection(alpha.id, 'node');
+      const input = document.querySelector('#fc-selection-toolbar input.fc-tb-label-input');
+      input.value = 'Renamed';
+      input.dispatchEvent(new window.Event('input', { bubbles: true }));
+      // Debounce is 100ms — before that, store is unchanged.
+      expect(store.getGraph().nodes[0].label).toBe('Alpha');
+      jest.advanceTimersByTime(150);
+      expect(store.getGraph().nodes[0].label).toBe('Renamed');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('selecting an edge populates the toolbar with edge-kind buttons', async () => {
+    const store = await loadBundleWithNodes();
+    const edge = store.getGraph().edges[0];
+    const toolbar = document.getElementById('fc-selection-toolbar');
+
+    window.FlowchartController.setSelection(edge.id, 'edge');
+
+    expect(toolbar.hidden).toBe(false);
+    const edgeButtons = toolbar.querySelectorAll('button[data-kind]');
+    expect(edgeButtons).toHaveLength(3);
+    const labels = Array.from(edgeButtons).map((b) => b.textContent);
+    expect(labels).toEqual(['Solid', 'Dotted', 'Thick']);
+    const active = toolbar.querySelector('button[data-kind].active');
+    expect(active.getAttribute('data-kind')).toBe('solid');
+  });
+
+  test('Delete button removes the selected node and clears the toolbar', async () => {
+    const store = await loadBundleWithNodes();
+    const alpha = store.getGraph().nodes[0];
+    const toolbar = document.getElementById('fc-selection-toolbar');
+
+    window.FlowchartController.setSelection(alpha.id, 'node');
+    expect(toolbar.hidden).toBe(false);
+
+    const deleteBtn = toolbar.querySelector('button.fc-tb-delete');
+    deleteBtn.click();
+
+    expect(store.getGraph().nodes.find((n) => n.id === alpha.id)).toBeUndefined();
+    // The deleted node's id is gone — selection collapses.
+    expect(toolbar.hidden).toBe(true);
+  });
+});
