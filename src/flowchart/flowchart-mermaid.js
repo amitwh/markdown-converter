@@ -100,6 +100,12 @@ function toMermaid(graph) {
   } else {
     root.FlowchartMermaid = exported;
   }
+  // v4.9.7 — also expose as window global when running in Electron renderer
+  // (nodeIntegration:true makes `module` truthy so the else branch above never
+  // runs; the controller still expects window.FlowchartMermaid).
+  if (typeof window !== 'undefined') {
+    window.FlowchartMermaid = exported;
+  }
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   return { toMermaid, escapeLabel, nodeDeclaration, edgeDeclaration };
 });

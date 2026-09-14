@@ -214,3 +214,23 @@ describe('flowchart-controller: renderer.js sidebar registration is disabled', (
     expect(liveMatch).toBeNull();
   });
 });
+
+// v4.9.7 regression — pure modules MUST expose themselves as window globals
+// so the standalone Flowchart Generator window can load them via <script>
+// tags. In Electron renderer with nodeIntegration:true, `module` is truthy,
+// which used to make the UMD wrapper skip its browser-global assignment;
+// this guard is now mandatory. We assert the source contains the
+// `window.FlowchartXxx = exported;` line so a future refactor can't silently
+// drop it again.
+describe('flowchart pure modules — UMD browser-global assignment (v4.9.7)', () => {
+  const cases = [
+    ['flowchart/flowchart-store.js', 'FlowchartStore'],
+    ['flowchart/flowchart-shapes.js', 'FlowchartShapes'],
+    ['flowchart/flowchart-mermaid.js', 'FlowchartMermaid'],
+    ['flowchart/flowchart-canvas.js', 'FlowchartCanvas'],
+  ];
+  test.each(cases)('%s assigns window.%s = exported', (rel, globalName) => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'src', rel), 'utf-8');
+    expect(src).toMatch(new RegExp(`window\\.${globalName}\\s*=\\s*exported`));
+  });
+});

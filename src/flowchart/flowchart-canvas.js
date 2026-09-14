@@ -337,6 +337,12 @@ function createCanvas(container, store, opts = {}) {
   } else {
     root.FlowchartCanvas = exported;
   }
+  // v4.9.7 — also expose as window global when running in Electron renderer
+  // (nodeIntegration:true makes `module` truthy so the else branch above never
+  // runs; the controller still expects window.FlowchartCanvas).
+  if (typeof window !== 'undefined') {
+    window.FlowchartCanvas = exported;
+  }
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   return { createCanvas, SHAPE_KINDS };
 });

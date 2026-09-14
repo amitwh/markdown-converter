@@ -69,6 +69,12 @@ function shapeSvg(kind, x, y, width, height) {
   } else {
     root.FlowchartShapes = exported;
   }
+  // v4.9.7 — also expose as window global when running in Electron renderer
+  // (nodeIntegration:true makes `module` truthy so the else branch above never
+  // runs; the controller still expects window.FlowchartShapes).
+  if (typeof window !== 'undefined') {
+    window.FlowchartShapes = exported;
+  }
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   return {
     shapeSvg,

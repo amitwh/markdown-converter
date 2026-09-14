@@ -268,6 +268,12 @@ function create(io) {
   } else {
     root.FlowchartStore = exported;
   }
+  // v4.9.7 — also expose as window global when running in Electron renderer
+  // (nodeIntegration:true makes `module` truthy so the else branch above never
+  // runs; the controller still expects window.FlowchartStore).
+  if (typeof window !== 'undefined') {
+    window.FlowchartStore = exported;
+  }
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   return { create, NODE_KINDS, EDGE_KINDS };
 });

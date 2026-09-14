@@ -1,5 +1,12 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.9.7 (2026-09-14)
+
+### Fix
+- **Standalone Flowchart Generator window now loads (was: 'modules not loaded' fatal error).** Each of the four pure modules (`flowchart-shapes.js`, `flowchart-mermaid.js`, `flowchart-store.js`, `flowchart-canvas.js`) ships with a UMD wrapper. The original wrapper assigned `window.FlowchartXxx` only in the `else` branch — i.e. when `module` was undefined. But the renderer runs with `nodeIntegration: true`, so `module` is always truthy in that environment and the `else` branch never ran, leaving `window.FlowchartShapes` / `window.FlowchartMermaid` / `window.FlowchartStore` / `window.FlowchartCanvas` undefined. The standalone window's controller (`src/renderer/flowchart-controller.js`) then aborted with `fatal('Flowchart pure modules not loaded — verify script tags in src/flowchart-generator.html')`.
+  - Fix: every pure module's UMD wrapper now has a second `if (typeof window !== 'undefined') { window.FlowchartXxx = exported; }` block appended AFTER the CommonJS branch. Both branches can run (the CommonJS branch keeps the legacy sidebar panel working under `require()`; the new branch unconditionally exposes the global in the renderer). The factory IIFE is unchanged, so the public surface of every module is identical to v4.9.6 — no behavioural change.
+  - New regression guard: 4 source-grep tests in `tests/flowchart-controller.test.js` assert each module's source file contains the `window.FlowchartXxx = exported` assignment so a future refactor can't silently drop the global again.
+
 ## Version 4.9.6 (2026-09-14)
 
 ### Refactor
