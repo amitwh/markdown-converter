@@ -28,21 +28,6 @@ const PREVIEW_DEBOUNCE_MS = 250;
 const PERSIST_DEBOUNCE_MS = 500;
 const PERSISTENCE_FILENAME = 'flowchart-session.json';
 
-function persistencePath(getUserDataPath) {
-  return `${getUserDataPath()}/${PERSISTENCE_FILENAME}`;
-}
-
-function debounce(fn, ms) {
-  let handle = null;
-  return (...args) => {
-    if (handle) clearTimeout(handle);
-    handle = setTimeout(() => {
-      handle = null;
-      fn(...args);
-    }, ms);
-  };
-}
-
 function renderFlowChartPanel(container, deps) {
   const { getUserDataPath, readFile, writeFile, insertAtCursor, renderMermaid = () => {} } = deps;
   if (typeof getUserDataPath !== 'function') {
@@ -54,6 +39,10 @@ function renderFlowChartPanel(container, deps) {
   if (typeof insertAtCursor !== 'function') {
     throw new Error('flowchart-panel: insertAtCursor is required');
   }
+
+  // Compute the persistence path ONCE on mount. Re-resolving per call would
+  // hit the filesystem / IPC bridge unnecessarily on every debounced write.
+  const persistenceFile = `${getUserDataPath()}/${PERSISTENCE_FILENAME}`;
 
   container.innerHTML = `
     <div class="flowchart-panel" tabindex="0">
@@ -83,14 +72,14 @@ function renderFlowChartPanel(container, deps) {
   let selectedEdgeId = null;
 
   const store = createStore({
-    persistencePath: persistencePath(getUserDataPath),
+    persistencePath: persistenceFile,
     readFile,
     writeFile,
     now: () => Date.now(),
   });
 
   // Hydrate from disk (defensively).
-  readFile(persistencePath(getUserDataPath))
+  readFile(persistenceFile)
     .then((json) => {
       if (json) store.deserialize(json);
     })
@@ -124,7 +113,10 @@ function renderFlowChartPanel(container, deps) {
     },
   });
 
-  const debouncedPreview = debounce(() => {
+  // Debounced live preview. Track the timer handle so destroy() can cancel
+  // any in-flight update that would otherwise write to a detached <pre>.
+  let previewTimer = null;
+  function runPreview() {
     const source = toMermaid(store.getGraph());
     previewSourceEl.textContent = source;
     try {
@@ -132,26 +124,41 @@ function renderFlowChartPanel(container, deps) {
     } catch (err) {
       previewRenderEl.textContent = `Preview error: ${err && err.message ? err.message : 'unknown'}`;
     }
-  }, PREVIEW_DEBOUNCE_MS);
+  }
+  function debouncedPreview() {
+    if (previewTimer) clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      previewTimer = null;
+      runPreview();
+    }, PREVIEW_DEBOUNCE_MS);
+  }
 
-  const debouncedPersist = debounce(() => {
-    writeFile(persistencePath(getUserDataPath), store.serialize()).catch((err) => {
-      if (statusEl) statusEl.textContent = `Save failed: ${err.message || err}`;
-    });
-  }, PERSIST_DEBOUNCE_MS);
+  // Debounced persistence. Track the timer handle so destroy() can cancel a
+  // queued writeFile that would otherwise fire after unmount.
+  let persistTimer = null;
+  function debouncedPersist() {
+    if (persistTimer) clearTimeout(persistTimer);
+    persistTimer = setTimeout(() => {
+      persistTimer = null;
+      writeFile(persistenceFile, store.serialize()).catch((err) => {
+        if (statusEl) statusEl.textContent = `Save failed: ${err.message || err}`;
+      });
+    }, PERSIST_DEBOUNCE_MS);
+  }
 
-  store.subscribe(() => {
+  const unsubscribeStore = store.subscribe(() => {
     debouncedPreview();
     debouncedPersist();
   });
 
-  insertBtn.addEventListener('click', () => {
+  function onInsertClick() {
     const source = toMermaid(store.getGraph());
     insertAtCursor('```mermaid\n' + source + '\n```');
-  });
+  }
+  insertBtn.addEventListener('click', onInsertClick);
 
   // Keyboard shortcuts — panel-scoped.
-  container.addEventListener('keydown', (ev) => {
+  function onContainerKeyDown(ev) {
     if (ev.ctrlKey && !ev.metaKey && ev.key.toLowerCase() === 'z') {
       ev.preventDefault();
       if (ev.shiftKey) store.redo();
@@ -169,7 +176,8 @@ function renderFlowChartPanel(container, deps) {
         selectedEdgeId = null;
       }
     }
-  });
+  }
+  container.addEventListener('keydown', onContainerKeyDown);
 
   return {
     getStore: () => store,
@@ -181,6 +189,20 @@ function renderFlowChartPanel(container, deps) {
       selectedEdgeId = id;
     },
     destroy: () => {
+      // Clear timers BEFORE canvas.destroy(): canvas teardown may trigger a
+      // last pointer-move that schedules another preview/persist; we want
+      // those timers cancelled before canvas.destroy() runs.
+      if (previewTimer) {
+        clearTimeout(previewTimer);
+        previewTimer = null;
+      }
+      if (persistTimer) {
+        clearTimeout(persistTimer);
+        persistTimer = null;
+      }
+      unsubscribeStore();
+      container.removeEventListener('keydown', onContainerKeyDown);
+      insertBtn.removeEventListener('click', onInsertClick);
       canvas.destroy();
     },
   };
