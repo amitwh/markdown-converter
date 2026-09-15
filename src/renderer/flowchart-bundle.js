@@ -1161,9 +1161,7 @@
         const labelInput = document.createElement('input');
         labelInput.type = 'text';
         labelInput.value = node.label || '';
-        // Runtime-built attribute name to dodge the static-source
-        // forbidden-marker grep (the joined string equals the hint attribute).
-        labelInput.setAttribute('place' + 'holder', 'Label');
+        labelInput.setAttribute('placeholder', 'Label');
         labelInput.addEventListener('input', () => {
           if (_store) _store.setNodeLabel(node.id, labelInput.value);
         });
@@ -1212,7 +1210,7 @@
         const labelInput = document.createElement('input');
         labelInput.type = 'text';
         labelInput.value = edge.label || '';
-        labelInput.setAttribute('place' + 'holder', 'Label');
+        labelInput.setAttribute('placeholder', 'Label');
         labelInput.addEventListener('input', () => {
           if (_store) _store.setEdgeLabel(edge.id, labelInput.value);
         });

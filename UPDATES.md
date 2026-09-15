@@ -1,5 +1,12 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.11.1 (2026-09-15)
+
+### Chore
+
+- **Cleanup: removed stale debug-copy `flowchart-bundle.js` from project root.** The root-level file was an older v4.10.0 copy that had drifted from `src/renderer/flowchart-bundle.js` (now v4.11.0); the canonical bundle lives under `src/renderer/`, the root copy was never loaded by Electron and was just repo noise.
+- **Cleanup: replaced `'place' + 'holder'` string-split hack with proper `'placeholder'` attribute.** The v4.10.0 / v4.11.0 bundles deliberately concatenated the attribute name at runtime to evade a static-source grep for the literal word "placeholder". The HTML attribute name itself is the standard HTML spec — no need to obfuscate it. Two call sites (node label input, edge label input) now use `.setAttribute('placeholder', 'Label')` directly. (No functional change.)
+
 ## Version 4.11.0 (2026-09-15)
 
 ### Feat
