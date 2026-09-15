@@ -61,6 +61,55 @@ describe('flowchart-store: node operations', () => {
     expect(store.getGraph().nodes.find((n) => n.id === node.id).kind).toBe('decision');
   });
 
+  // v4.12.0 — per-node fill color. Mirrors setNodeKind/setNodeLabel semantics.
+  test('addNode defaults color to #ffffff when not provided', () => {
+    const store = create(makeIO());
+    const node = store.addNode({ kind: 'process', x: 0, y: 0, label: '' });
+    expect(node.color).toBe('#ffffff');
+    expect(store.getGraph().nodes[0].color).toBe('#ffffff');
+  });
+
+  test('addNode accepts an explicit color', () => {
+    const store = create(makeIO());
+    const node = store.addNode({ kind: 'process', x: 0, y: 0, label: '', color: '#ff0000' });
+    expect(node.color).toBe('#ff0000');
+  });
+
+  test('setNodeColor updates the color of an existing node', () => {
+    const store = create(makeIO());
+    const node = store.addNode({ kind: 'process', x: 0, y: 0, label: '' });
+    store.setNodeColor(node.id, '#336699');
+    expect(store.getGraph().nodes.find((n) => n.id === node.id).color).toBe('#336699');
+  });
+
+  test('setNodeColor accepts hex without leading #', () => {
+    const store = create(makeIO());
+    const node = store.addNode({ kind: 'process', x: 0, y: 0, label: '' });
+    store.setNodeColor(node.id, 'abcdef');
+    expect(store.getGraph().nodes[0].color).toBe('#abcdef');
+  });
+
+  test('setNodeColor falls back to #ffffff for non-hex strings', () => {
+    const store = create(makeIO());
+    const node = store.addNode({ kind: 'process', x: 0, y: 0, label: '' });
+    store.setNodeColor(node.id, 'not-a-color');
+    expect(store.getGraph().nodes[0].color).toBe('#ffffff');
+  });
+
+  test('setNodeColor throws on unknown node id', () => {
+    const store = create(makeIO());
+    expect(() => store.setNodeColor('nope', '#ff0000')).toThrow(/nope/);
+  });
+
+  test('setNodeColor pushes an undo snapshot', () => {
+    const store = create(makeIO());
+    const node = store.addNode({ kind: 'process', x: 0, y: 0, label: '' });
+    store.setNodeColor(node.id, '#abcdef');
+    expect(store.getGraph().nodes[0].color).toBe('#abcdef');
+    store.undo();
+    expect(store.getGraph().nodes[0].color).toBe('#ffffff');
+  });
+
   test('removeNode removes the node and any connected edges', () => {
     const store = create(makeIO());
     const a = store.addNode({ kind: 'process', x: 0, y: 0, label: 'A' });
@@ -207,6 +256,31 @@ describe('flowchart-store: serialize / deserialize', () => {
     const restored = create(makeIO());
     restored.deserialize(json);
     expect(restored.getGraph()).toEqual(store.getGraph());
+  });
+
+  // v4.12.0 — color is part of the persisted graph and survives round-trip.
+  test('serialize → deserialize round-trip preserves per-node color', () => {
+    const store = create(makeIO());
+    const a = store.addNode({ kind: 'process', x: 10, y: 20, label: 'A', color: '#ff0000' });
+    const b = store.addNode({ kind: 'decision', x: 30, y: 40, label: 'B?', color: '#00aaff' });
+    const json = store.serialize();
+    const restored = create(makeIO());
+    restored.deserialize(json);
+    const restoredA = restored.getGraph().nodes.find((n) => n.id === a.id);
+    const restoredB = restored.getGraph().nodes.find((n) => n.id === b.id);
+    expect(restoredA.color).toBe('#ff0000');
+    expect(restoredB.color).toBe('#00aaff');
+  });
+
+  test('deserialize normalises missing color to #ffffff', () => {
+    const store = create(makeIO());
+    store.deserialize(
+      JSON.stringify({
+        nodes: [{ id: 'n1', kind: 'process', x: 0, y: 0, label: 'A' }],
+        edges: [],
+      })
+    );
+    expect(store.getGraph().nodes[0].color).toBe('#ffffff');
   });
 
   test('deserialize handles corrupt JSON by returning empty graph', () => {

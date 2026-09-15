@@ -15,6 +15,11 @@
       canvas itself is purely visual now (the v4.10.0 floating selection
       toolbar that fired on click hit-testing was unreliable in the
       user's Electron runtime). Removed #fc-selection-toolbar.
+
+      v4.12.0 — Reorganised #fc-nodelist so the connect form is the
+      second section (right after Add Node) instead of being buried below
+      the node/edge lists; added per-node color picker; added
+      "Save to File" button next to "Insert at Cursor".
     -->
     <link rel="stylesheet" href="fonts.css" />
     <link rel="stylesheet" href="styles.css" />
@@ -96,6 +101,14 @@
         margin-left: auto;
         font-size: 0.75rem;
         color: #6e7681;
+      }
+      /* v4.12.0 — the status line moved inside #fc-nodelist (no longer a
+       * flex toolbar child), so `margin-left: auto` is a no-op there. Reset
+       * it explicitly so the status sits flush-left below the toolbar row. */
+      .fc-nodelist .fc-status {
+        margin-left: 0;
+        display: block;
+        min-height: 1em;
       }
       .fc-split {
         display: flex;
@@ -258,6 +271,32 @@
         border-radius: 4px;
         min-width: 100px;
       }
+      /* v4.12.0 — small helper text under section titles */
+      .fc-help {
+        font-size: 11px;
+        color: #57606a;
+        margin: 0 0 8px;
+      }
+      /* v4.12.0 — per-node fill color picker sits next to the kind <select>
+       * and label <input>. Native <input type="color"> gives a platform-native
+       * color dialog so the user can pick any color, including custom. */
+      .fc-ul li input[type='color'] {
+        flex: 0 0 auto;
+        padding: 0;
+        width: 32px;
+        height: 24px;
+        border: 1px solid var(--fc-border);
+        border-radius: 4px;
+        cursor: pointer;
+        background: #fff;
+      }
+      .fc-toolbar-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 8px;
+      }
     </style>
   </head>
   <body>
@@ -269,18 +308,6 @@
       >
     </div>
 
-    <div class="fc-toolbar">
-      <button
-        class="fc-btn primary"
-        id="fc-btn-insert"
-        title="Insert Mermaid block at cursor in main editor"
-      >
-        Insert at Cursor
-      </button>
-      <button class="fc-btn" id="fc-btn-reset" title="Clear all nodes and edges">Reset</button>
-      <span class="fc-status" id="fc-status" aria-live="polite"></span>
-    </div>
-
     <div class="fc-split">
       <div class="fc-left">
         <div class="fc-canvas-host" id="canvas-host"></div>
@@ -288,6 +315,12 @@
           v4.11.0 — button-driven UI. Every mutation (add/delete node,
           add/delete edge, change label, change kind) goes through the
           controls in this panel. The canvas is purely visual now.
+
+          v4.12.0 — Reorganised the panel so the Connect form is the
+          second section (right after Add Node) — user feedback said
+          the old layout buried it below the node/edge lists and they
+          couldn't find it. Also added a per-node color picker and a
+          Save to File button alongside Insert at Cursor.
         -->
         <div id="fc-nodelist" class="fc-nodelist">
           <h3 class="fc-section-title">Add Node</h3>
@@ -299,12 +332,8 @@
             <button class="fc-btn" data-add="document">+ Document</button>
           </div>
 
-          <h3 class="fc-section-title">Nodes <span id="fc-node-count">0</span></h3>
-          <ul id="fc-nodelist-ul" class="fc-ul"></ul>
-
-          <h3 class="fc-section-title">Edges <span id="fc-edge-count">0</span></h3>
-          <ul id="fc-edgelist-ul" class="fc-ul"></ul>
-
+          <h3 class="fc-section-title">Add Connection</h3>
+          <p class="fc-help">Pick two nodes and click "+ Edge" to connect them.</p>
           <div class="fc-connect-row">
             <label for="fc-connect-from">From:</label>
             <select id="fc-connect-from"></select>
@@ -313,6 +342,34 @@
             <button class="fc-btn" id="fc-connect-btn">+ Edge</button>
             <button class="fc-btn" id="fc-connect-cancel">Refresh</button>
           </div>
+
+          <h3 class="fc-section-title">Nodes <span id="fc-node-count">0</span></h3>
+          <ul id="fc-nodelist-ul" class="fc-ul"></ul>
+
+          <h3 class="fc-section-title">Edges <span id="fc-edge-count">0</span></h3>
+          <ul id="fc-edgelist-ul" class="fc-ul"></ul>
+
+          <h3 class="fc-section-title">Export</h3>
+          <div class="fc-toolbar-row">
+            <button
+              class="fc-btn primary"
+              id="fc-btn-insert"
+              title="Insert Mermaid block at cursor in main editor"
+            >
+              Insert at Cursor
+            </button>
+            <button
+              class="fc-btn"
+              id="fc-btn-save"
+              title="Save Mermaid source to a .mmd / .md / .txt file"
+            >
+              Save to File
+            </button>
+            <button class="fc-btn" id="fc-btn-reset" title="Clear all nodes and edges">
+              Reset All
+            </button>
+          </div>
+          <span id="fc-status" aria-live="polite"></span>
         </div>
       </div>
       <div class="fc-preview-host" id="preview-host">
@@ -331,6 +388,9 @@
       v4.11.0 — the bundle's controller bootstrap wires up the
       #fc-nodelist panel. The legacy #fc-selection-toolbar floating
       toolbar is gone.
+
+      v4.12.0 — the bundle also wires the new #fc-btn-save button and
+      the per-node color picker inside the node list.
     -->
     <script src="renderer/flowchart-bundle.js"></script>
   </body>

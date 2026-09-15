@@ -1,5 +1,5 @@
 /**
- * v4.11.0 — Bundled single-file Flowchart Generator loader.
+ * v4.12.0 — Bundled single-file Flowchart Generator loader.
  *
  * Inlines the four pure modules (flowchart-shapes / flowchart-mermaid /
  * flowchart-store / flowchart-canvas) plus the renderer controller
@@ -49,6 +49,18 @@
  *            selection state, no more floating toolbar. `promptInline` /
  *            `confirmInline` are kept only for the Reset confirmation
  *            modal.
+ *   v4.12.0 — User feedback: the v4.11.0 connect form (From dropdown +
+ *            To dropdown + "+ Edge") was buried below the node/edge
+ *            lists and they couldn't find it. Moved the connect form
+ *            up to the second section in #fc-nodelist (right after Add
+ *            Node). Also added (a) a per-node color picker in the
+ *            node list (`<input type="color">` → `store.setNodeColor`)
+ *            — `shapeSvg` now accepts an optional color arg and
+ *            normalises `#ffffff` by default; (b) a "Save to File"
+ *            button alongside "Insert at Cursor" that opens a system
+ *            save dialog via a new `save-text-file` IPC channel. The
+ *            standalone top toolbar was removed; Insert / Save / Reset
+ *            now live inside the panel's new "Export" section.
  *
  * The legacy individual files under src/flowchart/* and
  * src/renderer/flowchart-controller.js are kept untouched — the
@@ -60,26 +72,30 @@
   'use strict';
 
   // ========== flowchart-shapes (inlined) ==========
+  // v4.12.0 — accepts an optional `color` (6th) arg so the canvas can paint
+  // each node with its per-node fill color. Falls back to `#ffffff`.
   const SHAPE_KINDS = ['process', 'decision', 'terminator', 'subroutine', 'document'];
   const DEFAULT_WIDTH = 140;
   const DEFAULT_HEIGHT = 60;
   const LABEL_PADDING_X = 16;
   const LABEL_PADDING_Y = 12;
+  const DEFAULT_FILL = '#ffffff';
 
-  function shapeSvg(kind, x, y, width, height) {
+  function shapeSvg(kind, x, y, width, height, color) {
     if (!SHAPE_KINDS.includes(kind)) {
       throw new Error(`flowchart-shapes: unknown shape kind "${kind}"`);
     }
+    const fill = typeof color === 'string' && color.length > 0 ? color : DEFAULT_FILL;
     switch (kind) {
       case 'process':
-        return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="4" ry="4" />`;
+        return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="4" ry="4" fill="${fill}" />`;
       case 'terminator':
-        return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${height / 2}" ry="${height / 2}" />`;
+        return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${height / 2}" ry="${height / 2}" fill="${fill}" />`;
       case 'subroutine': {
         const inset = 4;
         return (
-          `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="4" ry="4" />` +
-          `<rect x="${x + inset}" y="${y + inset}" width="${width - 2 * inset}" height="${height - 2 * inset}" rx="4" ry="4" />`
+          `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="4" ry="4" fill="${fill}" />` +
+          `<rect x="${x + inset}" y="${y + inset}" width="${width - 2 * inset}" height="${height - 2 * inset}" rx="4" ry="4" fill="${fill}" />`
         );
       }
       case 'decision': {
@@ -89,7 +105,7 @@
         const top = `${cx},${y}`;
         const right = `${x + width},${cy}`;
         const bottom = `${cx},${y + height}`;
-        return `<polygon points="${left} ${top} ${right} ${bottom}" />`;
+        return `<polygon points="${left} ${top} ${right} ${bottom}" fill="${fill}" />`;
       }
       case 'document': {
         // Parallelogram: top-right and bottom-right indented by ~20% of height.
@@ -98,7 +114,7 @@
         const tr = `${x + width},${y}`;
         const br = `${x + width - skew},${y + height}`;
         const bl = `${x},${y + height}`;
-        return `<polygon points="${tl} ${tr} ${br} ${bl}" />`;
+        return `<polygon points="${tl} ${tr} ${br} ${bl}" fill="${fill}" />`;
       }
       default:
         throw new Error(`flowchart-shapes: unknown shape kind "${kind}"`);
@@ -190,9 +206,12 @@
   window.FlowchartMermaid = { toMermaid, escapeLabel, nodeDeclaration, edgeDeclaration };
 
   // ========== flowchart-store (inlined) ==========
+  // v4.12.0 — Nodes carry an optional `color` field; `setNodeColor(id, color)`
+  // mutates it, and serialize/deserialize round-trip it.
   const STORE_NODE_KINDS = ['process', 'decision', 'terminator', 'subroutine', 'document'];
   const STORE_EDGE_KINDS = ['solid', 'dotted', 'thick'];
   const STORE_UNDO_LIMIT = 50;
+  const STORE_DEFAULT_COLOR = '#ffffff';
 
   function storeClone(obj) {
     return JSON.parse(JSON.stringify(obj));
@@ -212,6 +231,16 @@
       Number.isFinite(node.y) &&
       typeof node.label === 'string'
     );
+  }
+
+  function normalizeColor(color) {
+    if (typeof color !== 'string' || color.length === 0) {
+      return { color: STORE_DEFAULT_COLOR };
+    }
+    const trimmed = color.trim();
+    const hex = /^#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(trimmed);
+    if (!hex) return { color: STORE_DEFAULT_COLOR };
+    return { color: trimmed.startsWith('#') ? trimmed : `#${trimmed}` };
   }
 
   function isValidEdge(edge) {
@@ -261,12 +290,19 @@
       return storeClone(graph);
     }
 
-    function addNode({ kind, x, y, label = '' }) {
+    function addNode({ kind, x, y, label = '', color }) {
       if (!STORE_NODE_KINDS.includes(kind)) {
         throw new Error(`flowchart-store: unknown node kind "${kind}"`);
       }
       snapshot();
-      const node = { id: storeNewId('n'), kind, x, y, label };
+      const node = {
+        id: storeNewId('n'),
+        kind,
+        x,
+        y,
+        label,
+        ...normalizeColor(color),
+      };
       graph.nodes.push(node);
       emit();
       return node;
@@ -304,6 +340,14 @@
       if (idx === -1) throw new Error(`flowchart-store: unknown node id "${id}"`);
       snapshot();
       graph.nodes[idx] = { ...graph.nodes[idx], kind };
+      emit();
+    }
+
+    function setNodeColor(id, color) {
+      const idx = findNodeIndex(id);
+      if (idx === -1) throw new Error(`flowchart-store: unknown node id "${id}"`);
+      snapshot();
+      graph.nodes[idx] = { ...graph.nodes[idx], ...normalizeColor(color) };
       emit();
     }
 
@@ -398,7 +442,8 @@
         graph = { nodes: [], edges: [] };
         return;
       }
-      const nodes = Array.isArray(parsed.nodes) ? parsed.nodes.filter(isValidNode) : [];
+      const rawNodes = Array.isArray(parsed.nodes) ? parsed.nodes.filter(isValidNode) : [];
+      const nodes = rawNodes.map((n) => ({ ...n, ...normalizeColor(n.color) }));
       const nodeIds = new Set(nodes.map((n) => n.id));
       const edges = Array.isArray(parsed.edges)
         ? parsed.edges.filter(
@@ -421,6 +466,7 @@
       moveNode,
       setNodeLabel,
       setNodeKind,
+      setNodeColor,
       removeNode,
       connect,
       disconnect,
@@ -545,7 +591,10 @@
           tabindex: '0',
           'aria-label': `${node.kind}: ${node.label || '(no label)'}`,
         });
-        g.innerHTML = shapeSvg(node.kind, 0, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+        // v4.12.0 — pass the per-node fill color through to the shape SVG.
+        // `shapeSvg` itself falls back to #ffffff when the color is missing
+        // or invalid, so old (uncolored) sessions keep rendering correctly.
+        g.innerHTML = shapeSvg(node.kind, 0, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT, node.color);
         const text = canvasSvgEl('text', {
           x: DEFAULT_WIDTH / 2,
           y: DEFAULT_HEIGHT / 2 + 4,
@@ -783,6 +832,7 @@
     previewSource: document.getElementById('preview-source'),
     previewRender: document.getElementById('preview-render'),
     btnInsert: document.getElementById('fc-btn-insert'),
+    btnSave: document.getElementById('fc-btn-save'),
     btnReset: document.getElementById('fc-btn-reset'),
     status: document.getElementById('fc-status'),
     // v4.11.0 — node-list panel (button-driven UI). Every mutation goes
@@ -1167,6 +1217,19 @@
         });
         li.appendChild(labelInput);
 
+        // v4.12.0 — per-node fill color. Native <input type="color"> opens a
+        // platform color picker (presets + custom). We listen for `input`
+        // (continuous as the user drags) so the canvas re-renders live.
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.value = node.color || '#ffffff';
+        colorInput.title = 'Node fill color';
+        colorInput.setAttribute('aria-label', 'Node fill color');
+        colorInput.addEventListener('input', () => {
+          if (_store) _store.setNodeColor(node.id, colorInput.value);
+        });
+        li.appendChild(colorInput);
+
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.textContent = '×';
@@ -1360,6 +1423,30 @@
         const fenced = '```mermaid\n' + source + '\n```';
         if (api.insertAtCursor) api.insertAtCursor(fenced);
         setStatus('Inserted');
+      });
+    }
+
+    // v4.12.0 — Save to File. Pops a system save dialog and writes the
+    // Mermaid-fenced source to the user-chosen path via the generic
+    // 'save-text-file' IPC channel. The main-process handler resolves with
+    // `{ canceled: true }` if the user dismissed the dialog.
+    if (els.btnSave) {
+      els.btnSave.addEventListener('click', async () => {
+        if (!_store || !api.saveFile) return;
+        const source = toMermaid(_store.getGraph());
+        const fenced = '```mermaid\n' + source + '\n```';
+        try {
+          const result = await api.saveFile(fenced, 'flowchart.mmd');
+          if (result && result.canceled) {
+            setStatus('Save cancelled');
+          } else if (result && result.path) {
+            setStatus(`Saved to ${result.path}`);
+          } else {
+            setStatus('Saved');
+          }
+        } catch (err) {
+          setStatus(`Save failed: ${err && err.message ? err.message : err}`);
+        }
       });
     }
 

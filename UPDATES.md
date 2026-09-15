@@ -1,5 +1,21 @@
 # PanConverter - Updates & Changelog
 
+## Version 4.12.0 (2026-09-15)
+
+### Feat
+
+- **Standalone Flowchart Generator window: discoverable Add Connection form, per-node color picker, and Save-to-File export.**
+  - **Reorganised the `#fc-nodelist` panel.** User feedback on v4.11.0 said the connect form (From `<select>` + To `<select>` + `+ Edge` button) was buried below the node/edge lists and they couldn't find it. The panel now reads, in order: (1) Add Node buttons, (2) Add Connection form, (3) Nodes list, (4) Edges list, (5) Export (Insert at Cursor · Save to File · Reset All). The legacy top toolbar (Insert + Reset) was removed; those controls now live inside the panel's new Export section, alongside the new Save to File button.
+  - **Per-node fill color.** Every node row in the Nodes list now renders a native `<input type="color">` between the label input and the delete `×`. Dragging through the picker fires `input` events that call the new `store.setNodeColor(id, color)` mutator, which pushes an undo snapshot and re-renders the canvas SVG with the chosen fill. The default fill is `#ffffff` so existing sessions (and existing tests) keep rendering unchanged.
+  - **`shapeSvg` accepts an optional color arg.** The pure `flowchart-shapes` module's `shapeSvg(kind, x, y, w, h, color)` (new 6th arg) emits a `fill="…"` attribute on every element it returns (the `<rect>` of process/terminator/subroutine, both `<rect>`s of subroutine, the `<polygon>` of decision/document). Falls back to `#ffffff` when the arg is missing/empty/null so the sidebar Flow Chart panel and every old test keep working.
+  - **`flowchart-store.setNodeColor` + persistence.** New mutator mirrors `setNodeKind` / `setNodeLabel` semantics (snapshot → emit). `addNode` now accepts an optional `color`. `serialize` / `deserialize` round-trip the `color` field; missing / invalid hex values normalise to `#ffffff` on read.
+  - **Save to File.** A new `Save to File` button next to `Insert at Cursor` calls `api.saveFile(fenced, 'flowchart.mmd')`, which invokes a new `save-text-file` IPC channel. The main-process handler (`src/main.js`) shows a system save dialog with `.mmd` / `.md` / `.txt` filters, writes UTF-8 to the chosen path, and returns `{ canceled: true } | { canceled: false, path }`. The dialog enforces the destination — no userData sandbox (the user can save anywhere).
+  - **`src/preload.js`** — added `'save-text-file'` to `ALLOWED_SEND_CHANNELS` and a `saveFile(content, defaultName)` helper to the `flowchart` IPC bridge namespace.
+  - **22 new tests:**
+    - `tests/flowchart-store.test.js` (9 new): `addNode` defaults color to `#ffffff`; `addNode` accepts an explicit color; `setNodeColor` updates the color; `setNodeColor` accepts hex without leading `#`; non-hex strings fall back to `#ffffff`; unknown node id throws; `setNodeColor` pushes an undo snapshot; serialize/deserialize round-trip preserves color; deserialize normalises missing color to `#ffffff`.
+    - `tests/flowchart-shapes.test.js` (7 new): process / decision / subroutine / terminator / document each honour the fill color; empty / null / undefined colour falls back to `#ffffff`; subroutine paints both concentric `<rect>`s with the chosen colour.
+    - `tests/flowchart-controller.test.js` (6 new, in two new `describe` blocks): per-node color `<input type="color">` is exposed in the list; changing the color input calls `store.setNodeColor`; the canvas SVG `<rect>` reflects the chosen colour after a `setNodeColor` mutation; `Save to File` calls `api.saveFile` with the Mermaid-fenced source and `'flowchart.mmd'`; cancel / error paths surface in `#fc-status`.
+
 ## Version 4.11.1 (2026-09-15)
 
 ### Chore

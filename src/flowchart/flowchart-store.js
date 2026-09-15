@@ -2,8 +2,11 @@
  * Pure graph store for the flow chart editor.
  *
  * Graph = { nodes: Node[], edges: Edge[] }
- *   Node: { id, kind, x, y, label }
+ *   Node: { id, kind, x, y, label, color? }   (color: CSS hex string, defaults to #ffffff)
  *   Edge: { id, fromNodeId, toNodeId, kind: 'solid'|'dotted'|'thick', label? }
+ *
+ * v4.12.0 — Nodes carry an optional `color` field (CSS hex string).
+ *   `setNodeColor(id, color)` mutates it; `serialize`/`deserialize` round-trip it.
  *
  * IO is injected for unit tests + persistence:
  *   { persistencePath, readFile, writeFile, now }
@@ -14,6 +17,7 @@
 const NODE_KINDS = ['process', 'decision', 'terminator', 'subroutine', 'document'];
 const EDGE_KINDS = ['solid', 'dotted', 'thick'];
 const UNDO_LIMIT = 50;
+const DEFAULT_NODE_COLOR = '#ffffff';
 
 function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -33,6 +37,22 @@ function isValidNode(node) {
     Number.isFinite(node.y) &&
     typeof node.label === 'string'
   );
+}
+
+/**
+ * Normalise a node's `color` field. Accepts a CSS hex string (with or without
+ * the leading `#`), rejects anything else by falling back to the default.
+ * Returns `undefined` when the input is falsy so callers can use the spread
+ * operator (`{ ...node, ...normalizeColor(node.color) }`) without overwriting
+ * existing fields with `undefined`.
+ */
+function normalizeColor(color) {
+  if (typeof color !== 'string' || color.length === 0) return { color: DEFAULT_NODE_COLOR };
+  const trimmed = color.trim();
+  // Hex: #rgb / #rrggbb (case-insensitive). Anything else falls back to default.
+  const hex = /^#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(trimmed);
+  if (!hex) return { color: DEFAULT_NODE_COLOR };
+  return { color: trimmed.startsWith('#') ? trimmed : `#${trimmed}` };
 }
 
 function isValidEdge(edge) {
@@ -82,12 +102,19 @@ function create(io) {
     return clone(graph);
   }
 
-  function addNode({ kind, x, y, label = '' }) {
+  function addNode({ kind, x, y, label = '', color }) {
     if (!NODE_KINDS.includes(kind)) {
       throw new Error(`flowchart-store: unknown node kind "${kind}"`);
     }
     snapshot();
-    const node = { id: newId('n'), kind, x, y, label };
+    const node = {
+      id: newId('n'),
+      kind,
+      x,
+      y,
+      label,
+      ...normalizeColor(color),
+    };
     graph.nodes.push(node);
     emit();
     return node;
@@ -125,6 +152,14 @@ function create(io) {
     if (idx === -1) throw new Error(`flowchart-store: unknown node id "${id}"`);
     snapshot();
     graph.nodes[idx] = { ...graph.nodes[idx], kind };
+    emit();
+  }
+
+  function setNodeColor(id, color) {
+    const idx = findNodeIndex(id);
+    if (idx === -1) throw new Error(`flowchart-store: unknown node id "${id}"`);
+    snapshot();
+    graph.nodes[idx] = { ...graph.nodes[idx], ...normalizeColor(color) };
     emit();
   }
 
@@ -219,7 +254,10 @@ function create(io) {
       graph = { nodes: [], edges: [] };
       return;
     }
-    const nodes = Array.isArray(parsed.nodes) ? parsed.nodes.filter(isValidNode) : [];
+    const rawNodes = Array.isArray(parsed.nodes) ? parsed.nodes.filter(isValidNode) : [];
+    // v4.12.0 — normalise the optional `color` field on every node so the
+    // rehydrated graph has a guaranteed valid color (#ffffff by default).
+    const nodes = rawNodes.map((n) => ({ ...n, ...normalizeColor(n.color) }));
     const nodeIds = new Set(nodes.map((n) => n.id));
     const edges = Array.isArray(parsed.edges)
       ? parsed.edges.filter(
@@ -242,6 +280,7 @@ function create(io) {
     moveNode,
     setNodeLabel,
     setNodeKind,
+    setNodeColor,
     removeNode,
     connect,
     disconnect,

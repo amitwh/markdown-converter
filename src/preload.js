@@ -101,6 +101,9 @@ const ALLOWED_SEND_CHANNELS = [
   // Flowchart generator (standalone window — v4.9.6)
   'open-flowchart-generator',
 
+  // Flowchart generator: dialog-based file save (v4.12.0)
+  'save-text-file',
+
   // ASCII art generator (standalone window — invoke channels)
   'ascii:generate',
   'ascii:list-fonts',
@@ -533,10 +536,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // write-text-file) which sandbox writes to <userData>. Insert at cursor
   // sends the Mermaid-fenced source through the existing 'insert-content'
   // channel which the renderer.js sidebar panel also uses.
+  //
+  // v4.12.0 — `saveFile` opens a system Save dialog and writes the content
+  // to a user-chosen path. Bypasses the userData sandbox (user can save
+  // anywhere) — the dialog enforces the destination.
   flowchart: {
     getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
     readFile: (p) => ipcRenderer.invoke('read-text-file', p),
     writeFile: (p, content) => ipcRenderer.invoke('write-text-file', { path: p, content }),
+    saveFile: (content, defaultName) =>
+      ipcRenderer.invoke('save-text-file', { content, defaultName }),
     insertAtCursor: (text) => ipcRenderer.send('insert-content', text),
   },
 

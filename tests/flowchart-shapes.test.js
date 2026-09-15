@@ -50,6 +50,50 @@ describe('flowchart-shapes: shapeSvg', () => {
     expect(() => shapeSvg('hexagon', 0, 0, 100, 50)).toThrow(/hexagon/);
   });
 
+  // v4.12.0 — optional fill color. Defaults to #ffffff when omitted, used
+  // when provided, and applied to every emitted element (rect/polygon and
+  // both rects of the subroutine double-border).
+  test('process emits a <rect> with default fill #ffffff when color is omitted', () => {
+    const svg = shapeSvg('process', 10, 20, 100, 50);
+    expect(svg).toMatch(/fill="#ffffff"/);
+  });
+
+  test('process emits a <rect> with the given fill color', () => {
+    const svg = shapeSvg('process', 0, 0, 100, 50, '#ff0000');
+    expect(svg).toMatch(/fill="#ff0000"/);
+    expect(svg).toMatch(/<rect/);
+  });
+
+  test('decision (polygon) honors the fill color', () => {
+    const svg = shapeSvg('decision', 0, 0, 100, 60, '#336699');
+    expect(svg).toMatch(/<polygon/);
+    expect(svg).toMatch(/fill="#336699"/);
+  });
+
+  test('subroutine paints both concentric <rect>s with the fill color', () => {
+    const svg = shapeSvg('subroutine', 0, 0, 100, 50, '#aabbcc');
+    const fills = svg.match(/fill="#aabbcc"/g) || [];
+    expect(fills.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('terminator honors the fill color', () => {
+    const svg = shapeSvg('terminator', 0, 0, 120, 40, '#123456');
+    expect(svg).toMatch(/fill="#123456"/);
+    expect(svg).toMatch(/rx="/);
+  });
+
+  test('document (parallelogram) honors the fill color', () => {
+    const svg = shapeSvg('document', 0, 0, 120, 60, '#abcdef');
+    expect(svg).toMatch(/<polygon/);
+    expect(svg).toMatch(/fill="#abcdef"/);
+  });
+
+  test('empty / falsy color falls back to #ffffff', () => {
+    expect(shapeSvg('process', 0, 0, 100, 50, '')).toMatch(/fill="#ffffff"/);
+    expect(shapeSvg('process', 0, 0, 100, 50, null)).toMatch(/fill="#ffffff"/);
+    expect(shapeSvg('process', 0, 0, 100, 50, undefined)).toMatch(/fill="#ffffff"/);
+  });
+
   test('SHAPE_KINDS lists all 5 shapes', () => {
     expect(SHAPE_KINDS.sort()).toEqual([
       'decision',

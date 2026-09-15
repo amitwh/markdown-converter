@@ -551,3 +551,136 @@ describe('flowchart-bundle: button-driven node-list panel (v4.11.0)', () => {
     expect(edgelistUl.querySelectorAll('li')).toHaveLength(0);
   });
 });
+
+// v4.12.0 — per-node fill color picker. The user asked for the ability to
+// color individual nodes. The bundle renders a native <input type="color">
+// per node row, and `input` events call store.setNodeColor. The default
+// (newly-added) value is #ffffff.
+describe('flowchart-bundle: per-node color picker (v4.12.0)', () => {
+  const BUNDLE_PATH = path.join(__dirname, '..', 'src', 'renderer', 'flowchart-bundle.js');
+  const HTML_PATH_BUNDLE = path.join(__dirname, '..', 'src', 'flowchart-generator.html');
+
+  async function loadBundle(apiOverrides = {}) {
+    const html = fs.readFileSync(HTML_PATH_BUNDLE, 'utf-8');
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    document.body.innerHTML = bodyMatch ? bodyMatch[1] : html;
+    const apiMock = {
+      getUserDataPath: jest.fn(async () => '/userdata'),
+      readFile: jest.fn(async () => null),
+      writeFile: jest.fn(async () => undefined),
+      insertAtCursor: jest.fn(),
+      saveFile: jest.fn(async () => ({ canceled: false, path: '/tmp/out.mmd' })),
+      ...apiOverrides,
+    };
+    window.electronAPI = { flowchart: apiMock };
+    const bundleSrc = fs.readFileSync(BUNDLE_PATH, 'utf-8');
+    // eslint-disable-next-line no-new-func
+    new Function('window', 'document', bundleSrc)(window, document);
+    for (let i = 0; i < 5; i += 1) {
+      await Promise.resolve();
+    }
+    return { store: window.FlowchartController.store, apiMock };
+  }
+
+  test('each node row exposes a color <input type="color">', async () => {
+    const { store } = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'A' });
+    const li = document.getElementById('fc-nodelist-ul').querySelector('li');
+    const colorInput = li.querySelector('input[type="color"]');
+    expect(colorInput).not.toBeNull();
+    expect(colorInput.value).toBe('#ffffff');
+  });
+
+  test('changing the color <input> calls store.setNodeColor', async () => {
+    const { store } = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'A' });
+    const li = document.getElementById('fc-nodelist-ul').querySelector('li');
+    const colorInput = li.querySelector('input[type="color"]');
+    colorInput.value = '#336699';
+    colorInput.dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(store.getGraph().nodes[0].color).toBe('#336699');
+  });
+
+  test('the canvas SVG <rect> reflects the chosen color after a setNodeColor mutation', async () => {
+    const { store } = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'A' });
+    store.setNodeColor(store.getGraph().nodes[0].id, '#abcdef');
+    await Promise.resolve();
+    const nodeG = document.querySelector('svg.flowchart-canvas g[data-node-id]');
+    const rect = nodeG && nodeG.querySelector('rect');
+    expect(rect).not.toBeNull();
+    expect(rect.getAttribute('fill')).toBe('#abcdef');
+  });
+});
+
+// v4.12.0 — Save to File. The bundle wires #fc-btn-save to api.saveFile
+// with the Mermaid-fenced source and a default filename of 'flowchart.mmd'.
+// Cancel / error paths surface in the status text.
+describe('flowchart-bundle: Save to File button (v4.12.0)', () => {
+  const BUNDLE_PATH = path.join(__dirname, '..', 'src', 'renderer', 'flowchart-bundle.js');
+  const HTML_PATH_BUNDLE = path.join(__dirname, '..', 'src', 'flowchart-generator.html');
+
+  async function loadBundle(apiOverrides = {}) {
+    const html = fs.readFileSync(HTML_PATH_BUNDLE, 'utf-8');
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    document.body.innerHTML = bodyMatch ? bodyMatch[1] : html;
+    const apiMock = {
+      getUserDataPath: jest.fn(async () => '/userdata'),
+      readFile: jest.fn(async () => null),
+      writeFile: jest.fn(async () => undefined),
+      insertAtCursor: jest.fn(),
+      saveFile: jest.fn(async () => ({ canceled: false, path: '/tmp/out.mmd' })),
+      ...apiOverrides,
+    };
+    window.electronAPI = { flowchart: apiMock };
+    const bundleSrc = fs.readFileSync(BUNDLE_PATH, 'utf-8');
+    // eslint-disable-next-line no-new-func
+    new Function('window', 'document', bundleSrc)(window, document);
+    for (let i = 0; i < 5; i += 1) {
+      await Promise.resolve();
+    }
+    return { store: window.FlowchartController.store, apiMock };
+  }
+
+  test('Save to File calls api.saveFile with the Mermaid-fenced source', async () => {
+    const { store, apiMock } = await loadBundle();
+    store.addNode({ kind: 'process', x: 0, y: 0, label: 'Save' });
+    const btn = document.getElementById('fc-btn-save');
+    expect(btn).not.toBeNull();
+    btn.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(apiMock.saveFile).toHaveBeenCalledTimes(1);
+    const [content, defaultName] = apiMock.saveFile.mock.calls[0];
+    expect(typeof content).toBe('string');
+    expect(content.startsWith('```mermaid\n')).toBe(true);
+    expect(content.endsWith('\n```')).toBe(true);
+    expect(content).toContain('flowchart TD');
+    expect(content).toContain('A[Save]');
+    expect(defaultName).toBe('flowchart.mmd');
+  });
+
+  test('Save to File surfaces "cancel" status when the user dismisses the dialog', async () => {
+    const { apiMock } = await loadBundle({
+      saveFile: jest.fn(async () => ({ canceled: true })),
+    });
+    document.getElementById('fc-btn-save').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(apiMock.saveFile).toHaveBeenCalledTimes(1);
+    expect(document.getElementById('fc-status').textContent).toBe('Save cancelled');
+  });
+
+  test('Save to File surfaces the error when the IPC handler throws', async () => {
+    const { apiMock } = await loadBundle({
+      saveFile: jest.fn(async () => {
+        throw new Error('disk full');
+      }),
+    });
+    document.getElementById('fc-btn-save').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(apiMock.saveFile).toHaveBeenCalledTimes(1);
+    expect(document.getElementById('fc-status').textContent).toBe('Save failed: disk full');
+  });
+});

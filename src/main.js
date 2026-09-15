@@ -5530,6 +5530,29 @@ ipcMain.on('open-flowchart-generator', () => {
   openFlowchartGenerator();
 });
 
+// v4.12.0 — Save the flowchart's Mermaid source to a user-chosen file via a
+// system Save dialog. Mirrors the v4.9.6 ASCII `ascii:save` handler shape
+// (`{ canceled } | { canceled: false, path }`) but exposes a generic IPC
+// channel so the standalone Flowchart Generator window can call it. The
+// destination is fully user-controlled (the dialog enforces the path), so no
+// userData-sandbox check is applied here.
+ipcMain.handle('save-text-file', async (event, { content, defaultName } = {}) => {
+  const { dialog } = require('electron');
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showSaveDialog(win || undefined, {
+    title: 'Save Mermaid Source',
+    defaultPath: typeof defaultName === 'string' && defaultName ? defaultName : 'flowchart.mmd',
+    filters: [
+      { name: 'Mermaid', extensions: ['mmd', 'md'] },
+      { name: 'Text', extensions: ['txt'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled || !result.filePath) return { canceled: true };
+  await require('fs').promises.writeFile(result.filePath, content ?? '', 'utf-8');
+  return { canceled: false, path: result.filePath };
+});
+
 // ============================================
 // ASCII Art Generator Window
 // ============================================
