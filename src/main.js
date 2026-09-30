@@ -10,6 +10,7 @@ const AudioOperations = require('./main/AudioOperations');
 const VideoOperations = require('./main/VideoOperations');
 const { collectFilesByExtension } = require('./main/collectFilesByExtension');
 const { listWorkspaceFiles } = require('./quick-switcher/workspace-file-lister');
+const { completeStream } = require('./main/AiProviders');
 const { runPDFBatchOperation } = require('./main/PDFBatchOperations');
 const GitOperations = require('./main/GitOperations');
 const PandocArgs = require('./main/PandocArgs');
@@ -4907,6 +4908,38 @@ ipcMain.on('clear-recent-files', (event) => {
 // Quick-switcher (v4.13.0): renderer asks for the recent-files list when
 // the Cmd+P overlay opens. Read-only — write paths remain send-only.
 ipcMain.handle('recent-files:get', () => getRecentFiles());
+
+// Inline AI assist (v4.13.0): streaming proxy from renderer to provider.
+// Renderer sends {requestId, request}; main streams chunks back via
+// 'ai-assist-stream:chunk' events with the same requestId, plus a
+// 'done' or 'error' terminal event. Renderer can abort via
+// 'ai-assist-stream:cancel'.
+const aiAssistStreams = new Map(); // requestId -> { abort, sender }
+ipcMain.on('ai-assist-stream:start', async (event, { requestId, request } = {}) => {
+  if (!requestId || !request) return;
+  const sender = event.sender;
+  let ac;
+  try {
+    ac = new AbortController();
+    aiAssistStreams.set(requestId, { abort: () => ac.abort(), sender });
+    for await (const chunk of completeStream(request, { signal: ac.signal })) {
+      if (ac.signal.aborted) break;
+      sender.send('ai-assist-stream:chunk', { requestId, chunk });
+    }
+    sender.send('ai-assist-stream:done', { requestId });
+  } catch (err) {
+    const code = err && err.code ? err.code : 'unknown';
+    const message = err && err.message ? err.message : 'AI request failed.';
+    sender.send('ai-assist-stream:error', { requestId, code, message });
+  } finally {
+    aiAssistStreams.delete(requestId);
+  }
+});
+ipcMain.on('ai-assist-stream:cancel', (_event, { requestId } = {}) => {
+  if (!requestId) return;
+  const entry = aiAssistStreams.get(requestId);
+  if (entry) entry.abort();
+});
 
 // Plugins (loaded in the renderer) report the export formats they've
 // registered; rebuild the Export menu so they show up as entries.

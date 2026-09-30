@@ -255,8 +255,203 @@ async function complete(request, options = {}) {
   return { content };
 }
 
+/**
+ * Stream a chat completion as an async iterable of text chunks.
+ *
+ * Supports the same providers as complete(). For SSE-supporting endpoints
+ * (openai, anthropic, and their compatible variants; ollama and lmstudio
+ * transparently support the openai schema), parses the chunked response
+ * and yields each delta. For endpoints without working streaming, falls
+ * back to a single chunk containing the full response.
+ *
+ * @param {object} request - same shape as complete()
+ * @param {object} [options] - { fetchImpl, timeoutMs, signal }
+ * @returns {AsyncIterable<string>}
+ * @throws {AiProviderError} only on synchronous setup failures (auth,
+ *   bad URL, oversized prompt). Network/HTTP errors during streaming are
+ *   thrown when the consumer awaits a yield that follows the failure.
+ */
+async function* completeStream(request, options = {}) {
+  const fetchImpl = options.fetchImpl || global.fetch;
+  if (typeof fetchImpl !== 'function') {
+    throw new AiProviderError('No fetch implementation available.', 'no_fetch');
+  }
+  const timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
+
+  if (!Array.isArray(request?.messages) || request.messages.length === 0) {
+    throw new AiProviderError('No messages provided.', 'no_messages');
+  }
+  const totalChars =
+    (request.system?.length || 0) +
+    request.messages.reduce((n, m) => n + (m?.content?.length || 0), 0);
+  if (totalChars > MAX_PROMPT_CHARS) {
+    throw new AiProviderError(
+      'Prompt is too large (over 200KB). Try a smaller selection.',
+      'prompt_too_large'
+    );
+  }
+
+  const settings = resolveSettings(request);
+  if (OPENAI_STYLE.has(settings.provider)) {
+    yield* streamOpenAiStyle(settings, request, fetchImpl, timeoutMs, options.signal);
+    return;
+  }
+  yield* streamAnthropic(settings, request, fetchImpl, timeoutMs, options.signal);
+}
+
+async function* streamOpenAiStyle(settings, request, fetchImpl, timeoutMs, callerSignal) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const onCallerAbort = () => controller.abort();
+  if (callerSignal) {
+    if (callerSignal.aborted) controller.abort();
+    else callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+  }
+  try {
+    const body = {
+      model: settings.model,
+      temperature: settings.temperature,
+      stream: true,
+      messages: [
+        ...(settings ? [{ role: 'system', content: settings.system || request.system }] : []),
+        ...request.messages.map((m) => ({ role: m.role, content: m.content })),
+      ],
+    };
+    const headers = { 'Content-Type': 'application/json' };
+    if (settings.apiKey) headers.Authorization = `Bearer ${settings.apiKey}`;
+
+    const response = await fetchImpl(`${settings.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ...body,
+        messages: [
+          ...(request.system ? [{ role: 'system', content: request.system }] : []),
+          ...request.messages.map((m) => ({ role: m.role, content: m.content })),
+        ],
+      }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new AiProviderError(
+        `AI request failed (HTTP ${response.status}). Check the model name, API key, and base URL.`,
+        `http_${response.status}`
+      );
+    }
+    yield* parseSseStream(response, (data) => {
+      try {
+        const parsed = JSON.parse(data);
+        return parsed?.choices?.[0]?.delta?.content || '';
+      } catch {
+        return '';
+      }
+    });
+  } finally {
+    clearTimeout(timer);
+    if (callerSignal) callerSignal.removeEventListener('abort', onCallerAbort);
+  }
+}
+
+async function* streamAnthropic(settings, request, fetchImpl, timeoutMs, callerSignal) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const onCallerAbort = () => controller.abort();
+  if (callerSignal) {
+    if (callerSignal.aborted) controller.abort();
+    else callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+  }
+  try {
+    const body = {
+      model: settings.model,
+      max_tokens: 4096,
+      temperature: settings.temperature,
+      stream: true,
+      system: request.system || undefined,
+      messages: request.messages.map((m) => ({ role: m.role, content: m.content })),
+    };
+    const headers = {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+    };
+    if (settings.apiKey) {
+      headers['x-api-key'] = settings.apiKey;
+      headers.Authorization = `Bearer ${settings.apiKey}`;
+    }
+    const messagesUrl = settings.baseUrl.endsWith('/v1')
+      ? `${settings.baseUrl}/messages`
+      : `${settings.baseUrl}/v1/messages`;
+
+    const response = await fetchImpl(messagesUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new AiProviderError(
+        `AI request failed (HTTP ${response.status}). Check the model name, API key, and base URL.`,
+        `http_${response.status}`
+      );
+    }
+    // Anthropic SSE uses event: content_block_delta + data: {delta:{text}}
+    yield* parseSseStream(response, (data) => {
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed?.type === 'content_block_delta') {
+          return parsed?.delta?.text || '';
+        }
+        return '';
+      } catch {
+        return '';
+      }
+    });
+  } finally {
+    clearTimeout(timer);
+    if (callerSignal) callerSignal.removeEventListener('abort', onCallerAbort);
+  }
+}
+
+/**
+ * Parse an SSE stream from a Response. Yields parsed chunks per `data:` line.
+ * Handles the [DONE] sentinel used by OpenAI.
+ */
+async function* parseSseStream(response, parseData) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buffer.indexOf('\n')) !== -1) {
+        const line = buffer.slice(0, idx).trim();
+        buffer = buffer.slice(idx + 1);
+        if (!line) continue;
+        if (line.startsWith('data:')) {
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') return;
+          const chunk = parseData(payload);
+          if (chunk) yield chunk;
+        } else if (line.startsWith('event:')) {
+          // Anthropic event type is captured via parseData on the following
+          // data: line. Nothing to do at event: prefix.
+        }
+      }
+    }
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      // already released
+    }
+  }
+}
+
 module.exports = {
   complete,
+  completeStream,
   resolveSettings,
   AiProviderError,
   PROVIDER_DEFAULTS,

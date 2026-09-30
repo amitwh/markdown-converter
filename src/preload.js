@@ -44,6 +44,10 @@ const ALLOWED_SEND_CHANNELS = [
   'ai-assistant:complete',
   'ai-assistant:status',
 
+  // v4.13.0 — Inline AI assist streaming (Cmd+K in editor)
+  'ai-assist-stream:start',
+  'ai-assist-stream:cancel',
+
   // Batch conversion
   'batch-convert',
   'select-folder',
@@ -562,6 +566,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   quickSwitcher: {
     listFiles: (dir, options) => ipcRenderer.invoke('quick-switcher:list-files', { dir, options }),
     getRecentFiles: () => ipcRenderer.invoke('recent-files:get'),
+  },
+
+  // v4.13.0 — Inline AI assist streaming (Cmd+K on selected text).
+  // Caller passes {requestId, request}; main streams chunks via
+  // onChunk/Done/Error listeners. Callers MUST register listeners before
+  // calling start(), because the first chunk can fire on the next tick.
+  aiAssist: {
+    start: (requestId, request) =>
+      ipcRenderer.send('ai-assist-stream:start', { requestId, request }),
+    cancel: (requestId) => ipcRenderer.send('ai-assist-stream:cancel', { requestId }),
+    onChunk: (cb) => ipcRenderer.on('ai-assist-stream:chunk', (_e, p) => cb(p)),
+    onDone: (cb) => ipcRenderer.on('ai-assist-stream:done', (_e, p) => cb(p)),
+    onError: (cb) => ipcRenderer.on('ai-assist-stream:error', (_e, p) => cb(p)),
   },
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
