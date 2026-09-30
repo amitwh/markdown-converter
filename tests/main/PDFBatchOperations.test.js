@@ -70,6 +70,10 @@ describe('PDFBatchOperations - runPDFBatchOperation', () => {
   }
 
   describe('watermark across a folder (brief manual-verification stand-in)', () => {
+    // 30s timeout for this batch — creates + watermarks 3 PDFs; the
+    // default 5s is too tight on Windows CI runners where pdf-lib /
+    // pdfjs-dist cold-start can take 10-15s on the first call.
+    jest.setTimeout(30000);
     beforeEach(async () => {
       await writePdfFixture(path.join(inputDir, 'a.pdf'), 2, 'Alpha');
       await writePdfFixture(path.join(inputDir, 'b.pdf'), 3, 'Beta');
@@ -81,6 +85,8 @@ describe('PDFBatchOperations - runPDFBatchOperation', () => {
       // 'DRAFT' extracts back out cleanly via pdfjs; wider centered strings
       // (e.g. 'CONFIDENTIAL') hit a pdfjs-dist text-extraction quirk that
       // truncates the returned item even though the full text is drawn.
+      // 30s timeout — the test creates + watermarks 3 PDFs and the default
+      // 5s is too tight on Windows CI runners.
       const { completion } = await runBatch({
         operation: 'watermark',
         data: {

@@ -26,7 +26,11 @@ describe('DailyNotes.dateKey', () => {
 describe('DailyNotes.pathFor', () => {
   test('joins dir + YYYY-MM-DD.md', () => {
     const d = new Date(2026, 8, 13);
-    expect(DailyNotes.pathFor(d, '/tmp/notes', path)).toBe('/tmp/notes/2026-09-13.md');
+    // Use path.join to build the expected value so the test passes on
+    // Windows (where path.join returns backslashes) as well as POSIX.
+    expect(DailyNotes.pathFor(d, '/tmp/notes', path)).toBe(
+      path.join('/tmp/notes', '2026-09-13.md')
+    );
   });
 });
 
