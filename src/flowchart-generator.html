@@ -256,6 +256,50 @@
           opacity: 1;
         }
       }
+      /* v4.13.0 — keyboard shortcuts modal + kbd tags. The modal
+         reuses the existing .fc-modal animation; the table lays
+         out Action / Shortcut columns, with <kbd> tags for the
+         key combos styled to look like physical keys. */
+      .fc-shortcuts-modal {
+        max-width: 460px;
+        width: 90vw;
+      }
+      .fc-shortcuts-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0 16px;
+        font-size: 0.9rem;
+      }
+      .fc-shortcuts-table th {
+        text-align: left;
+        font-weight: 600;
+        padding: 4px 0;
+        border-bottom: 1px solid var(--fc-border, #d1d5db);
+        color: #4b5563;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .fc-shortcuts-table td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      .fc-shortcuts-table td:last-child {
+        text-align: right;
+        white-space: nowrap;
+      }
+      kbd {
+        display: inline-block;
+        padding: 1px 6px;
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+        font-size: 0.78rem;
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        border-bottom-width: 2px;
+        border-radius: 3px;
+        color: #1f2937;
+        margin: 0 1px;
+      }
       /* v4.10.0 — preview-render info card explaining the layout */
       .fc-preview-render-note {
         font-size: 0.75rem;
@@ -394,6 +438,80 @@
     <div class="fc-split">
       <div class="fc-left">
         <div class="fc-canvas-host" id="canvas-host"></div>
+        <!-- v4.13.0 — keyboard shortcuts overlay. Triggered by the
+             "Shortcuts (?)" toolbar button or the ? key. Hidden by
+             default; .open toggles visibility + the fade-in animation. -->
+        <div class="fc-modal-overlay" id="fc-shortcuts-overlay" hidden></div>
+        <div
+          class="fc-modal fc-shortcuts-modal"
+          id="fc-shortcuts-modal"
+          role="dialog"
+          aria-labelledby="fc-shortcuts-title"
+          hidden
+        >
+          <h2 id="fc-shortcuts-title">Keyboard Shortcuts</h2>
+          <table class="fc-shortcuts-table">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Shortcut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Undo</td>
+                <td><kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd></td>
+              </tr>
+              <tr>
+                <td>Redo</td>
+                <td><kbd>Ctrl/⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td>
+              </tr>
+              <tr>
+                <td>Copy selection</td>
+                <td><kbd>Ctrl/⌘</kbd>+<kbd>C</kbd></td>
+              </tr>
+              <tr>
+                <td>Paste</td>
+                <td><kbd>Ctrl/⌘</kbd>+<kbd>V</kbd></td>
+              </tr>
+              <tr>
+                <td>Duplicate</td>
+                <td><kbd>Ctrl/⌘</kbd>+<kbd>D</kbd></td>
+              </tr>
+              <tr>
+                <td>Delete selected</td>
+                <td><kbd>Delete</kbd> / <kbd>Backspace</kbd></td>
+              </tr>
+              <tr>
+                <td>Connect from a node</td>
+                <td><kbd>Alt</kbd>+drag</td>
+              </tr>
+              <tr>
+                <td>Pan view</td>
+                <td><kbd>Shift</kbd>+drag on background</td>
+              </tr>
+              <tr>
+                <td>Multi-select</td>
+                <td><kbd>Shift</kbd>+click / drag-rect</td>
+              </tr>
+              <tr>
+                <td>Zoom in / out</td>
+                <td><kbd>Ctrl</kbd>+wheel</td>
+              </tr>
+              <tr>
+                <td>Reset All</td>
+                <td>(toolbar button)</td>
+              </tr>
+              <tr>
+                <td>Show this overlay</td>
+                <td><kbd>?</kbd></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="fc-modal-actions">
+            <button class="fc-btn primary" id="fc-shortcuts-close">Close (Esc)</button>
+          </div>
+        </div>
         <!--
           v4.11.0 — button-driven UI. Every mutation (add/delete node,
           add/delete edge, change label, change kind) goes through the
@@ -551,6 +669,13 @@
               title="Export the canvas as an editable Visio .vsdx file"
             >
               Export Visio
+            </button>
+            <button
+              class="fc-btn"
+              id="fc-btn-help"
+              title="Show keyboard shortcuts (press ? any time)"
+            >
+              Shortcuts (?)
             </button>
           </div>
           <span id="fc-status" aria-live="polite"></span>

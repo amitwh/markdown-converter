@@ -1212,6 +1212,10 @@
     btnDistributeH: document.getElementById('fc-btn-distribute-h'),
     btnDistributeV: document.getElementById('fc-btn-distribute-v'),
     btnSelectAll: document.getElementById('fc-btn-select-all'),
+    btnHelp: document.getElementById('fc-btn-help'),
+    shortcutsModal: document.getElementById('fc-shortcuts-modal'),
+    shortcutsOverlay: document.getElementById('fc-shortcuts-overlay'),
+    shortcutsClose: document.getElementById('fc-shortcuts-close'),
     btnUndo: document.getElementById('fc-btn-undo'),
     btnRedo: document.getElementById('fc-btn-redo'),
     historyCount: document.getElementById('fc-history-count'),
@@ -2069,6 +2073,24 @@
       });
     }
 
+    // v4.13.0 — Keyboard shortcuts overlay. Triggered by the toolbar
+    // button or the ? key. Esc closes. Wired as a separate modal (not
+    // via promptInline / confirmInline) because those are single-input
+    // forms; this one is a read-only table.
+    function showShortcutsOverlay() {
+      if (els.shortcutsModal) els.shortcutsModal.hidden = false;
+      if (els.shortcutsOverlay) els.shortcutsOverlay.hidden = false;
+    }
+    function hideShortcutsOverlay() {
+      if (els.shortcutsModal) els.shortcutsModal.hidden = true;
+      if (els.shortcutsOverlay) els.shortcutsOverlay.hidden = true;
+    }
+    if (els.btnHelp) els.btnHelp.addEventListener('click', showShortcutsOverlay);
+    if (els.shortcutsClose) els.shortcutsClose.addEventListener('click', hideShortcutsOverlay);
+    if (els.shortcutsOverlay) {
+      els.shortcutsOverlay.addEventListener('click', hideShortcutsOverlay);
+    }
+
     // v4.13.0 — Open from .mmd/.md file. Pops a system Open dialog,
     // strips the ```mermaid fence (if any), parses via fromMermaid()
     // (inlined above) and replaces the current graph. Confirms
@@ -2150,10 +2172,29 @@
     // Keyboard shortcuts — Ctrl/Cmd+Z / Ctrl/Cmd+Shift+Z. v4.13.0 — added
     // copy/paste/duplicate (Cmd+C / Cmd+V / Cmd+D) plus Delete/Backspace
     // for the canvas-owned selection (replaces the old DOM .selected read).
+    // v4.13.0 — ? opens the shortcuts overlay; Esc closes it.
     let _clipboard = null; // module-level clipboard for Cmd+C/V/D
     document.addEventListener('keydown', (ev) => {
+      // Esc closes the shortcuts overlay regardless of meta state.
+      if (ev.key === 'Escape' && els.shortcutsModal && !els.shortcutsModal.hidden) {
+        hideShortcutsOverlay();
+        ev.preventDefault();
+        return;
+      }
+      // ? toggles the overlay. Use Shift+/ since ? requires Shift on US
+      // keyboards; this catches both the literal character and the key.
+      const isMeta = ev.ctrlKey || ev.metaKey;
+      if ((ev.key === '?' || (ev.key === '/' && ev.shiftKey)) && !isMeta && !ev.altKey) {
+        if (els.shortcutsModal && els.shortcutsModal.hidden) {
+          showShortcutsOverlay();
+        } else {
+          hideShortcutsOverlay();
+        }
+        ev.preventDefault();
+        return;
+      }
       if (!_store) return;
-      const meta = ev.ctrlKey || ev.metaKey;
+      const meta = isMeta;
       if (meta && !ev.shiftKey && ev.key.toLowerCase() === 'z') {
         ev.preventDefault();
         _store.undo();

@@ -744,4 +744,51 @@ describe('flowchart-bundle: Export Image buttons (v4.13.0)', () => {
     expect(apiMock.saveFile).toHaveBeenCalledTimes(1);
     expect(document.getElementById('fc-status').textContent).toBe('Export cancelled');
   });
+
+  // v4.13.0 — keyboard shortcuts overlay. Triggered by the toolbar
+  // button or the ? key, dismissed by the Close button or Esc.
+  describe('shortcuts overlay (v4.13.0)', () => {
+    test('toolbar button toggles the overlay open', async () => {
+      await loadBundle();
+      const modal = document.getElementById('fc-shortcuts-modal');
+      expect(modal.hidden).toBe(true);
+      document.getElementById('fc-btn-help').click();
+      expect(modal.hidden).toBe(false);
+    });
+
+    test('? key opens the overlay, Esc closes it', async () => {
+      await loadBundle();
+      const modal = document.getElementById('fc-shortcuts-modal');
+      expect(modal.hidden).toBe(true);
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+      expect(modal.hidden).toBe(false);
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(modal.hidden).toBe(true);
+    });
+
+    test('overlay lists the canvas-relevant shortcuts', async () => {
+      await loadBundle();
+      document.getElementById('fc-btn-help').click();
+      const table = document.querySelector('#fc-shortcuts-modal .fc-shortcuts-table');
+      expect(table).not.toBeNull();
+      const rows = Array.from(table.querySelectorAll('tbody tr')).map(
+        (tr) => tr.children[0].textContent
+      );
+      expect(rows).toEqual(
+        expect.arrayContaining([
+          'Undo',
+          'Redo',
+          'Copy selection',
+          'Paste',
+          'Duplicate',
+          'Delete selected',
+          'Connect from a node',
+          'Multi-select',
+          'Show this overlay',
+        ])
+      );
+    });
+  });
 });
