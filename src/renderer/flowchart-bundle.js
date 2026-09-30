@@ -920,8 +920,112 @@
     return { destroy, getSvg: () => svg };
   }
 
+  // ========== flowchart-align (inlined v4.13.0) ==========
+  // Pure alignment + distribution helpers. The full module lives in
+  // src/flowchart/flowchart-align.js (14 tests); this inlining keeps the
+  // standalone window functional without a rebuild step.
+  const ALIGN_DEFAULT_HEIGHT = 60;
+  function _alignNodeWidth(node) {
+    return Number(node.width) > 0 ? Number(node.width) : 120;
+  }
+  function _alignClone(node) {
+    return Object.assign({}, node);
+  }
+  function alignLeft(nodes) {
+    if (!Array.isArray(nodes) || nodes.length < 2) return nodes;
+    const minX = Math.min.apply(
+      null,
+      nodes.map(function (n) {
+        return n.x;
+      })
+    );
+    return nodes.map(function (n) {
+      return Object.assign(_alignClone(n), { x: minX });
+    });
+  }
+  function alignRight(nodes) {
+    if (!Array.isArray(nodes) || nodes.length < 2) return nodes;
+    let maxRight = -Infinity;
+    for (const n of nodes) maxRight = Math.max(maxRight, n.x + _alignNodeWidth(n));
+    return nodes.map(function (n) {
+      return Object.assign(_alignClone(n), { x: maxRight - _alignNodeWidth(n) });
+    });
+  }
+  function alignTop(nodes) {
+    if (!Array.isArray(nodes) || nodes.length < 2) return nodes;
+    const minY = Math.min.apply(
+      null,
+      nodes.map(function (n) {
+        return n.y;
+      })
+    );
+    return nodes.map(function (n) {
+      return Object.assign(_alignClone(n), { y: minY });
+    });
+  }
+  function alignBottom(nodes) {
+    if (!Array.isArray(nodes) || nodes.length < 2) return nodes;
+    let maxBottom = -Infinity;
+    for (const n of nodes) maxBottom = Math.max(maxBottom, n.y + ALIGN_DEFAULT_HEIGHT);
+    return nodes.map(function (n) {
+      return Object.assign(_alignClone(n), { y: maxBottom - ALIGN_DEFAULT_HEIGHT });
+    });
+  }
+  function alignCenterHorizontal(nodes) {
+    if (!Array.isArray(nodes) || nodes.length < 2) return nodes;
+    let sum = 0;
+    for (const n of nodes) sum += n.x + _alignNodeWidth(n) / 2;
+    const avg = sum / nodes.length;
+    return nodes.map(function (n) {
+      return Object.assign(_alignClone(n), { x: avg - _alignNodeWidth(n) / 2 });
+    });
+  }
+  function alignCenterVertical(nodes) {
+    if (!Array.isArray(nodes) || nodes.length < 2) return nodes;
+    let sum = 0;
+    for (const n of nodes) sum += n.y + ALIGN_DEFAULT_HEIGHT / 2;
+    const avg = sum / nodes.length;
+    return nodes.map(function (n) {
+      return Object.assign(_alignClone(n), { y: avg - ALIGN_DEFAULT_HEIGHT / 2 });
+    });
+  }
+  function distributeHorizontally(nodes) {
+    if (!Array.isArray(nodes) || nodes.length < 3) return nodes;
+    const sorted = nodes.slice().sort(function (a, b) {
+      return a.x - b.x;
+    });
+    const leftmost = sorted[0].x;
+    const rightmost = sorted[sorted.length - 1].x;
+    const gap = (rightmost - leftmost) / (sorted.length - 1);
+    return sorted.map(function (n, i) {
+      return Object.assign(_alignClone(n), { x: leftmost + gap * i });
+    });
+  }
+  function distributeVertically(nodes) {
+    if (!Array.isArray(nodes) || nodes.length < 3) return nodes;
+    const sorted = nodes.slice().sort(function (a, b) {
+      return a.y - b.y;
+    });
+    const topmost = sorted[0].y;
+    const bottommost = sorted[sorted.length - 1].y;
+    const gap = (bottommost - topmost) / (sorted.length - 1);
+    return sorted.map(function (n, i) {
+      return Object.assign(_alignClone(n), { y: topmost + gap * i });
+    });
+  }
+
   // ========== Globals — set BEFORE the controller boots ==========
   window.FlowchartCanvas = { createCanvas, SHAPE_KINDS };
+  window.FlowchartAlign = {
+    alignLeft: alignLeft,
+    alignRight: alignRight,
+    alignTop: alignTop,
+    alignBottom: alignBottom,
+    alignCenterHorizontal: alignCenterHorizontal,
+    alignCenterVertical: alignCenterVertical,
+    distributeHorizontally: distributeHorizontally,
+    distributeVertically: distributeVertically,
+  };
 
   // ========== Controller bootstrap (inline) ==========
   const api =
@@ -942,6 +1046,18 @@
     btnExportPng: document.getElementById('fc-btn-export-png'),
     btnExportJpg: document.getElementById('fc-btn-export-jpg'),
     btnExportVsdx: document.getElementById('fc-btn-export-vsdx'),
+    // v4.13.0 — alignment + distribution buttons. Multi-select is
+    // required for these to be useful; the Set is empty by default
+    // and the user can click "Select All" to operate on every node.
+    btnAlignLeft: document.getElementById('fc-btn-align-left'),
+    btnAlignRight: document.getElementById('fc-btn-align-right'),
+    btnAlignTop: document.getElementById('fc-btn-align-top'),
+    btnAlignBottom: document.getElementById('fc-btn-align-bottom'),
+    btnAlignCenterH: document.getElementById('fc-btn-align-center-h'),
+    btnAlignCenterV: document.getElementById('fc-btn-align-center-v'),
+    btnDistributeH: document.getElementById('fc-btn-distribute-h'),
+    btnDistributeV: document.getElementById('fc-btn-distribute-v'),
+    btnSelectAll: document.getElementById('fc-btn-select-all'),
     btnUndo: document.getElementById('fc-btn-undo'),
     btnRedo: document.getElementById('fc-btn-redo'),
     historyCount: document.getElementById('fc-history-count'),
@@ -1018,6 +1134,11 @@
   let _persistTimer = null;
   let _store = null;
   let _canvas = null;
+  // v4.13.0 — selection state for multi-select + alignment. The canvas
+  // still owns single-click visual selection; this Set tracks the set
+  // the alignment / distribute buttons operate on. Empty by default;
+  // populated by "Select All" or canvas shift+click (item 1 below).
+  let _selectedNodeIds = new Set();
   // v4.11.0 — no more selection state. Every mutation is initiated from
   // a button in the #fc-nodelist panel; the canvas is purely visual.
 
@@ -1710,6 +1831,75 @@
         } catch (err) {
           setStatus('Visio export failed: ' + (err && err.message ? err.message : err));
         }
+      });
+    }
+
+    // v4.13.0 — Alignment + distribution buttons. Each operates on the
+    // current selection (_selectedNodeIds). If the selection is empty,
+    // the buttons no-op with a status hint — otherwise they mutate the
+    // graph via _store.moveNode() once per affected node. Each call
+    // creates its own undo snapshot, which is fine for the typical
+    // 2-10 node selection.
+    function getSelectedNodes() {
+      if (!_store) return [];
+      const graph = _store.getGraph();
+      return graph.nodes.filter((node) => _selectedNodeIds.has(node.id));
+    }
+
+    function applyAlignment(transform) {
+      if (!_store) return;
+      const targets = getSelectedNodes();
+      if (targets.length < 2) {
+        setStatus('Select 2+ nodes first (try Select All)');
+        return;
+      }
+      const updates = transform(targets);
+      for (const updated of updates) {
+        _store.moveNode(updated.id, updated.x, updated.y);
+      }
+      setStatus('Aligned ' + updates.length + ' nodes');
+    }
+
+    const ALIGN = window.FlowchartAlign;
+    if (els.btnAlignLeft && ALIGN) {
+      els.btnAlignLeft.addEventListener('click', () => applyAlignment(ALIGN.alignLeft));
+    }
+    if (els.btnAlignRight && ALIGN) {
+      els.btnAlignRight.addEventListener('click', () => applyAlignment(ALIGN.alignRight));
+    }
+    if (els.btnAlignTop && ALIGN) {
+      els.btnAlignTop.addEventListener('click', () => applyAlignment(ALIGN.alignTop));
+    }
+    if (els.btnAlignBottom && ALIGN) {
+      els.btnAlignBottom.addEventListener('click', () => applyAlignment(ALIGN.alignBottom));
+    }
+    if (els.btnAlignCenterH && ALIGN) {
+      els.btnAlignCenterH.addEventListener('click', () =>
+        applyAlignment(ALIGN.alignCenterHorizontal)
+      );
+    }
+    if (els.btnAlignCenterV && ALIGN) {
+      els.btnAlignCenterV.addEventListener('click', () =>
+        applyAlignment(ALIGN.alignCenterVertical)
+      );
+    }
+    if (els.btnDistributeH && ALIGN) {
+      els.btnDistributeH.addEventListener('click', () =>
+        applyAlignment(ALIGN.distributeHorizontally)
+      );
+    }
+    if (els.btnDistributeV && ALIGN) {
+      els.btnDistributeV.addEventListener('click', () =>
+        applyAlignment(ALIGN.distributeVertically)
+      );
+    }
+    if (els.btnSelectAll) {
+      els.btnSelectAll.addEventListener('click', () => {
+        if (!_store) return;
+        const graph = _store.getGraph();
+        _selectedNodeIds = new Set(graph.nodes.map((node) => node.id));
+        setStatus('Selected ' + _selectedNodeIds.size + ' nodes');
+        rerenderNodeList();
       });
     }
 
