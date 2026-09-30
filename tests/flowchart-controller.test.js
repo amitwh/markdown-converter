@@ -44,6 +44,7 @@ async function mount(apiMockOverrides = {}) {
   const scriptPaths = [
     'flowchart/flowchart-shapes.js',
     'flowchart/flowchart-mermaid.js',
+    'flowchart/flowchart-viewport.js',
     'flowchart/flowchart-store.js',
     'flowchart/flowchart-canvas.js',
   ];

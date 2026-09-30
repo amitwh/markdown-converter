@@ -58,4 +58,14 @@ function snap(value, gridSize) {
   return Math.round(value / gridSize) * gridSize;
 }
 
-module.exports = { zoomAt, panBy, reset, wheelFactor, snap, MIN_SCALE, MAX_SCALE };
+// v4.13.0 — UMD wrapper. The browser global fallback lets the standalone
+// flowchart window load this via <script> tag (contextIsolation:true means
+// the renderer cannot require()), and lets the controller's jsdom tests
+// load it via new Function(...) without a Node `require`.
+const _exported = { zoomAt, panBy, reset, wheelFactor, snap, MIN_SCALE, MAX_SCALE };
+if (typeof module === 'object' && module.exports) {
+  module.exports = _exported;
+}
+if (typeof window !== 'undefined') {
+  window.FlowchartViewport = _exported;
+}
