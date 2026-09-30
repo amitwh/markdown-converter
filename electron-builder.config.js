@@ -125,6 +125,19 @@ module.exports = {
     category: 'Utility',
     maintainer: 'ConcreteInfo <amit.wh@gmail.com>',
     extraFiles: toolExtraFiles('linux'),
+    // v4.13.0 — set desktopName + sync so installed .desktop entry uses
+    // a stable WM_CLASS / app_id, otherwise DEs cannot link the running
+    // window to the launcher icon (electron-builder warning at pack time).
+    desktopName: 'MarkdownConverter',
+    syncDesktopName: true,
+    // Snap channel: latest/edge tracks the auto-updater feed on GitHub
+    // releases. `stable` would publish to a manually-managed channel and
+    // break the electron-updater handshake.
+    snap: {
+      confinement: 'strict',
+      grade: 'stable',
+      channels: ['latest/edge'],
+    },
   },
   deb: {
     depends: ['imagemagick', 'libreoffice-common'],
