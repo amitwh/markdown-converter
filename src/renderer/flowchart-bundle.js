@@ -1633,9 +1633,10 @@
       if (els.btnRedo) els.btnRedo.disabled = !_store.canRedo();
     }
 
-    // Keyboard shortcuts — Ctrl/Cmd+Z / Ctrl/Cmd+Shift+Z. Delete / Backspace
-    // are intentionally NOT wired (v4.11.0 — there is no canvas selection
-    // state anymore; use the × buttons in the node-list panel instead).
+    // Keyboard shortcuts — Ctrl/Cmd+Z / Ctrl/Cmd+Shift+Z. v4.13.0 — added
+    // copy/paste/duplicate (Cmd+C / Cmd+V / Cmd+D) plus Delete/Backspace
+    // for the canvas-owned selection (replaces the old DOM .selected read).
+    let _clipboard = null; // module-level clipboard for Cmd+C/V/D
     document.addEventListener('keydown', (ev) => {
       if (!_store) return;
       const meta = ev.ctrlKey || ev.metaKey;
@@ -1647,6 +1648,48 @@
       if (meta && ev.shiftKey && ev.key.toLowerCase() === 'z') {
         ev.preventDefault();
         _store.redo();
+        return;
+      }
+      if (meta && !ev.shiftKey && ev.key.toLowerCase() === 'c') {
+        const sel = _canvas ? _canvas.getSelection() : { nodeId: null, edgeId: null };
+        const payload = copySelection(_store.getGraph(), sel);
+        if (payload) {
+          _clipboard = payload;
+          setStatus('Copied');
+          ev.preventDefault();
+        }
+        return;
+      }
+      if (meta && !ev.shiftKey && ev.key.toLowerCase() === 'v') {
+        if (!_clipboard) return;
+        const created = pasteSelection(_clipboard, _store.getGraph(), _store);
+        if (created.length > 0) {
+          setStatus('Pasted');
+          ev.preventDefault();
+        }
+        return;
+      }
+      if (meta && !ev.shiftKey && ev.key.toLowerCase() === 'd') {
+        const sel = _canvas ? _canvas.getSelection() : { nodeId: null, edgeId: null };
+        const payload = copySelection(_store.getGraph(), sel);
+        if (payload) {
+          const created = pasteSelection(payload, _store.getGraph(), _store);
+          if (created.length > 0) {
+            setStatus('Duplicated');
+            ev.preventDefault();
+          }
+        }
+        return;
+      }
+      if (ev.key === 'Delete' || ev.key === 'Backspace') {
+        const sel = _canvas ? _canvas.getSelection() : { nodeId: null, edgeId: null };
+        if (sel.nodeId) {
+          ev.preventDefault();
+          _store.removeNode(sel.nodeId);
+        } else if (sel.edgeId) {
+          ev.preventDefault();
+          _store.disconnect(sel.edgeId);
+        }
       }
     });
 
@@ -1676,6 +1719,64 @@
   // directly without rebuilding the bundle's IIFE. Production code accesses
   // these by closure; this handle exists purely for unit tests.
   window.FlowchartModals = { promptInline, confirmInline };
+
+  // ========== flowchart-clipboard (inlined v4.13.0) ==========
+  // Same source as src/flowchart/flowchart-clipboard.js (9 tests there).
+  // Duplicated into the bundle so the standalone window doesn't need a
+  // rebuild step. Logic stays in sync with the pure module.
+  function copySelection(graph, selection) {
+    if (!graph || !selection) return null;
+    if (selection.nodeId) {
+      const node = graph.nodes.find((n) => n.id === selection.nodeId);
+      if (!node) return null;
+      const connectedEdges = graph.edges.filter(
+        (e) => e.fromNodeId === node.id || e.toNodeId === node.id
+      );
+      return { version: 1, kind: 'node-with-edges', node, edges: connectedEdges };
+    }
+    if (selection.edgeId) {
+      const edge = graph.edges.find((e) => e.id === selection.edgeId);
+      if (!edge) return null;
+      return { version: 1, kind: 'edge', edge };
+    }
+    return null;
+  }
+  function pasteSelection(payload, graph, store, opts) {
+    if (!payload) return [];
+    const dx = (opts && opts.offsetX) || 24;
+    const dy = (opts && opts.offsetY) || 24;
+    if (payload.kind === 'node-with-edges' && payload.node) {
+      const old = payload.node;
+      const created = store.addNode({
+        kind: old.kind,
+        x: (old.x || 0) + dx,
+        y: (old.y || 0) + dy,
+        label: old.label,
+        color: old.color,
+      });
+      const remap = new Map([[old.id, created.id]]);
+      for (const e of payload.edges || []) {
+        const from = remap.get(e.fromNodeId) || e.fromNodeId;
+        const to = remap.get(e.toNodeId) || e.toNodeId;
+        if (graph.nodes.find((n) => n.id === from) && graph.nodes.find((n) => n.id === to)) {
+          store.connect(from, to, e.kind);
+        }
+      }
+      return [{ id: created.id }];
+    }
+    if (payload.kind === 'edge' && payload.edge) {
+      const e = payload.edge;
+      if (
+        graph.nodes.find((n) => n.id === e.fromNodeId) &&
+        graph.nodes.find((n) => n.id === e.toNodeId)
+      ) {
+        store.connect(e.fromNodeId, e.toNodeId, e.kind);
+      }
+      return [];
+    }
+    return [];
+  }
+  window.FlowchartClipboard = { copySelection, pasteSelection };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootstrap);
