@@ -41,6 +41,42 @@ function nodeCenter(node) {
   return { x: node.x + DEFAULT_WIDTH / 2, y: node.y + DEFAULT_HEIGHT / 2 };
 }
 
+/**
+ * Compute the point on a node's bounding-rectangle boundary in the direction
+ * (dx, dy). v4.13.0 — replaces the centre-to-centre lines that visually cut
+ * through nodes. All five supported shapes use the same bounding-rect
+ * approximation; for the diamond (decision) and parallelogram (document)
+ * this means the line lands a few pixels inside the visible shape, which
+ * is a fine visual trade for the simplicity.
+ */
+function boundaryPoint(node, dx, dy) {
+  const cx = node.x + DEFAULT_WIDTH / 2;
+  const cy = node.y + DEFAULT_HEIGHT / 2;
+  if (dx === 0 && dy === 0) return { x: cx, y: cy };
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  const scaleX = absDx > 0 ? DEFAULT_WIDTH / 2 / absDx : Infinity;
+  const scaleY = absDy > 0 ? DEFAULT_HEIGHT / 2 / absDy : Infinity;
+  const scale = Math.min(scaleX, scaleY);
+  return { x: cx + dx * scale, y: cy + dy * scale };
+}
+
+/**
+ * Compute edge endpoint coordinates so the line starts on the source
+ * shape's boundary and ends on the target's boundary, both pointing
+ * toward the other node.
+ */
+function edgeEndpoints(fromNode, toNode) {
+  const fc = nodeCenter(fromNode);
+  const tc = nodeCenter(toNode);
+  const dx = tc.x - fc.x;
+  const dy = tc.y - fc.y;
+  return {
+    from: boundaryPoint(fromNode, dx, dy),
+    to: boundaryPoint(toNode, -dx, -dy),
+  };
+}
+
 function createCanvas(container, store, opts = {}) {
   const svg = svgEl('svg', {
     class: 'flowchart-canvas',
@@ -63,6 +99,19 @@ function createCanvas(container, store, opts = {}) {
   let unsubscribe = null;
   let destroyed = false;
 
+  // v4.13.0 — selection lives on the canvas, not in the DOM. The controller
+  // asks via getSelection() rather than reading .selected class names.
+  function setSelection({ nodeId = null, edgeId = null } = {}) {
+    if (selectedNodeId !== nodeId || selectedEdgeId !== edgeId) {
+      selectedNodeId = nodeId;
+      selectedEdgeId = edgeId;
+      applySelectionHighlight();
+    }
+  }
+  function getSelection() {
+    return { nodeId: selectedNodeId, edgeId: selectedEdgeId };
+  }
+
   function render() {
     if (destroyed) return;
     const graph = store.getGraph();
@@ -75,13 +124,12 @@ function createCanvas(container, store, opts = {}) {
       const from = nodeById.get(edge.fromNodeId);
       const to = nodeById.get(edge.toNodeId);
       if (!from || !to) continue;
-      const fc = nodeCenter(from);
-      const tc = nodeCenter(to);
+      const { from: fp, to: tp } = edgeEndpoints(from, to);
       const line = svgEl('line', {
-        x1: fc.x,
-        y1: fc.y,
-        x2: tc.x,
-        y2: tc.y,
+        x1: fp.x,
+        y1: fp.y,
+        x2: tp.x,
+        y2: tp.y,
         stroke: 'currentColor',
         'data-edge-id': edge.id,
         ...edgeStyle(edge.kind),
@@ -89,14 +137,23 @@ function createCanvas(container, store, opts = {}) {
       });
       edgesLayer.appendChild(line);
       if (edge.label) {
-        const mx = (fc.x + tc.x) / 2;
-        const my = (fc.y + tc.y) / 2;
+        // v4.13.0 — auto-size the label background based on the text
+        // length (no more fixed 40×16 box that overflows long labels).
+        const labelText = edge.label;
+        const labelWidth = Math.max(20, labelText.length * 6.5 + 8);
+        const labelHeight = 16;
+        const mx = (fp.x + tp.x) / 2;
+        const my = (fp.y + tp.y) / 2;
         const bg = svgEl('rect', {
-          x: mx - 20,
-          y: my - 8,
-          width: 40,
-          height: 16,
-          fill: 'var(--bg-primary, #fff)',
+          x: mx - labelWidth / 2,
+          y: my - labelHeight / 2,
+          width: labelWidth,
+          height: labelHeight,
+          rx: 3,
+          ry: 3,
+          fill: '#ffffff',
+          stroke: 'currentColor',
+          'stroke-opacity': '0.2',
           'data-edge-label-bg': edge.id,
         });
         edgesLayer.appendChild(bg);
@@ -108,7 +165,7 @@ function createCanvas(container, store, opts = {}) {
           fill: 'currentColor',
           'data-edge-label': edge.id,
         });
-        t.textContent = edge.label;
+        t.textContent = labelText;
         edgesLayer.appendChild(t);
       }
     }
@@ -177,20 +234,26 @@ function createCanvas(container, store, opts = {}) {
       const nodeId = nodeG.getAttribute('data-node-id');
       const node = store.getGraph().nodes.find((n) => n.id === nodeId);
       if (!node) return;
-      selectedNodeId = nodeId;
-      selectedEdgeId = null;
-      // Paint the .flowchart-node.selected highlight immediately on a bare
-      // click (without a drag). store.subscribe would normally trigger
-      // render() after moveNode; a click-only path has no store mutation, so
-      // we apply the highlight ourselves. Surgical toggle — not a full
-      // render() — so the pointerdown target stays attached and subsequent
-      // pointermove/pointerup can still bubble on the same element.
-      applySelectionHighlight();
+      setSelection({ nodeId });
       const start = getSvgPoint(ev.clientX, ev.clientY);
       if (ev.altKey) {
         // Alt+drag = create a new edge from this node to wherever the pointer
-        // is released. Track source node only; movement does not move nodes.
+        // is released. Show a preview line while dragging (v4.13.0 — was
+        // "visual feedback deferred to v2"). Movement does not move nodes.
         dragState = { mode: 'connect', sourceNodeId: nodeId };
+        previewLine = svgEl('line', {
+          x1: boundaryPoint(node, 0, 0).x, // unused; updated in pointermove
+          y1: 0,
+          x2: start.x,
+          y2: start.y,
+          stroke: 'currentColor',
+          'stroke-dasharray': '4,4',
+          'stroke-width': 1,
+          'pointer-events': 'none',
+          class: 'flowchart-connect-preview',
+        });
+        edgesLayer.appendChild(previewLine);
+        updatePreviewLine(node, start);
       } else {
         dragState = {
           mode: 'move',
@@ -211,12 +274,7 @@ function createCanvas(container, store, opts = {}) {
     }
     const edgeLine = ev.target.closest('line[data-edge-id]');
     if (edgeLine) {
-      selectedEdgeId = edgeLine.getAttribute('data-edge-id');
-      selectedNodeId = null;
-      // Same reasoning as the node branch above: paint the edge highlight
-      // immediately so a click-without-drag isn't invisible until the next
-      // store mutation triggers a re-render.
-      applySelectionHighlight();
+      setSelection({ edgeId: edgeLine.getAttribute('data-edge-id') });
       if (typeof opts.onEdgeClick === 'function') {
         opts.onEdgeClick(selectedEdgeId, ev);
       }
@@ -237,6 +295,28 @@ function createCanvas(container, store, opts = {}) {
     }
   }
 
+  // v4.13.0 — connect-mode preview line. Re-anchored each move to the source
+  // node's boundary in the direction of the pointer.
+  let previewLine = null;
+  function updatePreviewLine(sourceNode, pointerSvg) {
+    if (!previewLine) return;
+    const fp = boundaryPoint(
+      sourceNode,
+      pointerSvg.x - sourceNode.x - DEFAULT_WIDTH / 2,
+      pointerSvg.y - sourceNode.y - DEFAULT_HEIGHT / 2
+    );
+    previewLine.setAttribute('x1', fp.x);
+    previewLine.setAttribute('y1', fp.y);
+    previewLine.setAttribute('x2', pointerSvg.x);
+    previewLine.setAttribute('y2', pointerSvg.y);
+  }
+  function removePreviewLine() {
+    if (previewLine && previewLine.parentNode) {
+      previewLine.parentNode.removeChild(previewLine);
+    }
+    previewLine = null;
+  }
+
   function onPointerMove(ev) {
     if (!dragState) return;
     if (dragState.mode === 'move') {
@@ -244,8 +324,11 @@ function createCanvas(container, store, opts = {}) {
       const dx = p.x - dragState.pointerX;
       const dy = p.y - dragState.pointerY;
       store.moveNode(dragState.nodeId, dragState.startX + dx, dragState.startY + dy);
+    } else if (dragState.mode === 'connect' && previewLine) {
+      const p = getSvgPoint(ev.clientX, ev.clientY);
+      const sourceNode = store.getGraph().nodes.find((n) => n.id === dragState.sourceNodeId);
+      if (sourceNode) updatePreviewLine(sourceNode, p);
     }
-    // connect-mode: visual feedback deferred to v2 (no preview line yet).
   }
 
   function onPointerUp(ev) {
@@ -262,6 +345,7 @@ function createCanvas(container, store, opts = {}) {
         }
       }
     }
+    removePreviewLine();
     dragState = null;
   }
 
@@ -320,6 +404,7 @@ function createCanvas(container, store, opts = {}) {
     if (destroyed) return;
     destroyed = true;
     if (typeof unsubscribe === 'function') unsubscribe();
+    removePreviewLine();
     svg.removeEventListener('pointerdown', onPointerDown);
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('pointerup', onPointerUp);
@@ -328,7 +413,7 @@ function createCanvas(container, store, opts = {}) {
     svg.remove();
   }
 
-  return { destroy, getSvg: () => svg };
+  return { destroy, getSvg: () => svg, getSelection };
 }
 
 // v4.9.6 UMD wrapper — same CommonJS export shape + browser global
