@@ -36,6 +36,16 @@ module.exports = {
   copyright: 'Copyright (C) 2024-2025 ConcreteInfo',
   directories: { output: 'dist' },
   icon: 'assets/icon',
+  // v4.13.0 — auto-update wiring via electron-updater. `provider: 'github'`
+  // is the no-config option: it reads releases from this repo's Releases
+  // page and matches by the tag's semver against package.json. Replace
+  // with `generic` + `url:` if you ever move off GitHub releases.
+  publish: {
+    provider: 'github',
+    owner: 'concreteinfo',
+    repo: 'markdownconverter',
+    releaseType: 'release',
+  },
   files: [
     'src/**/*',
     'assets/**/*',

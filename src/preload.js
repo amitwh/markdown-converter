@@ -48,6 +48,10 @@ const ALLOWED_SEND_CHANNELS = [
   'ai-assist-stream:start',
   'ai-assist-stream:cancel',
 
+  // v4.13.0 — auto-update (electron-updater)
+  'updates:check',
+  'updates:install',
+
   // Batch conversion
   'batch-convert',
   'select-folder',
@@ -338,6 +342,9 @@ const ALLOWED_RECEIVE_CHANNELS = [
   // v4.13.0 — quick-switcher overlay trigger
   'show-quick-switcher',
 
+  // v4.13.0 — auto-update status events from main
+  'updates:status',
+
   // Plugin export formats
   'run-plugin-export-format',
 ];
@@ -579,6 +586,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onChunk: (cb) => ipcRenderer.on('ai-assist-stream:chunk', (_e, p) => cb(p)),
     onDone: (cb) => ipcRenderer.on('ai-assist-stream:done', (_e, p) => cb(p)),
     onError: (cb) => ipcRenderer.on('ai-assist-stream:error', (_e, p) => cb(p)),
+  },
+
+  // v4.13.0 — auto-update controls. Check-now asks main to poll
+  // GitHub releases; install-now triggers quitAndInstall. Status events
+  // arrive via the generic on('updates:status', cb).
+  updates: {
+    check: () => ipcRenderer.invoke('updates:check'),
+    install: () => ipcRenderer.invoke('updates:install'),
+    onStatus: (cb) => ipcRenderer.on('updates:status', (_e, p) => cb(p)),
   },
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),

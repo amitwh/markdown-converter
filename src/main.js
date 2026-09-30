@@ -11,6 +11,7 @@ const VideoOperations = require('./main/VideoOperations');
 const { collectFilesByExtension } = require('./main/collectFilesByExtension');
 const { listWorkspaceFiles } = require('./quick-switcher/workspace-file-lister');
 const { completeStream } = require('./main/AiProviders');
+const { setupAutoUpdater } = require('./main/auto-updater');
 const { runPDFBatchOperation } = require('./main/PDFBatchOperations');
 const GitOperations = require('./main/GitOperations');
 const PandocArgs = require('./main/PandocArgs');
@@ -4946,6 +4947,29 @@ ipcMain.on('ai-assist-stream:cancel', (_event, { requestId } = {}) => {
   if (!requestId) return;
   const entry = aiAssistStreams.get(requestId);
   if (entry) entry.abort();
+});
+
+// Auto-update wiring (v4.13.0). Surfaces status to the renderer and
+// exposes check-now / install-now IPC channels. Lazy-instantiated so a
+// missing app-update.yml in dev doesn't blow up startup.
+let autoUpdaterCtl = null;
+function ensureAutoUpdater() {
+  if (autoUpdaterCtl) return autoUpdaterCtl;
+  autoUpdaterCtl = setupAutoUpdater({
+    send: (channel, payload) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(channel, payload);
+      }
+    },
+    isDev: () => process.env.NODE_ENV === 'development' || !!process.env.ELECTRON_DEV,
+  });
+  return autoUpdaterCtl;
+}
+ipcMain.handle('updates:check', async () => {
+  return ensureAutoUpdater().check();
+});
+ipcMain.handle('updates:install', () => {
+  ensureAutoUpdater().install();
 });
 
 // Plugins (loaded in the renderer) report the export formats they've
