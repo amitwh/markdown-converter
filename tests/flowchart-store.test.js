@@ -101,6 +101,27 @@ describe('flowchart-store: node operations', () => {
     expect(() => store.setNodeColor('nope', '#ff0000')).toThrow(/nope/);
   });
 
+  test('setNodeWidth updates the width of an existing node', () => {
+    const store = create(makeIO());
+    const node = store.addNode({ kind: 'process', x: 0, y: 0, label: '' });
+    store.setNodeWidth(node.id, 220);
+    expect(store.getGraph().nodes[0].width).toBe(220);
+  });
+
+  test('setNodeWidth clamps to [60, 600]', () => {
+    const store = create(makeIO());
+    const node = store.addNode({ kind: 'process', x: 0, y: 0, label: '' });
+    store.setNodeWidth(node.id, 10);
+    expect(store.getGraph().nodes[0].width).toBe(60);
+    store.setNodeWidth(node.id, 99999);
+    expect(store.getGraph().nodes[0].width).toBe(600);
+  });
+
+  test('setNodeWidth throws on unknown node id', () => {
+    const store = create(makeIO());
+    expect(() => store.setNodeWidth('nope', 200)).toThrow(/nope/);
+  });
+
   test('setNodeColor pushes an undo snapshot', () => {
     const store = create(makeIO());
     const node = store.addNode({ kind: 'process', x: 0, y: 0, label: '' });

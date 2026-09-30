@@ -163,6 +163,19 @@ function create(io) {
     emit();
   }
 
+  /**
+   * Resize a node by adjusting its width (v4.13.0). Height is derived from
+   * the shape, so width is the only mutable dimension. Min 60 / max 600.
+   */
+  function setNodeWidth(id, width) {
+    const idx = findNodeIndex(id);
+    if (idx === -1) throw new Error(`flowchart-store: unknown node id "${id}"`);
+    const w = Math.max(60, Math.min(600, Number(width) || 60));
+    snapshot();
+    graph.nodes[idx] = { ...graph.nodes[idx], width: w };
+    emit();
+  }
+
   function removeNode(id) {
     const idx = findNodeIndex(id);
     if (idx === -1) return;
@@ -281,6 +294,7 @@ function create(io) {
     setNodeLabel,
     setNodeKind,
     setNodeColor,
+    setNodeWidth,
     removeNode,
     connect,
     disconnect,

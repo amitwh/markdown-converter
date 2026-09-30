@@ -45,8 +45,12 @@ function edgeStyle(kind) {
   return { 'stroke-width': 1 };
 }
 
+function nodeWidth(node) {
+  return Number(node.width) || DEFAULT_WIDTH;
+}
+
 function nodeCenter(node) {
-  return { x: node.x + DEFAULT_WIDTH / 2, y: node.y + DEFAULT_HEIGHT / 2 };
+  return { x: node.x + nodeWidth(node) / 2, y: node.y + DEFAULT_HEIGHT / 2 };
 }
 
 /**
@@ -58,12 +62,13 @@ function nodeCenter(node) {
  * is a fine visual trade for the simplicity.
  */
 function boundaryPoint(node, dx, dy) {
-  const cx = node.x + DEFAULT_WIDTH / 2;
+  const w = nodeWidth(node);
+  const cx = node.x + w / 2;
   const cy = node.y + DEFAULT_HEIGHT / 2;
   if (dx === 0 && dy === 0) return { x: cx, y: cy };
   const absDx = Math.abs(dx);
   const absDy = Math.abs(dy);
-  const scaleX = absDx > 0 ? DEFAULT_WIDTH / 2 / absDx : Infinity;
+  const scaleX = absDx > 0 ? w / 2 / absDx : Infinity;
   const scaleY = absDy > 0 ? DEFAULT_HEIGHT / 2 / absDy : Infinity;
   const scale = Math.min(scaleX, scaleY);
   return { x: cx + dx * scale, y: cy + dy * scale };
@@ -204,6 +209,7 @@ function createCanvas(container, store, opts = {}) {
     }
 
     for (const node of graph.nodes) {
+      const w = nodeWidth(node);
       const g = svgEl('g', {
         'data-node-id': node.id,
         transform: `translate(${node.x},${node.y})`,
@@ -211,9 +217,9 @@ function createCanvas(container, store, opts = {}) {
         tabindex: '0',
         'aria-label': `${node.kind}: ${node.label || '(no label)'}`,
       });
-      g.innerHTML = shapeSvg(node.kind, 0, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+      g.innerHTML = shapeSvg(node.kind, 0, 0, w, DEFAULT_HEIGHT);
       const text = svgEl('text', {
-        x: DEFAULT_WIDTH / 2,
+        x: w / 2,
         y: DEFAULT_HEIGHT / 2 + 4,
         'text-anchor': 'middle',
         'font-size': 13,
@@ -222,6 +228,27 @@ function createCanvas(container, store, opts = {}) {
       });
       text.textContent = node.label || ' ';
       g.appendChild(text);
+
+      // v4.13.0 — bottom-right resize handle on the selected node. A
+      // single square handle is enough for v1; multi-handle (4 corners
+      // + 4 edges) is a follow-up. Width is the only mutable dimension.
+      if (node.id === selectedNodeId) {
+        const handleSize = 10;
+        const handle = svgEl('rect', {
+          x: w - handleSize / 2,
+          y: DEFAULT_HEIGHT - handleSize / 2,
+          width: handleSize,
+          height: handleSize,
+          fill: '#e5461f',
+          stroke: '#ffffff',
+          'stroke-width': 1,
+          class: 'flowchart-resize-handle',
+          'data-resize-node': node.id,
+          cursor: 'nwse-resize',
+        });
+        g.appendChild(handle);
+      }
+
       nodesLayer.appendChild(g);
     }
   }
@@ -262,6 +289,27 @@ function createCanvas(container, store, opts = {}) {
   }
 
   function onPointerDown(ev) {
+    // v4.13.0 — resize handle on the selected node. Detected before the
+    // generic node drag so the bottom-right square doesn't accidentally
+    // start a move on the node.
+    const handleEl = ev.target.closest('[data-resize-node]');
+    if (handleEl) {
+      const nodeId = handleEl.getAttribute('data-resize-node');
+      const node = store.getGraph().nodes.find((n) => n.id === nodeId);
+      if (!node) return;
+      setSelection({ nodeId });
+      const startW = nodeWidth(node);
+      const startX = ev.clientX;
+      dragState = {
+        mode: 'resize',
+        nodeId,
+        startW,
+        startClientX: startX,
+      };
+      ev.preventDefault();
+      return;
+    }
+
     const nodeG = ev.target.closest('g[data-node-id]');
     if (nodeG) {
       const nodeId = nodeG.getAttribute('data-node-id');
@@ -375,6 +423,17 @@ function createCanvas(container, store, opts = {}) {
       return;
     }
     if (!dragState) return;
+    if (dragState.mode === 'resize') {
+      // Width delta in screen units, then convert to SVG via the
+      // viewport-aware viewBox-to-screen ratio.
+      const dxScreen = ev.clientX - dragState.startClientX;
+      const rect = svg.getBoundingClientRect();
+      const vb = svg.viewBox.baseVal;
+      const scaleX = vb.width / rect.width;
+      const newW = Math.max(60, Math.min(600, dragState.startW + dxScreen * scaleX));
+      store.setNodeWidth(dragState.nodeId, newW);
+      return;
+    }
     if (dragState.mode === 'move') {
       const p = getSvgPoint(ev.clientX, ev.clientY);
       const dx = p.x - dragState.pointerX;
