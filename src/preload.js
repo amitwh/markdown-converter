@@ -573,6 +573,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // process strips the `data:...;base64,` prefix and writes the raw bytes.
     saveBinary: (data, defaultName, filters) =>
       ipcRenderer.invoke('save-binary-file', { data, defaultName, filters }),
+    // v4.13.0 — Visio .vsdx export. Renderer sends the current graph JSON;
+    // main process generates the OOXML zip and writes it.
+    exportVsdx: (graph) => ipcRenderer.invoke('export-vsdx', { graph }),
     openFile: () => ipcRenderer.invoke('open-text-file-dialog'),
     insertAtCursor: (text) => ipcRenderer.send('insert-content', text),
   },

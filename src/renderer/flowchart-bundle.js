@@ -941,6 +941,7 @@
     btnExportSvg: document.getElementById('fc-btn-export-svg'),
     btnExportPng: document.getElementById('fc-btn-export-png'),
     btnExportJpg: document.getElementById('fc-btn-export-jpg'),
+    btnExportVsdx: document.getElementById('fc-btn-export-vsdx'),
     btnUndo: document.getElementById('fc-btn-undo'),
     btnRedo: document.getElementById('fc-btn-redo'),
     historyCount: document.getElementById('fc-history-count'),
@@ -1687,6 +1688,29 @@
       els.btnExportJpg.addEventListener('click', () =>
         handleRasterExport('image/jpeg', 'jpg', 'JPEG')
       );
+    }
+
+    // v4.13.0 — Export to editable Visio .vsdx. Sends the graph JSON to
+    // the main process which generates the OOXML zip and writes it.
+    if (els.btnExportVsdx) {
+      els.btnExportVsdx.addEventListener('click', async () => {
+        if (!_store || !api.exportVsdx) return;
+        try {
+          const graph = _store.getGraph();
+          const result = await api.exportVsdx(graph);
+          if (!result || result.canceled) {
+            setStatus('Export cancelled');
+          } else if (result.path) {
+            setStatus('Saved Visio to ' + result.path);
+          } else if (result.error) {
+            setStatus('Export failed: ' + result.error);
+          } else {
+            setStatus('Saved Visio');
+          }
+        } catch (err) {
+          setStatus('Visio export failed: ' + (err && err.message ? err.message : err));
+        }
+      });
     }
 
     // v4.13.0 — Open from .mmd/.md file. Pops a system Open dialog,

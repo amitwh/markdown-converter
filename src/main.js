@@ -5663,6 +5663,40 @@ ipcMain.handle('save-binary-file', async (event, { data, defaultName, filters } 
   }
 });
 
+// v4.13.0 — Export the flowchart graph as an editable Visio .vsdx file.
+// The pure translator (src/flowchart/flowchart-vsdx-export.js) produces
+// page1.xml plus the static boilerplate; this handler wraps them in a
+// zip via JSZip and writes the bytes to the user-chosen path.
+ipcMain.handle('export-vsdx', async (event, { graph } = {}) => {
+  const { dialog } = require('electron');
+  const fs = require('fs');
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showSaveDialog(win || undefined, {
+    title: 'Export to Visio',
+    defaultPath: 'flowchart.vsdx',
+    filters: [
+      { name: 'Visio Drawing', extensions: ['vsdx'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled || !result.filePath) return { canceled: true };
+  try {
+    const { toVisioPageXml, visioBoilerplate } = require('./flowchart/flowchart-vsdx-export');
+    const JSZip = require('jszip');
+    const zip = new JSZip();
+    for (const [name, body] of Object.entries(visioBoilerplate())) {
+      zip.file(name, body);
+    }
+    zip.file('visio/pages/page1.xml', toVisioPageXml(graph || { nodes: [], edges: [] }));
+    const buf = await zip.generateAsync({ type: 'nodebuffer' });
+    await fs.promises.writeFile(result.filePath, buf);
+    return { canceled: false, path: result.filePath };
+  } catch (err) {
+    console.warn(`export-vsdx: failed at ${result.filePath}: ${err.message}`);
+    return { canceled: false, error: err.message };
+  }
+});
+
 // ============================================
 // ASCII Art Generator Window
 // ============================================
