@@ -268,3 +268,103 @@ describe('flowchart-canvas: selection ownership (v4.13.0)', () => {
     api.destroy();
   });
 });
+
+// v4.13.0 — multi-select + drag-rect. The canvas previously owned a
+// single (selectedNodeId, selectedEdgeId) pair; this block exercises
+// the Set-backed multi-selection API plus the shift+click toggle and
+// the onSelectionChange callback.
+describe('flowchart-canvas: multi-select + drag-rect (v4.13.0)', () => {
+  function makeThreeNodeStore() {
+    return makeStore({
+      nodes: [
+        { id: 'a', kind: 'process', x: 50, y: 50, label: 'A' },
+        { id: 'b', kind: 'process', x: 250, y: 50, label: 'B' },
+        { id: 'c', kind: 'process', x: 450, y: 50, label: 'C' },
+      ],
+      edges: [],
+    });
+  }
+
+  test('getMultiSelection returns the selection Set as an array', () => {
+    const store = makeThreeNodeStore();
+    const { api } = mount(store);
+    expect(api.getMultiSelection()).toEqual([]);
+    api.setMultiSelection(['a', 'b']);
+    expect(api.getMultiSelection().sort()).toEqual(['a', 'b']);
+    api.destroy();
+  });
+
+  test('setMultiSelection replaces the existing selection', () => {
+    const store = makeThreeNodeStore();
+    const { api } = mount(store);
+    api.setMultiSelection(['a', 'b']);
+    api.setMultiSelection(['c']);
+    expect(api.getMultiSelection()).toEqual(['c']);
+    expect(api.getSelection().nodeId).toBe('c');
+    api.destroy();
+  });
+
+  test('clearMultiSelection empties both node and edge selection', () => {
+    const store = makeStore({
+      nodes: [
+        { id: 'a', kind: 'process', x: 0, y: 0, label: 'A' },
+        { id: 'b', kind: 'process', x: 200, y: 0, label: 'B' },
+      ],
+      edges: [{ id: 'e1', fromNodeId: 'a', toNodeId: 'b', kind: 'solid' }],
+    });
+    const { api } = mount(store);
+    api.setMultiSelection(['a', 'b']);
+    api.clearMultiSelection();
+    expect(api.getMultiSelection()).toEqual([]);
+    expect(api.getSelection().nodeId).toBeNull();
+    expect(api.getSelection().edgeId).toBeNull();
+    api.destroy();
+  });
+
+  test('setOnSelectionChange fires after every selection mutation', () => {
+    const store = makeThreeNodeStore();
+    const { api } = mount(store);
+    const cb = jest.fn();
+    api.setOnSelectionChange(cb);
+    api.setMultiSelection(['a', 'b']);
+    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb.mock.calls[0][0].nodeIds.sort()).toEqual(['a', 'b']);
+    api.setMultiSelection(['c']);
+    expect(cb).toHaveBeenCalledTimes(2);
+    api.clearMultiSelection();
+    expect(cb).toHaveBeenCalledTimes(3);
+    api.destroy();
+  });
+
+  test('callback survives a caller throwing — canvas does not crash', () => {
+    const store = makeThreeNodeStore();
+    const { api } = mount(store);
+    api.setOnSelectionChange(() => {
+      throw new Error('caller bug');
+    });
+    expect(() => api.setMultiSelection(['a'])).not.toThrow();
+    expect(api.getMultiSelection()).toEqual(['a']);
+    api.destroy();
+  });
+
+  test('applySelectionHighlight adds .selected to every node in the Set', () => {
+    const store = makeThreeNodeStore();
+    const { api, container } = mount(store);
+    api.setMultiSelection(['a', 'b']);
+    const a = container.querySelector('g[data-node-id="a"]');
+    const b = container.querySelector('g[data-node-id="b"]');
+    const c = container.querySelector('g[data-node-id="c"]');
+    expect(a.classList.contains('selected')).toBe(true);
+    expect(b.classList.contains('selected')).toBe(true);
+    expect(c.classList.contains('selected')).toBe(false);
+    api.destroy();
+  });
+
+  test('setMultiSelection rejects non-string / empty ids defensively', () => {
+    const store = makeThreeNodeStore();
+    const { api } = mount(store);
+    api.setMultiSelection(['a', null, 42, '', 'b']);
+    expect(api.getMultiSelection().sort()).toEqual(['a', 'b']);
+    api.destroy();
+  });
+});
