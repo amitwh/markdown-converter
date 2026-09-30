@@ -46,7 +46,9 @@ describe('flowchart-vsdx-export: pure module', () => {
 
   test('toVisioPageXml escapes XML-special characters in labels', () => {
     const xml = toVisioPageXml({
-      nodes: [{ id: 'n1', kind: 'process', x: 0, y: 0, width: 120, height: 60, label: 'A & B <c>' }],
+      nodes: [
+        { id: 'n1', kind: 'process', x: 0, y: 0, width: 120, height: 60, label: 'A & B <c>' },
+      ],
       edges: [],
     });
     expect(xml).toContain('A &amp; B &lt;c&gt;');
