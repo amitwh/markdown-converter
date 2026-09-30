@@ -223,12 +223,16 @@ function createCanvas(container, store, opts = {}) {
       ev.preventDefault();
       return;
     }
-    // Click on empty canvas: add a process node at the click point.
+    // Click on empty canvas: hand off to the controller via onEmptyClick so it
+    // can prompt the user for the shape kind + label. v4.13.0 — the canvas
+    // no longer auto-creates a process node with placeholder label "Node".
     if (ev.target === svg || ev.target === nodesLayer || ev.target === edgesLayer) {
       const p = getSvgPoint(ev.clientX, ev.clientY);
       const x = Math.max(0, p.x - DEFAULT_WIDTH / 2);
       const y = Math.max(0, p.y - DEFAULT_HEIGHT / 2);
-      store.addNode({ kind: 'process', x, y, label: 'Node' });
+      if (typeof opts.onEmptyClick === 'function') {
+        opts.onEmptyClick(x, y, ev);
+      }
       ev.preventDefault();
     }
   }

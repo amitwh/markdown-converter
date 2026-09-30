@@ -59,12 +59,17 @@
   const { create: createStore } = window.FlowchartStore;
   const { createCanvas } = window.FlowchartCanvas;
   const { toMermaid } = window.FlowchartMermaid;
+  const { promptInline, confirmInline: _confirmInline } = window.FlowchartModals || {};
+  void _confirmInline; // exposed by the bundle for future use (e.g. reset confirmation)
   // FlowchartShapes is intentionally unused here but its presence is
   // required for createCanvas() to function; the guard above guarantees it.
 
   const PREVIEW_DEBOUNCE_MS = 250;
   const PERSIST_DEBOUNCE_MS = 500;
   const PERSISTENCE_FILENAME = 'flowchart-session.json';
+
+  const NODE_KIND_OPTIONS_TEXT = 'process, decision, terminator, subroutine, document';
+  const EDGE_KIND_OPTIONS_TEXT = 'solid, dotted, thick';
 
   let _userDataPath = null;
   let _persistenceFile = null;
@@ -132,14 +137,25 @@
     });
 
     _canvas = createCanvas(els.canvasHost, _store, {
-      onEdgeClick: (edgeId) => {
+      onEdgeClick: async (edgeId) => {
         const edge = _store.getGraph().edges.find((e) => e.id === edgeId);
         if (!edge) return;
-        const nextKind = window.prompt('Edge kind (solid, dotted, thick):', edge.kind);
+        // v4.13.0 — replace window.prompt() with the inline modal helper.
+        // Two sequential prompts: kind first (with the current value as
+        // default), then label.
+        const nextKind = await promptInline({
+          title: 'Edge Style',
+          message: `Style (${EDGE_KIND_OPTIONS_TEXT}):`,
+          defaultValue: edge.kind,
+        });
         if (nextKind && ['solid', 'dotted', 'thick'].includes(nextKind)) {
           _store.setEdgeKind(edgeId, nextKind);
         }
-        const nextLabel = window.prompt('Edge label (empty to clear):', edge.label || '');
+        const nextLabel = await promptInline({
+          title: 'Edge Label',
+          message: 'Empty to clear:',
+          defaultValue: edge.label || '',
+        });
         if (nextLabel !== null) {
           _store.setEdgeLabel(edgeId, nextLabel);
         }
@@ -148,11 +164,32 @@
         // Canvas already paints the .selected highlight; nothing else
         // needed here for selection state.
       },
-      onShapeMenu: (nodeId) => {
-        const next = window.prompt(
-          'New shape (process, decision, terminator, subroutine, document):'
-        );
+      onShapeMenu: async (nodeId) => {
+        const node = _store.getGraph().nodes.find((n) => n.id === nodeId);
+        if (!node) return;
+        const next = await promptInline({
+          title: 'Change Shape',
+          message: `New shape (${NODE_KIND_OPTIONS_TEXT}):`,
+          defaultValue: node.kind,
+        });
         if (next) _store.setNodeKind(nodeId, next);
+      },
+      onEmptyClick: async (x, y) => {
+        // v4.13.0 — canvas click no longer auto-creates a process node
+        // with literal label "Node". User picks the shape kind first.
+        const kind = await promptInline({
+          title: 'Add Node',
+          message: `Shape (${NODE_KIND_OPTIONS_TEXT}):`,
+          defaultValue: 'process',
+        });
+        if (!kind) return;
+        const label = await promptInline({
+          title: 'Node Label',
+          message: 'Label (empty for "Node"):',
+          defaultValue: '',
+        });
+        const finalLabel = label && label.length > 0 ? label : 'Node';
+        _store.addNode({ kind, x, y, label: finalLabel });
       },
     });
 
