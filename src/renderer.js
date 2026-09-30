@@ -223,9 +223,14 @@ function getCreateQuickSwitcherOverlay() {
 let _createInlineAiController;
 function getCreateInlineAiController() {
   if (!_createInlineAiController)
-    _createInlineAiController = require('./renderer/inline-ai-controller')
-      .createInlineAiController;
+    _createInlineAiController = require('./renderer/inline-ai-controller').createInlineAiController;
   return _createInlineAiController;
+}
+let _deriveWorkspaceDir;
+function getDeriveWorkspaceDir() {
+  if (!_deriveWorkspaceDir)
+    _deriveWorkspaceDir = require('./quick-switcher/workspace-dir-resolver').deriveWorkspaceDir;
+  return _deriveWorkspaceDir;
 }
 function getPrintPreview() {
   if (!_PrintPreview) _PrintPreview = require('./print-preview').PrintPreview;
@@ -2578,7 +2583,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       // v4.13.0 — explorer-driven workspace dir is the next iteration;
       // for now the workspace toggle is a no-op and we surface only
       // recent files + open tabs.
-      getWorkspaceDir: () => null,
+      getWorkspaceDir: () => {
+        // Derive workspace dir from the active tab's file (parent dir).
+        // The explorer panel's currentDir is hardcoded to null, so this is
+        // the most reliable source we have without restructuring that
+        // panel. Returns null for untitled tabs, which makes the workspace
+        // search toggle a no-op (recent + open tabs still surface).
+        const derive = getDeriveWorkspaceDir();
+        const active =
+          tabManager.activeTab ||
+          (tabManager.activeTabId && tabManager.tabs.get(tabManager.activeTabId));
+        return active ? derive(active.filePath) : null;
+      },
     });
     return quickSwitcherOverlayInstance;
   }
@@ -2593,7 +2609,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const create = getCreateInlineAiController();
     inlineAiControllerInstance = create({
       getEditorView: () => {
-        const active = tabManager.activeTab || (tabManager.activeTabId && tabManager.tabs.get(tabManager.activeTabId));
+        const active =
+          tabManager.activeTab ||
+          (tabManager.activeTabId && tabManager.tabs.get(tabManager.activeTabId));
         return active ? active.editorView : null;
       },
       electronAPI: window.electronAPI,
