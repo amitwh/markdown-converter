@@ -29,9 +29,14 @@ const FIRACODE_VERSION = '6.2';
 const KNOWN_SHA256 = {
   'linux:pandoc': '7d124235998ecd3cdd9a463b1e5f6691a178b6461824c29a36170a0882f05597',
   'win32:pandoc.exe': 'e83f8354c0f507222b5684797b9c5ae766f03889785995d14aac27816ec456ba',
-  // Fill these from a trusted machine after the first download of each
-  // platform (the script prints the computed hash):
-  // 'darwin:pandoc': '…',
+  // darwin:pandoc is unpinned because this branch has no macOS host to
+  // compute the hash from. The verifyArtifact() function below prints a
+  // clear warning + the computed hash when no pinned hash is present,
+  // and the CI release job (windows-latest + macos-latest) will surface
+  // it in the build log on the first macOS build — copy the printed
+  // hash back into this table to lock it in. Hard-fail on mismatch is
+  // already in place for the platforms we *can* verify from here.
+  // 'darwin:pandoc': '<fill from first macOS CI run>',
   // Fira Code 6.2 (immutable GitHub release asset)
   'fonts:FiraCode-Regular.ttf': '5992ab9640e2df491b2f609467b1de60e8bc39b2c28db184342a0592d98f6117',
   'fonts:FiraCode-Bold.ttf': '41f6554e845e2f5b70adad3950122334b866aac436793b7742ade600067701be',
