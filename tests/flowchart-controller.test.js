@@ -685,3 +685,63 @@ describe('flowchart-bundle: Save to File button (v4.12.0)', () => {
     expect(document.getElementById('fc-status').textContent).toBe('Save failed: disk full');
   });
 });
+
+// v4.13.0 — Export Image buttons (SVG / PNG / JPG). The bundle wires each
+// button to the same export pipeline: SVG is a direct clone-and-serialise
+// of the canvas SVG; PNG / JPG rasterise through Image + Canvas. The
+// SVG-only path is verified here; raster tests live in the canvas suite.
+describe('flowchart-bundle: Export Image buttons (v4.13.0)', () => {
+  const BUNDLE_PATH = path.join(__dirname, '..', 'src', 'renderer', 'flowchart-bundle.js');
+  const HTML_PATH_BUNDLE = path.join(__dirname, '..', 'src', 'flowchart-generator.html');
+
+  async function loadBundle(apiOverrides = {}) {
+    const html = fs.readFileSync(HTML_PATH_BUNDLE, 'utf-8');
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    document.body.innerHTML = bodyMatch ? bodyMatch[1] : html;
+    const apiMock = {
+      getUserDataPath: jest.fn(async () => '/userdata'),
+      readFile: jest.fn(async () => null),
+      writeFile: jest.fn(async () => undefined),
+      saveFile: jest.fn(async () => ({ canceled: true })),
+      saveBinary: jest.fn(async () => ({ canceled: true })),
+      openFile: jest.fn(async () => null),
+      insertAtCursor: jest.fn(),
+      ...apiOverrides,
+    };
+    window.electronAPI = { flowchart: apiMock };
+    const bundleSrc = fs.readFileSync(BUNDLE_PATH, 'utf-8');
+    // eslint-disable-next-line no-new-func
+    new Function('window', 'document', bundleSrc)(window, document);
+    for (let i = 0; i < 5; i += 1) {
+      await Promise.resolve();
+    }
+    return { apiMock };
+  }
+
+  test('Export SVG calls api.saveFile with the SVG string and flowchart.svg', async () => {
+    const { apiMock } = await loadBundle({
+      saveFile: jest.fn(async () => ({ canceled: false, path: '/tmp/flow.svg' })),
+    });
+    document.getElementById('fc-btn-export-svg').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(apiMock.saveFile).toHaveBeenCalledTimes(1);
+    const [content, defaultName] = apiMock.saveFile.mock.calls[0];
+    expect(typeof content).toBe('string');
+    expect(content.startsWith('<?xml version="1.0"')).toBe(true);
+    expect(content).toContain('xmlns="http://www.w3.org/2000/svg"');
+    expect(defaultName).toBe('flowchart.svg');
+    expect(document.getElementById('fc-status').textContent).toBe('Saved SVG to /tmp/flow.svg');
+  });
+
+  test('Export SVG surfaces "cancel" when the user dismisses the Save dialog', async () => {
+    const { apiMock } = await loadBundle({
+      saveFile: jest.fn(async () => ({ canceled: true })),
+    });
+    document.getElementById('fc-btn-export-svg').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(apiMock.saveFile).toHaveBeenCalledTimes(1);
+    expect(document.getElementById('fc-status').textContent).toBe('Export cancelled');
+  });
+});

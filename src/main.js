@@ -5634,6 +5634,35 @@ ipcMain.handle('open-text-file-dialog', async (event, _opts = {}) => {
   }
 });
 
+// v4.13.0 — Save a flowchart as a binary blob (PNG / JPG / Visio / any
+// non-text format). The renderer rasterises the SVG canvas and sends the
+// bytes as a base64 data URL; this handler shows the Save dialog, then
+// writes the decoded bytes. SVG goes through save-text-file instead
+// because it stays as text.
+ipcMain.handle('save-binary-file', async (event, { data, defaultName, filters } = {}) => {
+  const { dialog } = require('electron');
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const filterList =
+    Array.isArray(filters) && filters.length ? filters : [{ name: 'All Files', extensions: ['*'] }];
+  const result = await dialog.showSaveDialog(win || undefined, {
+    title: 'Save Flowchart',
+    defaultPath: typeof defaultName === 'string' && defaultName ? defaultName : 'flowchart.png',
+    filters: filterList,
+  });
+  if (result.canceled || !result.filePath) return { canceled: true };
+  try {
+    const raw = typeof data === 'string' ? data : '';
+    const commaIdx = raw.indexOf(',');
+    const b64 = commaIdx >= 0 ? raw.slice(commaIdx + 1) : raw;
+    const bytes = Buffer.from(b64, 'base64');
+    await require('fs').promises.writeFile(result.filePath, bytes);
+    return { canceled: false, path: result.filePath };
+  } catch (err) {
+    console.warn(`save-binary-file: write failed at ${result.filePath}: ${err.message}`);
+    return { canceled: false, error: err.message };
+  }
+});
+
 // ============================================
 // ASCII Art Generator Window
 // ============================================

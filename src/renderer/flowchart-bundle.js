@@ -1,3 +1,4 @@
+/* global XMLSerializer */
 /**
  * v4.12.0 — Bundled single-file Flowchart Generator loader.
  *
@@ -934,6 +935,12 @@
     btnSave: document.getElementById('fc-btn-save'),
     btnOpen: document.getElementById('fc-btn-open'),
     btnReset: document.getElementById('fc-btn-reset'),
+    // v4.13.0 — image export buttons (SVG / PNG / JPG). All three use the
+    // same SVG→string serializer; PNG/JPG additionally rasterise through
+    // Image + canvas via the binary IPC bridge.
+    btnExportSvg: document.getElementById('fc-btn-export-svg'),
+    btnExportPng: document.getElementById('fc-btn-export-png'),
+    btnExportJpg: document.getElementById('fc-btn-export-jpg'),
     btnUndo: document.getElementById('fc-btn-undo'),
     btnRedo: document.getElementById('fc-btn-redo'),
     historyCount: document.getElementById('fc-history-count'),
@@ -984,6 +991,25 @@
   const PREVIEW_DEBOUNCE_MS = 250;
   const PERSIST_DEBOUNCE_MS = 500;
   const PERSISTENCE_FILENAME = 'flowchart-session.json';
+
+  // v4.13.0 — minimal CSS inlined into exported SVG/PNG/JPG so the file
+  // renders the same way without the editor stylesheet. Kept terse on
+  // purpose: only the rules that affect visible geometry (fills, strokes,
+  // label positions). Font fallbacks are conservative — the user-agent
+  // default sans-serif is the most portable choice for a portable diagram.
+  const EXPORT_CSS = [
+    '.flowchart-canvas { background: #ffffff; }',
+    '.flowchart-node-shape { stroke: #1f2937; stroke-width: 1.5; }',
+    '.flowchart-node-label { font: 14px sans-serif; fill: #111827; text-anchor: middle; dominant-baseline: middle; }',
+    '.flowchart-edge-line { stroke: #1f2937; fill: none; }',
+    '.flowchart-edge-label-bg { fill: #ffffff; stroke: none; }',
+    '.flowchart-edge-label { font: 12px sans-serif; fill: #111827; text-anchor: middle; dominant-baseline: middle; }',
+    '.flowchart-connect-preview { stroke: #2563eb; stroke-dasharray: 6 4; stroke-width: 2; fill: none; }',
+    '.flowchart-selection-ring { stroke: #2563eb; stroke-width: 2; fill: none; }',
+  ].join('\n');
+  const EXPORT_PADDING = 24;
+  const EXPORT_DEFAULT_WIDTH = 1000;
+  const EXPORT_DEFAULT_HEIGHT = 700;
 
   let _userDataPath = null;
   let _persistenceFile = null;
@@ -1553,6 +1579,114 @@
           setStatus(`Save failed: ${err && err.message ? err.message : err}`);
         }
       });
+    }
+
+    // v4.13.0 — Export the canvas as SVG / PNG / JPG. SVG is a direct
+    // clone-and-serialise; PNG / JPG rasterise through Image + Canvas
+    // to produce a data URL the main process can write as bytes.
+    function getSvgStringForExport() {
+      if (!_canvas) return '';
+      const svg = _canvas.getSvg();
+      if (!svg) return '';
+      const clone = svg.cloneNode(true);
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+      const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+      styleEl.textContent = EXPORT_CSS;
+      clone.insertBefore(styleEl, clone.firstChild);
+      return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone)
+      );
+    }
+
+    function rasterizeSvg(svgString, mime, quality) {
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const w = EXPORT_DEFAULT_WIDTH + EXPORT_PADDING * 2;
+          const h = EXPORT_DEFAULT_HEIGHT + EXPORT_PADDING * 2;
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (mime === 'image/jpeg') {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+          }
+          ctx.drawImage(
+            img,
+            EXPORT_PADDING,
+            EXPORT_PADDING,
+            EXPORT_DEFAULT_WIDTH,
+            EXPORT_DEFAULT_HEIGHT
+          );
+          try {
+            resolve(canvas.toDataURL(mime, quality));
+          } catch (err) {
+            reject(err);
+          }
+        };
+        img.onerror = () => reject(new Error('failed to load SVG for rasterisation'));
+        img.src = url;
+      }).finally(() => URL.revokeObjectURL(url));
+    }
+
+    async function handleSvgExport() {
+      if (!_canvas || !api.saveFile) return;
+      try {
+        const svgString = getSvgStringForExport();
+        const result = await api.saveFile(svgString, 'flowchart.svg');
+        if (!result || result.canceled) {
+          setStatus('Export cancelled');
+        } else if (result.path) {
+          setStatus('Saved SVG to ' + result.path);
+        } else {
+          setStatus('Saved SVG');
+        }
+      } catch (err) {
+        setStatus('SVG export failed: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function handleRasterExport(mime, ext, label) {
+      if (!_canvas || !api.saveBinary) return;
+      try {
+        const svgString = getSvgStringForExport();
+        const dataUrl = await rasterizeSvg(
+          svgString,
+          mime,
+          mime === 'image/jpeg' ? 0.92 : undefined
+        );
+        const result = await api.saveBinary(dataUrl, 'flowchart.' + ext, [
+          { name: label, extensions: [ext] },
+          { name: 'All Files', extensions: ['*'] },
+        ]);
+        if (!result || result.canceled) {
+          setStatus('Export cancelled');
+        } else if (result.path) {
+          setStatus('Saved ' + label + ' to ' + result.path);
+        } else if (result.error) {
+          setStatus('Export failed: ' + result.error);
+        } else {
+          setStatus('Saved ' + label);
+        }
+      } catch (err) {
+        setStatus(label + ' export failed: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    if (els.btnExportSvg) els.btnExportSvg.addEventListener('click', handleSvgExport);
+    if (els.btnExportPng) {
+      els.btnExportPng.addEventListener('click', () =>
+        handleRasterExport('image/png', 'png', 'PNG')
+      );
+    }
+    if (els.btnExportJpg) {
+      els.btnExportJpg.addEventListener('click', () =>
+        handleRasterExport('image/jpeg', 'jpg', 'JPEG')
+      );
     }
 
     // v4.13.0 — Open from .mmd/.md file. Pops a system Open dialog,

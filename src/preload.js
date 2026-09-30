@@ -568,6 +568,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     writeFile: (p, content) => ipcRenderer.invoke('write-text-file', { path: p, content }),
     saveFile: (content, defaultName) =>
       ipcRenderer.invoke('save-text-file', { content, defaultName }),
+    // v4.13.0 — binary export (PNG / JPG / Visio / etc.). `data` is a
+    // base64 data URL produced by the renderer's SVG rasteriser; the main
+    // process strips the `data:...;base64,` prefix and writes the raw bytes.
+    saveBinary: (data, defaultName, filters) =>
+      ipcRenderer.invoke('save-binary-file', { data, defaultName, filters }),
     openFile: () => ipcRenderer.invoke('open-text-file-dialog'),
     insertAtCursor: (text) => ipcRenderer.send('insert-content', text),
   },
