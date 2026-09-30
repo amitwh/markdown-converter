@@ -125,19 +125,21 @@ module.exports = {
     category: 'Utility',
     maintainer: 'ConcreteInfo <amit.wh@gmail.com>',
     extraFiles: toolExtraFiles('linux'),
-    // v4.13.0 — set desktopName + sync so installed .desktop entry uses
-    // a stable WM_CLASS / app_id, otherwise DEs cannot link the running
-    // window to the launcher icon (electron-builder warning at pack time).
-    desktopName: 'MarkdownConverter',
+    // v4.13.0 — keep the generated .desktop file's StartupWMClass in sync
+    // with the top-level desktopName in package.json so DEs can link the
+    // running window to the launcher icon. desktopName itself is read
+    // from package.json (electron-builder merges package.json fields into
+    // the linux config automatically).
     syncDesktopName: true,
-    // Snap channel: latest/edge tracks the auto-updater feed on GitHub
-    // releases. `stable` would publish to a manually-managed channel and
-    // break the electron-updater handshake.
-    snap: {
-      confinement: 'strict',
-      grade: 'stable',
-      channels: ['latest/edge'],
-    },
+  },
+  // v4.13.0 — Snap packaging defaults. `grade: stable` is required for
+  // the auto-updater to push updates to the stable track from GitHub
+  // releases (electron-updater expects stable-grade snaps). We let
+  // snapcraft pick its default channel set — the publish-side channels
+  // live in `snapcraft.yaml` / the Snap Store, not in this config.
+  snap: {
+    confinement: 'strict',
+    grade: 'stable',
   },
   deb: {
     depends: ['imagemagick', 'libreoffice-common'],
