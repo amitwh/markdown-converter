@@ -189,6 +189,9 @@ const ALLOWED_SEND_CHANNELS = [
   // Quick Note scratchpad
   'quick-note:save',
 
+  // Quick-switcher (Cmd+P workspace file picker)
+  'quick-switcher:list-files',
+
   // Document version history
   'version-history:list',
   'version-history:read',
@@ -547,6 +550,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveFile: (content, defaultName) =>
       ipcRenderer.invoke('save-text-file', { content, defaultName }),
     insertAtCursor: (text) => ipcRenderer.send('insert-content', text),
+  },
+
+  // v4.13.0 — Quick-switcher workspace file listing for the Cmd+P overlay.
+  // Returns [{ path, name }] sorted by directory walk order. The renderer's
+  // fuzzy matcher (src/quick-switcher/fuzzy-matcher.js) does the ranking.
+  quickSwitcher: {
+    listFiles: (dir, options) => ipcRenderer.invoke('quick-switcher:list-files', { dir, options }),
   },
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),

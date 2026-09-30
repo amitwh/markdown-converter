@@ -9,6 +9,7 @@ const ImageOperations = require('./main/ImageOperations');
 const AudioOperations = require('./main/AudioOperations');
 const VideoOperations = require('./main/VideoOperations');
 const { collectFilesByExtension } = require('./main/collectFilesByExtension');
+const { listWorkspaceFiles } = require('./quick-switcher/workspace-file-lister');
 const { runPDFBatchOperation } = require('./main/PDFBatchOperations');
 const GitOperations = require('./main/GitOperations');
 const PandocArgs = require('./main/PandocArgs');
@@ -2062,6 +2063,22 @@ ipcMain.handle('save-export-preset', async (event, preset) =>
 ipcMain.handle('delete-export-preset', async (event, presetId) =>
   ExportPresets.deletePreset(store, presetId)
 );
+
+// Quick-switcher workspace file listing (v4.13.0). Used by the Cmd+P overlay
+// in the renderer to fuzzy-match across the active workspace. Pure logic
+// lives in src/quick-switcher/workspace-file-lister.js; this is a thin IPC
+// wrapper that converts main-process errors into an empty result so a flaky
+// FS read can't crash the overlay.
+ipcMain.handle('quick-switcher:list-files', async (_event, args = {}) => {
+  const { dir, extensions } = args || {};
+  if (typeof dir !== 'string' || dir.length === 0) return [];
+  try {
+    return listWorkspaceFiles(dir, { extensions });
+  } catch (err) {
+    console.warn(`quick-switcher:list-files failed for ${dir}: ${err.message}`);
+    return [];
+  }
+});
 
 // Get current page settings
 ipcMain.on('get-page-settings', (event) => {
