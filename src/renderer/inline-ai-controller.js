@@ -33,7 +33,7 @@ const {
  *   Esc-cancel from firing when the popover isn't open.
  */
 function createInlineAiController(deps) {
-  const { getEditorView, electronAPI, onShortcut } = deps;
+  const { getEditorView, electronAPI, onShortcut, confirmFirstUse, getProviderLabel } = deps;
   if (typeof getEditorView !== 'function') {
     throw new Error('createInlineAiController: getEditorView is required');
   }
@@ -46,6 +46,7 @@ function createInlineAiController(deps) {
   let activeSelection = null; // { from, to, original }
   let activeAction = null; // 'rewrite' | 'shorten' | 'expand'
   let unsubscribers = []; // [{ off }]
+  let firstUseConfirmed = false; // session-scoped — never re-prompts after OK
 
   function ensurePopover() {
     if (popover) return popover;
@@ -111,6 +112,25 @@ function createInlineAiController(deps) {
     } catch (err) {
       ensurePopover().setState('error', { message: err.message || 'Invalid selection.' });
       return;
+    }
+
+    // First-use confirmation — only on the first action of the session,
+    // and only when the renderer supplied a confirmFirstUse callback.
+    if (!firstUseConfirmed && typeof confirmFirstUse === 'function') {
+      const providerLabel =
+        typeof getProviderLabel === 'function' ? getProviderLabel() : 'your configured AI provider';
+      const ok = confirmFirstUse({
+        providerLabel,
+        selectionLength: selectionText.length,
+        action,
+      });
+      if (!ok) {
+        ensurePopover().setState('error', {
+          message: 'Cancelled — first-use confirmation declined.',
+        });
+        return;
+      }
+      firstUseConfirmed = true;
     }
 
     activeAction = action;

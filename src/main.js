@@ -1475,8 +1475,19 @@ function createMenu() {
           click: () => shell.openExternal('https://github.com/amitwh/markdown-converter/issues'),
         },
         {
+          // v4.13.0 — trigger the in-app updater (electron-updater).
+          // If the check throws (no app-update.yml in dev, no network),
+          // fall back to opening the Releases page in the browser so the
+          // user still has a way to check manually.
           label: 'Check for Updates',
-          click: () => shell.openExternal('https://github.com/amitwh/markdown-converter/releases'),
+          click: async () => {
+            try {
+              await ensureAutoUpdater().check();
+            } catch (err) {
+              console.warn('Check-for-updates failed; falling back to releases page:', err.message);
+              shell.openExternal('https://github.com/amitwh/markdown-converter/releases');
+            }
+          },
         },
       ],
     },
@@ -5151,6 +5162,16 @@ ipcMain.handle('ai-assistant:status', async () => {
     provider: settings.provider,
     model: settings.model || AiProviders.PROVIDER_DEFAULTS[settings.provider]?.defaultModel || '',
   };
+});
+
+// v4.13.0 — Inline AI first-use confirmation. Returns a small payload
+// (provider + model name; never the key) for the renderer's confirm
+// dialog. The renderer is responsible for asking the user.
+ipcMain.handle('ai-assistant:confirm-info', async () => {
+  const settings = getAiAssistantSettings();
+  const provider = settings.provider || 'unknown';
+  const model = settings.model || AiProviders.PROVIDER_DEFAULTS[provider]?.defaultModel || '';
+  return { provider, model };
 });
 
 /**

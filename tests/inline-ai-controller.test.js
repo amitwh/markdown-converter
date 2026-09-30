@@ -269,6 +269,75 @@ describe('createInlineAiController — detach', () => {
   });
 });
 
+describe('createInlineAiController — first-use confirmation', () => {
+  test('confirmFirstUse is called with provider label and selection length', () => {
+    const confirmFirstUse = jest.fn().mockReturnValue(true);
+    const editor = makeEditor('hello world longer');
+    editor._setSelection(0, 5);
+    const { api } = makeApi();
+    const controller = require('../src/renderer/inline-ai-controller').createInlineAiController({
+      getEditorView: () => editor,
+      electronAPI: api,
+      getProviderLabel: () => 'openai (gpt-4o)',
+      confirmFirstUse,
+    });
+    controller.showForSelection();
+    getPopoverButton('rewrite').click();
+    expect(confirmFirstUse).toHaveBeenCalledTimes(1);
+    expect(confirmFirstUse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerLabel: 'openai (gpt-4o)',
+        selectionLength: 5, // selection is 'hello' (5 chars)
+        action: 'rewrite',
+      })
+    );
+  });
+
+  test('declining the confirm aborts and surfaces an error state', () => {
+    const confirmFirstUse = jest.fn().mockReturnValue(false);
+    const editor = makeEditor('hello world');
+    editor._setSelection(0, 5);
+    const { api, _state } = makeApi();
+    const controller = require('../src/renderer/inline-ai-controller').createInlineAiController({
+      getEditorView: () => editor,
+      electronAPI: api,
+      confirmFirstUse,
+    });
+    controller.showForSelection();
+    getPopoverButton('rewrite').click();
+    expect(_state.started).toHaveLength(0);
+    const popovers = document.querySelectorAll('.inline-ai-popover');
+    expect(popovers[popovers.length - 1].dataset.state).toBe('error');
+  });
+
+  test('confirm is only asked once per session', () => {
+    const confirmFirstUse = jest.fn().mockReturnValue(true);
+    const editor = makeEditor('hello world');
+    editor._setSelection(0, 5);
+    const { api } = makeApi();
+    const controller = require('../src/renderer/inline-ai-controller').createInlineAiController({
+      getEditorView: () => editor,
+      electronAPI: api,
+      confirmFirstUse,
+    });
+    controller.showForSelection();
+    getPopoverButton('rewrite').click();
+    // Reset selection for a second action — confirm should NOT be asked again
+    editor._setSelection(0, 5);
+    getPopoverButton('shorten').click();
+    expect(confirmFirstUse).toHaveBeenCalledTimes(1);
+  });
+
+  test('no confirmFirstUse dep means no prompt (still streams)', () => {
+    const editor = makeEditor('hello world');
+    editor._setSelection(0, 5);
+    const { controller, _state } = mount({ editor });
+    controller.showForSelection();
+    getPopoverButton('rewrite').click();
+    expect(_state.started).toHaveLength(1);
+  });
+});
+
 describe('createInlineAiController — validation', () => {
   test('throws when getEditorView is missing', () => {
     expect(() =>

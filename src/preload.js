@@ -44,6 +44,9 @@ const ALLOWED_SEND_CHANNELS = [
   'ai-assistant:complete',
   'ai-assistant:status',
 
+  // Inline AI assist confirm helpers
+  'ai-assistant:confirm-info',
+
   // v4.13.0 — Inline AI assist streaming (Cmd+K in editor)
   'ai-assist-stream:start',
   'ai-assist-stream:cancel',
@@ -595,6 +598,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     check: () => ipcRenderer.invoke('updates:check'),
     install: () => ipcRenderer.invoke('updates:install'),
     onStatus: (cb) => ipcRenderer.on('updates:status', (_e, p) => cb(p)),
+  },
+
+  // v4.13.0 — Inline AI first-use confirmation. Returns a small
+  // user-safe payload (no keys) describing what the AI request will do,
+  // for the renderer to surface in a confirm dialog.
+  aiAssistant: {
+    confirmInfo: () => ipcRenderer.invoke('ai-assistant:confirm-info'),
   },
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),

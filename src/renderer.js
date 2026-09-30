@@ -2604,9 +2604,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   // CodeMirror view is sourced via tabManager each time Cmd+K fires, so
   // tab switches automatically pick up the right editor.
   let inlineAiControllerInstance = null;
+  let inlineAiProviderLabel = 'your AI provider';
   function ensureInlineAiController() {
     if (inlineAiControllerInstance) return inlineAiControllerInstance;
     const create = getCreateInlineAiController();
+    // Fetch provider label once (used in the first-use confirm dialog).
+    window.electronAPI.aiAssistant
+      .confirmInfo()
+      .then((info) => {
+        if (info && info.provider) {
+          inlineAiProviderLabel = `${info.provider}${info.model ? ` (${info.model})` : ''}`;
+        }
+      })
+      .catch(() => {});
+
     inlineAiControllerInstance = create({
       getEditorView: () => {
         const active =
@@ -2615,6 +2626,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         return active ? active.editorView : null;
       },
       electronAPI: window.electronAPI,
+      // v4.13.0 — first-use confirmation. Once per session, then never
+      // re-prompts. Uses native window.confirm for v1; can be upgraded
+      // to a custom modal later without changing the controller.
+      getProviderLabel: () => inlineAiProviderLabel,
+      confirmFirstUse: ({ providerLabel, selectionLength, action }) => {
+        const verb = action === 'rewrite' ? 'Rewrite' : action === 'shorten' ? 'Shorten' : 'Expand';
+        return window.confirm(
+          `${verb} ${selectionLength} characters using ${providerLabel}?\n\n` +
+            'This sends your selected text to the AI provider. API charges may apply ' +
+            'according to your provider plan. You will not be prompted again this session.'
+        );
+      },
     });
     return inlineAiControllerInstance;
   }
