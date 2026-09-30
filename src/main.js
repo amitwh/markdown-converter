@@ -4910,19 +4910,26 @@ ipcMain.on('clear-recent-files', (event) => {
 ipcMain.handle('recent-files:get', () => getRecentFiles());
 
 // Inline AI assist (v4.13.0): streaming proxy from renderer to provider.
-// Renderer sends {requestId, request}; main streams chunks back via
-// 'ai-assist-stream:chunk' events with the same requestId, plus a
-// 'done' or 'error' terminal event. Renderer can abort via
-// 'ai-assist-stream:cancel'.
+// Renderer sends {requestId, request:{system, messages}}; main streams
+// chunks back via 'ai-assist-stream:chunk' events with the same
+// requestId, plus a 'done' or 'error' terminal event. Renderer can
+// abort via 'ai-assist-stream:cancel'. Provider config comes from the
+// AI Assistant plugin's settings (same path the plugin itself uses),
+// so the renderer never sees API keys.
 const aiAssistStreams = new Map(); // requestId -> { abort, sender }
 ipcMain.on('ai-assist-stream:start', async (event, { requestId, request } = {}) => {
   if (!requestId || !request) return;
   const sender = event.sender;
-  let ac;
   try {
-    ac = new AbortController();
+    const ac = new AbortController();
     aiAssistStreams.set(requestId, { abort: () => ac.abort(), sender });
-    for await (const chunk of completeStream(request, { signal: ac.signal })) {
+    const aiSettings = getAiAssistantSettings();
+    const fullRequest = {
+      ...aiSettings,
+      system: request.system,
+      messages: request.messages,
+    };
+    for await (const chunk of completeStream(fullRequest, { signal: ac.signal })) {
       if (ac.signal.aborted) break;
       sender.send('ai-assist-stream:chunk', { requestId, chunk });
     }

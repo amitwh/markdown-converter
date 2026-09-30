@@ -220,6 +220,13 @@ function getCreateQuickSwitcherOverlay() {
       require('./quick-switcher/quick-switcher-overlay').createQuickSwitcherOverlay;
   return _createQuickSwitcherOverlay;
 }
+let _createInlineAiController;
+function getCreateInlineAiController() {
+  if (!_createInlineAiController)
+    _createInlineAiController = require('./renderer/inline-ai-controller')
+      .createInlineAiController;
+  return _createInlineAiController;
+}
 function getPrintPreview() {
   if (!_PrintPreview) _PrintPreview = require('./print-preview').PrintPreview;
   return _PrintPreview;
@@ -2575,6 +2582,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     return quickSwitcherOverlayInstance;
   }
+
+  // Inline AI assist controller (Cmd+K on selected text) — lazy-instantiated
+  // so its dependency cost is paid only on first use. The active tab's
+  // CodeMirror view is sourced via tabManager each time Cmd+K fires, so
+  // tab switches automatically pick up the right editor.
+  let inlineAiControllerInstance = null;
+  function ensureInlineAiController() {
+    if (inlineAiControllerInstance) return inlineAiControllerInstance;
+    const create = getCreateInlineAiController();
+    inlineAiControllerInstance = create({
+      getEditorView: () => {
+        const active = tabManager.activeTab || (tabManager.activeTabId && tabManager.tabs.get(tabManager.activeTabId));
+        return active ? active.editorView : null;
+      },
+      electronAPI: window.electronAPI,
+    });
+    return inlineAiControllerInstance;
+  }
   const pluginRegistry = new PluginRegistry({
     sidebar: sidebarManager,
     commands: commandPalette,
@@ -2986,6 +3011,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.ctrlKey && e.shiftKey && e.key === 'P') {
       e.preventDefault();
       commandPalette.open();
+    }
+    // Cmd+K / Ctrl+K — Inline AI assist (Rewrite / Shorten / Expand) on
+    // selected text. v4.13.0. Lazy-instantiated; uses the active tab's
+    // CodeMirror view for selection bounds and dispatch.
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      ensureInlineAiController().handleKey(e);
+      return;
     }
     // F11 — Zen Mode
     if (e.key === 'F11') {
