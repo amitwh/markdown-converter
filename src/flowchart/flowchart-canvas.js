@@ -18,7 +18,15 @@
 // a <script> tag in the standalone window (no nodeIntegration).
 const shapesModule =
   (typeof window !== 'undefined' && window.FlowchartShapes) || require('./flowchart-shapes');
+const viewportModule =
+  (typeof window !== 'undefined' && window.FlowchartViewport) || require('./flowchart-viewport');
 const { DEFAULT_WIDTH, DEFAULT_HEIGHT, shapeSvg, SHAPE_KINDS } = shapesModule;
+const {
+  zoomAt: vpZoomAt,
+  panBy: vpPanBy,
+  wheelFactor: vpWheelFactor,
+  snap: vpSnap,
+} = viewportModule;
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -88,16 +96,36 @@ function createCanvas(container, store, opts = {}) {
   });
   container.appendChild(svg);
 
+  // v4.13.0 — viewport wrapper. Edges/nodes live inside a single <g> whose
+  // transform reflects the current zoom + pan. SVG mouse coordinates are
+  // already in viewBox space (1000×700) so this stays in viewport units.
+  const view = viewportModule.reset();
+  const content = svgEl('g', {
+    class: 'flowchart-content',
+    transform: `translate(${view.tx},${view.ty}) scale(${view.scale})`,
+  });
+  svg.appendChild(content);
+
   // Layer order: edges first (under nodes), then nodes.
   const edgesLayer = svgEl('g', { class: 'flowchart-edges' });
   const nodesLayer = svgEl('g', { class: 'flowchart-nodes' });
-  svg.appendChild(edgesLayer);
-  svg.appendChild(nodesLayer);
+  content.appendChild(edgesLayer);
+  content.appendChild(nodesLayer);
+
+  // v4.13.0 — snap-to-grid toggle. Off by default; controller can flip via
+  // setSnapEnabled(). When enabled, moveNode + addNode clamp coords to a
+  // 10-unit grid.
+  let snapEnabled = false;
+  const GRID_SIZE = 10;
+  function setSnapEnabled(enabled) {
+    snapEnabled = !!enabled;
+  }
 
   let selectedNodeId = null;
   let selectedEdgeId = null;
   let unsubscribe = null;
   let destroyed = false;
+  let panState = null; // v4.13.0 — drag-to-pan state on empty canvas
 
   // v4.13.0 — selection lives on the canvas, not in the DOM. The controller
   // asks via getSelection() rather than reading .selected class names.
@@ -110,6 +138,11 @@ function createCanvas(container, store, opts = {}) {
   }
   function getSelection() {
     return { nodeId: selectedNodeId, edgeId: selectedEdgeId };
+  }
+
+  // v4.13.0 — apply the current viewport to the content <g>'s transform.
+  function applyView() {
+    content.setAttribute('transform', `translate(${view.tx},${view.ty}) scale(${view.scale})`);
   }
 
   function render() {
@@ -281,15 +314,25 @@ function createCanvas(container, store, opts = {}) {
       ev.preventDefault();
       return;
     }
-    // Click on empty canvas: hand off to the controller via onEmptyClick so it
-    // can prompt the user for the shape kind + label. v4.13.0 — the canvas
-    // no longer auto-creates a process node with placeholder label "Node".
+    // Click on empty canvas: middle-mouse OR Space-held = pan; otherwise
+    // prompt for a new node. v4.13.0 — empty-canvas drag-pan replaces the
+    // old auto-add-process behaviour.
     if (ev.target === svg || ev.target === nodesLayer || ev.target === edgesLayer) {
+      const isPan = ev.button === 1 || ev.shiftKey; // middle OR shift-drag
+      if (isPan) {
+        const p = getSvgPoint(ev.clientX, ev.clientY);
+        panState = { startX: p.x, startY: p.y, viewTx: view.tx, viewTy: view.ty };
+        setSelection({});
+        ev.preventDefault();
+        return;
+      }
       const p = getSvgPoint(ev.clientX, ev.clientY);
       const x = Math.max(0, p.x - DEFAULT_WIDTH / 2);
       const y = Math.max(0, p.y - DEFAULT_HEIGHT / 2);
+      const finalX = snapEnabled ? vpSnap(x, GRID_SIZE) : x;
+      const finalY = snapEnabled ? vpSnap(y, GRID_SIZE) : y;
       if (typeof opts.onEmptyClick === 'function') {
-        opts.onEmptyClick(x, y, ev);
+        opts.onEmptyClick(finalX, finalY, ev);
       }
       ev.preventDefault();
     }
@@ -318,12 +361,31 @@ function createCanvas(container, store, opts = {}) {
   }
 
   function onPointerMove(ev) {
+    if (panState) {
+      const p = getSvgPoint(ev.clientX, ev.clientY);
+      const dx = p.x - panState.startX;
+      const dy = p.y - panState.startY;
+      const next = vpPanBy(view, dx, dy);
+      view.tx = next.tx - panState.viewTx + view.tx; // accumulate deltas
+      view.ty = next.ty - panState.viewTy + view.ty;
+      // Reset view.tx/ty based on absolute computation from panState
+      view.tx = panState.viewTx + dx;
+      view.ty = panState.viewTy + dy;
+      applyView();
+      return;
+    }
     if (!dragState) return;
     if (dragState.mode === 'move') {
       const p = getSvgPoint(ev.clientX, ev.clientY);
       const dx = p.x - dragState.pointerX;
       const dy = p.y - dragState.pointerY;
-      store.moveNode(dragState.nodeId, dragState.startX + dx, dragState.startY + dy);
+      let nx = dragState.startX + dx;
+      let ny = dragState.startY + dy;
+      if (snapEnabled) {
+        nx = vpSnap(nx, GRID_SIZE);
+        ny = vpSnap(ny, GRID_SIZE);
+      }
+      store.moveNode(dragState.nodeId, nx, ny);
     } else if (dragState.mode === 'connect' && previewLine) {
       const p = getSvgPoint(ev.clientX, ev.clientY);
       const sourceNode = store.getGraph().nodes.find((n) => n.id === dragState.sourceNodeId);
@@ -331,7 +393,24 @@ function createCanvas(container, store, opts = {}) {
     }
   }
 
+  // v4.13.0 — Ctrl+wheel zooms around the cursor position.
+  function onWheel(ev) {
+    if (!ev.ctrlKey && !ev.metaKey) return;
+    ev.preventDefault();
+    const p = getSvgPoint(ev.clientX, ev.clientY);
+    const factor = vpWheelFactor(ev.deltaY);
+    const next = vpZoomAt(view, p.x, p.y, factor);
+    view.tx = next.tx;
+    view.ty = next.ty;
+    view.scale = next.scale;
+    applyView();
+  }
+
   function onPointerUp(ev) {
+    if (panState) {
+      panState = null;
+      return;
+    }
     if (dragState && dragState.mode === 'connect') {
       const targetG = ev.target && ev.target.closest && ev.target.closest('g[data-node-id]');
       if (targetG) {
@@ -396,6 +475,7 @@ function createCanvas(container, store, opts = {}) {
   window.addEventListener('pointerup', onPointerUp);
   svg.addEventListener('dblclick', onDblClick);
   svg.addEventListener('contextmenu', onContextMenu);
+  svg.addEventListener('wheel', onWheel, { passive: false });
 
   unsubscribe = store.subscribe(render);
   render();
@@ -410,10 +490,11 @@ function createCanvas(container, store, opts = {}) {
     window.removeEventListener('pointerup', onPointerUp);
     svg.removeEventListener('dblclick', onDblClick);
     svg.removeEventListener('contextmenu', onContextMenu);
+    svg.removeEventListener('wheel', onWheel);
     svg.remove();
   }
 
-  return { destroy, getSvg: () => svg, getSelection };
+  return { destroy, getSvg: () => svg, getSelection, setSnapEnabled };
 }
 
 // v4.9.6 UMD wrapper — same CommonJS export shape + browser global
