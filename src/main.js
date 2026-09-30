@@ -684,62 +684,6 @@ function createWindow() {
   // Wait for the page to fully load before sending file data
   mainWindow.webContents.on('did-finish-load', () => {});
 }
-function buildRecentFilesMenu() {
-  const recentFiles = getRecentFiles();
-  if (recentFiles.length === 0) {
-    return [
-      {
-        label: 'No recent files',
-        enabled: false,
-      },
-    ];
-  }
-  const recentFileItems = recentFiles.map((filePath) => ({
-    label: filePath.split(/[\\/]/).pop(),
-    // Get filename only
-    click: () => {
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        if (stats.size > MAX_FILE_SIZE) {
-          dialog.showErrorBox(
-            'File Too Large',
-            `File exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`
-          );
-          return;
-        }
-        currentFile = filePath;
-        const content = fs.readFileSync(filePath, 'utf-8');
-        mainWindow.webContents.send('file-opened', {
-          path: filePath,
-          content,
-        });
-      } else {
-        dialog.showErrorBox(
-          'File Not Found',
-          sanitizeErrorMessage(`The file "${filePath}" could not be found.`)
-        );
-      }
-    },
-    toolTip: filePath, // Show full path in tooltip
-  }));
-  return [
-    ...recentFileItems,
-    {
-      type: 'separator',
-    },
-    {
-      label: 'Clear Recent Files',
-      click: () => {
-        try {
-          clearRecentFilesOnDisk();
-          mainWindow.webContents.send('recent-files-cleared');
-        } catch (error) {
-          console.error('Error clearing recent files:', error);
-        }
-      },
-    },
-  ];
-}
 function getRecentFiles() {
   try {
     const recentFiles = JSON.parse(
@@ -784,11 +728,18 @@ function createMenu() {
           type: 'separator',
         },
         {
+          // v4.13.0 — Quick Switcher replaces the Recent Files submenu.
+          // Cmd+P moved here from Print Preview; the Print Preview menu
+          // entry is still reachable via File → Print but lost its shortcut.
+          label: 'Quick Switcher...',
+          accelerator: 'CmdOrCtrl+P',
+          click: () => mainWindow.webContents.send('show-quick-switcher'),
+        },
+        {
           label: 'Print',
           submenu: [
             {
               label: 'Print Preview',
-              accelerator: 'CmdOrCtrl+P',
               click: () => mainWindow.webContents.send('print-preview'),
             },
             {
@@ -799,10 +750,6 @@ function createMenu() {
         },
         {
           type: 'separator',
-        },
-        {
-          label: 'Recent Files',
-          submenu: buildRecentFilesMenu(),
         },
         {
           type: 'separator',
@@ -4956,6 +4903,10 @@ ipcMain.on('clear-recent-files', (event) => {
     console.error('Error clearing recent files:', error);
   }
 });
+
+// Quick-switcher (v4.13.0): renderer asks for the recent-files list when
+// the Cmd+P overlay opens. Read-only — write paths remain send-only.
+ipcMain.handle('recent-files:get', () => getRecentFiles());
 
 // Plugins (loaded in the renderer) report the export formats they've
 // registered; rebuild the Export menu so they show up as entries.

@@ -176,6 +176,7 @@ let _SidebarManager,
   _renderGitPanel,
   _renderSnippetsPanel;
 let _ReplPanel, _CommandPalette, _PrintPreview, _createWelcomeContent;
+let _createQuickSwitcherOverlay;
 function getSidebarManager() {
   if (!_SidebarManager) _SidebarManager = require('./sidebar/sidebar-manager').SidebarManager;
   return _SidebarManager;
@@ -212,6 +213,12 @@ function getReplPanel() {
 function getCommandPalette() {
   if (!_CommandPalette) _CommandPalette = require('./command-palette').CommandPalette;
   return _CommandPalette;
+}
+function getCreateQuickSwitcherOverlay() {
+  if (!_createQuickSwitcherOverlay)
+    _createQuickSwitcherOverlay =
+      require('./quick-switcher/quick-switcher-overlay').createQuickSwitcherOverlay;
+  return _createQuickSwitcherOverlay;
 }
 function getPrintPreview() {
   if (!_PrintPreview) _PrintPreview = require('./print-preview').PrintPreview;
@@ -2541,6 +2548,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize command palette
   const CommandPalette = getCommandPalette();
   const commandPalette = new CommandPalette();
+
+  // Quick-switcher (Cmd+P) overlay — lazy-mounted on first trigger.
+  // Workspace dir is sourced from the explorer panel when it has one open;
+  // for the initial v4.13.0 release we ship without workspace tracking and
+  // the "Search workspace" toggle silently stays off.
+  let quickSwitcherOverlayInstance = null;
+  function ensureQuickSwitcherOverlay() {
+    if (quickSwitcherOverlayInstance) return quickSwitcherOverlayInstance;
+    const create = getCreateQuickSwitcherOverlay();
+    const host = document.createElement('div');
+    host.id = 'quick-switcher-host';
+    document.body.appendChild(host);
+    quickSwitcherOverlayInstance = create(host, {
+      getOpenTabPaths: () =>
+        Array.from(tabManager.tabs.values())
+          .map((t) => t.filePath)
+          .filter(Boolean),
+      listWorkspaceFiles: (dir, options) =>
+        window.electronAPI.quickSwitcher.listFiles(dir, options),
+      onOpenFile: (filePath) => ipcRenderer.send('open-file-path', filePath),
+      // v4.13.0 — explorer-driven workspace dir is the next iteration;
+      // for now the workspace toggle is a no-op and we surface only
+      // recent files + open tabs.
+      getWorkspaceDir: () => null,
+    });
+    return quickSwitcherOverlayInstance;
+  }
   const pluginRegistry = new PluginRegistry({
     sidebar: sidebarManager,
     commands: commandPalette,
@@ -2932,6 +2966,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       commandPalette.open();
     }
+  });
+
+  // File menu: Cmd+P opens the Quick Switcher overlay (v4.13.0).
+  ipcRenderer.on('show-quick-switcher', async () => {
+    const overlay = ensureQuickSwitcherOverlay();
+    let recent = [];
+    try {
+      recent = (await window.electronAPI.quickSwitcher.getRecentFiles()) || [];
+    } catch {
+      recent = [];
+    }
+    overlay.show({ recent });
   });
 
   // Keyboard shortcuts

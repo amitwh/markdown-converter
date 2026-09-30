@@ -191,6 +191,7 @@ const ALLOWED_SEND_CHANNELS = [
 
   // Quick-switcher (Cmd+P workspace file picker)
   'quick-switcher:list-files',
+  'recent-files:get',
 
   // Document version history
   'version-history:list',
@@ -329,6 +330,9 @@ const ALLOWED_RECEIVE_CHANNELS = [
   'toggle-command-palette',
   'toggle-sidebar-panel',
   'toggle-bottom-panel',
+
+  // v4.13.0 — quick-switcher overlay trigger
+  'show-quick-switcher',
 
   // Plugin export formats
   'run-plugin-export-format',
@@ -557,6 +561,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // fuzzy matcher (src/quick-switcher/fuzzy-matcher.js) does the ranking.
   quickSwitcher: {
     listFiles: (dir, options) => ipcRenderer.invoke('quick-switcher:list-files', { dir, options }),
+    getRecentFiles: () => ipcRenderer.invoke('recent-files:get'),
   },
 
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
