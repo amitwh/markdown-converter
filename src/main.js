@@ -5606,6 +5606,34 @@ ipcMain.handle('save-text-file', async (event, { content, defaultName } = {}) =>
   return { canceled: false, path: result.filePath };
 });
 
+// v4.13.0 — Open a Mermaid (.mmd / .md / .markdown) file via system dialog.
+// Returns { path, content } on success, null on cancel. Path traversal is
+// implicit — the user picked the file, so any location is fine.
+ipcMain.handle('open-text-file-dialog', async (event, _opts = {}) => {
+  const { dialog } = require('electron');
+  const fs = require('fs');
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showOpenDialog(win || undefined, {
+    title: 'Open Mermaid Source',
+    properties: ['openFile'],
+    filters: [
+      { name: 'Mermaid', extensions: ['mmd', 'mermaid'] },
+      { name: 'Markdown', extensions: ['md', 'markdown'] },
+      { name: 'Text', extensions: ['txt'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled || !result.filePaths || !result.filePaths[0]) return null;
+  const filePath = result.filePaths[0];
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return { path: filePath, content };
+  } catch (err) {
+    console.warn(`open-text-file-dialog: failed to read ${filePath}: ${err.message}`);
+    return null;
+  }
+});
+
 // ============================================
 // ASCII Art Generator Window
 // ============================================

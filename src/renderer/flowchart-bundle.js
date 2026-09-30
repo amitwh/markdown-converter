@@ -205,6 +205,105 @@
 
   window.FlowchartMermaid = { toMermaid, escapeLabel, nodeDeclaration, edgeDeclaration };
 
+  // ========== flowchart-mermaid-parse (inlined v4.13.0) ==========
+  // Inverse of toMermaid. Hand-edited to drop the duplicate parser code —
+  // re-import this from src/flowchart/flowchart-mermaid-parse.js as a
+  // pure function bundle step. Since this is a bundle, we replicate the
+  // minimal API surface needed by the renderer here.
+  function unescapeLabel(label) {
+    return String(label || '')
+      .replace(/#quot;/g, '"')
+      .replace(/\\n/g, '\n');
+  }
+  function fromMermaid(source) {
+    const nodes = [];
+    const edges = [];
+    const idMap = new Map();
+    if (typeof source !== 'string') return { nodes, edges };
+    const lines = source
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.startsWith('%%'));
+    const SHAPES = [
+      { p: '[[', s: ']]', k: 'subroutine' },
+      { p: '([', s: '])', k: 'terminator' },
+      { p: '[/', s: '/]', k: 'document' },
+      { p: '{', s: '}', k: 'decision' },
+      { p: '[', s: ']', k: 'process' },
+    ];
+    const ARROWS = { '-->': 'solid', '-.->': 'dotted', '==>': 'thick' };
+    let auto = 0;
+    for (const line of lines) {
+      if (/^flowchart\s+(TD|LR|BT|RL)/i.test(line)) continue;
+      let arrow = null,
+        arrowAt = -1;
+      for (const a of Object.keys(ARROWS)) {
+        const i = line.indexOf(a);
+        if (i !== -1 && (arrowAt === -1 || i < arrowAt)) {
+          arrow = a;
+          arrowAt = i;
+        }
+      }
+      if (arrow) {
+        const before = line.slice(0, arrowAt).trim();
+        const after = line.slice(arrowAt + arrow.length).trim();
+        const beforeLabel = /\|([^|]*)\|/.exec(before);
+        const afterLabel = /\|([^|]*)\|/.exec(after);
+        const from = beforeLabel ? before.replace(beforeLabel[0], '').trim() : before;
+        const to = afterLabel ? after.replace(afterLabel[0], '').trim() : after;
+        const label = (afterLabel && afterLabel[1]) || (beforeLabel && beforeLabel[1]) || '';
+        const fid = ensureId(from, idMap, nodes, () => autoNode(auto++));
+        const tid = ensureId(to, idMap, nodes, () => autoNode(auto++));
+        edges.push({
+          id: 'e_' + edges.length,
+          fromNodeId: fid,
+          toNodeId: tid,
+          kind: ARROWS[arrow],
+          label,
+        });
+        continue;
+      }
+      const m = /^([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$/.exec(line);
+      if (m) {
+        const id = m[1];
+        const body = m[2];
+        for (const sh of SHAPES) {
+          if (body.startsWith(sh.p) && body.endsWith(sh.s)) {
+            const label = unescapeLabel(body.slice(sh.p.length, body.length - sh.s.length));
+            idMap.set(id, 'n_' + id);
+            if (!nodes.find((n) => n.id === 'n_' + id)) {
+              nodes.push({
+                id: 'n_' + id,
+                kind: sh.k,
+                x: 40 + (nodes.length % 5) * 160,
+                y: 40 + Math.floor(nodes.length / 5) * 100,
+                label,
+              });
+            }
+            break;
+          }
+        }
+      }
+    }
+    function ensureId(mid, map, ns, mk) {
+      if (map.has(mid)) return map.get(mid);
+      const n = mk();
+      ns.push(n);
+      map.set(mid, n.id);
+      return n.id;
+    }
+    function autoNode(n) {
+      return {
+        id: 'n_auto_' + n,
+        kind: 'process',
+        x: 40 + (n % 5) * 160,
+        y: 40 + Math.floor(n / 5) * 100,
+        label: '',
+      };
+    }
+    return { nodes, edges };
+  }
+
   // ========== flowchart-store (inlined) ==========
   // v4.12.0 — Nodes carry an optional `color` field; `setNodeColor(id, color)`
   // mutates it, and serialize/deserialize round-trip it.
@@ -833,6 +932,7 @@
     previewRender: document.getElementById('preview-render'),
     btnInsert: document.getElementById('fc-btn-insert'),
     btnSave: document.getElementById('fc-btn-save'),
+    btnOpen: document.getElementById('fc-btn-open'),
     btnReset: document.getElementById('fc-btn-reset'),
     btnUndo: document.getElementById('fc-btn-undo'),
     btnRedo: document.getElementById('fc-btn-redo'),
@@ -1452,6 +1552,43 @@
         } catch (err) {
           setStatus(`Save failed: ${err && err.message ? err.message : err}`);
         }
+      });
+    }
+
+    // v4.13.0 — Open from .mmd/.md file. Pops a system Open dialog,
+    // strips the ```mermaid fence (if any), parses via fromMermaid()
+    // (inlined above) and replaces the current graph. Confirms
+    // overwrite before destroying unsaved work.
+    if (els.btnOpen) {
+      els.btnOpen.addEventListener('click', async () => {
+        if (!_store || !api.openFile) return;
+        let result;
+        try {
+          result = await api.openFile();
+        } catch (err) {
+          setStatus(`Open failed: ${err && err.message ? err.message : err}`);
+          return;
+        }
+        if (!result) {
+          setStatus('Open cancelled');
+          return;
+        }
+        const graph = _store.getGraph();
+        if (graph.nodes.length > 0 || graph.edges.length > 0) {
+          const ok = await confirmInline({
+            title: 'Open file',
+            message: 'This will replace the current diagram. Continue?',
+            danger: true,
+          });
+          if (!ok) return;
+        }
+        // Strip the ```mermaid fence if present
+        let source = result.content || '';
+        const fence = source.match(/```(?:mermaid)?\s*\n?([\s\S]*?)\n?```/);
+        if (fence) source = fence[1];
+        const parsed = fromMermaid(source);
+        _store.deserialize(parsed);
+        setStatus(`Loaded ${result.path}`);
       });
     }
 

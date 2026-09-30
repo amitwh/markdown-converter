@@ -114,6 +114,7 @@ const ALLOWED_SEND_CHANNELS = [
 
   // Flowchart generator: dialog-based file save (v4.12.0)
   'save-text-file',
+  'open-text-file-dialog',
 
   // ASCII art generator (standalone window — invoke channels)
   'ascii:generate',
@@ -566,7 +567,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     readFile: (p) => ipcRenderer.invoke('read-text-file', p),
     writeFile: (p, content) => ipcRenderer.invoke('write-text-file', { path: p, content }),
     saveFile: (content, defaultName) =>
-      ipcRenderer.invoke('save-text-file', { content, defaultName }),
+      ipcRenderer.invoke('save-text-file',
+  'open-text-file-dialog', { content, defaultName }),
+    openFile: () => ipcRenderer.invoke('open-text-file-dialog'),
     insertAtCursor: (text) => ipcRenderer.send('insert-content', text),
   },
 
