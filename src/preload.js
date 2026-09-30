@@ -567,8 +567,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     readFile: (p) => ipcRenderer.invoke('read-text-file', p),
     writeFile: (p, content) => ipcRenderer.invoke('write-text-file', { path: p, content }),
     saveFile: (content, defaultName) =>
-      ipcRenderer.invoke('save-text-file',
-  'open-text-file-dialog', { content, defaultName }),
+      ipcRenderer.invoke('save-text-file', { content, defaultName }),
     openFile: () => ipcRenderer.invoke('open-text-file-dialog'),
     insertAtCursor: (text) => ipcRenderer.send('insert-content', text),
   },
