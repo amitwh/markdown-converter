@@ -232,21 +232,29 @@ function createCanvas(container, store, opts = {}) {
       // v4.13.0 — bottom-right resize handle on the selected node. A
       // single square handle is enough for v1; multi-handle (4 corners
       // + 4 edges) is a follow-up. Width is the only mutable dimension.
+      // Two rects: a larger transparent hit area (24px) so the handle is
+      // easier to grab, plus a smaller visible grip (10px) styled via CSS.
       if (node.id === selectedNodeId) {
-        const handleSize = 10;
-        const handle = svgEl('rect', {
-          x: w - handleSize / 2,
-          y: DEFAULT_HEIGHT - handleSize / 2,
-          width: handleSize,
-          height: handleSize,
-          fill: '#e5461f',
-          stroke: '#ffffff',
-          'stroke-width': 1,
-          class: 'flowchart-resize-handle',
+        const gripSize = 10;
+        const hitSize = 24;
+        const hit = svgEl('rect', {
+          x: w - hitSize / 2,
+          y: DEFAULT_HEIGHT - hitSize / 2,
+          width: hitSize,
+          height: hitSize,
+          class: 'flowchart-resize-handle flowchart-resize-handle-hit',
           'data-resize-node': node.id,
-          cursor: 'nwse-resize',
         });
-        g.appendChild(handle);
+        const grip = svgEl('rect', {
+          x: w - gripSize / 2,
+          y: DEFAULT_HEIGHT - gripSize / 2,
+          width: gripSize,
+          height: gripSize,
+          rx: 2,
+          class: 'flowchart-resize-handle flowchart-resize-handle-grip',
+        });
+        g.appendChild(hit);
+        g.appendChild(grip);
       }
 
       nodesLayer.appendChild(g);

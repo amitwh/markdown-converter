@@ -91,11 +91,7 @@ describe('flowchart-align: distributeHorizontally', () => {
     expect(out.map((node) => node.x)).toEqual([0, 300, 600, 900]);
   });
   test('handles unsorted input by sorting first', () => {
-    const out = distributeHorizontally([
-      n('a', 500, 0),
-      n('b', 0, 0),
-      n('c', 900, 0),
-    ]);
+    const out = distributeHorizontally([n('a', 500, 0), n('b', 0, 0), n('c', 900, 0)]);
     // sorted: 0, 500, 900 → gap = 450 → x = [0, 450, 900]
     expect(out.map((node) => node.x)).toEqual([0, 450, 900]);
   });
@@ -109,12 +105,7 @@ describe('flowchart-align: distributeHorizontally', () => {
 
 describe('flowchart-align: distributeVertically', () => {
   test('spaces 4 nodes evenly between topmost and bottommost', () => {
-    const out = distributeVertically([
-      n('a', 0, 0),
-      n('b', 0, 60),
-      n('c', 0, 300),
-      n('d', 0, 900),
-    ]);
+    const out = distributeVertically([n('a', 0, 0), n('b', 0, 60), n('c', 0, 300), n('d', 0, 900)]);
     // gap = 900 / 3 = 300
     expect(out.map((node) => node.y)).toEqual([0, 300, 600, 900]);
   });

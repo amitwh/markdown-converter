@@ -185,6 +185,77 @@
       .flowchart-edge {
         stroke: #1f2328 !important;
       }
+      /* v4.13.0 — visual polish. Adds a visible selection ring (was
+         previously only the .selected class without a distinct colour),
+         a hover tint, an enlarged resize-handle hit area, a smoother
+         modal dialog animation, and a proper opaque background behind
+         edge labels so they stay readable across curved connectors. */
+      .flowchart-node {
+        cursor: grab;
+        transition: filter 0.12s ease-out;
+      }
+      .flowchart-node:hover .flowchart-node-shape {
+        filter: drop-shadow(0 0 2px rgba(37, 99, 235, 0.45));
+      }
+      .flowchart-node.selected .flowchart-node-shape {
+        stroke: #2563eb !important;
+        stroke-width: 2.25;
+      }
+      .flowchart-edge {
+        cursor: pointer;
+      }
+      .flowchart-edge:hover {
+        stroke: #2563eb !important;
+      }
+      .flowchart-edge.selected {
+        stroke: #2563eb !important;
+        stroke-width: 2.5;
+      }
+      /* Resize handle — larger invisible hit area + visible square. */
+      .flowchart-resize-handle {
+        cursor: nwse-resize;
+      }
+      .flowchart-resize-handle-hit {
+        fill: transparent;
+        stroke: none;
+      }
+      .flowchart-resize-handle-grip {
+        fill: #2563eb;
+        stroke: #1e40af;
+        stroke-width: 1;
+      }
+      /* Edge label background — keeps labels legible across curves by
+         giving them an opaque white pill behind the text. */
+      .flowchart-edge-label-bg {
+        fill: #ffffff;
+        stroke: #d1d5db;
+        stroke-width: 0.5;
+      }
+      /* Modal dialog — fade + scale-in entrance. */
+      .fc-modal {
+        animation: fc-modal-in 0.15s ease-out;
+      }
+      @keyframes fc-modal-in {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+      .fc-modal-overlay {
+        animation: fc-overlay-in 0.12s ease-out;
+      }
+      @keyframes fc-overlay-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
       /* v4.10.0 — preview-render info card explaining the layout */
       .fc-preview-render-note {
         font-size: 0.75rem;
