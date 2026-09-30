@@ -217,6 +217,18 @@
         flex-wrap: wrap;
         margin-bottom: 12px;
       }
+      .fc-history-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .fc-history-count {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--fc-border);
+        font-variant-numeric: tabular-nums;
+      }
       .fc-ul {
         list-style: none;
         padding: 0;
@@ -323,6 +335,13 @@
           Save to File button alongside Insert at Cursor.
         -->
         <div id="fc-nodelist" class="fc-nodelist">
+          <h3 class="fc-section-title">History</h3>
+          <div class="fc-history-row">
+            <button class="fc-btn" id="fc-btn-undo" title="Undo (Ctrl+Z)">↶ Undo</button>
+            <button class="fc-btn" id="fc-btn-redo" title="Redo (Ctrl+Shift+Z)">↷ Redo</button>
+            <span class="fc-history-count" id="fc-history-count" aria-live="polite">0</span>
+          </div>
+
           <h3 class="fc-section-title">Add Node</h3>
           <div class="fc-add-row">
             <button class="fc-btn" data-add="process">+ Process</button>

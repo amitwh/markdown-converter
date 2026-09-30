@@ -834,6 +834,9 @@
     btnInsert: document.getElementById('fc-btn-insert'),
     btnSave: document.getElementById('fc-btn-save'),
     btnReset: document.getElementById('fc-btn-reset'),
+    btnUndo: document.getElementById('fc-btn-undo'),
+    btnRedo: document.getElementById('fc-btn-redo'),
+    historyCount: document.getElementById('fc-history-count'),
     status: document.getElementById('fc-status'),
     // v4.11.0 — node-list panel (button-driven UI). Every mutation goes
     // through controls in this panel; the canvas is purely visual.
@@ -1405,6 +1408,8 @@
       debouncedPersist();
       // Keep the node-list panel in sync with every mutation.
       rerenderNodeList();
+      // v4.13.0 — keep the undo/redo buttons enabled-state in sync.
+      updateHistoryUI();
     });
 
     // Hydrate from disk (defensively — corrupt JSON is caught by the store).
@@ -1462,6 +1467,33 @@
         _store.deserialize({ nodes: [], edges: [] });
         setStatus('Reset');
       });
+    }
+
+    // v4.13.0 — toolbar undo/redo buttons + history counter. Both wired
+    // here so they share state with the existing keyboard shortcuts.
+    if (els.btnUndo) {
+      els.btnUndo.addEventListener('click', () => {
+        if (!_store) return;
+        _store.undo();
+      });
+    }
+    if (els.btnRedo) {
+      els.btnRedo.addEventListener('click', () => {
+        if (!_store) return;
+        _store.redo();
+      });
+    }
+    function updateHistoryUI() {
+      if (els.historyCount) {
+        // The store exposes canUndo()/canRedo(); show the stack depth as
+        // a vague "edit count" so the user has feedback that their work
+        // is being captured.
+        const u = _store.canUndo() ? 1 : 0;
+        const r = _store.canRedo() ? 1 : 0;
+        els.historyCount.textContent = `${u}↶ / ${r}↷`;
+      }
+      if (els.btnUndo) els.btnUndo.disabled = !_store.canUndo();
+      if (els.btnRedo) els.btnRedo.disabled = !_store.canRedo();
     }
 
     // Keyboard shortcuts — Ctrl/Cmd+Z / Ctrl/Cmd+Shift+Z. Delete / Backspace
