@@ -131,19 +131,89 @@ function createCanvas(container, store, opts = {}) {
   let unsubscribe = null;
   let destroyed = false;
   let panState = null; // v4.13.0 — drag-to-pan state on empty canvas
-
-  // v4.13.0 — selection lives on the canvas, not in the DOM. The controller
-  // asks via getSelection() rather than reading .selected class names.
-  function setSelection({ nodeId = null, edgeId = null } = {}) {
-    if (selectedNodeId !== nodeId || selectedEdgeId !== edgeId) {
-      selectedNodeId = nodeId;
-      selectedEdgeId = edgeId;
-      applySelectionHighlight();
+  // v4.13.0 — multi-selection Set. Shift+click toggles membership;
+  // drag-rect on empty background replaces it with the intersected set.
+  // selectedNodeId remains the "primary" (last-clicked) for backward
+  // compat with the rest of the bundle; getMultiSelection returns the
+  // full set for the alignment / distribute buttons.
+  const selectedNodeIds = new Set();
+  let onSelectionChange = null;
+  function emitSelectionChange() {
+    if (typeof onSelectionChange === 'function') {
+      try {
+        onSelectionChange({
+          nodeId: selectedNodeId,
+          edgeId: selectedEdgeId,
+          nodeIds: Array.from(selectedNodeIds),
+        });
+      } catch {
+        // never let a caller bug kill the canvas
+      }
     }
+  }
+  function setSelection({ nodeId = null, edgeId = null, additive = false } = {}) {
+    if (!additive) {
+      // Plain click — replace selection with the single node (or clear).
+      if (edgeId !== undefined) selectedEdgeId = edgeId;
+      if (nodeId !== undefined) {
+        selectedNodeId = nodeId;
+        selectedNodeIds.clear();
+        if (nodeId !== null) selectedNodeIds.add(nodeId);
+      }
+    } else {
+      // Shift+click — toggle membership of the clicked node. The edge
+      // selection is single-only (no multi-edge for now).
+      if (nodeId) {
+        if (selectedNodeIds.has(nodeId)) {
+          if (selectedNodeId === nodeId) {
+            // pick a different node as the new primary if any
+            const remaining = Array.from(selectedNodeIds).filter((id) => id !== nodeId);
+            selectedNodeId = remaining.length > 0 ? remaining[0] : null;
+          }
+          selectedNodeIds.delete(nodeId);
+        } else {
+          selectedNodeId = nodeId;
+          selectedNodeIds.add(nodeId);
+        }
+        selectedEdgeId = null;
+      }
+    }
+    applySelectionHighlight();
+    emitSelectionChange();
   }
   function getSelection() {
     return { nodeId: selectedNodeId, edgeId: selectedEdgeId };
   }
+  function getMultiSelection() {
+    return Array.from(selectedNodeIds);
+  }
+  function setOnSelectionChange(cb) {
+    onSelectionChange = typeof cb === 'function' ? cb : null;
+  }
+  function clearMultiSelection() {
+    selectedNodeIds.clear();
+    selectedNodeId = null;
+    selectedEdgeId = null;
+    applySelectionHighlight();
+    emitSelectionChange();
+  }
+  function setMultiSelection(nodeIds) {
+    selectedNodeIds.clear();
+    if (Array.isArray(nodeIds)) {
+      for (const id of nodeIds) {
+        if (typeof id === 'string' && id.length > 0) selectedNodeIds.add(id);
+      }
+    }
+    selectedNodeId = selectedNodeIds.size > 0 ? Array.from(selectedNodeIds)[0] : null;
+    selectedEdgeId = null;
+    applySelectionHighlight();
+    emitSelectionChange();
+  }
+  // v4.13.0 — drag-rect state. While the user drags on empty canvas,
+  // draw a translucent selection rectangle; on pointerup, replace the
+  // multi-selection with every node whose centre falls inside the rect.
+  let rectSelectState = null;
+  let rectOverlay = null;
 
   // v4.13.0 — apply the current viewport to the content <g>'s transform.
   function applyView() {
@@ -274,7 +344,7 @@ function createCanvas(container, store, opts = {}) {
     const nodeEls = nodesLayer.querySelectorAll('g[data-node-id]');
     nodeEls.forEach((g) => {
       const id = g.getAttribute('data-node-id');
-      g.classList.toggle('selected', id === selectedNodeId);
+      g.classList.toggle('selected', selectedNodeIds.has(id));
     });
     const edgeEls = edgesLayer.querySelectorAll('line[data-edge-id]');
     edgeEls.forEach((l) => {
@@ -323,7 +393,9 @@ function createCanvas(container, store, opts = {}) {
       const nodeId = nodeG.getAttribute('data-node-id');
       const node = store.getGraph().nodes.find((n) => n.id === nodeId);
       if (!node) return;
-      setSelection({ nodeId });
+      // v4.13.0 — shift+click toggles the node in the multi-selection;
+      // plain click replaces the selection with just this node.
+      setSelection({ nodeId, additive: ev.shiftKey });
       const start = getSvgPoint(ev.clientX, ev.clientY);
       if (ev.altKey) {
         // Alt+drag = create a new edge from this node to wherever the pointer
@@ -371,8 +443,9 @@ function createCanvas(container, store, opts = {}) {
       return;
     }
     // Click on empty canvas: middle-mouse OR Space-held = pan; otherwise
-    // prompt for a new node. v4.13.0 — empty-canvas drag-pan replaces the
-    // old auto-add-process behaviour.
+    // start a drag-rect for multi-select. If the user releases without
+    // dragging, fall back to the existing "create node at click" behaviour
+    // so we don't accidentally lose the single-click affordance.
     if (ev.target === svg || ev.target === nodesLayer || ev.target === edgesLayer) {
       const isPan = ev.button === 1 || ev.shiftKey; // middle OR shift-drag
       if (isPan) {
@@ -383,15 +456,51 @@ function createCanvas(container, store, opts = {}) {
         return;
       }
       const p = getSvgPoint(ev.clientX, ev.clientY);
-      const x = Math.max(0, p.x - DEFAULT_WIDTH / 2);
-      const y = Math.max(0, p.y - DEFAULT_HEIGHT / 2);
-      const finalX = snapEnabled ? vpSnap(x, GRID_SIZE) : x;
-      const finalY = snapEnabled ? vpSnap(y, GRID_SIZE) : y;
-      if (typeof opts.onEmptyClick === 'function') {
-        opts.onEmptyClick(finalX, finalY, ev);
-      }
+      // Start a drag-rect. We track the start coords; pointermove decides
+      // whether the user is dragging (rect-select) or just clicked (treat
+      // as onEmptyClick to create a node).
+      rectSelectState = {
+        startX: p.x,
+        startY: p.y,
+        additive: ev.shiftKey,
+        moved: false,
+      };
       ev.preventDefault();
     }
+  }
+
+  // v4.13.0 — render the drag-rect overlay. Drawn in screen coords
+  // (independent of viewport scale) so the visible thickness feels right
+  // even at low zoom.
+  function ensureRectOverlay() {
+    if (rectOverlay) return rectOverlay;
+    rectOverlay = svgEl('rect', {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      fill: 'rgba(37, 99, 235, 0.12)',
+      stroke: '#2563eb',
+      'stroke-width': 1,
+      'stroke-dasharray': '4 3',
+      'pointer-events': 'none',
+      class: 'flowchart-rect-select',
+    });
+    svg.appendChild(rectOverlay);
+    return rectOverlay;
+  }
+  function updateRectOverlay(x, y, w, h) {
+    const overlay = ensureRectOverlay();
+    overlay.setAttribute('x', String(x));
+    overlay.setAttribute('y', String(y));
+    overlay.setAttribute('width', String(Math.max(0, w)));
+    overlay.setAttribute('height', String(Math.max(0, h)));
+  }
+  function clearRectOverlay() {
+    if (rectOverlay && rectOverlay.parentNode) {
+      rectOverlay.parentNode.removeChild(rectOverlay);
+    }
+    rectOverlay = null;
   }
 
   // v4.13.0 — connect-mode preview line. Re-anchored each move to the source
@@ -428,6 +537,16 @@ function createCanvas(container, store, opts = {}) {
       view.tx = panState.viewTx + dx;
       view.ty = panState.viewTy + dy;
       applyView();
+      return;
+    }
+    if (rectSelectState) {
+      const p = getSvgPoint(ev.clientX, ev.clientY);
+      const x0 = Math.min(rectSelectState.startX, p.x);
+      const x1 = Math.max(rectSelectState.startX, p.x);
+      const y0 = Math.min(rectSelectState.startY, p.y);
+      const y1 = Math.max(rectSelectState.startY, p.y);
+      rectSelectState.moved = true;
+      updateRectOverlay(x0, y0, x1 - x0, y1 - y0);
       return;
     }
     if (!dragState) return;
@@ -490,6 +609,54 @@ function createCanvas(container, store, opts = {}) {
           }
         }
       }
+    }
+    // v4.13.0 — finalize drag-rect. If the rect is small (treat as a
+    // bare click) fall back to the existing onEmptyClick affordance so
+    // the user can still click-to-create a node. Otherwise intersect
+    // the rect against every node's centre and replace (or, on shift,
+    // merge into) the multi-selection.
+    if (rectSelectState) {
+      const p = getSvgPoint(ev.clientX, ev.clientY);
+      const x0 = Math.min(rectSelectState.startX, p.x);
+      const x1 = Math.max(rectSelectState.startX, p.x);
+      const y0 = Math.min(rectSelectState.startY, p.y);
+      const y1 = Math.max(rectSelectState.startY, p.y);
+      const width = x1 - x0;
+      const height = y1 - y0;
+      clearRectOverlay();
+      if (!rectSelectState.moved && width < 3 && height < 3) {
+        // Bare click on empty canvas — preserve the legacy "click to
+        // add a node" behaviour. First clear the selection so a new
+        // node isn't created while something else is selected.
+        if (!rectSelectState.additive) clearMultiSelection();
+        const finalX = snapEnabled
+          ? vpSnap(Math.max(0, p.x - DEFAULT_WIDTH / 2), GRID_SIZE)
+          : Math.max(0, p.x - DEFAULT_WIDTH / 2);
+        const finalY = snapEnabled
+          ? vpSnap(Math.max(0, p.y - DEFAULT_HEIGHT / 2), GRID_SIZE)
+          : Math.max(0, p.y - DEFAULT_HEIGHT / 2);
+        if (typeof opts.onEmptyClick === 'function') {
+          opts.onEmptyClick(finalX, finalY, ev);
+        }
+      } else {
+        const hits = [];
+        const nodes = store.getGraph().nodes;
+        for (const node of nodes) {
+          const cx = node.x + nodeWidth(node) / 2;
+          const cy = node.y + DEFAULT_HEIGHT / 2;
+          if (cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1) hits.push(node.id);
+        }
+        if (rectSelectState.additive) {
+          // shift-drag rect — add hits to the existing selection
+          const next = new Set(selectedNodeIds);
+          for (const id of hits) next.add(id);
+          setMultiSelection(Array.from(next));
+        } else {
+          // plain drag-rect — replace selection with hits (or clear)
+          setMultiSelection(hits);
+        }
+      }
+      rectSelectState = null;
     }
     removePreviewLine();
     dragState = null;
@@ -561,7 +728,16 @@ function createCanvas(container, store, opts = {}) {
     svg.remove();
   }
 
-  return { destroy, getSvg: () => svg, getSelection, setSnapEnabled };
+  return {
+    destroy,
+    getSvg: () => svg,
+    getSelection,
+    getMultiSelection,
+    setMultiSelection,
+    clearMultiSelection,
+    setOnSelectionChange,
+    setSnapEnabled,
+  };
 }
 
 // v4.9.6 UMD wrapper — same CommonJS export shape + browser global

@@ -632,6 +632,13 @@
     let selectedEdgeId = null;
     let unsubscribe = null;
     let destroyed = false;
+    // v4.13.0 — multi-selection Set + drag-rect state. Mirrors the
+    // canonical src/flowchart/flowchart-canvas.js so the standalone
+    // window gets shift+click toggle and drag-rect multi-select.
+    const selectedNodeIds = new Set();
+    let onSelectionChange = null;
+    let rectSelectState = null;
+    let rectOverlay = null;
 
     function render() {
       if (destroyed) return;
@@ -722,13 +729,84 @@
       const nodeEls = nodesLayer.querySelectorAll('g[data-node-id]');
       nodeEls.forEach((g) => {
         const id = g.getAttribute('data-node-id');
-        g.classList.toggle('selected', id === selectedNodeId);
+        g.classList.toggle('selected', selectedNodeIds.has(id));
       });
       const edgeEls = edgesLayer.querySelectorAll('line[data-edge-id]');
       edgeEls.forEach((l) => {
         const id = l.getAttribute('data-edge-id');
         l.classList.toggle('selected', id === selectedEdgeId);
       });
+    }
+    // v4.13.0 — multi-selection helpers. emitSelectionChange is
+    // called whenever the selection changes so the bundle's
+    // _selectedNodeIds can stay in sync.
+    function emitSelectionChange() {
+      if (typeof onSelectionChange === 'function') {
+        try {
+          onSelectionChange({
+            nodeId: selectedNodeId,
+            edgeId: selectedEdgeId,
+            nodeIds: Array.from(selectedNodeIds),
+          });
+        } catch {
+          // never let a caller bug kill the canvas
+        }
+      }
+    }
+    function setMultiSelection(nodeIds) {
+      selectedNodeIds.clear();
+      if (Array.isArray(nodeIds)) {
+        for (const id of nodeIds) {
+          if (typeof id === 'string' && id.length > 0) selectedNodeIds.add(id);
+        }
+      }
+      selectedNodeId = selectedNodeIds.size > 0 ? Array.from(selectedNodeIds)[0] : null;
+      selectedEdgeId = null;
+      applySelectionHighlight();
+      emitSelectionChange();
+    }
+    function clearMultiSelection() {
+      selectedNodeIds.clear();
+      selectedNodeId = null;
+      selectedEdgeId = null;
+      applySelectionHighlight();
+      emitSelectionChange();
+    }
+    function getMultiSelection() {
+      return Array.from(selectedNodeIds);
+    }
+    function setOnSelectionChange(cb) {
+      onSelectionChange = typeof cb === 'function' ? cb : null;
+    }
+    // Rect-select overlay helpers.
+    function ensureRectOverlay() {
+      if (rectOverlay) return rectOverlay;
+      rectOverlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rectOverlay.setAttribute('fill', 'rgba(37, 99, 235, 0.12)');
+      rectOverlay.setAttribute('stroke', '#2563eb');
+      rectOverlay.setAttribute('stroke-width', '1');
+      rectOverlay.setAttribute('stroke-dasharray', '4 3');
+      rectOverlay.setAttribute('pointer-events', 'none');
+      rectOverlay.setAttribute('class', 'flowchart-rect-select');
+      rectOverlay.setAttribute('x', '0');
+      rectOverlay.setAttribute('y', '0');
+      rectOverlay.setAttribute('width', '0');
+      rectOverlay.setAttribute('height', '0');
+      svg.appendChild(rectOverlay);
+      return rectOverlay;
+    }
+    function updateRectOverlay(x, y, w, h) {
+      const overlay = ensureRectOverlay();
+      overlay.setAttribute('x', String(x));
+      overlay.setAttribute('y', String(y));
+      overlay.setAttribute('width', String(Math.max(0, w)));
+      overlay.setAttribute('height', String(Math.max(0, h)));
+    }
+    function clearRectOverlay() {
+      if (rectOverlay && rectOverlay.parentNode) {
+        rectOverlay.parentNode.removeChild(rectOverlay);
+      }
+      rectOverlay = null;
     }
 
     // ----- pointer events -----
@@ -750,7 +828,24 @@
         const nodeId = nodeG.getAttribute('data-node-id');
         const node = store.getGraph().nodes.find((n) => n.id === nodeId);
         if (!node) return;
-        selectedNodeId = nodeId;
+        // v4.13.0 — shift+click toggles membership in the multi-selection.
+        // Plain click replaces the selection with just this node.
+        if (ev.shiftKey) {
+          if (selectedNodeIds.has(nodeId)) {
+            selectedNodeIds.delete(nodeId);
+            if (selectedNodeId === nodeId) {
+              const remaining = Array.from(selectedNodeIds);
+              selectedNodeId = remaining.length > 0 ? remaining[0] : null;
+            }
+          } else {
+            selectedNodeIds.add(nodeId);
+            selectedNodeId = nodeId;
+          }
+        } else {
+          selectedNodeIds.clear();
+          selectedNodeIds.add(nodeId);
+          selectedNodeId = nodeId;
+        }
         selectedEdgeId = null;
         // Paint the .flowchart-node.selected highlight immediately on a bare
         // click (without a drag). store.subscribe would normally trigger
@@ -759,6 +854,7 @@
         // render() — so the pointerdown target stays attached and subsequent
         // pointermove/pointerup can still bubble on the same element.
         applySelectionHighlight();
+        emitSelectionChange();
         const start = getSvgPoint(ev.clientX, ev.clientY);
         if (ev.altKey) {
           // Alt+drag = create a new edge from this node to wherever the pointer
@@ -788,10 +884,12 @@
       if (edgeLine) {
         selectedEdgeId = edgeLine.getAttribute('data-edge-id');
         selectedNodeId = null;
+        selectedNodeIds.clear();
         // Same reasoning as the node branch above: paint the edge highlight
         // immediately so a click-without-drag isn't invisible until the next
         // store mutation triggers a re-render.
         applySelectionHighlight();
+        emitSelectionChange();
         console.log('[flowchart] pointerdown on edge', selectedEdgeId);
         if (typeof opts.onEdgeClick === 'function') {
           opts.onEdgeClick(selectedEdgeId, ev);
@@ -799,18 +897,32 @@
         ev.preventDefault();
         return;
       }
-      // Click on empty canvas: add a process node at the click point.
+      // Click on empty canvas: start a drag-rect. If the user releases
+      // without moving, fall back to the legacy "click adds a process
+      // node" affordance. v4.13.0 — multi-select via drag-rect.
       if (ev.target === svg || ev.target === nodesLayer || ev.target === edgesLayer) {
         const p = getSvgPoint(ev.clientX, ev.clientY);
-        const x = Math.max(0, p.x - DEFAULT_WIDTH / 2);
-        const y = Math.max(0, p.y - DEFAULT_HEIGHT / 2);
-        console.log('[flowchart] pointerdown on empty canvas — adding process node at', x, y);
-        store.addNode({ kind: 'process', x, y, label: 'Node' });
+        rectSelectState = {
+          startX: p.x,
+          startY: p.y,
+          additive: ev.shiftKey,
+          moved: false,
+        };
         ev.preventDefault();
       }
     }
 
     function onPointerMove(ev) {
+      if (rectSelectState) {
+        const p = getSvgPoint(ev.clientX, ev.clientY);
+        const x0 = Math.min(rectSelectState.startX, p.x);
+        const x1 = Math.max(rectSelectState.startX, p.x);
+        const y0 = Math.min(rectSelectState.startY, p.y);
+        const y1 = Math.max(rectSelectState.startY, p.y);
+        rectSelectState.moved = true;
+        updateRectOverlay(x0, y0, x1 - x0, y1 - y0);
+        return;
+      }
       if (!dragState) return;
       if (dragState.mode === 'move') {
         const p = getSvgPoint(ev.clientX, ev.clientY);
@@ -848,6 +960,41 @@
         }
       } else if (dragState && dragState.mode === 'move') {
         console.log('[flowchart] pointerup move complete for node', dragState.nodeId);
+      }
+      // v4.13.0 — finalize drag-rect. If the rect is small (treat as a
+      // bare click) fall back to the legacy "click adds a process node"
+      // affordance. Otherwise intersect against every node centre.
+      if (rectSelectState) {
+        const p = getSvgPoint(ev.clientX, ev.clientY);
+        const x0 = Math.min(rectSelectState.startX, p.x);
+        const x1 = Math.max(rectSelectState.startX, p.x);
+        const y0 = Math.min(rectSelectState.startY, p.y);
+        const y1 = Math.max(rectSelectState.startY, p.y);
+        const width = x1 - x0;
+        const height = y1 - y0;
+        clearRectOverlay();
+        if (!rectSelectState.moved && width < 3 && height < 3) {
+          if (!rectSelectState.additive) clearMultiSelection();
+          const x = Math.max(0, p.x - DEFAULT_WIDTH / 2);
+          const y = Math.max(0, p.y - DEFAULT_HEIGHT / 2);
+          console.log('[flowchart] bare click on empty — adding process node at', x, y);
+          store.addNode({ kind: 'process', x, y, label: 'Node' });
+        } else {
+          const hits = [];
+          for (const node of store.getGraph().nodes) {
+            const cx = node.x + DEFAULT_WIDTH / 2;
+            const cy = node.y + DEFAULT_HEIGHT / 2;
+            if (cx >= x0 && cx <= x1 && cy >= y0 && cy <= y1) hits.push(node.id);
+          }
+          if (rectSelectState.additive) {
+            const next = new Set(selectedNodeIds);
+            for (const id of hits) next.add(id);
+            setMultiSelection(Array.from(next));
+          } else {
+            setMultiSelection(hits);
+          }
+        }
+        rectSelectState = null;
       }
       dragState = null;
     }
@@ -917,7 +1064,14 @@
       svg.remove();
     }
 
-    return { destroy, getSvg: () => svg };
+    return {
+      destroy,
+      getSvg: () => svg,
+      getMultiSelection,
+      setMultiSelection,
+      clearMultiSelection,
+      setOnSelectionChange,
+    };
   }
 
   // ========== flowchart-align (inlined v4.13.0) ==========
@@ -1649,6 +1803,15 @@
       onEdgeClick: () => {},
       onShapeMenu: () => {},
     });
+    // v4.13.0 — keep the bundle's _selectedNodeIds in sync with the
+    // canvas selection. The canvas is the source of truth for shift+click
+    // and drag-rect; the bundle tracks the set so the alignment /
+    // distribute buttons have a target.
+    if (typeof _canvas.setOnSelectionChange === 'function') {
+      _canvas.setOnSelectionChange(function (sel) {
+        _selectedNodeIds = new Set(sel.nodeIds || []);
+      });
+    }
     console.log('[flowchart] bootstrap: canvas rendered');
 
     _store.subscribe(() => {
@@ -1898,6 +2061,9 @@
         if (!_store) return;
         const graph = _store.getGraph();
         _selectedNodeIds = new Set(graph.nodes.map((node) => node.id));
+        if (_canvas && typeof _canvas.setMultiSelection === 'function') {
+          _canvas.setMultiSelection(Array.from(_selectedNodeIds));
+        }
         setStatus('Selected ' + _selectedNodeIds.size + ' nodes');
         rerenderNodeList();
       });
