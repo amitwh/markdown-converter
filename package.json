@@ -29,6 +29,7 @@
     "dist:all": "electron-builder --config electron-builder.config.js -mwl",
     "download-tools": "node scripts/download-tools.js",
     "bundle:markitdown": "node scripts/bundle-markitdown.js",
+    "build:bundle": "node scripts/build-flowchart-bundle.js",
     "generate-icons": "node scripts/generate-icons.js"
   },
   "keywords": [

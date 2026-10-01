@@ -287,7 +287,7 @@ function createCanvas(container, store, opts = {}) {
         tabindex: '0',
         'aria-label': `${node.kind}: ${node.label || '(no label)'}`,
       });
-      g.innerHTML = shapeSvg(node.kind, 0, 0, w, DEFAULT_HEIGHT);
+      g.innerHTML = shapeSvg(node.kind, 0, 0, w, DEFAULT_HEIGHT, node.color);
       const text = svgEl('text', {
         x: w / 2,
         y: DEFAULT_HEIGHT / 2 + 4,

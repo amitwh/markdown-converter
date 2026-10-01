@@ -19,14 +19,15 @@
 
 'use strict';
 
-const DEFAULT_HEIGHT = 60;
-
+// v4.13.1 — DEFAULT_HEIGHT constant removed and inlined as 60 to avoid
+// colliding with shapes.js's identically-named const when the build
+// script concatenates both into the bundle.
 function nodeWidth(node) {
   return Number(node.width) > 0 ? Number(node.width) : 120;
 }
 
 function nodeHeight(_node) {
-  return DEFAULT_HEIGHT;
+  return 60;
 }
 
 function clone(node) {

@@ -1,0 +1,1202 @@
+/* global XMLSerializer */
+/**
+ * v4.12.0 — Bundled single-file Flowchart Generator loader.
+ *
+ * Inlines the four pure modules (flowchart-shapes / flowchart-mermaid /
+ * flowchart-store / flowchart-canvas) plus the renderer controller
+ * (src/renderer/flowchart-controller.js) into one script. Loads as a single
+ * `<script src="renderer/flowchart-bundle.js">` tag in
+ * src/flowchart-generator.html.
+ *
+ * History:
+ *   v4.9.6 — split modules into UMD wrappers; standalone window loaded each
+ *            via `<script>` tags.
+ *   v4.9.7 — added the `window.FlowchartXxx = exported` guard inside every
+ *            UMD wrapper so the global survives the `module` truthy
+ *            (nodeIntegration:true) case in the renderer.
+ *   v4.9.8 — even with the v4.9.7 guards the user kept reporting
+ *            'modules not loaded' in the standalone window. Rather than
+ *            rely on script-tag ordering / UMD quirks across all four files,
+ *            brute-force bundle everything into one self-contained file. No
+ *            cross-file script ordering, no UMD wrapper, no `require()`. The
+ *            standalone window now has exactly one script dependency.
+ *   v4.9.9 — Electron renderer contexts disable `window.prompt` and
+ *            `window.confirm`, so shape change / edge kind / edge label /
+ *            reset confirmation did nothing. Replaced with `promptInline`
+ *            and `confirmInline` (custom DOM-overlay modals). Exposed as
+ *            `window.FlowchartModals` for jsdom tests.
+ *   v4.10.0 — User still reported "no fix still" because hidden right-
+ *            click context menus and `window.prompt` were unreliable in
+ *            Electron. Added a *visible* floating selection toolbar
+ *            inside the canvas panel (`<div id="fc-selection-toolbar">`)
+ *            that exposes shape buttons, edge-kind buttons, an inline
+ *            label input, and a Delete button — no hidden UI affordance
+ *            for the primary interactions. Added console-log diagnostics
+ *            on every canvas event (pointerdown / pointerup / dblclick /
+ *            contextmenu / selection change / bootstrap phase) so the
+ *            user can open DevTools (Ctrl+Shift+I) and see what's firing.
+ *            `promptInline` / `confirmInline` kept as advanced fallback
+ *            for the right-click "change shape" path; the toolbar is now
+ *            the primary interaction surface.
+ *   v4.11.0 — The v4.10.0 floating toolbar was click-driven and the user
+ *            reported it still showed only rectangles in their Electron
+ *            runtime (SVG click hit-testing was unreliable). Replaced
+ *            with a button-driven node-list panel (`#fc-nodelist`)
+ *            between the canvas and the preview. Every mutation — add
+ *            node, delete node, change kind, edit label, add edge,
+ *            delete edge, change edge kind, edit edge label — is wired
+ *            to explicit buttons and form controls. The canvas itself
+ *            is now purely visual: no more click hit-testing, no more
+ *            selection state, no more floating toolbar. `promptInline` /
+ *            `confirmInline` are kept only for the Reset confirmation
+ *            modal.
+ *   v4.12.0 — User feedback: the v4.11.0 connect form (From dropdown +
+ *            To dropdown + "+ Edge") was buried below the node/edge
+ *            lists and they couldn't find it. Moved the connect form
+ *            up to the second section in #fc-nodelist (right after Add
+ *            Node). Also added (a) a per-node color picker in the
+ *            node list (`<input type="color">` → `store.setNodeColor`)
+ *            — `shapeSvg` now accepts an optional color arg and
+ *            normalises `#ffffff` by default; (b) a "Save to File"
+ *            button alongside "Insert at Cursor" that opens a system
+ *            save dialog via a new `save-text-file` IPC channel. The
+ *            standalone top toolbar was removed; Insert / Save / Reset
+ *            now live inside the panel's new "Export" section.
+ *
+ * The legacy individual files under src/flowchart/* and
+ * src/renderer/flowchart-controller.js are kept untouched — the
+ * `src/renderer.js` sidebar still uses the CommonJS shape via require().
+ *
+ * Pure browser script — no require(), no module.exports, no Node APIs.
+ */
+(function () {
+  'use strict';
+
+  // v4.13.1 — the pure modules (flowchart-shapes, mermaid, mermaid-parse,
+  // store, canvas, clipboard, align, etc.) are inlined by the build script
+  // and each one sets its own window global via its UMD wrapper. This
+  // block was previously re-assigning the globals here; it's now a
+  // no-op alias for jsdom test compatibility — every pure module has
+  // already exposed itself as window.FlowchartXxx.
+  if (!window.FlowchartCanvas || !window.FlowchartStore) {
+    // Defensive: surface the build error loudly rather than silently
+    // missing functions when this tail is loaded without the header.
+    throw new Error(
+      'flowchart-bundle-tail.js loaded without pure modules — run npm run build:bundle'
+    );
+  }
+
+  // Convenience aliases so the rest of this file can use the bare names
+  // instead of `window.FlowchartCanvas.createCanvas(...)` everywhere.
+  const { createCanvas } = window.FlowchartCanvas;
+  const { create: createStore } = window.FlowchartStore;
+  const { toMermaid } = window.FlowchartMermaid;
+  const { fromMermaid } = window.FlowchartMermaidParse;
+  const { copySelection, pasteSelection } = window.FlowchartClipboard;
+  // Alignment functions are referenced via window.FlowchartAlign.* in
+  // the click handlers (see els.btnAlignLeft etc. below), so no
+  // local alias is needed.
+
+  // ========== Controller bootstrap (inline) ==========
+  const api =
+    window.electronAPI && window.electronAPI.flowchart ? window.electronAPI.flowchart : null;
+
+  const els = {
+    canvasHost: document.getElementById('canvas-host'),
+    previewSource: document.getElementById('preview-source'),
+    previewRender: document.getElementById('preview-render'),
+    btnInsert: document.getElementById('fc-btn-insert'),
+    btnSave: document.getElementById('fc-btn-save'),
+    btnOpen: document.getElementById('fc-btn-open'),
+    btnReset: document.getElementById('fc-btn-reset'),
+    // v4.13.0 — image export buttons (SVG / PNG / JPG). All three use the
+    // same SVG→string serializer; PNG/JPG additionally rasterise through
+    // Image + canvas via the binary IPC bridge.
+    btnExportSvg: document.getElementById('fc-btn-export-svg'),
+    btnExportPng: document.getElementById('fc-btn-export-png'),
+    btnExportJpg: document.getElementById('fc-btn-export-jpg'),
+    btnExportVsdx: document.getElementById('fc-btn-export-vsdx'),
+    // v4.13.0 — alignment + distribution buttons. Multi-select is
+    // required for these to be useful; the Set is empty by default
+    // and the user can click "Select All" to operate on every node.
+    btnAlignLeft: document.getElementById('fc-btn-align-left'),
+    btnAlignRight: document.getElementById('fc-btn-align-right'),
+    btnAlignTop: document.getElementById('fc-btn-align-top'),
+    btnAlignBottom: document.getElementById('fc-btn-align-bottom'),
+    btnAlignCenterH: document.getElementById('fc-btn-align-center-h'),
+    btnAlignCenterV: document.getElementById('fc-btn-align-center-v'),
+    btnDistributeH: document.getElementById('fc-btn-distribute-h'),
+    btnDistributeV: document.getElementById('fc-btn-distribute-v'),
+    btnSelectAll: document.getElementById('fc-btn-select-all'),
+    btnHelp: document.getElementById('fc-btn-help'),
+    shortcutsModal: document.getElementById('fc-shortcuts-modal'),
+    shortcutsOverlay: document.getElementById('fc-shortcuts-overlay'),
+    shortcutsClose: document.getElementById('fc-shortcuts-close'),
+    btnUndo: document.getElementById('fc-btn-undo'),
+    btnRedo: document.getElementById('fc-btn-redo'),
+    historyCount: document.getElementById('fc-history-count'),
+    status: document.getElementById('fc-status'),
+    // v4.11.0 — node-list panel (button-driven UI). Every mutation goes
+    // through controls in this panel; the canvas is purely visual.
+    nodelistUl: document.getElementById('fc-nodelist-ul'),
+    edgelistUl: document.getElementById('fc-edgelist-ul'),
+    nodeCountEl: document.getElementById('fc-node-count'),
+    edgeCountEl: document.getElementById('fc-edge-count'),
+    connectFromSel: document.getElementById('fc-connect-from'),
+    connectToSel: document.getElementById('fc-connect-to'),
+    connectBtn: document.getElementById('fc-connect-btn'),
+    connectCancelBtn: document.getElementById('fc-connect-cancel'),
+  };
+
+  console.log('[flowchart] DOM loaded');
+
+  // Guard rails — these should never be null in a correctly-launched window.
+  // Fail loudly with a visible status message rather than silently no-op'ing
+  // if the HTML or the preload bridge are misconfigured.
+  function fatal(msg) {
+    if (els.status) els.status.textContent = msg;
+    console.error('[flowchart-controller]', msg);
+  }
+  if (!els.canvasHost || !els.previewSource || !els.previewRender) {
+    fatal('Required DOM elements missing — check src/flowchart-generator.html');
+    return;
+  }
+  // v4.9.8 — since the pure modules are bundled into this file, the four
+  // window.FlowchartXxx globals are guaranteed to be set above. The guard
+  // below is now belt-and-braces (it still trips if this file is loaded in
+  // some weird context that strips `window`).
+  if (
+    !window.FlowchartStore ||
+    !window.FlowchartCanvas ||
+    !window.FlowchartMermaid ||
+    !window.FlowchartShapes
+  ) {
+    fatal('Flowchart pure modules not loaded — verify flowchart-bundle.js ran in full');
+    return;
+  }
+  if (!api) {
+    fatal('window.electronAPI.flowchart missing — check src/preload.js');
+    return;
+  }
+
+  const PREVIEW_DEBOUNCE_MS = 250;
+  const PERSIST_DEBOUNCE_MS = 500;
+  const PERSISTENCE_FILENAME = 'flowchart-session.json';
+
+  // v4.13.0 — minimal CSS inlined into exported SVG/PNG/JPG so the file
+  // renders the same way without the editor stylesheet. Kept terse on
+  // purpose: only the rules that affect visible geometry (fills, strokes,
+  // label positions). Font fallbacks are conservative — the user-agent
+  // default sans-serif is the most portable choice for a portable diagram.
+  const EXPORT_CSS = [
+    '.flowchart-canvas { background: #ffffff; }',
+    '.flowchart-node-shape { stroke: #1f2937; stroke-width: 1.5; }',
+    '.flowchart-node-label { font: 14px sans-serif; fill: #111827; text-anchor: middle; dominant-baseline: middle; }',
+    '.flowchart-edge-line { stroke: #1f2937; fill: none; }',
+    '.flowchart-edge-label-bg { fill: #ffffff; stroke: none; }',
+    '.flowchart-edge-label { font: 12px sans-serif; fill: #111827; text-anchor: middle; dominant-baseline: middle; }',
+    '.flowchart-connect-preview { stroke: #2563eb; stroke-dasharray: 6 4; stroke-width: 2; fill: none; }',
+    '.flowchart-selection-ring { stroke: #2563eb; stroke-width: 2; fill: none; }',
+  ].join('\n');
+  const EXPORT_PADDING = 24;
+  const EXPORT_DEFAULT_WIDTH = 1000;
+  const EXPORT_DEFAULT_HEIGHT = 700;
+
+  let _userDataPath = null;
+  let _persistenceFile = null;
+  let _previewTimer = null;
+  let _persistTimer = null;
+  let _store = null;
+  let _canvas = null;
+  // v4.13.0 — selection state for multi-select + alignment. The canvas
+  // still owns single-click visual selection; this Set tracks the set
+  // the alignment / distribute buttons operate on. Empty by default;
+  // populated by "Select All" or canvas shift+click (item 1 below).
+  let _selectedNodeIds = new Set();
+  // v4.11.0 — no more selection state. Every mutation is initiated from
+  // a button in the #fc-nodelist panel; the canvas is purely visual.
+
+  function setStatus(msg) {
+    if (els.status) els.status.textContent = msg || '';
+    if (msg) setTimeout(() => setStatus(''), 2500);
+  }
+
+  function runPreview() {
+    if (!_store || !els.previewSource || !els.previewRender) return;
+    const graph = _store.getGraph();
+    const source = toMermaid(graph);
+    els.previewSource.textContent = source;
+    // v4.10.0 — the canvas on the left IS the rendered chart (hand-rolled
+    // SVG, no Mermaid runtime needed in this window). The right pane
+    // shows the Mermaid source for inspection only — seed a static info
+    // card explaining the layout so users don't think the right pane is
+    // broken / blank.
+    if (els.previewRender.firstElementChild === null) {
+      els.previewRender.innerHTML =
+        '<div class="fc-preview-render-note">' +
+        'Visual chart is rendered on the left canvas panel. ' +
+        'Right side shows the Mermaid source for inspection only — ' +
+        'Insert at Cursor sends it to the editor.' +
+        '</div>';
+    }
+  }
+
+  function debouncedPreview() {
+    if (_previewTimer) clearTimeout(_previewTimer);
+    _previewTimer = setTimeout(() => {
+      _previewTimer = null;
+      runPreview();
+    }, PREVIEW_DEBOUNCE_MS);
+  }
+
+  function debouncedPersist() {
+    if (_persistTimer) clearTimeout(_persistTimer);
+    _persistTimer = setTimeout(() => {
+      _persistTimer = null;
+      if (!_store || !_persistenceFile) return;
+      api
+        .writeFile(_persistenceFile, _store.serialize())
+        .then(() => setStatus('Saved'))
+        .catch((err) => setStatus(`Save failed: ${err && err.message ? err.message : err}`));
+    }, PERSIST_DEBOUNCE_MS);
+  }
+
+  // ========== Inline modal dialog (replacement for window.prompt/confirm) ==========
+  // v4.9.9 — window.prompt and window.confirm are disabled in Electron
+  // renderer contexts (the BrowserWindow of a BrowserView/WebContentsView
+  // returns undefined when called). Build minimal modal interactions on top
+  // of plain DOM nodes. Resolves with the entered string (or null on
+  // cancel/Esc/backdrop-click) for promptInline, and with a boolean for
+  // confirmInline.
+  function promptInline({ title, message, defaultValue = '', kind = 'text' }) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      Object.assign(overlay.style, {
+        position: 'fixed',
+        inset: '0',
+        background: 'rgba(0,0,0,0.45)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 99999,
+      });
+      const box = document.createElement('div');
+      Object.assign(box.style, {
+        background: '#ffffff',
+        color: '#1f2328',
+        border: '1px solid #d0d7de',
+        borderRadius: '8px',
+        padding: '20px 24px',
+        minWidth: '320px',
+        maxWidth: '480px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+        fontFamily: 'system-ui, sans-serif',
+      });
+      if (title) {
+        const h = document.createElement('div');
+        h.textContent = title;
+        Object.assign(h.style, { fontSize: '14px', fontWeight: '600', marginBottom: '12px' });
+        box.appendChild(h);
+      }
+      if (message) {
+        const m = document.createElement('div');
+        m.textContent = message;
+        Object.assign(m.style, {
+          fontSize: '12px',
+          color: '#57606a',
+          marginBottom: '12px',
+          whiteSpace: 'pre-wrap',
+        });
+        box.appendChild(m);
+      }
+      const input = document.createElement('input');
+      input.type = kind === 'number' ? 'number' : 'text';
+      input.value = defaultValue;
+      Object.assign(input.style, {
+        width: '100%',
+        padding: '8px 10px',
+        fontSize: '13px',
+        border: '1px solid #d0d7de',
+        borderRadius: '4px',
+        boxSizing: 'border-box',
+      });
+      box.appendChild(input);
+
+      const buttons = document.createElement('div');
+      Object.assign(buttons.style, {
+        marginTop: '14px',
+        display: 'flex',
+        gap: '8px',
+        justifyContent: 'flex-end',
+      });
+      const ok = document.createElement('button');
+      ok.textContent = 'OK';
+      Object.assign(ok.style, {
+        padding: '6px 14px',
+        border: 'none',
+        borderRadius: '4px',
+        background: '#1f883d',
+        color: '#ffffff',
+        fontSize: '13px',
+        cursor: 'pointer',
+      });
+      const cancel = document.createElement('button');
+      cancel.textContent = 'Cancel';
+      Object.assign(cancel.style, {
+        padding: '6px 14px',
+        border: '1px solid #d0d7de',
+        borderRadius: '4px',
+        background: '#f6f8fa',
+        color: '#1f2328',
+        fontSize: '13px',
+        cursor: 'pointer',
+      });
+      buttons.appendChild(cancel);
+      buttons.appendChild(ok);
+      box.appendChild(buttons);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      let resolved = false;
+      const cleanup = (val) => {
+        if (resolved) return;
+        resolved = true;
+        document.body.removeChild(overlay);
+        resolve(val);
+      };
+      ok.addEventListener('click', () => cleanup(input.value || null));
+      cancel.addEventListener('click', () => cleanup(null));
+      overlay.addEventListener('click', (ev) => {
+        if (ev.target === overlay) cleanup(null);
+      });
+      input.addEventListener('keydown', (kev) => {
+        if (kev.key === 'Enter') cleanup(input.value || null);
+        if (kev.key === 'Escape') cleanup(null);
+      });
+      setTimeout(() => input.focus(), 0);
+    });
+  }
+
+  function confirmInline({ title, message, danger = false }) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      Object.assign(overlay.style, {
+        position: 'fixed',
+        inset: '0',
+        background: 'rgba(0,0,0,0.45)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 99999,
+      });
+      const box = document.createElement('div');
+      Object.assign(box.style, {
+        background: '#ffffff',
+        color: '#1f2328',
+        border: '1px solid #d0d7de',
+        borderRadius: '8px',
+        padding: '20px 24px',
+        minWidth: '320px',
+        maxWidth: '480px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+        fontFamily: 'system-ui, sans-serif',
+      });
+      if (title) {
+        const h = document.createElement('div');
+        h.textContent = title;
+        Object.assign(h.style, { fontSize: '14px', fontWeight: '600', marginBottom: '12px' });
+        box.appendChild(h);
+      }
+      if (message) {
+        const m = document.createElement('div');
+        m.textContent = message;
+        Object.assign(m.style, {
+          fontSize: '13px',
+          color: '#1f2328',
+          marginBottom: '14px',
+          whiteSpace: 'pre-wrap',
+        });
+        box.appendChild(m);
+      }
+      const buttons = document.createElement('div');
+      Object.assign(buttons.style, { display: 'flex', gap: '8px', justifyContent: 'flex-end' });
+      const ok = document.createElement('button');
+      ok.textContent = danger ? 'Delete' : 'OK';
+      Object.assign(ok.style, {
+        padding: '6px 14px',
+        border: 'none',
+        borderRadius: '4px',
+        background: danger ? '#cf222e' : '#1f883d',
+        color: '#ffffff',
+        fontSize: '13px',
+        cursor: 'pointer',
+      });
+      const cancel = document.createElement('button');
+      cancel.textContent = 'Cancel';
+      Object.assign(cancel.style, {
+        padding: '6px 14px',
+        border: '1px solid #d0d7de',
+        borderRadius: '4px',
+        background: '#f6f8fa',
+        color: '#1f2328',
+        fontSize: '13px',
+        cursor: 'pointer',
+      });
+      buttons.appendChild(cancel);
+      buttons.appendChild(ok);
+      box.appendChild(buttons);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      let resolved = false;
+      const cleanup = (val) => {
+        if (resolved) return;
+        resolved = true;
+        document.body.removeChild(overlay);
+        resolve(val);
+      };
+      ok.addEventListener('click', () => cleanup(true));
+      cancel.addEventListener('click', () => cleanup(false));
+      overlay.addEventListener('click', (ev) => {
+        if (ev.target === overlay) cleanup(false);
+      });
+      document.addEventListener('keydown', function onKey(ev) {
+        if (ev.key === 'Enter') {
+          cleanup(true);
+          document.removeEventListener('keydown', onKey);
+        }
+        if (ev.key === 'Escape') {
+          cleanup(false);
+          document.removeEventListener('keydown', onKey);
+        }
+      });
+    });
+  }
+
+  // ========== Node-list panel (v4.11.0) ==========
+  // Button-driven UI. The #fc-nodelist panel below the canvas hosts
+  // every mutation: add/delete node, change kind, edit label,
+  // add/delete edge, change edge kind, edit edge label. The canvas
+  // itself is purely visual — no click hit-testing, no selection
+  // state. The panel is re-rendered on every store mutation.
+
+  const SHAPE_LABEL = {
+    process: 'Process',
+    decision: 'Decision',
+    terminator: 'Terminator',
+    subroutine: 'Subroutine',
+    document: 'Document',
+  };
+  const EDGE_LABEL = {
+    solid: 'Solid',
+    dotted: 'Dotted',
+    thick: 'Thick',
+  };
+  const SHAPE_KINDS_FOR_UI = Object.keys(SHAPE_LABEL);
+  const EDGE_KINDS_FOR_UI = Object.keys(EDGE_LABEL);
+
+  function shapeLabel(kind) {
+    return SHAPE_LABEL[kind] || kind;
+  }
+  function edgeLabel(kind) {
+    return EDGE_LABEL[kind] || kind;
+  }
+
+  function rerenderNodeList() {
+    if (!_store) return;
+    const graph = _store.getGraph();
+
+    if (els.nodeCountEl) els.nodeCountEl.textContent = String(graph.nodes.length);
+    if (els.edgeCountEl) els.edgeCountEl.textContent = String(graph.edges.length);
+
+    // --- Nodes list ---
+    if (els.nodelistUl) {
+      els.nodelistUl.replaceChildren();
+      for (const node of graph.nodes) {
+        const li = document.createElement('li');
+
+        const idSpan = document.createElement('span');
+        idSpan.className = 'fc-node-id';
+        idSpan.textContent = node.id.slice(0, 8);
+        li.appendChild(idSpan);
+
+        const kindSel = document.createElement('select');
+        for (const k of SHAPE_KINDS_FOR_UI) {
+          const opt = document.createElement('option');
+          opt.value = k;
+          opt.textContent = shapeLabel(k);
+          if (k === node.kind) opt.selected = true;
+          kindSel.appendChild(opt);
+        }
+        kindSel.addEventListener('change', () => {
+          if (_store) _store.setNodeKind(node.id, kindSel.value);
+        });
+        li.appendChild(kindSel);
+
+        const labelInput = document.createElement('input');
+        labelInput.type = 'text';
+        labelInput.value = node.label || '';
+        labelInput.setAttribute('placeholder', 'Label');
+        labelInput.addEventListener('input', () => {
+          if (_store) _store.setNodeLabel(node.id, labelInput.value);
+        });
+        li.appendChild(labelInput);
+
+        // v4.12.0 — per-node fill color. Native <input type="color"> opens a
+        // platform color picker (presets + custom). We listen for `input`
+        // (continuous as the user drags) so the canvas re-renders live.
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.value = node.color || '#ffffff';
+        colorInput.title = 'Node fill color';
+        colorInput.setAttribute('aria-label', 'Node fill color');
+        colorInput.addEventListener('input', () => {
+          if (_store) _store.setNodeColor(node.id, colorInput.value);
+        });
+        li.appendChild(colorInput);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.textContent = '×';
+        delBtn.className = 'fc-delete';
+        delBtn.title = 'Delete this node';
+        delBtn.addEventListener('click', () => {
+          if (_store) _store.removeNode(node.id);
+        });
+        li.appendChild(delBtn);
+
+        els.nodelistUl.appendChild(li);
+      }
+    }
+
+    // --- Edges list ---
+    if (els.edgelistUl) {
+      els.edgelistUl.replaceChildren();
+      for (const edge of graph.edges) {
+        const li = document.createElement('li');
+
+        const idSpan = document.createElement('span');
+        idSpan.className = 'fc-node-id';
+        const fromShort = edge.fromNodeId ? edge.fromNodeId.slice(0, 4) : '?';
+        const toShort = edge.toNodeId ? edge.toNodeId.slice(0, 4) : '?';
+        idSpan.textContent = `${fromShort}→${toShort}`;
+        li.appendChild(idSpan);
+
+        const kindSel = document.createElement('select');
+        for (const k of EDGE_KINDS_FOR_UI) {
+          const opt = document.createElement('option');
+          opt.value = k;
+          opt.textContent = edgeLabel(k);
+          if (k === edge.kind) opt.selected = true;
+          kindSel.appendChild(opt);
+        }
+        kindSel.addEventListener('change', () => {
+          if (_store) _store.setEdgeKind(edge.id, kindSel.value);
+        });
+        li.appendChild(kindSel);
+
+        const labelInput = document.createElement('input');
+        labelInput.type = 'text';
+        labelInput.value = edge.label || '';
+        labelInput.setAttribute('placeholder', 'Label');
+        labelInput.addEventListener('input', () => {
+          if (_store) _store.setEdgeLabel(edge.id, labelInput.value);
+        });
+        li.appendChild(labelInput);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.textContent = '×';
+        delBtn.className = 'fc-delete';
+        delBtn.title = 'Delete this edge';
+        delBtn.addEventListener('click', () => {
+          if (_store) _store.disconnect(edge.id);
+        });
+        li.appendChild(delBtn);
+
+        els.edgelistUl.appendChild(li);
+      }
+    }
+
+    // --- Connect dropdowns (from / to) ---
+    if (els.connectFromSel && els.connectToSel) {
+      const prevFrom = els.connectFromSel.value;
+      const prevTo = els.connectToSel.value;
+      els.connectFromSel.replaceChildren();
+      els.connectToSel.replaceChildren();
+      for (const n of graph.nodes) {
+        const o1 = document.createElement('option');
+        o1.value = n.id;
+        o1.textContent = `${n.id.slice(0, 8)} (${shapeLabel(n.kind)})`;
+        els.connectFromSel.appendChild(o1);
+
+        const o2 = document.createElement('option');
+        o2.value = n.id;
+        o2.textContent = `${n.id.slice(0, 8)} (${shapeLabel(n.kind)})`;
+        els.connectToSel.appendChild(o2);
+      }
+      // Restore previous selection if the node still exists.
+      const stillExists = (id) => id && graph.nodes.some((n) => n.id === id);
+      if (stillExists(prevFrom)) els.connectFromSel.value = prevFrom;
+      if (stillExists(prevTo)) els.connectToSel.value = prevTo;
+    }
+  }
+
+  // Wire add-node buttons (in the add-row).
+  document.querySelectorAll('.fc-add-row .fc-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!_store) return;
+      const kind = btn.getAttribute('data-add');
+      if (!kind || !SHAPE_KINDS_FOR_UI.includes(kind)) return;
+      // Place new node at the next free spot (simple grid layout).
+      const graph = _store.getGraph();
+      const idx = graph.nodes.length;
+      const col = idx % 4;
+      const row = Math.floor(idx / 4);
+      _store.addNode({
+        kind,
+        x: 50 + col * 180,
+        y: 50 + row * 100,
+        label: shapeLabel(kind),
+      });
+    });
+  });
+
+  // Wire connect-edge button.
+  if (els.connectBtn) {
+    els.connectBtn.addEventListener('click', () => {
+      if (!_store || !els.connectFromSel || !els.connectToSel) return;
+      const from = els.connectFromSel.value;
+      const to = els.connectToSel.value;
+      if (!from || !to) {
+        setStatus('Add at least two nodes first');
+        return;
+      }
+      if (from === to) {
+        setStatus('Select two different nodes to connect');
+        return;
+      }
+      try {
+        _store.connect(from, to, 'solid');
+      } catch (err) {
+        setStatus(`Connect failed: ${err && err.message ? err.message : err}`);
+      }
+    });
+  }
+  if (els.connectCancelBtn) {
+    els.connectCancelBtn.addEventListener('click', () => {
+      // Just rebuild the dropdowns from the current graph.
+      rerenderNodeList();
+    });
+  }
+
+  async function bootstrap() {
+    console.log('[flowchart] bootstrap: resolving userData path');
+    // Resolve the userData path ONCE on mount. The persistence path is
+    // interpolated into a string on every read/write; calling the async
+    // api.getUserDataPath() directly would coerce the Promise to
+    // "[object Promise]" and break the userData sandbox check in
+    // main.js:write-text-file.
+    try {
+      _userDataPath = await api.getUserDataPath();
+    } catch (err) {
+      fatal(`Could not resolve userData path: ${err && err.message ? err.message : err}`);
+      return;
+    }
+    _persistenceFile = `${_userDataPath}/${PERSISTENCE_FILENAME}`;
+    console.log('[flowchart] bootstrap: persistence file =', _persistenceFile);
+
+    _store = createStore({
+      persistencePath: _persistenceFile,
+      readFile: api.readFile,
+      writeFile: api.writeFile,
+      now: () => Date.now(),
+    });
+    console.log('[flowchart] bootstrap: store created');
+
+    _canvas = createCanvas(els.canvasHost, _store, {
+      // v4.11.0 — the canvas is purely visual. All mutations are driven
+      // from the #fc-nodelist panel below the canvas (see the wiring
+      // above). Canvas click handlers exist for drag-to-move but the
+      // selection / shape-menu callbacks are no-ops now.
+      onNodeClick: () => {},
+      onEdgeClick: () => {},
+      onShapeMenu: () => {},
+    });
+    // v4.13.0 — keep the bundle's _selectedNodeIds in sync with the
+    // canvas selection. The canvas is the source of truth for shift+click
+    // and drag-rect; the bundle tracks the set so the alignment /
+    // distribute buttons have a target.
+    if (typeof _canvas.setOnSelectionChange === 'function') {
+      _canvas.setOnSelectionChange(function (sel) {
+        _selectedNodeIds = new Set(sel.nodeIds || []);
+      });
+    }
+    console.log('[flowchart] bootstrap: canvas rendered');
+
+    _store.subscribe(() => {
+      debouncedPreview();
+      debouncedPersist();
+      // Keep the node-list panel in sync with every mutation.
+      rerenderNodeList();
+      // v4.13.0 — keep the undo/redo buttons enabled-state in sync.
+      updateHistoryUI();
+    });
+
+    // Hydrate from disk (defensively — corrupt JSON is caught by the store).
+    try {
+      const json = await api.readFile(_persistenceFile);
+      if (json) _store.deserialize(json);
+      console.log('[flowchart] bootstrap: persistence hydrated');
+    } catch (err) {
+      console.warn('[flowchart-controller] failed to read session:', err);
+    }
+
+    if (els.btnInsert) {
+      els.btnInsert.addEventListener('click', () => {
+        if (!_store) return;
+        const source = toMermaid(_store.getGraph());
+        const fenced = '```mermaid\n' + source + '\n```';
+        if (api.insertAtCursor) api.insertAtCursor(fenced);
+        setStatus('Inserted');
+      });
+    }
+
+    // v4.12.0 — Save to File. Pops a system save dialog and writes the
+    // Mermaid-fenced source to the user-chosen path via the generic
+    // 'save-text-file' IPC channel. The main-process handler resolves with
+    // `{ canceled: true }` if the user dismissed the dialog.
+    if (els.btnSave) {
+      els.btnSave.addEventListener('click', async () => {
+        if (!_store || !api.saveFile) return;
+        const source = toMermaid(_store.getGraph());
+        const fenced = '```mermaid\n' + source + '\n```';
+        try {
+          const result = await api.saveFile(fenced, 'flowchart.mmd');
+          if (result && result.canceled) {
+            setStatus('Save cancelled');
+          } else if (result && result.path) {
+            setStatus(`Saved to ${result.path}`);
+          } else {
+            setStatus('Saved');
+          }
+        } catch (err) {
+          setStatus(`Save failed: ${err && err.message ? err.message : err}`);
+        }
+      });
+    }
+
+    // v4.13.0 — Export the canvas as SVG / PNG / JPG. SVG is a direct
+    // clone-and-serialise; PNG / JPG rasterise through Image + Canvas
+    // to produce a data URL the main process can write as bytes.
+    function getSvgStringForExport() {
+      if (!_canvas) return '';
+      const svg = _canvas.getSvg();
+      if (!svg) return '';
+      const clone = svg.cloneNode(true);
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+      const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+      styleEl.textContent = EXPORT_CSS;
+      clone.insertBefore(styleEl, clone.firstChild);
+      return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone)
+      );
+    }
+
+    function rasterizeSvg(svgString, mime, quality) {
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const w = EXPORT_DEFAULT_WIDTH + EXPORT_PADDING * 2;
+          const h = EXPORT_DEFAULT_HEIGHT + EXPORT_PADDING * 2;
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (mime === 'image/jpeg') {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+          }
+          ctx.drawImage(
+            img,
+            EXPORT_PADDING,
+            EXPORT_PADDING,
+            EXPORT_DEFAULT_WIDTH,
+            EXPORT_DEFAULT_HEIGHT
+          );
+          try {
+            resolve(canvas.toDataURL(mime, quality));
+          } catch (err) {
+            reject(err);
+          }
+        };
+        img.onerror = () => reject(new Error('failed to load SVG for rasterisation'));
+        img.src = url;
+      }).finally(() => URL.revokeObjectURL(url));
+    }
+
+    async function handleSvgExport() {
+      if (!_canvas || !api.saveFile) return;
+      try {
+        const svgString = getSvgStringForExport();
+        const result = await api.saveFile(svgString, 'flowchart.svg');
+        if (!result || result.canceled) {
+          setStatus('Export cancelled');
+        } else if (result.path) {
+          setStatus('Saved SVG to ' + result.path);
+        } else {
+          setStatus('Saved SVG');
+        }
+      } catch (err) {
+        setStatus('SVG export failed: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    async function handleRasterExport(mime, ext, label) {
+      if (!_canvas || !api.saveBinary) return;
+      try {
+        const svgString = getSvgStringForExport();
+        const dataUrl = await rasterizeSvg(
+          svgString,
+          mime,
+          mime === 'image/jpeg' ? 0.92 : undefined
+        );
+        const result = await api.saveBinary(dataUrl, 'flowchart.' + ext, [
+          { name: label, extensions: [ext] },
+          { name: 'All Files', extensions: ['*'] },
+        ]);
+        if (!result || result.canceled) {
+          setStatus('Export cancelled');
+        } else if (result.path) {
+          setStatus('Saved ' + label + ' to ' + result.path);
+        } else if (result.error) {
+          setStatus('Export failed: ' + result.error);
+        } else {
+          setStatus('Saved ' + label);
+        }
+      } catch (err) {
+        setStatus(label + ' export failed: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    if (els.btnExportSvg) els.btnExportSvg.addEventListener('click', handleSvgExport);
+    if (els.btnExportPng) {
+      els.btnExportPng.addEventListener('click', () =>
+        handleRasterExport('image/png', 'png', 'PNG')
+      );
+    }
+    if (els.btnExportJpg) {
+      els.btnExportJpg.addEventListener('click', () =>
+        handleRasterExport('image/jpeg', 'jpg', 'JPEG')
+      );
+    }
+
+    // v4.13.0 — Export to editable Visio .vsdx. Sends the graph JSON to
+    // the main process which generates the OOXML zip and writes it.
+    if (els.btnExportVsdx) {
+      els.btnExportVsdx.addEventListener('click', async () => {
+        if (!_store || !api.exportVsdx) return;
+        try {
+          const graph = _store.getGraph();
+          const result = await api.exportVsdx(graph);
+          if (!result || result.canceled) {
+            setStatus('Export cancelled');
+          } else if (result.path) {
+            setStatus('Saved Visio to ' + result.path);
+          } else if (result.error) {
+            setStatus('Export failed: ' + result.error);
+          } else {
+            setStatus('Saved Visio');
+          }
+        } catch (err) {
+          setStatus('Visio export failed: ' + (err && err.message ? err.message : err));
+        }
+      });
+    }
+
+    // v4.13.0 — Alignment + distribution buttons. Each operates on the
+    // current selection (_selectedNodeIds). If the selection is empty,
+    // the buttons no-op with a status hint — otherwise they mutate the
+    // graph via _store.moveNode() once per affected node. Each call
+    // creates its own undo snapshot, which is fine for the typical
+    // 2-10 node selection.
+    function getSelectedNodes() {
+      if (!_store) return [];
+      const graph = _store.getGraph();
+      return graph.nodes.filter((node) => _selectedNodeIds.has(node.id));
+    }
+
+    function applyAlignment(transform) {
+      if (!_store) return;
+      const targets = getSelectedNodes();
+      if (targets.length < 2) {
+        setStatus('Select 2+ nodes first (try Select All)');
+        return;
+      }
+      const updates = transform(targets);
+      for (const updated of updates) {
+        _store.moveNode(updated.id, updated.x, updated.y);
+      }
+      setStatus('Aligned ' + updates.length + ' nodes');
+    }
+
+    const ALIGN = window.FlowchartAlign;
+    if (els.btnAlignLeft && ALIGN) {
+      els.btnAlignLeft.addEventListener('click', () => applyAlignment(ALIGN.alignLeft));
+    }
+    if (els.btnAlignRight && ALIGN) {
+      els.btnAlignRight.addEventListener('click', () => applyAlignment(ALIGN.alignRight));
+    }
+    if (els.btnAlignTop && ALIGN) {
+      els.btnAlignTop.addEventListener('click', () => applyAlignment(ALIGN.alignTop));
+    }
+    if (els.btnAlignBottom && ALIGN) {
+      els.btnAlignBottom.addEventListener('click', () => applyAlignment(ALIGN.alignBottom));
+    }
+    if (els.btnAlignCenterH && ALIGN) {
+      els.btnAlignCenterH.addEventListener('click', () =>
+        applyAlignment(ALIGN.alignCenterHorizontal)
+      );
+    }
+    if (els.btnAlignCenterV && ALIGN) {
+      els.btnAlignCenterV.addEventListener('click', () =>
+        applyAlignment(ALIGN.alignCenterVertical)
+      );
+    }
+    if (els.btnDistributeH && ALIGN) {
+      els.btnDistributeH.addEventListener('click', () =>
+        applyAlignment(ALIGN.distributeHorizontally)
+      );
+    }
+    if (els.btnDistributeV && ALIGN) {
+      els.btnDistributeV.addEventListener('click', () =>
+        applyAlignment(ALIGN.distributeVertically)
+      );
+    }
+    if (els.btnSelectAll) {
+      els.btnSelectAll.addEventListener('click', () => {
+        if (!_store) return;
+        const graph = _store.getGraph();
+        _selectedNodeIds = new Set(graph.nodes.map((node) => node.id));
+        if (_canvas && typeof _canvas.setMultiSelection === 'function') {
+          _canvas.setMultiSelection(Array.from(_selectedNodeIds));
+        }
+        setStatus('Selected ' + _selectedNodeIds.size + ' nodes');
+        rerenderNodeList();
+      });
+    }
+
+    // v4.13.0 — Keyboard shortcuts overlay. Triggered by the toolbar
+    // button or the ? key. Esc closes. Wired as a separate modal (not
+    // via promptInline / confirmInline) because those are single-input
+    // forms; this one is a read-only table.
+    function showShortcutsOverlay() {
+      if (els.shortcutsModal) els.shortcutsModal.hidden = false;
+      if (els.shortcutsOverlay) els.shortcutsOverlay.hidden = false;
+    }
+    function hideShortcutsOverlay() {
+      if (els.shortcutsModal) els.shortcutsModal.hidden = true;
+      if (els.shortcutsOverlay) els.shortcutsOverlay.hidden = true;
+    }
+    if (els.btnHelp) els.btnHelp.addEventListener('click', showShortcutsOverlay);
+    if (els.shortcutsClose) els.shortcutsClose.addEventListener('click', hideShortcutsOverlay);
+    if (els.shortcutsOverlay) {
+      els.shortcutsOverlay.addEventListener('click', hideShortcutsOverlay);
+    }
+
+    // v4.13.0 — Open from .mmd/.md file. Pops a system Open dialog,
+    // strips the ```mermaid fence (if any), parses via fromMermaid()
+    // (inlined above) and replaces the current graph. Confirms
+    // overwrite before destroying unsaved work.
+    if (els.btnOpen) {
+      els.btnOpen.addEventListener('click', async () => {
+        if (!_store || !api.openFile) return;
+        let result;
+        try {
+          result = await api.openFile();
+        } catch (err) {
+          setStatus(`Open failed: ${err && err.message ? err.message : err}`);
+          return;
+        }
+        if (!result) {
+          setStatus('Open cancelled');
+          return;
+        }
+        const graph = _store.getGraph();
+        if (graph.nodes.length > 0 || graph.edges.length > 0) {
+          const ok = await confirmInline({
+            title: 'Open file',
+            message: 'This will replace the current diagram. Continue?',
+            danger: true,
+          });
+          if (!ok) return;
+        }
+        // Strip the ```mermaid fence if present
+        let source = result.content || '';
+        const fence = source.match(/```(?:mermaid)?\s*\n?([\s\S]*?)\n?```/);
+        if (fence) source = fence[1];
+        const parsed = fromMermaid(source);
+        _store.deserialize(parsed);
+        setStatus(`Loaded ${result.path}`);
+      });
+    }
+
+    if (els.btnReset) {
+      els.btnReset.addEventListener('click', async () => {
+        if (!_store) return;
+        const ok = await confirmInline({
+          title: 'Reset diagram',
+          message: 'Clear all nodes and edges? This cannot be undone.',
+          danger: true,
+        });
+        if (!ok) return;
+        _store.deserialize({ nodes: [], edges: [] });
+        setStatus('Reset');
+      });
+    }
+
+    // v4.13.0 — toolbar undo/redo buttons + history counter. Both wired
+    // here so they share state with the existing keyboard shortcuts.
+    if (els.btnUndo) {
+      els.btnUndo.addEventListener('click', () => {
+        if (!_store) return;
+        _store.undo();
+      });
+    }
+    if (els.btnRedo) {
+      els.btnRedo.addEventListener('click', () => {
+        if (!_store) return;
+        _store.redo();
+      });
+    }
+    function updateHistoryUI() {
+      if (els.historyCount) {
+        // The store exposes canUndo()/canRedo(); show the stack depth as
+        // a vague "edit count" so the user has feedback that their work
+        // is being captured.
+        const u = _store.canUndo() ? 1 : 0;
+        const r = _store.canRedo() ? 1 : 0;
+        els.historyCount.textContent = `${u}↶ / ${r}↷`;
+      }
+      if (els.btnUndo) els.btnUndo.disabled = !_store.canUndo();
+      if (els.btnRedo) els.btnRedo.disabled = !_store.canRedo();
+    }
+
+    // Keyboard shortcuts — Ctrl/Cmd+Z / Ctrl/Cmd+Shift+Z. v4.13.0 — added
+    // copy/paste/duplicate (Cmd+C / Cmd+V / Cmd+D) plus Delete/Backspace
+    // for the canvas-owned selection (replaces the old DOM .selected read).
+    // v4.13.0 — ? opens the shortcuts overlay; Esc closes it.
+    let _clipboard = null; // module-level clipboard for Cmd+C/V/D
+    document.addEventListener('keydown', (ev) => {
+      // Esc closes the shortcuts overlay regardless of meta state.
+      if (ev.key === 'Escape' && els.shortcutsModal && !els.shortcutsModal.hidden) {
+        hideShortcutsOverlay();
+        ev.preventDefault();
+        return;
+      }
+      // ? toggles the overlay. Use Shift+/ since ? requires Shift on US
+      // keyboards; this catches both the literal character and the key.
+      const isMeta = ev.ctrlKey || ev.metaKey;
+      if ((ev.key === '?' || (ev.key === '/' && ev.shiftKey)) && !isMeta && !ev.altKey) {
+        if (els.shortcutsModal && els.shortcutsModal.hidden) {
+          showShortcutsOverlay();
+        } else {
+          hideShortcutsOverlay();
+        }
+        ev.preventDefault();
+        return;
+      }
+      if (!_store) return;
+      const meta = isMeta;
+      if (meta && !ev.shiftKey && ev.key.toLowerCase() === 'z') {
+        ev.preventDefault();
+        _store.undo();
+        return;
+      }
+      if (meta && ev.shiftKey && ev.key.toLowerCase() === 'z') {
+        ev.preventDefault();
+        _store.redo();
+        return;
+      }
+      if (meta && !ev.shiftKey && ev.key.toLowerCase() === 'c') {
+        const sel = _canvas ? _canvas.getSelection() : { nodeId: null, edgeId: null };
+        const payload = copySelection(_store.getGraph(), sel);
+        if (payload) {
+          _clipboard = payload;
+          setStatus('Copied');
+          ev.preventDefault();
+        }
+        return;
+      }
+      if (meta && !ev.shiftKey && ev.key.toLowerCase() === 'v') {
+        if (!_clipboard) return;
+        const created = pasteSelection(_clipboard, _store.getGraph(), _store);
+        if (created.length > 0) {
+          setStatus('Pasted');
+          ev.preventDefault();
+        }
+        return;
+      }
+      if (meta && !ev.shiftKey && ev.key.toLowerCase() === 'd') {
+        const sel = _canvas ? _canvas.getSelection() : { nodeId: null, edgeId: null };
+        const payload = copySelection(_store.getGraph(), sel);
+        if (payload) {
+          const created = pasteSelection(payload, _store.getGraph(), _store);
+          if (created.length > 0) {
+            setStatus('Duplicated');
+            ev.preventDefault();
+          }
+        }
+        return;
+      }
+      if (ev.key === 'Delete' || ev.key === 'Backspace') {
+        const sel = _canvas ? _canvas.getSelection() : { nodeId: null, edgeId: null };
+        if (sel.nodeId) {
+          ev.preventDefault();
+          _store.removeNode(sel.nodeId);
+        } else if (sel.edgeId) {
+          ev.preventDefault();
+          _store.disconnect(sel.edgeId);
+        }
+      }
+    });
+
+    console.log('[flowchart] bootstrap: panel wired');
+    rerenderNodeList();
+    runPreview();
+    setStatus('Ready');
+    console.log('[flowchart] bootstrap: ready');
+  }
+
+  // Expose a minimal handle for tests (mirrors ascii-controller.js pattern).
+  // v4.11.0 — selection state is gone. Tests interact with the panel
+  // via the real DOM (`#fc-nodelist-ul`, `#fc-edgelist-ul`,
+  // `#fc-connect-from`, etc.) and assert against `_store` directly.
+  window.FlowchartController = {
+    bootstrap,
+    rerenderNodeList,
+    get store() {
+      return _store;
+    },
+    get canvas() {
+      return _canvas;
+    },
+  };
+
+  // Expose the inline modal helpers (v4.9.9) so jsdom tests can drive them
+  // directly without rebuilding the bundle's IIFE. Production code accesses
+  // these by closure; this handle exists purely for unit tests.
+  window.FlowchartModals = { promptInline, confirmInline };
+
+  // Kick off the bootstrap. In the real app this happens once the
+  // DOMContentLoaded event fires; in jsdom (and the test mount helper)
+  // the document is already loaded so we call it directly.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrap);
+  } else {
+    bootstrap();
+  }
+})();
