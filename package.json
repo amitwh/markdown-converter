@@ -4,6 +4,9 @@
   "description": "Professional Markdown editor and universal file converter with PDF editing, batch processing, and syntax highlighting",
   "main": "src/main.js",
   "desktopName": "MarkdownConverter",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "start": "electron .",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
