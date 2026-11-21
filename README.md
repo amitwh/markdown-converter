@@ -6,7 +6,7 @@
 
 A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron 45 and Node 24. 100% open-source with no proprietary dependencies.
 
-**Current release: v4.17.2** — a restyled Find & Replace dialog (CAMS2 controls, Lucide match navigation, brand-accent Replace All), on top of the ASCII Art Studio, the corrected export matrix (real ODP, JATS XML, YAML/TOML data documents) and the CAMS2 shell from 4.16.x.
+**Current release: v4.17.2** — dialog sizing and About-window fixes (the PDF Editor and print preview no longer stretch to the full viewport, and About renders the light CAMS2 surface instead of a hardcoded dark gradient), plus the restyled Find & Replace dialog, the ASCII Art Studio and the corrected export matrix from 4.17.x.
 
 ## Features
 
@@ -112,7 +112,7 @@ Build output goes to `dist/`. Linux produces deb + AppImage + snap; Windows prod
 ## Development
 
 ```bash
-npm test                   # Jest — 101 suites, ~1,250 tests
+npm test                   # Jest — 102 suites, ~1,260 tests
 npm run test:coverage
 npm run lint               # ESLint (flat config)
 npm run format             # Prettier

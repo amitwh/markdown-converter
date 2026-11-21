@@ -9,6 +9,7 @@ const MetadataStripper = require('./main/MetadataStripper');
 const ImageOperations = require('./main/ImageOperations');
 const AudioOperations = require('./main/AudioOperations');
 const VideoOperations = require('./main/VideoOperations');
+const { buildAboutHtml } = require('./main/AboutDialog');
 const { collectFilesByExtension } = require('./main/collectFilesByExtension');
 const { listWorkspaceFiles } = require('./quick-switcher/workspace-file-lister');
 const { completeStream } = require('./main/AiProviders');
@@ -1582,77 +1583,15 @@ function showAboutDialog() {
   } catch (e) {
     console.error('Error loading about dialog images:', e);
   }
-  const aboutHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>About MarkdownConverter</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: linear-gradient(135deg, #464646 0%, #0d0b09 100%);
-      color: #e3e3e3;
-      padding: 30px;
-      text-align: center;
-    }
-    .logo { width: 120px; margin-bottom: 20px; border-radius: 20px; }
-    h1 { font-size: 24px; margin-bottom: 5px; color: #fff; }
-    .version { color: #e5461f; font-size: 14px; margin-bottom: 4px; }
-    .build { color: #9a9696; font-size: 11px; margin-bottom: 20px; }
-    .company { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
-    .company-logo { height: 24px; }
-    .section { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin: 15px 0; text-align: left; }
-    .section h3 { color: #e5461f; font-size: 14px; margin-bottom: 10px; }
-    .section p, .section li { font-size: 12px; line-height: 1.6; }
-    ul { padding-left: 20px; }
-    .footer { margin-top: 20px; font-size: 11px; color: #9a9696; }
-    a { color: #e5461f; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <img src="${iconBase64}" class="logo" alt="MarkdownConverter">
-  <h1>MarkdownConverter</h1>
-  <div class="version">Version ${app.getVersion()}</div>
-  <div class="build">Electron ${process.versions.electron} · Chromium ${process.versions.chrome}${
-    buildInfo.date ? ` · Built ${buildInfo.date}` : ''
-  }${buildInfo.commit ? ` (${buildInfo.commit.slice(0, 7)})` : ''}</div>
-
-  <div class="company">
-    <span>by</span>
-    <img src="${logoBase64}" class="company-logo" alt="ConcreteInfo">
-  </div>
-
-  <div class="section">
-    <h3>Features</h3>
-    <ul>
-      <li>Professional Markdown editing with syntax highlighting</li>
-      <li>Universal file converter (Image, Audio, Video, PDF)</li>
-      <li>Batch conversion for all media types</li>
-      <li>Advanced PDF Editor (merge, split, watermark, encrypt)</li>
-      <li>Export to PDF, DOCX, HTML, LaTeX, EPUB & more</li>
-      <li>37 themes, including ConcreteInfo light/dark/warm</li>
-      <li>Visual flowchart editor with Mermaid/SVG/VSDX export</li>
-      <li>Quick switcher, inline AI assist, daily notes</li>
-      <li>ASCII Art & Table generators</li>
-      <li>Code file syntax highlighting</li>
-    </ul>
-  </div>
-
-  <div class="section">
-    <h3>Contact</h3>
-    <p>Email: <a href="mailto:amit.wh@gmail.com">amit.wh@gmail.com</a></p>
-    <p>Website: <a href="https://github.com/amitwh/markdown-converter">GitHub Repository</a></p>
-  </div>
-
-  <div class="footer">
-    <p>License: MIT</p>
-    <p>© 2024-2026 ConcreteInfo. All rights reserved.</p>
-  </div>
-</body>
-</html>`;
+  const aboutHTML = buildAboutHtml({
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    chromium: process.versions.chrome,
+    buildDate: buildInfo.date,
+    buildCommit: buildInfo.commit,
+    iconSrc: iconBase64,
+    logoSrc: logoBase64,
+  });
   aboutWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(aboutHTML));
   aboutWindow.setMenuBarVisibility(false);
 }

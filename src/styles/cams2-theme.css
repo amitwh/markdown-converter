@@ -543,9 +543,19 @@ body[data-app-theme] .modal-content.large {
   min-width: min(92vw, 620px);
 }
 body[data-app-theme] .modal-content.full {
-  max-width: 96vw;
+  max-width: min(92vw, 1100px);
   max-height: 92vh;
-  min-width: min(96vw, 760px);
+  min-width: min(92vw, 640px);
+}
+/* PDF Editor: the merge/split/compress/watermark/password panels are a single
+   column of fields, so the dialog sizes to the form instead of the viewport.
+   Rotate/delete/reorder add the thumbnail pane and get the extra room. */
+body[data-app-theme] #pdf-editor-dialog .modal-content {
+  max-width: min(92vw, 900px);
+  min-width: min(92vw, 520px);
+}
+body[data-app-theme] #pdf-editor-dialog .modal-content:has(.pdf-editor-body.side-by-side) {
+  max-width: min(94vw, 1240px);
 }
 body[data-app-theme] .modal-header {
   background: var(--modal-bg);
@@ -797,8 +807,10 @@ body[data-app-theme] .modal .form-row input,
 body[data-app-theme] .modal .form-row select {
   width: 100%;
 }
+/* The operation panels fill the (now form-sized) PDF editor dialog; capping
+   them separately left dead space beside the fields. */
 body[data-app-theme] .modal .pdf-operation-section {
-  max-width: 760px;
+  max-width: 100%;
 }
 body[data-app-theme] .modal .pdf-operation-section .export-section {
   max-width: 100%;

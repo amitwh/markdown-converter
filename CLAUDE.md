@@ -28,7 +28,7 @@ The earlier React + Tauri + PWA design was **not** executed as written: the v5 r
 | `src/preload.js` — IPC bridge | 639 |
 | `src/index.html` — single-page UI | 2,499 |
 | `src/**` total (JS/HTML/CSS, excl. generated bundles) | ~54,600 |
-| Tests | 101 suites · 1,253 cases |
+| Tests | 102 suites · 1,260 cases |
 
 ## Architecture
 
@@ -37,7 +37,7 @@ The earlier React + Tauri + PWA design was **not** executed as written: the v5 r
 `src/main.js` is one monolith: path/tool discovery, `validatePath` helpers, single-instance lock, `createWindow`, `createMenu` (~800 lines), export dispatcher (`performExportWithOptions`), batch conversion, CLI conversion, and **all 128 `ipcMain` registrations**. Extracted modules under `src/main/` are pure/Electron-free where possible and are injected with `fs`, `path`, `execFile`:
 
 - Files/PDF/media: `PDFOperations`, `PDFBatchOperations`, `ImageOperations`, `AudioOperations`, `VideoOperations`, `PdfFontHeader`, `XlsxExporter`, `MarkItDown`, `MetadataStripper`.
-- Documents/export: `PandocArgs`, `ExportThemes`, `ExportPresets`, `ExportCss`, `OdtStyling`, `DocxFontEmbedder`, `EpubFontEmbedder`, `MonospaceFontConfig`, `DataExport` (valid YAML/TOML documents — Pandoc has no writer for either).
+- Documents/export: `PandocArgs`, `ExportThemes`, `ExportPresets`, `ExportCss`, `OdtStyling`, `DocxFontEmbedder`, `EpubFontEmbedder`, `MonospaceFontConfig`, `DataExport` (valid YAML/TOML documents — Pandoc has no writer for either), `AboutDialog` (pure HTML builder for the standalone About window, which cannot inherit the app stylesheet).
 - ASCII: `AsciiArt` (orchestrator: hand-coded fonts, `template:<id>`, `figlet:<font>` with width/layout/spacing/justify options), `AsciiArt.fonts`, `AsciiArt.templates`, `AsciiArt.figlet-adapter`, plus `renderer/ascii-controller.js` driving the standalone studio window.
 - Content/knowledge: `WorkspaceSearch`, `SemanticEngine`, `DocQA`, `UrlTitle`, `VersionHistory`, `DailyNotes`, `DailyNotesTemplates`, `AutosaveBuffer`, `collectFilesByExtension`.
 - AI/system: `AiProviders`, `auto-updater`, `GitOperations`, `ThemeRegistry` + `ThemeRegistry.bootstrap` + `themeMenuBuilder`, `settings/monospaceSettings`, `AsciiArt*`.
@@ -170,7 +170,7 @@ only when GitHub Releases are intentionally re-enabled.
 - No automated E2E; `tests/smoke-e2e-monospace.js` is a manual script.
 - `tests/lint-quality.test.js` fails on any ESLint "warning" text; `tests/no-diagnostic-logs.test.js` scans only `src/main.js` + `src/renderer.js`.
 - ESLint 10 flat config uses `sourceType: 'commonjs'` and `ecmaVersion: 'latest'`; `eslint-plugin-prettier` is installed but unused.
-- **Local baseline (2026-11-21, v4.17.2):** 1,251 passed / 2 skipped, 0 failures.
+- **Local baseline (2026-11-21, v4.17.2):** 1,258 passed / 2 skipped, 0 failures.
 - `npm audit --omit=dev` is clean (0 vulnerabilities). `npm audit` still reports 23 moderate advisories confined to the `electron-builder`/Jest dev toolchain (transitive `minimatch`/`glob`); they do not ship in the app.
 
 ## Known Gotchas / Drift
@@ -200,6 +200,7 @@ Full detail is in git history; this is the shape of the product.
 
 | Version | Date | Highlights |
 |---|---|---|
+| **4.17.3** | 2026-11-21 | Dialog sizing and About window. `.modal-content.full` (PDF Editor, print preview) spanned 96vw, so the single-column PDF operations floated in dead space: the PDF Editor now sizes to its form (900 px, 1240 px when the thumbnail pane is active, via `:has(.side-by-side)`) and print preview caps at 1100 px. The About window is a data-URL `BrowserWindow` that never loaded the theme stylesheet and carried a hardcoded dark gradient — its markup moved to the pure `src/main/AboutDialog.js` `buildAboutHtml()` and now renders the light CAMS2 dialog surface. |
 | **4.17.2** | 2026-11-21 | Find & Replace dialog rebuilt on CAMS2 controls: `.find-controls` had no stylesheet rule at all, so its buttons fell through to native OS widgets. Inputs now carry Lucide affordances (`search`, `replace`), match navigation is a pair of 32 px icon buttons with shortcut tooltips, "All" became the brand-accent **Replace All**, and the live match counter (`aria-live`) moved into the action row. Dialog widened to 380–460 px. README corrected: the finder is plain-text, not regex. |
 | **4.17.1** | 2026-11-21 | Flowchart connectors fixed: maxGraph ships no visible connect handle unless `connectImage` is set, so shapes could not be linked at all. `createEditorGraph` now installs a centre drag handle, and a new Connector tool (`C`) links shapes by click-source-then-click-target, chaining without re-arming. Shape-body drags still move nodes. |
 | **4.17.0** | 2026-11-21 | ASCII Art Studio rebuilt (live preview, 17 built-in + ~349 FIGlet fonts, searchable font gallery, wrap/spacing/align/smushing, six box styles incl. shadow, 16 template thumbnails, persisted options, Ctrl+Enter/Ctrl+Shift+C shortcuts). Export matrix corrected: ODP now converts PPTX→ODP via LibreOffice instead of writing HTML, XML exports real standalone JATS, YAML/TOML emit valid data documents (`DataExport`), universal converter pins `-t` writers for non-inferable extensions. Menu wiring fixed: command-palette Open File and Export now reach main-process handlers, and `insert-content` forwards from auxiliary windows to the editor. |
