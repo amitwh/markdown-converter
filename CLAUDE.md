@@ -218,6 +218,10 @@ Full detail is in git history; this is the shape of the product.
 | 4.2.0 | — | Writing Studio feature pack (zen mode, outline, analytics). |
 | 4.0.0 | — | Unified modal system (`ModalManager`). |
 
+## Planned Work (not started)
+
+- **Web version** — [`docs/plans/2026-11-21-web-version.md`](docs/plans/2026-11-21-web-version.md). Phased: browser-only PWA first (editor, preview, themes, pdf-lib PDF toolkit, maxGraph flowchart, figlet ASCII — all already browser-native), optional conversion API second for Pandoc parity. Records the measured coupling that makes a port a second product, and the decision to cut a new `web` branch from `master` instead of reviving `react-electron` (which is React + Vite but still Electron, and 216 ahead / 204 behind).
+
 ## Historical Plans (consolidated outcomes)
 
 These design/implementation plans were removed as standalone files; their outcomes are:
