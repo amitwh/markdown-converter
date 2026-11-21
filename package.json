@@ -1,6 +1,6 @@
 {
   "name": "markdown-converter",
-  "version": "4.17.2",
+  "version": "4.17.3",
   "description": "Professional Markdown editor and universal file converter with PDF editing, batch processing, and syntax highlighting",
   "main": "src/main.js",
   "desktopName": "MarkdownConverter",
@@ -108,7 +108,7 @@
   },
   "buildInfo": {
     "date": "2026-11-21",
-    "commit": "a517dd4",
+    "commit": "c1bd903",
     "electron": "45.4.1"
   }
 }

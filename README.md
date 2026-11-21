@@ -6,7 +6,7 @@
 
 A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron 45 and Node 24. 100% open-source with no proprietary dependencies.
 
-**Current release: v4.17.2** — dialog sizing and About-window fixes (the PDF Editor and print preview no longer stretch to the full viewport, and About renders the light CAMS2 surface instead of a hardcoded dark gradient), plus the restyled Find & Replace dialog, the ASCII Art Studio and the corrected export matrix from 4.17.x.
+**Current release: v4.17.3** — dialog sizing and About-window fixes (the PDF Editor and print preview no longer stretch to the full viewport, and About renders the light CAMS2 surface instead of a hardcoded dark gradient), plus the restyled Find & Replace dialog, the ASCII Art Studio and the corrected export matrix from 4.17.x.
 
 ## Features
 
@@ -334,4 +334,4 @@ Amit Haridas (amit.wh@gmail.com)
 
 ## Version
 
-v4.17.2
+v4.17.3
