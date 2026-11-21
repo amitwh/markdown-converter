@@ -154,10 +154,9 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
   };
 }
 
-// v4.9.6 — flowchart panel was removed (now a standalone window); the
-// thin IPC helpers it used are now defined inside the standalone window's
-// controller (src/renderer/flowchart-controller.js) under
-// window.electronAPI.flowchart.*, exposed via src/preload.js.
+// Flowchart editing lives in the standalone maxGraph window
+// (src/flowchart-generator.html + src/flowchart-editor/), which uses
+// window.electronAPI.flowchart.* from src/preload.js.
 
 // Use window.ModalManager if already set by script tag, otherwise require it.
 // This prevents "Identifier 'ModalManager' has already been declared" when
@@ -2433,82 +2432,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       }),
   });
 
-  // v4.9.6 — Flow Chart Editor now lives in a standalone BrowserWindow
-  // (src/flowchart-generator.html + src/renderer/flowchart-controller.js),
-  // launched from Tools → Flowchart Generator (Cmd/Ctrl+Alt+F). The sidebar
-  // panel implementation below is preserved as legacy and the unit tests
-  // (tests/flowchart-panel.test.js, tests/flowchart-canvas.test.js, etc.)
-  // remain green. The standalone-window controller reuses the same pure
-  // modules — see the UMD wrappers at the bottom of flowchart-shapes.js,
-  // flowchart-mermaid.js, flowchart-store.js, and flowchart-canvas.js.
-  //
-  // The `flowchart` sidebar panel is no longer registered with
-  // sidebarManager; the corresponding command-palette entry is also
-  // commented out below. To restore the sidebar experience, uncomment the
-  // block below AND the matching commandPalette.register('Toggle Sidebar:
-  // Flow Chart', …) call.
-  /*
-  // Flow Chart Editor panel — visual Mermaid flowchart builder.
-  // Persists to <userData>/flowchart-session.json via injected IPC helpers.
-  // Reuses tabManager.insertAtCursor for the "Insert at Cursor" button.
-  const { renderFlowChartPanel } = require('./sidebar/flowchart-panel');
-  // Reuse the existing Mermaid render path used by the preview pane
-  // (src/renderer.js:1106-1142). Lazily loads mermaid on first use.
-  //
-  // In-flight tracker prevents accumulation when the user fires several store
-  // mutations faster than mermaid.render can complete. Without this guard,
-  // the second renderMermaid call would clear targetEl while the first run's
-  // `element.innerHTML = svg` was still in flight — the user would briefly see
-  // both the raw source (from the second call's not-yet-rendered <div>) and
-  // the rendered SVG from a third call stacked into the preview pane. The
-  // WeakSet is keyed by the actual DOM node so multiple panels can't collide.
-  const flowchartRenderInFlight = new WeakSet();
-  const renderFlowChartMermaid = (source, targetEl) => {
-    flowchartRenderInFlight.add(targetEl);
-    targetEl.replaceChildren();
-    const div = document.createElement('div');
-    div.className = 'mermaid';
-    div.textContent = source;
-    targetEl.appendChild(div);
-    if (!window.mermaid) {
-      const mermaidModule = require('mermaid');
-      window.mermaid = mermaidModule.default || mermaidModule;
-    }
-    // v4.9.5 — force the Mermaid theme to 'default' (light) regardless of the
-    // project's <body class="theme-…">. The flowchart preview lives next to
-    // the editor inside a sidebar that we deliberately render on a forced
-    // light surface (see .flowchart-canvas-host / .flowchart-preview-host in
-    // src/styles-sidebar.css). Mermaid's `dark` theme produces near-black
-    // SVG fills, which against a near-white background are unreadable and
-    // against a dark background completely invisible. Keep this in sync with
-    // the CSS rule above — both are needed.
-    const theme = 'default';
-    window.mermaid.initialize({ startOnLoad: false, theme, securityLevel: 'loose' });
-    window.mermaid
-      .run({ nodes: [div] })
-      .catch((err) => console.warn('flowchart preview render failed:', err))
-      .finally(() => flowchartRenderInFlight.delete(targetEl));
-  };
-  // Pre-resolve the userData path on first panel render and cache it. The
-  // flowchart panel's getUserDataPath() must be sync (it is interpolated into
-  // the persistence path on mount); calling flowchartIO.getUserDataPath()
-  // directly would coerce the IPC Promise to "[object Promise]" and break
-  // every write/read against <userData>/flowchart-session.json.
-  let cachedUserDataPath = null;
-  sidebarManager.registerPanel('flowchart', {
-    title: 'Flow Chart',
-    render: async (container) => {
-      if (!cachedUserDataPath) cachedUserDataPath = await flowchartIO.getUserDataPath();
-      return renderFlowChartPanel(container, {
-        getUserDataPath: () => cachedUserDataPath,
-        readFile: flowchartIO.readFile,
-        writeFile: flowchartIO.writeFile,
-        insertAtCursor: (text) => tabManager.insertAtCursor(text),
-        renderMermaid: renderFlowChartMermaid,
-      });
-    },
-  });
-  */
+  // Flowchart editing lives in the standalone window
+  // (src/flowchart-generator.html + src/flowchart-editor/).
 
   // Wiki-link navigation: open the target note (creating it on demand after
   // confirmation). Delegated on document so it works in every tab's preview.
@@ -2990,14 +2915,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   commandPalette.register('Toggle Sidebar: Outline', 'Ctrl+Shift+O', () =>
     sidebarManager.togglePanel('outline')
   );
-  // v4.9.6 — sidebar Flow Chart panel is no longer registered (see comment
-  // block above); the standalone window owns Cmd/Ctrl+Alt+F via the Tools
-  // menu. Kept the legacy entry commented out for rollback.
-  /*
-  commandPalette.register('Toggle Sidebar: Flow Chart', 'Ctrl+Alt+F', () =>
-    sidebarManager.togglePanel('flowchart')
-  );
-  */
   commandPalette.register('Print Preview', 'Ctrl+P', () => {
     const tab = tabManager.tabs.get(tabManager.activeTabId);
     const preview = document.getElementById(`preview-${tab.id}`);

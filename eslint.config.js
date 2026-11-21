@@ -10,7 +10,8 @@ module.exports = [
       'node_modules/**',
       'dist/**',
       'coverage/**',
-      '*.min.js'
+      '*.min.js',
+      '**/*.bundle.js'
     ]
   },
   {
@@ -64,6 +65,13 @@ module.exports = [
         getComputedStyle: 'readonly',
         CSS: 'readonly',
         Element: 'readonly',
+        SVGElement: 'readonly',
+        XMLSerializer: 'readonly',
+        Uint8Array: 'readonly',
+        ArrayBuffer: 'readonly',
+        queueMicrotask: 'readonly',
+        performance: 'readonly',
+        structuredClone: 'readonly',
         // Modern Web APIs available in Node 20+ and Chromium
         AbortController: 'readonly',
         TextDecoder: 'readonly',
@@ -113,6 +121,14 @@ module.exports = [
       'no-eval': 'error',
       'no-implied-eval': 'error',
       'no-new-func': 'error'
+    }
+  },
+  {
+    // The maxGraph editor is ESM (src/flowchart-editor/package.json sets
+    // "type": "module"); every other source file stays CommonJS.
+    files: ['src/flowchart-editor/**/*.js'],
+    languageOptions: {
+      sourceType: 'module'
     }
   }
 ];

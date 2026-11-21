@@ -7,7 +7,7 @@
 Electron desktop app for Markdown editing, PDF viewing/editing, and universal file conversion (Pandoc, FFmpeg, MarkItDown). Cross-platform (Win/macOS/Linux). Features: multi-tab CodeMirror 6 editor with live preview, 37 themes, PDF viewer/editor (merge/split/compress/rotate/delete/reorder/watermark/password/permissions), export to 20+ formats, batch conversion, Mermaid + visual flowchart generator, Git integration, quick switcher, inline AI assist, comments/wiki-links, version history, crash recovery, and a manifest-based plugin system.
 
 - **Version:** 4.13.0 · **License:** MIT · **App ID:** `com.concreteinfo.markdownconverter`
-- **Stack:** Electron 45, Node 24 LTS, vanilla CommonJS JavaScript, **no bundler/transpiler/framework in the renderer**, CodeMirror 6, Jest 30 (jsdom).
+- **Stack:** Electron 45, Node 24 LTS, vanilla CommonJS JavaScript, **no renderer framework/bundler except the maxGraph flowchart editor (esbuild)**, CodeMirror 6, Jest 30 (jsdom). Key libraries: maxGraph 0.25 (flowchart), marked 18, Mermaid 12, pdfjs-dist 6, KaTeX 0.19, simple-git 4, ESLint 10.
 
 ## Branch Roles
 
@@ -28,7 +28,7 @@ The earlier React + Tauri + PWA design was **not** executed as written: the v5 r
 | `src/preload.js` — IPC bridge | 626 |
 | `src/index.html` — single-page UI | 2,811 |
 | `src/**` total (JS/HTML/CSS) | ~56,600 |
-| Tests | 106 suites · 1,386 cases |
+| Tests | 99 suites · 1,218 cases |
 
 ## Architecture
 
@@ -48,10 +48,11 @@ Exposes `window.electronAPI` namespaces (`file`, `theme`, `print`, `export`, `ba
 ### Renderer
 
 - `src/renderer.js`: `TabManager` (tabs `Map`, preview cache, debounce timers), preview pipeline (`marked` → `DOMPurify` → TOC → KaTeX → Mermaid → PlantUML → wiki-links → footnotes), autosave/session persistence, toolbar/find-replace, export/PDF/table/ASCII dialogs. Lazy `get*` accessors keep optional modules out of startup.
-- `src/renderer/`: `autosave-client`, `ascii-controller`, `document-compare-dialog`, `export-presets`, `flowchart-controller` + generated `flowchart-bundle.js`, `footnote-preview`, `inline-ai-controller`, `media-operations-dialog`, `pdf-batch-dialog`.
+- `src/renderer/`: `autosave-client`, `ascii-controller`, `document-compare-dialog`, `export-presets`, `footnote-preview`, `inline-ai-controller`, `media-operations-dialog`, `pdf-batch-dialog`, plus the generated `flowchart-editor.bundle.js`.
 - `src/sidebar/`: `SidebarManager` + explorer, search, git, outline, backlinks, history, daily-notes, daily-templates, snippets, templates, flowchart panels. Panels are re-rendered from scratch on expand (stateless).
 - `src/editor/`: `codemirror-setup.js` (markdown, history, autocomplete, folding, Vim compartment, snippet-Tab) and `smart-paste.js` (CSV/TSV → table, URL → `[title](url)`).
-- `src/flowchart/`: pure model/geometry modules (`flowchart-store`, `-canvas`, `-viewport`, `-align`, `-clipboard`, `-shapes`, `-mermaid`, `-mermaid-parse`, `-vsdx-export`). `scripts/build-flowchart-bundle.js` concatenates them into `src/renderer/flowchart-bundle.js`; regenerate with `npm run build:bundle`.
+- `src/flowchart-editor/`: maxGraph-based Visio-style editor (`shapes.js`, `model.js`, `exports.js`, `mermaid.js`, `index.js`). `scripts/build-flowchart-editor.js` bundles it with esbuild into `src/renderer/flowchart-editor.bundle.js`; regenerate with `npm run build:flowchart-editor`.
+- `src/flowchart/`: pure Mermaid interop (`flowchart-mermaid`, `flowchart-mermaid-parse`) and Visio export (`flowchart-vsdx-export`).
 - `src/quick-switcher/`: fuzzy matcher, overlay, workspace dir resolver/file lister (Ctrl+P).
 - `src/ai-assist/`: inline popover + assist flows; `src/plugins/built-in/ai-assistant/` is the chat panel.
 - `src/plugins/`: loader (manifest discovery), registry, context/command API, event bus, settings store, format registry. Built-ins: `writing-studio`, `ai-assistant`, `collaboration`, `_sample`.
@@ -60,7 +61,7 @@ Exposes `window.electronAPI` namespaces (`file`, `theme`, `print`, `export`, `ba
 
 ### Feature Subsystem Notes
 
-- **Flowchart:** pure `flowchart-store` (graph, undo depth 50), SVG `-canvas`, `-shapes`, `-viewport`, `-align`, `-clipboard`, `-mermaid`, `-mermaid-parse`, `-vsdx-export`; `flowchart-bundle-tail.js` is the hand-written standalone-window controller; generated bundle is `src/renderer/flowchart-bundle.js`. Persists to `<userData>/flowchart-session.json` (500 ms debounce). 222 tests across 11 suites. Known gaps: snap toggle is implemented but never wired to UI; resize is width-only via one handle; Mermaid round-trip drops colours/widths; SVG/PNG export clones selection chrome; no flowchart C1–C19 plan doc is committed (labels are commit-message only).
+- **Flowchart:** standalone maxGraph editor (Apache-2.0) in a sandboxed window. `src/flowchart-editor/model.js` configures the graph (grid snap, alignment guides, panning, orthogonal edges, undo/redo, 200-step history), `shapes.js` registers custom Visio-style shapes, `exports.js` writes clean SVG/PNG/JPG via `ImageExport`, and `mermaid.js` keeps Mermaid import/export as interop only. Persists versioned JSON (`version: 3`, nodes/edges/styles) to `<userData>/flowchart-session.json` (600 ms debounce); open/save `.flowjson`; VSDX uses `flowchart-vsdx-export.js`. Mermaid remains lossy for positions, widths and shape colours by design.
 - **AI assist:** providers OpenAI/Anthropic/Ollama/LM Studio plus compatible endpoints (`AiProviders.js`, main-process only, 200 KB / 120 s caps). SSE streaming over `ai-assist-stream:start|cancel` → `chunk|done|error`; surfaces are Cmd+K inline popover (rewrite/shorten/expand) and the chat sidebar. Keys are plaintext in `settings.json`; the settings modal reads the key back across IPC. Known bugs: the inline controller listens on channels missing from `ALLOWED_RECEIVE_CHANNELS` (preload drops them — tests stub `on()` and mask it); first-use confirmation uses `window.confirm`, which Electron disables; chat panel ignores `{error, code}` responses.
 - **Quick switcher:** fuzzy matcher scores basenames only (exact/stem 1.0, prefix 0.8, subsequence 0.5, boundary/consecutive bonuses, recents ×2, open tabs ×1.5); workspace listing caps at 2,000 Markdown/text files; Ctrl+P.
 - **Comments:** `.comments/<doc>.md.json` sidecar with line + `anchorText` anchoring, F8 next-unresolved navigation, single identity (`'me'`), no threads.
@@ -141,7 +142,7 @@ npm run build:win | build:mac | build:linux
 npm run dist | dist:all
 npm run download-tools     # fetch Pandoc 3.9.0.2
 npm run bundle:markitdown  # optional PyInstaller bundle
-npm run build:bundle       # regenerate flowchart bundle
+npm run build:flowchart-editor  # bundle the maxGraph flowchart editor
 npm run release:local      # bump version, tag, build local deb + AppImage
 npm run generate-icons
 ```
@@ -161,7 +162,7 @@ verified before CI/CD is used.
 - No automated E2E; `tests/smoke-e2e-monospace.js` is a manual script.
 - `tests/lint-quality.test.js` fails on any ESLint "warning" text; `tests/no-diagnostic-logs.test.js` scans only `src/main.js` + `src/renderer.js`.
 - ESLint 10 flat config uses `sourceType: 'commonjs'` and `ecmaVersion: 'latest'`; `eslint-plugin-prettier` is installed but unused.
-- **Local baseline (2026-11-21, upgraded stack):** 1,379 passed / 7 skipped, 0 failures.
+- **Local baseline (2026-11-21, upgraded stack):** 1,211 passed / 7 skipped, 0 failures.
 
 ## Known Gotchas / Drift
 
@@ -180,6 +181,7 @@ verified before CI/CD is used.
 - **npm 12 blocks install scripts by default.** `package.json` has `allowScripts: { "ffmpeg-static": true }` so the FFmpeg binary can download; other blocked scripts (`electron`, `electron-winstaller`, `@parcel/watcher`, `unrs-resolver`) are not required locally.
 - **Dependency cleanup (4.14):** removed unused `electron-store`, `docx`, `pdfkit`, `html2pdf.js`, `core-util-is`, `tslib`, `codemirror`, `@codemirror/lint`, and `@testing-library/dom`.
 - **Mermaid 12 defaults to ELK layout**; `renderer.js` pins `layout: 'dagre'` to preserve existing document appearance. Mermaid 12 requires ES2024 (Electron 45’s Chromium 156 is fine).
+- **Flowchart editor uses maxGraph** (added 4.14): `Graph` (not `BaseGraph`) for built-in plugins/shapes; bundled with esbuild because the standalone window is sandboxed. The old custom SVG canvas/store/bundle modules and their 8 test suites were removed.
 - **pdfjs-dist 6** is ESM-first; the main process uses `legacy/build/pdf.mjs`, and the renderer relies on Node 24's `require(ESM)` support.
 - `CLAUDE.md` is the tracked single source of truth (removed from `.gitignore`); `.remember/` holds local session memory and is gitignored.
 
@@ -189,7 +191,7 @@ Full detail is in git history; this is the shape of the product.
 
 | Version | Date | Highlights |
 |---|---|---|
-| **4.14.0** | 2026-11-21 | Dependency/platform refresh: Electron 45, Node 24 LTS, ESLint 10, Mermaid 12 (dagre layout pinned), pdfjs-dist 6, marked 18, KaTeX 0.19, simple-git 4, electron-builder 26.18, electron-updater 6.8. Removed 9 unused packages. Added `release:local` (version bump + tag + local deb/AppImage) and build metadata in the About dialog. |
+| **4.14.0** | 2026-11-21 | Visio-style flowchart editor rebuilt on maxGraph 0.25 (direct manipulation, resize, snap/guides, inspector, multi-select, clean SVG/PNG/JPG, VSDX, versioned JSON persistence, Mermaid interop); legacy SVG canvas/store/bundle and 8 test suites removed. Dependency/platform refresh: Electron 45, Node 24 LTS, ESLint 10, Mermaid 12 (dagre pinned), pdfjs-dist 6, marked 18, KaTeX 0.19, simple-git 4, electron-builder 26.18, electron-updater 6.8; 9 unused packages removed. Added `release:local` (version bump + tag + local deb/AppImage) and build metadata in the About dialog. |
 | **4.13.0** | 2026-10-01 | Quick switcher (Ctrl+P), inline AI assist (Cmd+K), electron-updater wiring, flowchart C1–C19/D1 (undo/redo, zoom/pan/snap, clipboard, Mermaid import, resize, multi-select, align/distribute, SVG/PNG/JPG/VSDX export), Node 22 engines. |
 | 4.12.0 | 2026-09-15 | Flowchart: discoverable connect form, per-node colour, save-to-file export. |
 | 4.11.x | 2026-09-15 | Flowchart panel-driven interaction; removed `window.prompt`; debug-copy cleanup. |

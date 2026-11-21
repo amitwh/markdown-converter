@@ -8,7 +8,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "start": "electron .",
+    "start": "node scripts/build-flowchart-editor.js && electron .",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
@@ -29,7 +29,7 @@
     "dist:all": "electron-builder --config electron-builder.config.js -mwl",
     "download-tools": "node scripts/download-tools.js",
     "bundle:markitdown": "node scripts/bundle-markitdown.js",
-    "build:bundle": "node scripts/build-flowchart-bundle.js",
+    "build:flowchart-editor": "node scripts/build-flowchart-editor.js",
     "release:local": "node scripts/release-local.js",
     "generate-icons": "node scripts/generate-icons.js"
   },
@@ -53,6 +53,7 @@
     "cross-env": "^10.1.0",
     "electron": "^45.4.1",
     "electron-builder": "^26.18.0",
+    "esbuild": "^0.28.2",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.7",
@@ -75,6 +76,7 @@
     "@codemirror/state": "^6.7.6",
     "@codemirror/theme-one-dark": "^6.1.3",
     "@codemirror/view": "^6.43.15",
+    "@maxgraph/core": "^0.25.2",
     "@replit/codemirror-vim": "^6.4.0",
     "dompurify": "^3.4.18",
     "electron-updater": "^6.8.11",

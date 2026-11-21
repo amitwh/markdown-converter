@@ -55,7 +55,7 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 ### Advanced Features
 - **Custom headers & footers** - Add headers/footers to exports with dynamic fields
 - **Page size configuration** - A3, A4, A5, B4, B5, Letter, Legal, Tabloid, or custom sizes
-- **Visual flow chart editor** - Build Mermaid flowcharts visually; drag nodes, connect edges, live preview. Insert at cursor (Ctrl+Alt+F opens the standalone generator).
+- **Visio-style flow chart editor** - maxGraph canvas with direct drag/resize/connect, snap-to-grid and alignment guides, a property inspector, undo/redo, multi-select, alignment/distribution, and SVG/PNG/JPG/VSDX export. Insert Mermaid at cursor; Ctrl+Alt+F opens the standalone generator.
 - **Quick switcher** - Ctrl+P fuzzy search across open tabs and recent files, with workspace search when a folder context is available.
 - **Daily notes** - Ctrl+Alt+D opens today's note from a configurable daily-notes folder/template.
 - **Batch conversion** - Convert entire folders of markdown files
@@ -110,7 +110,7 @@ npm test                   # Jest — 106 suites, ~1,330 tests
 npm run test:coverage
 npm run lint               # ESLint (flat config)
 npm run format             # Prettier
-npm run build:bundle       # regenerate the flowchart browser bundle
+npm run build:flowchart-editor  # bundle the maxGraph flowchart editor
 npm run release:local      # new version + local deb/AppImage (then tag-push for CI)
 ```
 

@@ -5555,13 +5555,10 @@ ipcMain.on('select-image-folder', (event, inputId) => {
 // ============================================
 // Flowchart Generator Window (v4.9.6)
 // ============================================
-// Standalone BrowserWindow hosting the flowchart editor. The previous
-// sidebar-panel implementation (src/sidebar/flowchart-panel.js, Ctrl+Alt+F
-// through `Toggle Sidebar: Flow Chart`) has been retained as legacy but is
-// no longer registered with sidebarManager — see src/renderer.js where the
-// registerPanel('flowchart', …) call is now commented out. The standalone
-// window mirrors the ASCII Art Generator pattern (src/ascii-generator.html
-// + src/renderer/ascii-controller.js).
+// Standalone BrowserWindow hosting the maxGraph flowchart editor
+// (src/flowchart-generator.html + src/flowchart-editor/). The window is
+// sandboxed and talks to the main process through the `flowchart` preload
+// bridge. Mirrors the ASCII Art Generator window pattern.
 let flowchartGeneratorWindow = null;
 function openFlowchartGenerator() {
   if (flowchartGeneratorWindow) {
@@ -5569,8 +5566,10 @@ function openFlowchartGenerator() {
     return;
   }
   flowchartGeneratorWindow = new BrowserWindow({
-    width: 1100,
-    height: 720,
+    width: 1320,
+    height: 860,
+    minWidth: 980,
+    minHeight: 620,
     parent: mainWindow,
     modal: false,
     title: 'Flowchart Generator',

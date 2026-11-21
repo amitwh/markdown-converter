@@ -127,6 +127,8 @@ run('git', ['commit', '-m', `chore(release): v${newVersion}`]);
 run('git', ['tag', `v${newVersion}`]);
 
 // 7. Local Linux release artifacts (deb + AppImage) — verified before CI.
+console.log(`[release:local] Building flowchart editor bundle…`);
+run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build:flowchart-editor']);
 console.log(`[release:local] Building v${newVersion} Linux artifacts…`);
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 run(npx, [
