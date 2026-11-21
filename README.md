@@ -6,7 +6,7 @@
 
 A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron 45 and Node 24. 100% open-source with no proprietary dependencies.
 
-**Current release: v4.13.0** — quick switcher (Ctrl+P), inline AI assist (Cmd+K), a rebuilt visual flowchart generator (multi-select, alignment, SVG/PNG/JPG/VSDX export), and GitHub-based auto-updates.
+**Current release: v4.14.0** — quick switcher (Ctrl+P), inline AI assist (Cmd+K), a rebuilt visual flowchart generator (multi-select, alignment, SVG/PNG/JPG/VSDX export), and GitHub-based auto-updates.
 
 ## Features
 
@@ -314,4 +314,4 @@ Amit Haridas (amit.wh@gmail.com)
 
 ## Version
 
-v4.13.0
+v4.14.0
