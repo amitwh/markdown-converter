@@ -162,7 +162,8 @@ verified before CI/CD is used.
 - No automated E2E; `tests/smoke-e2e-monospace.js` is a manual script.
 - `tests/lint-quality.test.js` fails on any ESLint "warning" text; `tests/no-diagnostic-logs.test.js` scans only `src/main.js` + `src/renderer.js`.
 - ESLint 10 flat config uses `sourceType: 'commonjs'` and `ecmaVersion: 'latest'`; `eslint-plugin-prettier` is installed but unused.
-- **Local baseline (2026-11-21, upgraded stack):** 1,211 passed / 7 skipped, 0 failures.
+- **Local baseline (2026-11-21, upgraded stack):** 1,216 passed / 2 skipped, 0 failures.
+- `npm audit --omit=dev` is clean (0 vulnerabilities). `npm audit` still reports 23 moderate advisories confined to the `electron-builder`/Jest dev toolchain (transitive `minimatch`/`glob`); they do not ship in the app.
 
 ## Known Gotchas / Drift
 

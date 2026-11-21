@@ -6,7 +6,7 @@
 
 A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron 45 and Node 24. 100% open-source with no proprietary dependencies.
 
-**Current release: v4.14.0** — quick switcher (Ctrl+P), inline AI assist (Cmd+K), a rebuilt visual flowchart generator (multi-select, alignment, SVG/PNG/JPG/VSDX export), and GitHub-based auto-updates.
+**Current release: v4.14.0** — Visio-style flowchart editor built on maxGraph (direct manipulation, inspector, snap/guides, SVG/PNG/JPG/VSDX export), Electron 45 on Node 24, a refreshed library stack, and local release builds with About-page build metadata.
 
 ## Features
 
