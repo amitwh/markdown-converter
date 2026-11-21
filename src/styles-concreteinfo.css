@@ -126,99 +126,6 @@ body.theme-concreteinfo .status-bar {
 }
 
 /* ============================================
-   Modern Modal Styles
-   ============================================ */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(13, 11, 9, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  opacity: 0;
-  visibility: hidden;
-  transition: all var(--transition-normal);
-}
-
-.modal-overlay.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-.modal-content {
-  background: var(--ci-white);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl);
-  max-width: 600px;
-  width: 90%;
-  max-height: 85vh;
-  overflow: hidden;
-  transform: scale(0.9) translateY(20px);
-  transition: transform var(--transition-normal);
-}
-
-.modal-overlay.active .modal-content {
-  transform: scale(1) translateY(0);
-}
-
-.modal-header {
-  background: linear-gradient(135deg, var(--ci-dark-gray) 0%, var(--ci-black) 100%);
-  color: var(--ci-white);
-  padding: var(--spacing-md) var(--spacing-lg);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 3px solid var(--ci-accent);
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  font-family: var(--font-sans);
-}
-
-.modal-close {
-  background: transparent;
-  border: none;
-  color: var(--ci-white);
-  font-size: 1.5rem;
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-}
-
-.modal-close:hover {
-  background: var(--ci-accent);
-  transform: rotate(90deg);
-}
-
-.modal-body {
-  padding: var(--spacing-lg);
-  overflow-y: auto;
-  max-height: 60vh;
-}
-
-.modal-footer {
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--ci-light-gray);
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-sm);
-  border-top: 1px solid var(--ci-border);
-}
-
-/* ============================================
    Button Styles
    ============================================ */
 .btn {
@@ -592,19 +499,6 @@ body.theme-concreteinfo-dark .preview-content {
   color: #e0e0e0;
 }
 
-body.theme-concreteinfo-dark .modal-content {
-  background: #2a2a2a;
-  color: #e0e0e0;
-}
-
-body.theme-concreteinfo-dark .modal-body {
-  background: #2a2a2a;
-}
-
-body.theme-concreteinfo-dark .modal-footer {
-  background: #1a1a1a;
-}
-
 /* ============================================
    Animations
    ============================================ */
@@ -654,10 +548,6 @@ body.theme-concreteinfo-dark .modal-footer {
    Responsive Design
    ============================================ */
 @media (max-width: 768px) {
-  .modal-content {
-    width: 95%;
-    max-height: 90vh;
-  }
 
   .converter-grid {
     grid-template-columns: 1fr;

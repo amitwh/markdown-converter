@@ -126,7 +126,7 @@ module.exports = [
   {
     // The maxGraph editor is ESM (src/flowchart-editor/package.json sets
     // "type": "module"); every other source file stays CommonJS.
-    files: ['src/flowchart-editor/**/*.js'],
+    files: ['src/flowchart-editor/**/*.js', 'src/icons/**/*.js'],
     languageOptions: {
       sourceType: 'module'
     }

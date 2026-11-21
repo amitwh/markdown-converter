@@ -8,7 +8,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "start": "node scripts/build-flowchart-editor.js && electron .",
+    "start": "node scripts/build-flowchart-editor.js && node scripts/build-icons.js && electron .",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
@@ -32,7 +32,8 @@
     "build:flowchart-editor": "node scripts/build-flowchart-editor.js",
     "release:local": "node scripts/release-local.js",
     "build:deb:local": "node scripts/release-local.js --no-git --deb-only",
-    "generate-icons": "node scripts/generate-icons.js"
+    "generate-icons": "node scripts/generate-icons.js",
+    "build:icons": "node scripts/build-icons.js"
   },
   "keywords": [
     "markdown",
@@ -61,6 +62,7 @@
     "eslint-plugin-prettier": "^5.5.7",
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
+    "lucide": "^1.77.0",
     "prettier": "^3.10.1"
   },
   "dependencies": {

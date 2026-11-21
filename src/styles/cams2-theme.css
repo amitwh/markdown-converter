@@ -1,0 +1,717 @@
+/**
+ * CAMS2 application shell theme.
+ *
+ * CAMS2 tokens (brand #e5461f, warm gray scale, 15px base, 4/8/12/16 radii)
+ * applied to the editor chrome, dialogs and shared controls. Editor themes
+ * still own the CodeMirror surface and preview typography; this layer is
+ * loaded last so it wins for application chrome.
+ *
+ * UI font: Inter (bundled). CAMS2 uses Plus Jakarta Sans, but this app keeps
+ * Inter for offline consistency.
+ */
+
+:root {
+  --cams-brand: #e5461f;
+  --cams-brand-dark: #c93a18;
+  --cams-brand-light: #ff6b47;
+  --cams-success: #1a7a56;
+  --cams-warning: hsl(45, 93%, 47%);
+  --cams-danger: hsl(0, 84%, 60%);
+  --cams-info: hsl(199, 89%, 48%);
+  --cams-gray-50: #fafbfc;
+  --cams-gray-100: #f5f5f5;
+  --cams-gray-200: #e3e3e3;
+  --cams-gray-300: #d1d1d1;
+  --cams-gray-400: #6e6c6c;
+  --cams-gray-500: #666464;
+  --cams-gray-600: #5e5c5c;
+  --cams-gray-700: #565454;
+  --cams-gray-800: #4e4e4e;
+  --cams-gray-900: #464646;
+  --cams-gray-950: #0d0b09;
+  --cams-radius-sm: 4px;
+  --cams-radius-md: 8px;
+  --cams-radius-lg: 12px;
+  --cams-radius-xl: 16px;
+  --cams-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --cams-font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+body[data-app-theme] {
+  --bg-primary: #ffffff;
+  --bg-secondary: var(--cams-gray-50);
+  --bg-tertiary: var(--cams-gray-100);
+  --text-primary: var(--cams-gray-900);
+  --text-secondary: var(--cams-gray-500);
+  --text-muted: var(--cams-gray-400);
+  --border-color: var(--cams-gray-200);
+  --border-color-strong: var(--cams-gray-300);
+  --cams-surface: #ffffff;
+  --cams-surface-2: var(--cams-gray-50);
+  --cams-surface-3: var(--cams-gray-100);
+  --cams-border: var(--cams-gray-200);
+  --cams-border-strong: var(--cams-gray-300);
+  --cams-text: var(--cams-gray-900);
+  --cams-muted: var(--cams-gray-500);
+  --cams-hover: var(--cams-gray-100);
+  --cams-ring: rgba(229, 70, 31, 0.28);
+  /* Shadcn-compatible HSL tokens (keep components that use hsl(var(--x))) */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 27%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 27%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 27%;
+  --primary: 14 80% 51%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 27%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 14 100% 96%;
+  --accent-foreground: 14 80% 30%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 89%;
+  --input: 0 0% 83%;
+  --ring: 14 80% 51%;
+}
+
+body[data-app-theme='dark'] {
+  --bg-primary: var(--cams-gray-950);
+  --bg-secondary: var(--cams-gray-950);
+  --bg-tertiary: #232120;
+  --text-primary: var(--cams-gray-100);
+  --text-secondary: #d1d1d1;
+  --text-muted: #b0b0b0;
+  --cams-gray-400: #b0b0b0;
+  --cams-gray-500: #9a9696;
+  --cams-gray-600: #828080;
+  --border-color: var(--cams-gray-800);
+  --border-color-strong: var(--cams-gray-700);
+  --cams-surface: var(--cams-gray-900);
+  --cams-surface-2: #3d3b3a;
+  --cams-surface-3: var(--cams-gray-800);
+  --cams-border: var(--cams-gray-800);
+  --cams-border-strong: var(--cams-gray-700);
+  --cams-text: var(--cams-gray-100);
+  --cams-muted: #b0b0b0;
+  --cams-hover: var(--cams-gray-800);
+  --cams-ring: rgba(255, 107, 71, 0.35);
+  --background: 0 0% 27%;
+  --foreground: 0 0% 96%;
+  --card: 0 0% 27%;
+  --card-foreground: 0 0% 96%;
+  --popover: 0 0% 27%;
+  --popover-foreground: 0 0% 96%;
+  --primary: 14 80% 51%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 30%;
+  --secondary-foreground: 0 0% 96%;
+  --muted: 0 0% 30%;
+  --muted-foreground: 0 0% 70%;
+  --accent: 0 0% 30%;
+  --accent-foreground: 0 0% 96%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 31%;
+  --input: 0 0% 31%;
+  --ring: 14 80% 51%;
+  color-scheme: dark;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
+body[data-app-theme] {
+  font-family: var(--cams-font-sans);
+  font-size: 15px;
+  color: var(--cams-text);
+  background: var(--bg-secondary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body[data-app-theme] h1,
+body[data-app-theme] h2,
+body[data-app-theme] h3,
+body[data-app-theme] h4 {
+  color: var(--cams-text);
+  letter-spacing: -0.01em;
+}
+
+body[data-app-theme] a {
+  color: var(--cams-brand);
+}
+
+body[data-app-theme] ::selection {
+  background: rgba(229, 70, 31, 0.2);
+}
+
+body[data-app-theme] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+body[data-app-theme] ::-webkit-scrollbar-thumb {
+  background: var(--cams-border-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+body[data-app-theme] ::-webkit-scrollbar-thumb:hover {
+  background: var(--cams-gray-400);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* ── Icons ────────────────────────────────────────────────────────────── */
+i[data-lucide] {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+}
+svg.lucide {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.8;
+  flex: none;
+}
+.toolbar svg.lucide,
+.toolbar-main svg.lucide {
+  width: 16px;
+  height: 16px;
+}
+.sidebar-icon svg.lucide {
+  width: 19px;
+  height: 19px;
+}
+.modal-close svg.lucide {
+  width: 18px;
+  height: 18px;
+}
+.tab-close svg.lucide {
+  width: 14px;
+  height: 14px;
+}
+.pdf-editor-btn svg.lucide {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.7;
+}
+
+/* ── Application chrome ───────────────────────────────────────────────── */
+body[data-app-theme] .app-header {
+  background: var(--cams-surface);
+  border-bottom: 1px solid var(--cams-border);
+  box-shadow: 0 1px 2px rgba(13, 11, 9, 0.05);
+  min-height: 52px;
+  padding: 0 16px;
+}
+body[data-app-theme] .app-title {
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--cams-text);
+}
+body[data-app-theme] .tab-bar {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--cams-border);
+  min-height: 38px;
+  padding: 0 10px;
+  gap: 3px;
+}
+body[data-app-theme] .tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 9px 9px 0 0;
+  color: var(--text-secondary);
+  min-height: 31px;
+  padding: 5px 12px;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+body[data-app-theme] .tab:hover {
+  background: var(--cams-hover);
+  color: var(--cams-text);
+}
+body[data-app-theme] .tab.active {
+  background: var(--cams-surface);
+  border-color: var(--cams-border);
+  color: var(--cams-text);
+  box-shadow: 0 -1px 0 var(--cams-brand) inset;
+}
+body[data-app-theme] .tab-title {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+body[data-app-theme] .tab-close,
+body[data-app-theme] .new-tab-button {
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+body[data-app-theme] .tab-close:hover,
+body[data-app-theme] .new-tab-button:hover {
+  background: var(--cams-hover);
+  color: var(--cams-text);
+}
+body[data-app-theme] .toolbar {
+  background: var(--cams-surface);
+  border-bottom: 1px solid var(--cams-border);
+  padding: 6px 10px;
+  gap: 4px;
+  min-height: 42px;
+}
+body[data-app-theme] .toolbar button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+body[data-app-theme] .toolbar button:hover {
+  background: var(--cams-hover);
+  border-color: var(--cams-border);
+  color: var(--cams-text);
+}
+body[data-app-theme] .toolbar button:focus-visible {
+  outline: 2px solid var(--cams-brand);
+  outline-offset: 1px;
+}
+body[data-app-theme] .toolbar-separator {
+  width: 1px;
+  height: 18px;
+  background: var(--cams-border);
+  margin: 0 4px;
+}
+body[data-app-theme] .breadcrumb-bar {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--cams-border);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+body[data-app-theme] .main-content {
+  background: var(--bg-secondary);
+}
+body[data-app-theme] .sidebar {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--cams-border);
+}
+body[data-app-theme] .sidebar-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  color: var(--text-secondary);
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+body[data-app-theme] .sidebar-icon:hover {
+  background: var(--cams-hover);
+  color: var(--cams-text);
+}
+body[data-app-theme] .sidebar-icon.active,
+body[data-app-theme] .sidebar-icon[aria-pressed='true'] {
+  background: rgba(229, 70, 31, 0.12);
+  color: var(--cams-brand);
+}
+body[data-app-theme='dark'] .toolbar button,
+body[data-app-theme='dark'] .sidebar-icon {
+  color: #e8e6e3;
+}
+body[data-app-theme='dark'] .toolbar button:hover,
+body[data-app-theme='dark'] .sidebar-icon:hover {
+  background: var(--cams-gray-700);
+  color: #ffffff;
+}
+body[data-app-theme] .sidebar-panel {
+  background: var(--cams-surface);
+  border-right: 1px solid var(--cams-border);
+}
+body[data-app-theme] .sidebar-panel-header {
+  background: var(--cams-surface);
+  border-bottom: 1px solid var(--cams-border);
+  min-height: 42px;
+}
+body[data-app-theme] .sidebar-panel-title {
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--cams-text);
+}
+body[data-app-theme] .sidebar-help,
+body[data-app-theme] .sidebar-panel small {
+  color: var(--cams-muted);
+}
+body[data-app-theme] .status-bar {
+  background: var(--cams-surface);
+  border-top: 1px solid var(--cams-border);
+  color: var(--text-muted);
+  min-height: 26px;
+  font-size: 11.5px;
+}
+body[data-app-theme] .status-bar .status-item:hover {
+  color: var(--cams-text);
+}
+
+/* ── Shared controls ──────────────────────────────────────────────────── */
+body[data-app-theme]
+  :is(
+    .modal-body,
+    .sidebar-panel,
+    .app-header,
+    .toolbar,
+    .pdf-editor-body,
+    .settings-panel
+  )
+  :is(
+    input[type='text'],
+    input[type='search'],
+    input[type='number'],
+    input[type='url'],
+    input[type='password'],
+    textarea,
+    select
+  ) {
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  border: 1px solid var(--cams-border-strong);
+  border-radius: var(--cams-radius-md);
+  min-height: 34px;
+  padding: 6px 10px;
+  font-family: var(--cams-font-sans);
+  font-size: 13px;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+body[data-app-theme]
+  :is(.modal-body, .sidebar-panel, .pdf-editor-body)
+  :is(input, textarea, select):focus {
+  outline: none;
+  border-color: var(--cams-brand);
+  box-shadow: 0 0 0 3px var(--cams-ring);
+}
+body[data-app-theme] :is(input, textarea)::placeholder {
+  color: var(--cams-muted);
+}
+
+/* ── Modern desktop modals ─────────────────────────────────────────────── */
+body[data-app-theme] .modal {
+  padding: clamp(16px, 3vw, 40px);
+}
+body[data-app-theme] .modal-backdrop {
+  background: rgba(13, 11, 9, 0.5);
+  backdrop-filter: blur(10px) saturate(115%);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+}
+body[data-app-theme] .modal-content {
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  border: 1px solid var(--cams-border);
+  border-radius: var(--cams-radius-xl);
+  box-shadow:
+    0 1px 2px rgba(13, 11, 9, 0.06),
+    0 16px 40px rgba(13, 11, 9, 0.16),
+    0 40px 96px rgba(13, 11, 9, 0.14);
+  max-width: min(92vw, 620px);
+  max-height: min(88vh, 900px);
+  overflow: hidden;
+  transform: translateY(8px) scale(0.985);
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 180ms ease;
+}
+body[data-app-theme] .modal.open .modal-content {
+  transform: translateY(0) scale(1);
+}
+body[data-app-theme] .modal-content.small {
+  max-width: 440px;
+  min-width: 340px;
+}
+body[data-app-theme] .modal-content.large {
+  max-width: min(92vw, 860px);
+  min-width: min(92vw, 620px);
+}
+body[data-app-theme] .modal-content.full {
+  max-width: 96vw;
+  max-height: 92vh;
+  min-width: min(96vw, 760px);
+}
+body[data-app-theme] .modal-header {
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  border-bottom: 1px solid var(--cams-border);
+  padding: 18px 22px 14px;
+  min-height: 58px;
+}
+body[data-app-theme] .modal-header h3 {
+  font-family: var(--cams-font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--cams-text);
+}
+body[data-app-theme] .modal-close {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--cams-radius-md);
+  color: var(--cams-muted);
+  font-size: 0;
+  background: transparent;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+body[data-app-theme] .modal-close:hover {
+  background: var(--cams-hover);
+  color: var(--cams-text);
+  transform: none;
+}
+body[data-app-theme] .modal-body {
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  padding: 20px 22px;
+  max-height: none;
+  overscroll-behavior: contain;
+}
+body[data-app-theme] .modal-body .export-section {
+  border-bottom: 1px solid var(--cams-border);
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+}
+body[data-app-theme] .modal-body .export-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+body[data-app-theme] .modal-body .export-section > label,
+body[data-app-theme] .modal-body .form-row label {
+  color: var(--cams-text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+body[data-app-theme] .modal-body small,
+body[data-app-theme] .modal-body .export-help {
+  color: var(--cams-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+body[data-app-theme] .modal-footer {
+  background: var(--cams-surface-2);
+  border-top: 1px solid var(--cams-border);
+  padding: 14px 22px;
+  gap: 8px;
+}
+body[data-app-theme] .modal-footer .btn,
+body[data-app-theme] .modal-footer button,
+body[data-app-theme] .modal-body .btn {
+  min-height: 34px;
+  padding: 7px 15px;
+  border-radius: var(--cams-radius-md);
+  border: 1px solid var(--cams-border-strong);
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  font-family: var(--cams-font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+body[data-app-theme] .modal-footer .btn:hover,
+body[data-app-theme] .modal-footer button:hover,
+body[data-app-theme] .modal-body .btn:hover {
+  background: var(--cams-hover);
+  border-color: var(--cams-gray-400);
+}
+body[data-app-theme] .modal-footer .btn-primary,
+body[data-app-theme] .modal-footer .btn.primary,
+body[data-app-theme] .modal-footer .primary,
+body[data-app-theme] .modal-body .btn-primary,
+body[data-app-theme] .modal-body .btn.primary {
+  background: var(--cams-brand);
+  border-color: var(--cams-brand);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(201, 58, 24, 0.25);
+}
+body[data-app-theme] .modal-footer .btn-primary:hover,
+body[data-app-theme] .modal-footer .btn.primary:hover,
+body[data-app-theme] .modal-footer .primary:hover,
+body[data-app-theme] .modal-body .btn-primary:hover {
+  background: var(--cams-brand-dark);
+  border-color: var(--cams-brand-dark);
+}
+body[data-app-theme] .modal-footer .btn-danger,
+body[data-app-theme] .modal-footer .danger {
+  background: var(--cams-danger);
+  border-color: var(--cams-danger);
+  color: #fff;
+}
+body[data-app-theme] .modal :is(input, select, textarea):focus-visible,
+body[data-app-theme] .modal button:focus-visible {
+  outline: 2px solid var(--cams-brand);
+  outline-offset: 2px;
+}
+body[data-app-theme] .modal-content .checkbox-group label,
+body[data-app-theme] .modal-content .checkbox-label,
+body[data-app-theme] .modal-content label.checkbox-inline {
+  color: var(--cams-text);
+  font-size: 12.5px;
+}
+body[data-app-theme] .modal .folder-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body[data-app-theme] .modal .folder-input-group input {
+  flex: 1;
+  min-width: 0;
+}
+body[data-app-theme] .modal .folder-input-group button,
+body[data-app-theme] .modal .export-section > button {
+  flex: none;
+  min-height: 34px;
+  padding: 6px 13px;
+  border: 1px solid var(--cams-border-strong);
+  border-radius: var(--cams-radius-md);
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  font: 600 12.5px var(--cams-font-sans);
+  cursor: pointer;
+}
+body[data-app-theme] .modal .folder-input-group button:hover,
+body[data-app-theme] .modal .export-section > button:hover {
+  background: var(--cams-hover);
+}
+body[data-app-theme] .modal .checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+}
+body[data-app-theme] .modal .checkbox-group label,
+body[data-app-theme] .modal label.checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 500;
+}
+body[data-app-theme] .modal label.checkbox-inline {
+  display: flex;
+}
+body[data-app-theme] .modal label.checkbox-inline input[type='checkbox'],
+body[data-app-theme] .modal .checkbox-group input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  accent-color: var(--cams-brand);
+  flex: none;
+}
+body[data-app-theme] .modal .checkbox-group label input[type='number'] {
+  width: 110px;
+  min-height: 30px;
+}
+body[data-app-theme] .modal .form-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+body[data-app-theme] .modal .form-row input,
+body[data-app-theme] .modal .form-row select {
+  width: 100%;
+}
+body[data-app-theme] .modal .pdf-operation-section {
+  max-width: 760px;
+}
+body[data-app-theme] .modal .pdf-operation-section .export-section {
+  max-width: 100%;
+}
+
+/* Command palette follows the same shell */
+body[data-app-theme] .command-palette-overlay {
+  background: rgba(13, 11, 9, 0.45);
+  backdrop-filter: blur(8px);
+}
+body[data-app-theme] .command-palette {
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  border: 1px solid var(--cams-border);
+  border-radius: var(--cams-radius-xl);
+  box-shadow:
+    0 1px 2px rgba(13, 11, 9, 0.06),
+    0 24px 64px rgba(13, 11, 9, 0.24);
+}
+body[data-app-theme] .command-palette-input {
+  background: transparent;
+  color: var(--cams-text);
+  border-bottom: 1px solid var(--cams-border);
+  font-family: var(--cams-font-sans);
+}
+body[data-app-theme] .command-item {
+  border-radius: var(--cams-radius-md);
+}
+body[data-app-theme] .command-item:hover,
+body[data-app-theme] .command-item.selected {
+  background: rgba(229, 70, 31, 0.1);
+  color: var(--cams-brand-dark);
+}
+body[data-app-theme] .command-shortcut {
+  color: var(--cams-muted);
+}
+
+/* AI settings + analytics dialogs */
+body[data-app-theme] .ai-settings-overlay {
+  background: rgba(13, 11, 9, 0.5);
+  backdrop-filter: blur(8px);
+}
+body[data-app-theme] .ai-settings-dialog,
+body[data-app-theme] .analytics-modal {
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  border: 1px solid var(--cams-border);
+  border-radius: var(--cams-radius-xl);
+  box-shadow:
+    0 1px 2px rgba(13, 11, 9, 0.06),
+    0 24px 64px rgba(13, 11, 9, 0.22);
+}
+body[data-app-theme] .ai-settings-dialog h3,
+body[data-app-theme] .analytics-modal h2 {
+  font-family: var(--cams-font-sans);
+  color: var(--cams-text);
+}
+body[data-app-theme] .ai-settings-dialog input,
+body[data-app-theme] .ai-settings-dialog select {
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  border: 1px solid var(--cams-border-strong);
+  border-radius: var(--cams-radius-md);
+}
+
+@media (max-width: 720px) {
+  body[data-app-theme] .modal-content,
+  body[data-app-theme] .modal-content.large,
+  body[data-app-theme] .modal-content.small {
+    max-width: 96vw;
+    min-width: 0;
+  }
+  body[data-app-theme] .modal-footer {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-app-theme] .modal-content {
+    transition: none;
+    transform: none;
+  }
+}

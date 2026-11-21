@@ -59,7 +59,7 @@ function buildDialogDom() {
     <div class="modal-content large">
       <div class="modal-header">
         <h3 id="document-compare-title">Document Compare</h3>
-        <button class="modal-close" id="document-compare-close" aria-label="Close">&times;</button>
+        <button class="modal-close" id="document-compare-close" aria-label="Close"><i data-lucide="x"></i></button>
       </div>
       <div class="modal-body">
         <div class="export-section">

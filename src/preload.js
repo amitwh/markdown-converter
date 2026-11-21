@@ -28,6 +28,7 @@ const ALLOWED_SEND_CHANNELS = [
 
   // Theme
   'get-theme',
+  'get-app-theme',
 
   // Print
   'do-print',

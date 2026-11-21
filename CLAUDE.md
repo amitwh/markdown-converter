@@ -7,7 +7,7 @@
 Electron desktop app for Markdown editing, PDF viewing/editing, and universal file conversion (Pandoc, FFmpeg, MarkItDown). Cross-platform (Win/macOS/Linux). Features: multi-tab CodeMirror 6 editor with live preview, 37 themes, PDF viewer/editor (merge/split/compress/rotate/delete/reorder/watermark/password/permissions), export to 20+ formats, batch conversion, Mermaid + visual flowchart generator, Git integration, quick switcher, inline AI assist, comments/wiki-links, version history, crash recovery, and a manifest-based plugin system.
 
 - **Version:** 4.15.0 · **License:** MIT · **App ID:** `com.concreteinfo.markdownconverter`
-- **Stack:** Electron 45, Node 24 LTS, vanilla CommonJS JavaScript, **no renderer framework/bundler except the maxGraph flowchart editor (esbuild)**, CodeMirror 6, Jest 30 (jsdom). Key libraries: maxGraph 0.25 (flowchart), marked 18, Mermaid 12, pdfjs-dist 6, KaTeX 0.19, simple-git 4, ESLint 10.
+- **Stack:** Electron 45, Node 24 LTS, vanilla CommonJS JavaScript, **no renderer framework/bundler except the esbuild bundles (maxGraph flowchart + Lucide icons)**, CodeMirror 6, Jest 30 (jsdom). Key libraries: maxGraph 0.25 (flowchart), Lucide 1.77 (bundled icons), marked 18, Mermaid 12, pdfjs-dist 6, KaTeX 0.19, simple-git 4, ESLint 10.
 
 ## Branch Roles
 
@@ -56,7 +56,8 @@ Exposes `window.electronAPI` namespaces (`file`, `theme`, `print`, `export`, `ba
 - `src/quick-switcher/`: fuzzy matcher, overlay, workspace dir resolver/file lister (Ctrl+P).
 - `src/ai-assist/`: inline popover + assist flows; `src/plugins/built-in/ai-assistant/` is the chat panel.
 - `src/plugins/`: loader (manifest discovery), registry, context/command API, event bus, settings store, format registry. Built-ins: `writing-studio`, `ai-assistant`, `collaboration`, `_sample`.
-- `src/styles/`: `tokens.css` (HSL tokens; primary is blue-purple, **not** brand `#e5461f`), layout CSS, `styles/themes/*.css` (37 themes applied via `body.theme-<id>`).
+- `src/styles/`: `tokens.css` (legacy HSL tokens), `cams2-theme.css` (CAMS2 shell: `#e5461f`, warm grays, Inter, 8–16 px radii, modern dialogs, app light/dark via `body[data-app-theme]`), layout CSS, `styles/themes/*.css` (37 editor themes applied via `body.theme-<id>`).
+- `src/icons/lucide-entry.js` → `src/renderer/lucide-icons.bundle.js` (esbuild, ~35 KB): selected Lucide icons for the vanilla renderer, exposed as `window.Lucide`; markup uses `<i data-lucide="…">`, replaced by `createIcons()`.
 - Standalone windows: `flowchart-generator.html`, `ascii-generator.html`, `table-generator.html`; quick-note and CLI dialogs are built as data URLs.
 
 ### Feature Subsystem Notes
@@ -70,6 +71,7 @@ Exposes `window.electronAPI` namespaces (`file`, `theme`, `print`, `export`, `ba
 - **Search/DocQA:** `WorkspaceSearch` TF-IDF ranking with facets; DocQA is retrieval-only (no generative answer); `SemanticEngine` neural mode needs `@xenova/transformers`, which is **not** in `package.json`, so it silently stays TF-IDF. MarkItDown is optional and this checkout has no bundled binary, so it falls back to a system install.
 - **Metadata stripping:** `MetadataStripper` removes AI/provenance containers losslessly and verifies the content payload: PNG (`caBX`/`tEXt`/`iTXt`/`zTXt`/`eXIf`), JPEG (APP1/APP3–15/COM), WebP (EXIF/XMP + VP8X flags), SVG `<metadata>`, PDF Info + XMP, DOCX `docProps`, EPUB generator meta/`META-INF/metadata.xml`, MP3 ID3, WAV LIST/id3, MP4/MOV/M4A ffmpeg remux, and Markdown/HTML AI frontmatter keys + provenance comments. Tools → Strip AI Metadata… runs a batch; `clean metadata on export` is on by default (`stripMetadataOnExport`).
 - **Visible marks:** PDF → Remove Watermark Annotations removes separate `/Watermark` annotation objects; PDF → Cover Area paints a rectangle; Image Tools has Crop and Cover Area. These alter content and cannot guarantee removal of burned-in/pixel watermarks. AI Assistant “Paraphrase Selection” is a mitigation only — statistical text watermarks are not reliably removable.
+- **CAMS2 shell:** `styles/cams2-theme.css` loads last and owns the app chrome, dialogs, command palette, AI settings and shared controls. App appearance is persisted as `appTheme` (`light|dark|system`) and applied as `body[data-app-theme]` so editor theme class churn cannot wipe it. Dark shell auto-switches a light editor theme to `onedark` and restores it on return to light (only if the user hasn't picked another theme meanwhile). Lucide icons are created from `<i data-lucide="…">` placeholders by `window.Lucide.createIcons()`; a MutationObserver handles dynamic dialogs.
 
 ### Persistence
 
@@ -145,6 +147,7 @@ npm run dist | dist:all
 npm run download-tools     # fetch Pandoc 3.9.0.2
 npm run bundle:markitdown  # optional PyInstaller bundle
 npm run build:flowchart-editor  # bundle the maxGraph flowchart editor
+npm run build:icons        # bundle the selected Lucide icons
 npm run build:deb:local    # bump + stamp buildInfo + local deb only (no GitHub release)
 npm run release:local      # optional: tag + local deb/AppImage when GitHub Releases are re-enabled
 npm run generate-icons
@@ -194,6 +197,7 @@ Full detail is in git history; this is the shape of the product.
 
 | Version | Date | Highlights |
 |---|---|---|
+| **4.16.0** | 2026-11-21 | CAMS2 app shell: brand `#e5461f`, warm gray scale, Inter UI, 8–16 px radii, modern dialogs; app Light/Dark/Follow System independent of editor themes; Lucide icon set replaces inline/unicode chrome icons (esbuild bundle). |
 | **4.15.0** | 2026-11-21 | AI/provenance metadata stripper (PNG/JPEG/WebP/SVG/PDF/DOCX/EPUB/MP3/WAV/MP4 + Markdown/HTML), lossless with content verification; clean-on-export default; PDF watermark-annotation removal + cover area; image crop/cover; AI paraphrase mitigation. Local-deb release flow (`build:deb:local`); GitHub Releases paused. |
 | **4.14.1** | 2026-11-21 | CI fixes: Windows pandoc extraction via bsdtar, MarkItDown smoke-failure cleanup and pandas inclusion; full Windows/macOS/Linux release. |
 | **4.14.0** | 2026-11-21 | Visio-style flowchart editor rebuilt on maxGraph 0.25 (direct manipulation, resize, snap/guides, inspector, multi-select, clean SVG/PNG/JPG, VSDX, versioned JSON persistence, Mermaid interop); legacy SVG canvas/store/bundle and 8 test suites removed. Dependency/platform refresh: Electron 45, Node 24 LTS, ESLint 10, Mermaid 12 (dagre pinned), pdfjs-dist 6, marked 18, KaTeX 0.19, simple-git 4, electron-builder 26.18, electron-updater 6.8; 9 unused packages removed. Added `release:local` (version bump + tag + local deb/AppImage) and build metadata in the About dialog. |

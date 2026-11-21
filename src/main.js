@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -1095,7 +1095,30 @@ function createMenu() {
           type: 'separator',
         },
         {
-          label: 'Theme',
+          label: 'Appearance',
+          submenu: [
+            {
+              label: 'Light',
+              type: 'radio',
+              checked: store.get('appTheme', 'system') === 'light',
+              click: () => setAppTheme('light'),
+            },
+            {
+              label: 'Dark',
+              type: 'radio',
+              checked: store.get('appTheme', 'system') === 'dark',
+              click: () => setAppTheme('dark'),
+            },
+            {
+              label: 'Follow System',
+              type: 'radio',
+              checked: store.get('appTheme', 'system') === 'system',
+              click: () => setAppTheme('system'),
+            },
+          ],
+        },
+        {
+          label: 'Editor Theme',
           submenu: buildThemeMenu({
             setTheme: (id) => setTheme(id),
             getCurrentThemeId: () => store.get('theme', 'atomonelight'),
@@ -3936,6 +3959,57 @@ async function importWithMarkItDown() {
   }
 }
 
+function resolvedAppTheme() {
+  const preference = store.get('appTheme', 'system');
+  if (preference === 'system') return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+  return preference === 'dark' ? 'dark' : 'light';
+}
+
+function syncEditorThemeToAppearance() {
+  const resolved = resolvedAppTheme();
+  const current = store.get('theme', 'atomonelight');
+  const meta = ThemeRegistry.get(current);
+  if (resolved === 'dark' && meta && !meta.isDark) {
+    store.set('appThemePreviousEditorTheme', current);
+    store.set('theme', 'onedark');
+  } else if (resolved === 'light') {
+    const previous = store.get('appThemePreviousEditorTheme', null);
+    if (previous && ThemeRegistry.get(previous) && store.get('theme', '') === 'onedark') {
+      store.set('theme', previous);
+    }
+    store.set('appThemePreviousEditorTheme', null);
+  }
+}
+
+function setAppTheme(preference) {
+  store.set('appTheme', preference);
+  syncEditorThemeToAppearance();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('theme-changed', store.get('theme', 'atomonelight'));
+    mainWindow.webContents.send('app-theme-changed', {
+      preference,
+      resolved: resolvedAppTheme(),
+    });
+  }
+}
+
+ipcMain.on('get-app-theme', (event) => {
+  event.reply('app-theme-changed', {
+    preference: store.get('appTheme', 'system'),
+    resolved: resolvedAppTheme(),
+  });
+});
+
+nativeTheme.on('updated', () => {
+  if (store.get('appTheme', 'system') !== 'system') return;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('app-theme-changed', {
+      preference: 'system',
+      resolved: resolvedAppTheme(),
+    });
+  }
+});
+
 function setTheme(theme) {
   // Stored id may not exist anymore (e.g. after downgrade or if a theme id
   // was renamed). Fall back to the default so the UI never goes blank.
@@ -4936,6 +5010,8 @@ function buildCLIConversionArgs(content, format, outputPath) {
   return args;
 }
 app.whenReady().then(() => {
+  // Keep the editor theme coherent with the app appearance on startup.
+  syncEditorThemeToAppearance();
   // Load saved Word template path and settings
   wordTemplatePath = store.get('wordTemplatePath', null);
   templateStartPage = store.get('templateStartPage', 3);

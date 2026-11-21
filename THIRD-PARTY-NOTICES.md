@@ -30,9 +30,9 @@ with literal argv (never a shell, never linked into the app).
 | FFmpeg | bundled by `ffmpeg-static` 5.3.0 | **GPL-3.0-or-later build** (`--enable-gpl --enable-libx264/x265`) | License text: <https://ffmpeg.org/legal.html>; source offer below |
 | MarkItDown | 0.1.7 (+ Python deps) | MIT | Microsoft's any-file→Markdown importer, frozen with PyInstaller by `scripts/bundle-markitdown.js`; includes an embedded CPython runtime (PSF license) |
 | sharp / libvips prebuilt binaries | 0.35.4 | Apache-2.0 / **LGPL-2.1-or-later** (libvips) | Dynamically loaded native addon; LGPL compliance: this app's full MIT source is public, enabling relinking; license: [LGPL-2.1](third-party-licenses/LGPL-2.1.txt) |
-| KaTeX (CSS + fonts) | 0.18.5 | MIT | `assets/katex/` |
-| JetBrains Mono, Fira Code fonts | — | SIL OFL 1.1 | `assets/fonts/`; license: [OFL-1.1](third-party-licenses/OFL-1.1.txt) |
-| Electron | 41.x | MIT | and its bundled Chromium (BSD-style licenses) / Node.js (MIT) / OpenSSL (Apache-2.0) — see <https://www.electronjs.org/blog/electron-licensing> |
+| KaTeX (CSS + fonts) | 0.19.1 | MIT | `assets/katex/` |
+| JetBrains Mono, Fira Code, Inter fonts | — | SIL OFL 1.1 | `assets/fonts/`; license: [OFL-1.1](third-party-licenses/OFL-1.1.txt) |
+| Electron | 45.x | MIT | and its bundled Chromium (BSD-style licenses) / Node.js (MIT) / OpenSSL (Apache-2.0) — see <https://www.electronjs.org/blog/electron-licensing> |
 
 ### GPL source availability (GPL §3 offer)
 
@@ -58,29 +58,27 @@ Packaging, six, click, chardet (LGPL — dynamically loadable Python module).
 
 | Package | Version | License |
 |---|---|---|
-| @cantoo/pdf-lib | 2.9.1 | MIT |
-| @codemirror/* (autocomplete, commands, lang-*, language, lint, search, state, theme-one-dark, view), codemirror | 6.x | MIT |
+| @cantoo/pdf-lib | 2.11.1 | MIT |
+| @maxgraph/core | 0.25.2 | Apache-2.0 (bundled into the flowchart editor) |
+| @codemirror/* (autocomplete, commands, lang-*, language, search, state, theme-one-dark, view) | 6.x | MIT |
 | @replit/codemirror-vim | 6.4.0 | MIT |
-| core-util-is | 1.0.3 | MIT |
-| docx | 9.6.1 | MIT |
-| dompurify | 3.4.14 | (MPL-2.0 OR Apache-2.0) |
-| electron-store | 10.1.0 | MIT |
+| dompurify | 3.4.18 | (MPL-2.0 OR Apache-2.0) |
 | ffmpeg-static | 5.3.0 | GPL-3.0-or-later (binary; see §2) |
-| highlight.js | 11.11.1 | BSD-3-Clause |
-| html2pdf.js | 0.14.0 | MIT |
-| jszip | 3.10.1 | (MIT OR GPL-3.0-or-later) |
-| katex | 0.18.5 | MIT |
-| marked, marked-footnote, marked-highlight | 17.x / 1.4 / 2.2 | MIT |
-| mermaid | 11.17.2 | MIT |
-| pdfjs-dist | 5.5.207 | Apache-2.0 |
-| pdfkit | 0.17.2 | MIT |
-| pizzip | 3.2.0 | (MIT OR GPL-3.0) |
-| sharp | 0.35.4 | Apache-2.0 (+ LGPL libvips binaries; see §2) |
-| simple-git | 3.36.0 | MIT |
-| tslib | 2.8.1 | 0BSD |
+| highlight.js | 11.12.0 | BSD-3-Clause |
+| jszip | 3.10.2 | (MIT OR GPL-3.0-or-later) |
+| katex | 0.19.1 | MIT |
+| lucide | 1.77.0 | ISC (bundled into the renderer icon set) |
+| marked, marked-footnote, marked-highlight | 18.x / 1.4 / 2.2 | MIT |
+| mermaid | 12.3.0 | MIT |
+| pdfjs-dist | 6.5.438 | Apache-2.0 |
+| pizzip | 3.3.0 | (MIT OR GPL-3.0) |
+| sharp | 0.35.5 | Apache-2.0 (+ LGPL libvips binaries; see §2) |
+| simple-git | 4.1.0 | MIT |
 
-(Development-only dependencies — electron-builder, eslint, prettier, jest,
-cross-env, @testing-library/dom — are not distributed with the application.)
+(Development-only dependencies — electron, electron-builder, esbuild, eslint,
+prettier, jest, cross-env — are not distributed with the application.
+`lucide` and `@maxgraph/core` are build-time devDependencies whose tree-shaken
+code is reproduced in the bundled renderer scripts.)
 
 ## 4. Optional external tools (NOT bundled)
 

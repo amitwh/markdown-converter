@@ -9,6 +9,7 @@ Scripts in this directory support packaging, tool acquisition, and asset generat
 | `download-tools.js` | `npm run download-tools` | Downloads Pandoc **3.9.0.2** for the host platform into `bin/<platform>/pandoc` and Fira Code **6.2** fonts into `assets/fonts`. SHA-256 pins are verified where available (the darwin Pandoc hash is intentionally unpinned). |
 | `bundle-markitdown.js` | `npm run bundle:markitdown` | Builds an optional ~75 MB PyInstaller one-file `markitdown` binary into `bin/<platform>/`. Requires Python on the build host; excludes ML extras (audio/OCR). Failure is non-fatal — the app falls back to a system MarkItDown. |
 | `build-flowchart-editor.js` | `npm run build:flowchart-editor` | Bundles the maxGraph flowchart editor (`src/flowchart-editor/`) into `src/renderer/flowchart-editor.bundle.js` for the sandboxed standalone window. |
+| `build-icons.js` | `npm run build:icons` | Tree-shakes the selected Lucide icons from `src/icons/lucide-entry.js` into `src/renderer/lucide-icons.bundle.js` (exposes `window.Lucide`). |
 | `generate-icons.js` | `npm run generate-icons` | Rasterizes `assets/markdown-converter-assets/app-icon.svg` into the platform icon set via `sharp`. |
 | `create-selfsigned-cert.ps1` | `npm run create-cert` (Windows) | Creates a self-signed code-signing certificate for local Windows builds. |
 

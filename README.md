@@ -173,6 +173,18 @@ Architecture, security model, packaging details, and known issues live in
 | Flowchart window: Redo | Ctrl+Shift+Z |
 | Flowchart window: Delete selected | Delete |
 
+## Appearance
+
+The application shell — header, toolbar, tabs, sidebar, dialogs and status bar — follows the
+CAMS2 design system: brand `#e5461f`, the warm ConcreteInfo gray scale, **Inter** UI type,
+8–16 px radii and **Lucide** icons.
+
+- **View → Appearance → Light / Dark / Follow System** switches the shell independently of the
+  document theme. The choice persists in `settings.json` (`appTheme`).
+- **View → Editor Theme** keeps the 37 CodeMirror/preview themes independent. When the shell is
+  switched to dark and the editor is on a light theme, the editor temporarily moves to One Dark;
+  switching the shell back restores the previous editor theme.
+
 ## Themes
 
 37 built-in editor themes, registered in `src/main/ThemeRegistry.bootstrap.js`.

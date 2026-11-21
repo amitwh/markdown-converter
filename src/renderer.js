@@ -2147,7 +2147,34 @@ function showAutosaveRecoveryBanner(pending) {
   document.body.appendChild(overlay);
 }
 
+function refreshLucideIcons(root = document) {
+  if (window.Lucide && typeof window.Lucide.createIcons === 'function') {
+    window.Lucide.createIcons({ root });
+  }
+}
+
+function initLucide() {
+  refreshLucideIcons();
+  const observer = new MutationObserver((mutations) => {
+    let needs = false;
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.matches?.('i[data-lucide]') || node.querySelector?.('i[data-lucide]')) {
+          needs = true;
+          break;
+        }
+      }
+      if (needs) break;
+    }
+    if (needs) requestAnimationFrame(() => refreshLucideIcons());
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  initLucide();
+  ipcRenderer.send('get-app-theme');
   const ModalManager = _ModalManager;
   tabManager = new TabManager();
 
@@ -3156,6 +3183,12 @@ function applyThemeByLinkToggle(id) {
   document.body.className = `theme-${id}`;
   return activeLinkId;
 }
+
+ipcRenderer.on('app-theme-changed', (_event, payload) => {
+  const resolved =
+    payload && typeof payload === 'object' ? payload.resolved : payload || 'light';
+  document.body.dataset.appTheme = resolved === 'dark' ? 'dark' : 'light';
+});
 
 ipcRenderer.on('theme-changed', (event, theme) => {
   applyThemeByLinkToggle(theme);
