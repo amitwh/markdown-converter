@@ -157,3 +157,69 @@ describe('AsciiArt.getFontMeta', () => {
     expect(AsciiArt.getFontMeta('nope')).toBeNull();
   });
 });
+
+describe('AsciiArt.generate — studio options', () => {
+  test('letter spacing widens hand-coded output by one column per gap', () => {
+    const plain = AsciiArt.generate({ text: 'AB', font: 'standard' });
+    const spaced = AsciiArt.generate({ text: 'AB', font: 'standard', options: { spacing: 1 } });
+    const font = AsciiArtFonts.HAND_CODED_FONTS.standard;
+    const glyphWidth = font.chars['A'][0].length;
+    expect(spaced.split('\n')[0].length).toBe(plain.split('\n')[0].length + 1);
+    expect(spaced.split('\n')[0].startsWith(font.chars['A'][0])).toBe(true);
+    expect(glyphWidth).toBeGreaterThan(0);
+  });
+
+  test('spacing is clamped to 0..10', () => {
+    const clamped = AsciiArt.generate({ text: 'A', font: 'standard', options: { spacing: 999 } });
+    const ten = AsciiArt.generate({ text: 'A', font: 'standard', options: { spacing: 10 } });
+    expect(clamped).toBe(ten);
+  });
+
+  test('multi-line input renders each line as its own block', () => {
+    const one = AsciiArt.generate({ text: 'A', font: 'standard' });
+    const two = AsciiArt.generate({ text: 'A\nB', font: 'standard' });
+    expect(two.split('\n\n')).toHaveLength(2);
+    expect(two.startsWith(one)).toBe(true);
+  });
+
+  test('figlet options and justify are applied', () => {
+    jest.resetModules();
+    const seen = [];
+    jest.doMock('../../src/main/AsciiArt.figlet-adapter', () => ({
+      AsciiArtFigletError: class extends Error {},
+      generateFiglet: (t, f, opts) => {
+        seen.push({ t, f, opts });
+        return 'ab\nabcdef';
+      },
+      listFigletFonts: () => ['Big'],
+      loadFiglet: () => ({}),
+    }));
+    const Fresh = require('../../src/main/AsciiArt');
+    const out = Fresh.generate({
+      text: 'hi',
+      font: 'figlet:Big',
+      options: { width: 60, horizontalLayout: 'fitted', justify: 'right' },
+    });
+    expect(seen[0].f).toBe('Big');
+    expect(seen[0].opts).toEqual({ width: 60, horizontalLayout: 'fitted' });
+    // Right justify pads the shorter line to the width of the longest.
+    expect(out.split('\n')[0]).toBe('    ab');
+  });
+
+  test('figlet width is clamped to the supported range', () => {
+    jest.resetModules();
+    let captured = null;
+    jest.doMock('../../src/main/AsciiArt.figlet-adapter', () => ({
+      AsciiArtFigletError: class extends Error {},
+      generateFiglet: (_t, _f, opts) => {
+        captured = opts;
+        return '';
+      },
+      listFigletFonts: () => ['Big'],
+      loadFiglet: () => ({}),
+    }));
+    const Fresh = require('../../src/main/AsciiArt');
+    Fresh.generate({ text: 'x', font: 'figlet:Big', options: { width: 9999 } });
+    expect(captured.width).toBe(400);
+  });
+});

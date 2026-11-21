@@ -23,28 +23,69 @@ const FigletAdapter = require('./AsciiArt.figlet-adapter');
 
 const SAMPLE_TEXT = 'HELLO';
 
-function _renderHandCoded(text, fontId) {
+function _renderHandCoded(text, fontId, options = {}) {
   const font = HAND_CODED_FONTS[fontId];
   if (!font) return null;
-  const upper = String(text ?? '').toUpperCase();
-  const lines = Array(font.height).fill('');
-  for (const ch of upper) {
-    const glyph = font.chars[ch] || font.chars[' '];
-    for (let i = 0; i < font.height; i++) lines[i] += glyph[i];
-  }
-  return lines.join('\n');
+  const spacer = ' '.repeat(Math.max(0, Math.min(10, Number(options.spacing) || 0)));
+  const blocks = String(text ?? '')
+    .split('\n')
+    .map((line) => {
+      const upper = line.toUpperCase();
+      const lines = Array(font.height).fill('');
+      let columns = 0;
+      for (const ch of upper) {
+        const glyph = font.chars[ch] || font.chars[' '];
+        for (let i = 0; i < font.height; i++) {
+          lines[i] += (columns > 0 && spacer ? spacer : '') + glyph[i];
+        }
+        columns++;
+      }
+      return lines.join('\n');
+    });
+  return blocks.join('\n\n');
 }
 
-function generate({ text, font, options: _options } = {}) {
+function _normalizeFigletOptions(options = {}) {
+  const out = {};
+  const width = Number(options.width);
+  if (Number.isFinite(width) && width > 0) out.width = Math.min(400, Math.floor(width));
+  if (options.horizontalLayout) out.horizontalLayout = options.horizontalLayout;
+  if (options.verticalLayout) out.verticalLayout = options.verticalLayout;
+  if (options.whitespaceBreak) out.whitespaceBreak = true;
+  return out;
+}
+
+function _justify(text, justify) {
+  if (justify !== 'center' && justify !== 'right') return text;
+  const lines = text.split('\n');
+  const width = lines.reduce((w, l) => Math.max(w, l.length), 0);
+  return lines
+    .map((l) => {
+      const pad = width - l.length;
+      if (pad <= 0) return l;
+      if (justify === 'right') return ' '.repeat(pad) + l;
+      const left = Math.floor(pad / 2);
+      return ' '.repeat(left) + l + ' '.repeat(pad - left);
+    })
+    .join('\n');
+}
+
+function generate({ text, font, options } = {}) {
   const f = typeof font === 'string' && font ? font : 'standard';
+  const opts = options || {};
   if (f.startsWith('template:')) {
     return getTemplate(f.slice('template:'.length));
   }
   if (f.startsWith('figlet:')) {
-    return FigletAdapter.generateFiglet(String(text ?? ''), f.slice('figlet:'.length));
+    const rendered = FigletAdapter.generateFiglet(
+      String(text ?? ''),
+      f.slice('figlet:'.length),
+      _normalizeFigletOptions(opts)
+    );
+    return _justify(rendered, opts.justify);
   }
-  const rendered = _renderHandCoded(text, f);
-  return rendered !== null ? rendered : _renderHandCoded(text, 'standard');
+  const rendered = _renderHandCoded(text, f, opts);
+  return rendered !== null ? rendered : _renderHandCoded(text, 'standard', opts);
 }
 
 function listFonts() {

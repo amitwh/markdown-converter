@@ -53,6 +53,9 @@ const fields = {
 
 let graph = null;
 let undoManager = null;
+// Connector tool: click a source shape, then a target shape to draw an edge.
+let connectMode = false;
+let connectSource = null;
 let sessionPath = null;
 let saveTimer = null;
 let inspectorTimer = null;
@@ -537,6 +540,49 @@ function insertAtCursor() {
   setStatus('Inserted at cursor');
 }
 
+function setConnectMode(on) {
+  connectMode = !!on;
+  connectSource = null;
+  const button = document.querySelector('[data-action="connect"]');
+  if (button) button.setAttribute('aria-pressed', String(connectMode));
+  if (canvasEl) canvasEl.classList.toggle('fc-connecting', connectMode);
+  setStatus(
+    connectMode
+      ? 'Connector: click a source shape, then a target shape (Esc to exit)'
+      : 'Ready'
+  );
+}
+
+function wireConnector() {
+  graph.addListener(InternalEvent.CLICK, (_sender, evt) => {
+    if (!connectMode) return;
+    const cell = evt.getProperty('cell');
+    if (!cell || !cell.isVertex()) {
+      connectSource = null;
+      setStatus('Connector: click a source shape, then a target shape');
+      return;
+    }
+    if (!connectSource) {
+      connectSource = cell;
+      graph.setSelectionCell(cell);
+      setStatus(`Connector: source "${cellLabel(cell) || 'shape'}" — now click the target`);
+      return;
+    }
+    if (cell === connectSource) {
+      connectSource = null;
+      setStatus('Connector: source cleared');
+      return;
+    }
+    const from = cellLabel(connectSource) || 'shape';
+    const to = cellLabel(cell) || 'shape';
+    addEdge(graph, connectSource, cell, 'solid');
+    connectSource = null;
+    setStatus(`Connected ${from} → ${to}. Click another source to keep connecting.`);
+    refreshInspector();
+    updateUndoButtons();
+  });
+}
+
 function wireToolbar() {
   document.querySelector('.fc-toolbar').addEventListener('click', (event) => {
     const button = event.target.closest('button[data-action]');
@@ -554,6 +600,9 @@ function wireToolbar() {
         break;
       case 'duplicate':
         duplicateSelection(graph);
+        break;
+      case 'connect':
+        setConnectMode(!connectMode);
         break;
       case 'zoom-out':
         graph.zoomOut();
@@ -643,6 +692,7 @@ function wireKeyboard() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       if (shortcutsModal && !shortcutsModal.hidden) hideShortcuts();
+      else if (connectMode) setConnectMode(false);
       else graph.clearSelection();
       return;
     }
@@ -656,6 +706,11 @@ function wireKeyboard() {
     const meta = event.ctrlKey || event.metaKey;
     const key = event.key.toLowerCase();
 
+    if (!meta && key === 'c') {
+      setConnectMode(!connectMode);
+      event.preventDefault();
+      return;
+    }
     if (meta && !event.shiftKey && key === 'z') {
       if (undoManager.canUndo()) undoManager.undo();
       event.preventDefault();
@@ -777,6 +832,7 @@ async function bootstrap() {
   wireCanvasDrop();
   wireInspector();
   wireToolbar();
+  wireConnector();
   wireKeyboard();
   wireModelEvents();
   if (shortcutsOverlay) shortcutsOverlay.addEventListener('click', hideShortcuts);

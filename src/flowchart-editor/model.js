@@ -2,8 +2,20 @@
  * maxGraph model configuration, graph <-> flow-model conversion, and
  * persistence helpers for the flowchart editor.
  */
-import { Graph, InternalEvent, UndoManager } from '@maxgraph/core';
+import { Graph, ImageBox, InternalEvent, UndoManager } from '@maxgraph/core';
 import { getShape, shapeForMermaidKind, shapeIdForStyle } from './shapes.js';
+
+// Hover handle shown on a shape's connection hotspot. maxGraph only creates a
+// drag-to-connect handle when `connectImage` is set — without it the default
+// editor has no visible way to draw a connector at all.
+const CONNECT_HANDLE_SRC =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14">' +
+      '<circle cx="7" cy="7" r="6" fill="#e5461f" stroke="#ffffff" stroke-width="1.5"/>' +
+      '<path d="M4.5 7h5M7 4.5v5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>' +
+      '</svg>'
+  );
 
 function isNil(value) {
   return value === null || value === undefined;
@@ -76,6 +88,14 @@ export function createEditorGraph(container) {
 
   const selectionHandler = graph.getPlugin('SelectionHandler');
   if (selectionHandler) selectionHandler.guidesEnabled = true;
+
+  // Drag-to-connect handle. The default hotspot (middle half of the shape)
+  // still moves the shape when pressed elsewhere, so both gestures coexist.
+  const connectionHandler = graph.getPlugin('ConnectionHandler');
+  if (connectionHandler) {
+    connectionHandler.connectImage = new ImageBox(CONNECT_HANDLE_SRC, 14, 14);
+    connectionHandler.cursorConnect = 'crosshair';
+  }
 
   const fitPlugin = graph.getPlugin('fit');
   if (fitPlugin) {

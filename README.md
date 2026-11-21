@@ -6,7 +6,7 @@
 
 A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron 45 and Node 24. 100% open-source with no proprietary dependencies.
 
-**Current release: v4.16.0** — Visio-style flowchart editor built on maxGraph (direct manipulation, inspector, snap/guides, SVG/PNG/JPG/VSDX export), Electron 45 on Node 24, a refreshed library stack, and local release builds with About-page build metadata.
+**Current release: v4.17.2** — a restyled Find & Replace dialog (CAMS2 controls, Lucide match navigation, brand-accent Replace All), on top of the ASCII Art Studio, the corrected export matrix (real ODP, JATS XML, YAML/TOML data documents) and the CAMS2 shell from 4.16.x.
 
 ## Features
 
@@ -17,7 +17,7 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 - **Live preview** - Real-time markdown rendering with syntax highlighting
 - **Dynamic splitter** - Drag to resize editor and preview panes
 - **37 themes** - Light, dark, and high-contrast themes including Atom One Light, Dracula, Nord, Sepia, and more
-- **Find & Replace** - Search and replace with regex support
+- **Find & Replace** - Plain-text search with next/previous navigation, replace-one and replace-all (applied as a single undoable edit)
 - **Line numbers** - Toggle line numbers in the editor
 - **Auto-save** - Automatic saving every 30 seconds
 - **Math support** - KaTeX integration for mathematical expressions
@@ -42,24 +42,27 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
   - Set permissions
 
 ### Export Options
-- **PDF** - Export to PDF with customizable page sizes and orientation
+- **PDF** - Export to PDF with customizable page sizes and orientation (falls back to the built-in renderer when no TeX engine is installed)
 - **DOCX** - Standard and Enhanced (template-based) Word export
-- **ODT** - OpenDocument format
-- **HTML** - Web-ready HTML export
-- **PowerPoint** - PPTX presentation export
-- **EPUB** - E-book format
-- **LaTeX** - Academic document format
-- **RTF** - Rich Text Format
+- **ODT** - OpenDocument text
+- **ODP** - OpenDocument presentation (Pandoc → PPTX → LibreOffice; requires LibreOffice)
+- **HTML / Reveal.js** - Web page or slide deck
+- **PowerPoint (PPTX) / Beamer** - Presentation exports
+- **EPUB / MOBI** - E-book formats (MOBI needs Calibre; otherwise the EPUB copy is kept)
+- **LaTeX / RTF / Man** - Typesetting and plain-text formats
+- **Markup** - AsciiDoc, reStructuredText, MediaWiki, Org-mode, Textile, Confluence/Jira
+- **Data** - JSON (Pandoc AST), YAML and TOML documents (`title` + Markdown source), JATS XML, Jupyter notebook (.ipynb)
+- **CSV / XLSX** - Markdown tables to spreadsheet files (one sheet per table)
 - **Export themes** - Five visual styles (Modern, Classic, Sepia, Minimal, Elegant) for PDF and Word exports — recolored headings, links, and fonts
 
 ### Advanced Features
 - **Custom headers & footers** - Add headers/footers to exports with dynamic fields
 - **Page size configuration** - A3, A4, A5, B4, B5, Letter, Legal, Tabloid, or custom sizes
-- **Visio-style flow chart editor** - maxGraph canvas with direct drag/resize/connect, snap-to-grid and alignment guides, a property inspector, undo/redo, multi-select, alignment/distribution, and SVG/PNG/JPG/VSDX export. Insert Mermaid at cursor; Ctrl+Alt+F opens the standalone generator.
+- **Visio-style flow chart editor** - maxGraph canvas with direct drag/resize, a Connector tool (click a source shape, then a target; `C` toggles it) plus hover drag handles, snap-to-grid and alignment guides, a property inspector, undo/redo, multi-select, alignment/distribution, and SVG/PNG/JPG/VSDX export. Insert Mermaid at cursor; Ctrl+Alt+F opens the standalone generator.
 - **Quick switcher** - Ctrl+P fuzzy search across open tabs and recent files, with workspace search when a folder context is available.
 - **Daily notes** - Ctrl+Alt+D opens today's note from a configurable daily-notes folder/template.
 - **Batch conversion** - Convert entire folders of markdown files
-- **ASCII Art Generator** - 17 hand-coded fonts + 400+ FIGlet fonts; text banners, boxes, and templates; insert into editor, copy to clipboard, or save to file (Ctrl+Shift+A)
+- **ASCII Art Studio** (Ctrl+Shift+A) — live preview with 17 built-in and ~349 FIGlet fonts, a searchable font gallery that previews your text in every face, wrap width / letter spacing / alignment / smushing controls, box frames in six border styles (single, double, rounded, heavy, shadow, ASCII) with padding, alignment and minimum width, and 16 ready-made diagram templates rendered as thumbnails. Copy, save, or insert into the editor as a fenced code block.
 - **Word templates** - Use custom Word templates for enhanced exports
 - **Import documents** - Import from 30+ formats (DOCX, PDF, HTML, etc.)
 - **MarkItDown import** - Any file → Markdown via [Microsoft MarkItDown](https://github.com/microsoft/markitdown). Bundled in release builds when its PyInstaller bundle is present (MIT + embedded PSF Python runtime); otherwise the app falls back to a system `markitdown`. Core formats: PDF, DOCX, PPTX, XLSX, Outlook `.msg`, EPUB, HTML, images, ZIP, CSV, JSON, XML. For **audio transcription** and **OCR**, install `markitdown[all]` system-side (multi-GB ML models; not bundled).
@@ -109,7 +112,7 @@ Build output goes to `dist/`. Linux produces deb + AppImage + snap; Windows prod
 ## Development
 
 ```bash
-npm test                   # Jest — 106 suites, ~1,330 tests
+npm test                   # Jest — 101 suites, ~1,250 tests
 npm run test:coverage
 npm run lint               # ESLint (flat config)
 npm run format             # Prettier
@@ -181,6 +184,8 @@ CAMS2 design system: brand `#e5461f`, the warm ConcreteInfo gray scale, **Inter*
 
 - **View → Appearance → Light / Dark / Follow System** switches the shell independently of the
   document theme. The choice persists in `settings.json` (`appTheme`).
+- Dialogs keep a light, form-friendly surface in both appearances, while accents, shadows and the
+  backdrop follow the active theme. Primary buttons use the CAMS2 brand accent.
 - **View → Editor Theme** keeps the 37 CodeMirror/preview themes independent. When the shell is
   switched to dark and the editor is on a light theme, the editor temporarily moves to One Dark;
   switching the shell back restores the previous editor theme.
@@ -329,4 +334,4 @@ Amit Haridas (amit.wh@gmail.com)
 
 ## Version
 
-v4.16.0
+v4.17.2

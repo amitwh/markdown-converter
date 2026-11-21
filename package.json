@@ -1,69 +1,17 @@
 {
   "name": "markdown-converter",
-  "version": "4.16.0",
+  "version": "4.17.2",
   "description": "Professional Markdown editor and universal file converter with PDF editing, batch processing, and syntax highlighting",
   "main": "src/main.js",
   "desktopName": "MarkdownConverter",
   "engines": {
     "node": ">=24.0.0"
   },
-  "scripts": {
-    "start": "node scripts/build-flowchart-editor.js && node scripts/build-icons.js && electron .",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
-    "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
-    "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
-    "lint": "eslint src tests",
-    "lint:fix": "eslint src tests --fix",
-    "format": "prettier --write src tests",
-    "format:check": "prettier --check src tests",
-    "build": "electron-builder --config electron-builder.config.js",
-    "build:win": "electron-builder --config electron-builder.config.js --win",
-    "build:win-signed": "cross-env CSC_LINK=code-signing-cert.pfx electron-builder --config electron-builder.config.js --win",
-    "build:win-unsigned": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config electron-builder.config.js --win",
-    "create-cert": "powershell -ExecutionPolicy Bypass -File scripts/create-selfsigned-cert.ps1",
-    "build:mac": "electron-builder --config electron-builder.config.js --mac",
-    "build:linux": "electron-builder --config electron-builder.config.js --linux",
-    "build:linux-ci": "electron-builder --config electron-builder.config.js --linux deb AppImage",
-    "build:local": "electron-builder --config electron-builder.config.js --linux --win",
-    "dist": "electron-builder --config electron-builder.config.js --publish=never",
-    "dist:all": "electron-builder --config electron-builder.config.js -mwl",
-    "download-tools": "node scripts/download-tools.js",
-    "bundle:markitdown": "node scripts/bundle-markitdown.js",
-    "build:flowchart-editor": "node scripts/build-flowchart-editor.js",
-    "release:local": "node scripts/release-local.js",
-    "build:deb:local": "node scripts/release-local.js --no-git --deb-only",
-    "generate-icons": "node scripts/generate-icons.js",
-    "build:icons": "node scripts/build-icons.js"
-  },
-  "keywords": [
-    "markdown",
-    "pandoc",
-    "converter",
-    "editor",
-    "pdf",
-    "audio",
-    "video",
-    "image"
-  ],
   "author": "ConcreteInfo <amit.wh@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/amitwh/markdown-converter"
-  },
-  "devDependencies": {
-    "@maxgraph/core": "^0.25.2",
-    "cross-env": "^10.1.0",
-    "electron": "^45.4.1",
-    "electron-builder": "^26.18.0",
-    "esbuild": "^0.28.2",
-    "eslint": "^10.15.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.7",
-    "jest": "^30.5.2",
-    "jest-environment-jsdom": "^30.5.2",
-    "lucide": "^1.77.0",
-    "prettier": "^3.10.1"
   },
   "dependencies": {
     "@cantoo/pdf-lib": "^2.11.1",
@@ -108,7 +56,7 @@
   },
   "buildInfo": {
     "date": "2026-11-21",
-    "commit": "f31609a",
+    "commit": "a517dd4",
     "electron": "45.4.1"
   }
 }

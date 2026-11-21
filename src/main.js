@@ -2574,6 +2574,19 @@ ipcMain.on('show-pdf-editor-from-toolbar', (event, { operation, filePath }) => {
   mainWindow.webContents.send('show-pdf-editor-dialog', operation, filePath);
 });
 
+// Command-palette actions send these channels instead of calling the
+// main-process helpers directly. Without these listeners "Open File" and the
+// "Export to …" palette entries were dead.
+ipcMain.on('menu-open', () => openFile());
+ipcMain.on('export', (_event, format) => exportFile(format));
+
+// Auxiliary windows (ASCII/table generators) insert generated content into the
+// editor through preload's insertAtCursor(); forward it to the main window.
+ipcMain.on('insert-content', (_event, content) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('insert-content', content);
+});
+
 // Check if conversion tool is available (using execFile for safety)
 function checkConverterAvailable(tool) {
   return new Promise((resolve) => {
@@ -2854,11 +2867,23 @@ function convertWithFFmpeg(inputFile, outputPath) {
   };
 }
 
-// Pandoc conversion - returns {command, args} for execFile
+// Pandoc conversion - returns {command, args} for execFile.
+// Most writers are inferred from the output extension, but a few extensions
+// are not in Pandoc's table — without an explicit `-t`, Pandoc silently falls
+// back to HTML and writes it into e.g. a `.mediawiki` file.
+const PANDOC_EXPLICIT_WRITERS = {
+  mediawiki: 'mediawiki',
+  docbook: 'docbook',
+  man: 'man',
+  latex: 'latex',
+};
 function convertWithPandoc(inputFile, outputPath) {
+  const ext = path.extname(outputPath).toLowerCase().slice(1);
+  const writer = PANDOC_EXPLICIT_WRITERS[ext];
+  const args = writer ? [inputFile, '-t', writer, '-o', outputPath] : [inputFile, '-o', outputPath];
   return {
     command: getPandocPath(),
-    args: [inputFile, '-o', outputPath],
+    args,
   };
 }
 function performExportWithOptions(format, options) {
@@ -3075,11 +3100,24 @@ function performExportWithOptions(format, options) {
           outputFile,
           format
         );
-      } else if (format === 'yaml' || format === 'xml' || format === 'toml') {
-        // For YAML/XML/TOML, save the raw markdown content with the new extension
+      } else if (format === 'xml') {
+        // Real XML: Pandoc's JATS writer, standalone so the output parses as
+        // a complete <article> document rather than a bare fragment.
+        exportWithPandoc(
+          [currentFile, '-t', 'jats', '-s', '-o', outputFile],
+          outputFile,
+          format
+        );
+      } else if (format === 'yaml' || format === 'toml') {
+        // Pandoc has no YAML/TOML writer. Serialize a valid data document
+        // (title + the Markdown source as a block string) instead of writing
+        // Markdown bytes into a .yaml/.toml file.
         try {
+          const { toYamlDocument, toTomlDocument } = require('./main/DataExport');
           const content = fs.readFileSync(currentFile, 'utf-8');
-          fs.writeFileSync(outputFile, content, 'utf-8');
+          const doc = { title: path.basename(currentFile), content };
+          const serialized = format === 'yaml' ? toYamlDocument(doc) : toTomlDocument(doc);
+          fs.writeFileSync(outputFile, serialized, 'utf-8');
           showExportSuccess(outputFile);
         } catch (err) {
           dialog.showErrorBox(
@@ -3211,6 +3249,10 @@ function performExportWithOptions(format, options) {
             }
           });
         });
+      } else if (format === 'odp') {
+        // Pandoc has no ODP writer (it would silently emit HTML into the
+        // .odp file), so build a PPTX first and let LibreOffice convert it.
+        exportOdpViaLibreOffice(outputFile);
       } else {
         // Generic export for other formats
         exportWithPandoc(pandocArgs, outputFile, format);
@@ -3223,6 +3265,64 @@ function performExportWithOptions(format, options) {
         sanitizeErrorMessage(`Error checking system requirements: ${error.message}`)
       );
     });
+}
+// ODP export — Pandoc cannot write OpenDocument presentations. Render a PPTX
+// with Pandoc, then convert it with LibreOffice. Fails loudly when LibreOffice
+// is missing rather than writing an HTML document with an .odp extension.
+function exportOdpViaLibreOffice(outputFile) {
+  const soffice =
+    process.platform === 'win32'
+      ? 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
+      : 'soffice';
+  const tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mc_odp_'));
+  const baseName = path.basename(currentFile, path.extname(currentFile));
+  const pptxPath = path.join(tmpDir, `${baseName}.pptx`);
+  const producedOdp = path.join(tmpDir, `${baseName}.odp`);
+  const cleanup = () => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  };
+
+  execFile(getPandocPath(), [currentFile, '-o', pptxPath, '--slide-level=2'], (pandocError) => {
+    if (pandocError) {
+      cleanup();
+      dialog.showErrorBox(
+        'Export Error',
+        sanitizeErrorMessage(`Failed to build the presentation: ${pandocError.message}`)
+      );
+      return;
+    }
+    execFile(
+      soffice,
+      ['--headless', '--convert-to', 'odp', '--outdir', tmpDir, pptxPath],
+      (sofficeError) => {
+        if (sofficeError || !fs.existsSync(producedOdp)) {
+          cleanup();
+          dialog.showErrorBox(
+            'ODP Export Requires LibreOffice',
+            'LibreOffice (soffice) is required for OpenDocument Presentation export and could not be run.\n\n' +
+              'Install it from: https://www.libreoffice.org/download/download/\n\n' +
+              'PPTX export works without LibreOffice.'
+          );
+          return;
+        }
+        try {
+          fs.copyFileSync(producedOdp, outputFile);
+          cleanup();
+          showExportSuccess(outputFile);
+        } catch (copyError) {
+          cleanup();
+          dialog.showErrorBox(
+            'Export Error',
+            sanitizeErrorMessage(`Failed to save the ODP file: ${copyError.message}`)
+          );
+        }
+      }
+    );
+  });
 }
 function tryPdfFallback(inputFile, outputFile, engines, index, options, _lastError) {
   if (index >= engines.length) {
@@ -5886,8 +5986,10 @@ function openAsciiGenerator() {
     return;
   }
   asciiGeneratorWindow = new BrowserWindow({
-    width: 800,
-    height: 700,
+    width: 1180,
+    height: 860,
+    minWidth: 720,
+    minHeight: 560,
     parent: mainWindow,
     modal: false,
     title: 'ASCII Art Generator',
@@ -6277,6 +6379,19 @@ ipcMain.handle('ascii:last-font', (_event, { font } = {}) => {
     return font;
   }
   return store.get('ascii:lastFont', null);
+});
+
+// ASCII Studio options (wrap width, letter spacing, alignment, smushing,
+// preview size/theme, code-block-on-insert). Called without an argument to
+// read, with a plain object to merge and persist.
+ipcMain.handle('ascii:options', (_event, options) => {
+  const saved = store.get('ascii:options', {}) || {};
+  if (options && typeof options === 'object' && !Array.isArray(options)) {
+    const merged = { ...saved, ...options };
+    store.set('ascii:options', merged);
+    return merged;
+  }
+  return saved;
 });
 
 // ================================

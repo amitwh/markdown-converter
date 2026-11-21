@@ -697,7 +697,7 @@ class TabManager {
     if (!tab) return;
     try {
       document.getElementById('status-text').textContent = 'Loading PDF...';
-      const loadingTask = getPdfjsLib().getDocument(filePath);
+      const loadingTask = loadPdfDocument(getPdfjsLib(), filePath);
       tab.pdfDoc = await loadingTask.promise;
       tab.pdfCurrentPage = 1;
       tab.pdfZoomLevel = 1.0;
@@ -2037,26 +2037,17 @@ function showRestoreSessionPrompt(session) {
 
   const overlay = document.createElement('div');
   overlay.id = 'session-restore-prompt';
+  overlay.className = 'session-restore-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-labelledby', 'session-restore-title');
-  overlay.style.cssText =
-    'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);' +
-    'display:flex;align-items:center;justify-content:center;z-index:10000;';
   overlay.innerHTML = `
-    <div style="background:var(--bg-primary,#fff);color:var(--text-primary,#222);border-radius:8px;
-                padding:24px;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.3);text-align:center;">
-      <h3 id="session-restore-title" style="margin:0 0 8px;">Restore previous session?</h3>
-      <p style="margin:0 0 20px;color:var(--text-secondary,#666);">
-        The app closed with ${summary}. Restore them now?
-      </p>
-      <div style="display:flex;gap:12px;justify-content:center;">
-        <button id="session-restore-yes" type="button"
-          style="padding:8px 20px;border-radius:4px;border:none;cursor:pointer;
-                 background:#4a90d9;color:#fff;">Restore session</button>
-        <button id="session-restore-no" type="button"
-          style="padding:8px 20px;border-radius:4px;border:1px solid #ccc;cursor:pointer;
-                 background:transparent;color:inherit;">Start fresh</button>
+    <div class="session-restore-dialog">
+      <h3 id="session-restore-title">Restore previous session?</h3>
+      <p>The app closed with ${summary}. Restore them now?</p>
+      <div class="session-restore-actions">
+        <button id="session-restore-no" type="button" class="btn btn-secondary">Start fresh</button>
+        <button id="session-restore-yes" type="button" class="btn btn-primary">Restore session</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -6287,6 +6278,13 @@ function getPdfjsLib() {
   return _pdfjsLib;
 }
 
+// pdfjs-dist v6 requires a data/url/range object (a bare path is rejected).
+// Reading the bytes avoids file:// fetch/CSP differences in the renderer.
+function loadPdfDocument(pdfjs, filePath) {
+  const fs = require('fs');
+  return pdfjs.getDocument({ data: new Uint8Array(fs.readFileSync(filePath)) });
+}
+
 // Open PDF file - now creates a tab instead of replacing the entire view
 async function openPdfFile(filePath) {
   // Check if this PDF is already open in a tab
@@ -6637,7 +6635,7 @@ async function loadPDFThumbnails(filePath) {
   grid.innerHTML = '<div class="loading-thumbnails">Loading page thumbnails...</div>';
   try {
     const pdfjs = getPdfjsLib();
-    const loadingTask = pdfjs.getDocument(filePath);
+    const loadingTask = loadPdfDocument(pdfjs, filePath);
     pdfDocInstance = await loadingTask.promise;
     pdfPreviewState.filePath = filePath;
     pdfPreviewState.pages = [];

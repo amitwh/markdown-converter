@@ -34,6 +34,14 @@ function mount() {
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
   document.body.innerHTML = bodyMatch ? bodyMatch[1] : html;
 
+  // Preferences persist to localStorage when the bridge has no options
+  // method; clear them so each test starts from the default mode.
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* jsdom without storage */
+  }
+
   // Mock the electronAPI bridge before the controller reads it.
   const generateMock = jest.fn(async ({ text, font }) => {
     if (typeof font === 'string' && font.startsWith('template:')) {
@@ -143,5 +151,82 @@ describe('ascii-controller: template buttons', () => {
     );
     expect(document.getElementById('preview').textContent).toBe('<<arrow-right>>');
     expect(btn.classList.contains('active')).toBe(true);
+  });
+});
+
+describe('ascii-controller: box renderer alignment and width', () => {
+  test('centres content inside a forced minimum width', () => {
+    mount();
+    const { renderBox } = window.ASCIIBoxRenderer;
+    const out = renderBox('Hi', 'single', 0, 'center', 6);
+    expect(out).toBe('┌────────┐\n│   Hi   │\n└────────┘');
+  });
+
+  test('right-aligns content inside a forced minimum width', () => {
+    mount();
+    const { renderBox } = window.ASCIIBoxRenderer;
+    const out = renderBox('Hi', 'ascii', 0, 'right', 4);
+    expect(out).toBe('+------+\n|   Hi |\n+------+');
+  });
+
+  test('shadow style draws an offset shadow row', () => {
+    mount();
+    const { renderBox } = window.ASCIIBoxRenderer;
+    const out = renderBox('Hi', 'shadow', 0);
+    const lines = out.split('\n');
+    expect(lines[0]).toBe('┌────┐░');
+    expect(lines[1]).toBe('│ Hi │░');
+    expect(lines[3]).toBe(' ░░░░░░');
+  });
+});
+
+describe('ascii-controller: text options reach the generator', () => {
+  test('Refresh sends wrap width, spacing, alignment and smushing', async () => {
+    const { generateMock } = mount();
+    await window.ASCIIController.bootstrap();
+    document.getElementById('text-input').value = 'HI';
+    document.getElementById('opt-width').value = '60';
+    document.getElementById('opt-spacing').value = '2';
+    document.getElementById('opt-justify').value = 'center';
+    document.getElementById('opt-layout').value = 'fitted';
+    document.getElementById('btn-generate').click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(generateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'HI',
+        options: expect.objectContaining({
+          width: 60,
+          spacing: 2,
+          justify: 'center',
+          horizontalLayout: 'fitted',
+        }),
+      })
+    );
+  });
+
+  test('selecting a font from the picker re-renders with that font', async () => {
+    const { generateMock } = mount();
+    await window.ASCIIController.bootstrap();
+    const picker = document.getElementById('font-picker');
+    picker.value = 'big';
+    picker.dispatchEvent(new window.Event('change'));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(generateMock).toHaveBeenCalledWith(expect.objectContaining({ font: 'big' }));
+  });
+
+  test('font search narrows the picker options', async () => {
+    mount();
+    await window.ASCIIController.bootstrap();
+    const search = document.getElementById('font-search');
+    search.value = 'big';
+    search.dispatchEvent(new window.Event('input'));
+    await new Promise((r) => setTimeout(r, 150));
+    const options = Array.from(document.getElementById('font-picker').options).map((o) => o.value);
+    expect(options).toContain('big');
+    expect(options).not.toContain('standard');
   });
 });

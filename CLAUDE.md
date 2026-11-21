@@ -6,7 +6,7 @@
 
 Electron desktop app for Markdown editing, PDF viewing/editing, and universal file conversion (Pandoc, FFmpeg, MarkItDown). Cross-platform (Win/macOS/Linux). Features: multi-tab CodeMirror 6 editor with live preview, 37 themes, PDF viewer/editor (merge/split/compress/rotate/delete/reorder/watermark/password/permissions), export to 20+ formats, batch conversion, Mermaid + visual flowchart generator, Git integration, quick switcher, inline AI assist, comments/wiki-links, version history, crash recovery, and a manifest-based plugin system.
 
-- **Version:** 4.16.0 · **License:** MIT · **App ID:** `com.concreteinfo.markdownconverter`
+- **Version:** 4.17.2 · **License:** MIT · **App ID:** `com.concreteinfo.markdownconverter`
 - **Stack:** Electron 45, Node 24 LTS, vanilla CommonJS JavaScript, **no renderer framework/bundler except the esbuild bundles (maxGraph flowchart + Lucide icons)**, CodeMirror 6, Jest 30 (jsdom). Key libraries: maxGraph 0.25 (flowchart), Lucide 1.77 (bundled icons), marked 18, Mermaid 12, pdfjs-dist 6, KaTeX 0.19, simple-git 4, ESLint 10.
 
 ## Branch Roles
@@ -23,12 +23,12 @@ The earlier React + Tauri + PWA design was **not** executed as written: the v5 r
 
 | File | Lines |
 |---|---|
-| `src/main.js` — main process | 6,591 |
-| `src/renderer.js` — renderer entry | 6,763 |
-| `src/preload.js` — IPC bridge | 626 |
-| `src/index.html` — single-page UI | 2,811 |
-| `src/**` total (JS/HTML/CSS) | ~56,600 |
-| Tests | 100 suites · 1,234 cases |
+| `src/main.js` — main process | 6,885 |
+| `src/renderer.js` — renderer entry | 6,798 |
+| `src/preload.js` — IPC bridge | 639 |
+| `src/index.html` — single-page UI | 2,499 |
+| `src/**` total (JS/HTML/CSS, excl. generated bundles) | ~54,600 |
+| Tests | 101 suites · 1,253 cases |
 
 ## Architecture
 
@@ -37,7 +37,8 @@ The earlier React + Tauri + PWA design was **not** executed as written: the v5 r
 `src/main.js` is one monolith: path/tool discovery, `validatePath` helpers, single-instance lock, `createWindow`, `createMenu` (~800 lines), export dispatcher (`performExportWithOptions`), batch conversion, CLI conversion, and **all 128 `ipcMain` registrations**. Extracted modules under `src/main/` are pure/Electron-free where possible and are injected with `fs`, `path`, `execFile`:
 
 - Files/PDF/media: `PDFOperations`, `PDFBatchOperations`, `ImageOperations`, `AudioOperations`, `VideoOperations`, `PdfFontHeader`, `XlsxExporter`, `MarkItDown`, `MetadataStripper`.
-- Documents/export: `PandocArgs`, `ExportThemes`, `ExportPresets`, `ExportCss`, `OdtStyling`, `DocxFontEmbedder`, `EpubFontEmbedder`, `MonospaceFontConfig`.
+- Documents/export: `PandocArgs`, `ExportThemes`, `ExportPresets`, `ExportCss`, `OdtStyling`, `DocxFontEmbedder`, `EpubFontEmbedder`, `MonospaceFontConfig`, `DataExport` (valid YAML/TOML documents — Pandoc has no writer for either).
+- ASCII: `AsciiArt` (orchestrator: hand-coded fonts, `template:<id>`, `figlet:<font>` with width/layout/spacing/justify options), `AsciiArt.fonts`, `AsciiArt.templates`, `AsciiArt.figlet-adapter`, plus `renderer/ascii-controller.js` driving the standalone studio window.
 - Content/knowledge: `WorkspaceSearch`, `SemanticEngine`, `DocQA`, `UrlTitle`, `VersionHistory`, `DailyNotes`, `DailyNotesTemplates`, `AutosaveBuffer`, `collectFilesByExtension`.
 - AI/system: `AiProviders`, `auto-updater`, `GitOperations`, `ThemeRegistry` + `ThemeRegistry.bootstrap` + `themeMenuBuilder`, `settings/monospaceSettings`, `AsciiArt*`.
 
@@ -62,8 +63,10 @@ Exposes `window.electronAPI` namespaces (`file`, `theme`, `print`, `export`, `ba
 
 ### Feature Subsystem Notes
 
-- **Flowchart:** standalone maxGraph editor (Apache-2.0) in a sandboxed window. `src/flowchart-editor/model.js` configures the graph (grid snap, alignment guides, panning, orthogonal edges, undo/redo, 200-step history), `shapes.js` registers custom Visio-style shapes, `exports.js` writes clean SVG/PNG/JPG via `ImageExport`, and `mermaid.js` keeps Mermaid import/export as interop only. Persists versioned JSON (`version: 3`, nodes/edges/styles) to `<userData>/flowchart-session.json` (600 ms debounce); open/save `.flowjson`; VSDX uses `flowchart-vsdx-export.js`. Mermaid remains lossy for positions, widths and shape colours by design.
+- **Flowchart:** standalone maxGraph editor (Apache-2.0) in a sandboxed window. `src/flowchart-editor/model.js` configures the graph (grid snap, alignment guides, panning, orthogonal edges, undo/redo, 200-step history), `shapes.js` registers custom Visio-style shapes, `exports.js` writes clean SVG/PNG/JPG via `ImageExport`, and `mermaid.js` keeps Mermaid import/export as interop only. Persists versioned JSON (`version: 3`, nodes/edges/styles) to `<userData>/flowchart-session.json` (600 ms debounce); open/save `.flowjson`; VSDX uses `flowchart-vsdx-export.js`. Mermaid remains lossy for positions, widths and shape colours by design. Connectors: `createEditorGraph` sets a `ConnectionHandler.connectImage` (centre dot) because maxGraph creates no handle without one; `index.js` adds the Connector tool (`connector` toolbar action, `C` key) that listens for `InternalEvent.CLICK` and calls `addEdge` on vertex→vertex clicks.
 - **AI assist:** providers OpenAI/Anthropic/Ollama/LM Studio plus compatible endpoints (`AiProviders.js`, main-process only, 200 KB / 120 s caps). SSE streaming over `ai-assist-stream:start|cancel` → `chunk|done|error`; surfaces are Cmd+K inline popover (rewrite/shorten/expand) and the chat sidebar. Keys are plaintext in `settings.json`; the settings modal reads the key back across IPC. Known bugs: the inline controller listens on channels missing from `ALLOWED_RECEIVE_CHANNELS` (preload drops them — tests stub `on()` and mask it); first-use confirmation uses `window.confirm`, which Electron disables; chat panel ignores `{error, code}` responses.
+- **Export matrix:** every Export-menu format resolves to a real writer. `PandocArgs.SIMPLE_TARGET_FORMATS` pins explicit `-t` targets for markup (asciidoc/rst/mediawiki/org/textile/man/ipynb) and `confluence`→jira; JSON uses `-t json`; XML is standalone JATS (`-t jats -s`); YAML/TOML go through `DataExport` because Pandoc has no writer for them. **ODP is not a Pandoc format** — the app renders a PPTX then converts it with LibreOffice (`soffice --convert-to odp`) and fails loudly when LibreOffice is absent. The universal converter's `convertWithPandoc` adds `-t` for extensions Pandoc does not infer (`.mediawiki`, `.docbook`, `.man`, `.latex`) so it never writes HTML into those files.
+- **ASCII studio:** standalone hardened window (`AsciiArt` orchestrator + `ascii-controller.js`). Text mode renders hand-coded or FIGlet fonts with wrap width, letter spacing, alignment and smushing; the font gallery previews the current text in each of the ~349 FIGlet faces (24 per page). Box mode draws single/double/rounded/heavy/shadow/ASCII frames with padding, alignment and minimum width. Template mode shows 16 diagram fragments rendered as thumbnails. Options persist through `ascii:options`; Insert sends the text (fenced code block by default) over `insert-generated-content`, and auxiliary windows reach the editor through the `insert-content` forwarder in `main.js`.
 - **Quick switcher:** fuzzy matcher scores basenames only (exact/stem 1.0, prefix 0.8, subsequence 0.5, boundary/consecutive bonuses, recents ×2, open tabs ×1.5); workspace listing caps at 2,000 Markdown/text files; Ctrl+P.
 - **Comments:** `.comments/<doc>.md.json` sidecar with line + `anchorText` anchoring, F8 next-unresolved navigation, single identity (`'me'`), no threads.
 - **Wiki links/backlinks:** `[[target]]`, `[[target|alias]]`, `[[target#section]]`; relative paths only; backlinks panel does bounded BFS (depth 3, 500 files, 1 MB) on every render.
@@ -71,7 +74,7 @@ Exposes `window.electronAPI` namespaces (`file`, `theme`, `print`, `export`, `ba
 - **Search/DocQA:** `WorkspaceSearch` TF-IDF ranking with facets; DocQA is retrieval-only (no generative answer); `SemanticEngine` neural mode needs `@xenova/transformers`, which is **not** in `package.json`, so it silently stays TF-IDF. MarkItDown is optional and this checkout has no bundled binary, so it falls back to a system install.
 - **Metadata stripping:** `MetadataStripper` removes AI/provenance containers losslessly and verifies the content payload: PNG (`caBX`/`tEXt`/`iTXt`/`zTXt`/`eXIf`), JPEG (APP1/APP3–15/COM), WebP (EXIF/XMP + VP8X flags), SVG `<metadata>`, PDF Info + XMP, DOCX `docProps`, EPUB generator meta/`META-INF/metadata.xml`, MP3 ID3, WAV LIST/id3, MP4/MOV/M4A ffmpeg remux, and Markdown/HTML AI frontmatter keys + provenance comments. Tools → Strip AI Metadata… runs a batch; `clean metadata on export` is on by default (`stripMetadataOnExport`).
 - **Visible marks:** PDF → Remove Watermark Annotations removes separate `/Watermark` annotation objects; PDF → Cover Area paints a rectangle; Image Tools has Crop and Cover Area. These alter content and cannot guarantee removal of burned-in/pixel watermarks. AI Assistant “Paraphrase Selection” is a mitigation only — statistical text watermarks are not reliably removable.
-- **CAMS2 shell:** `styles/cams2-theme.css` loads last and owns the app chrome, dialogs, command palette, AI settings and shared controls. App appearance is persisted as `appTheme` (`light|dark|system`) and applied as `body[data-app-theme]` so editor theme class churn cannot wipe it. Dark shell auto-switches a light editor theme to `onedark` and restores it on return to light (only if the user hasn't picked another theme meanwhile). Lucide icons are created from `<i data-lucide="…">` placeholders by `window.Lucide.createIcons()`; a MutationObserver handles dynamic dialogs.
+- **CAMS2 shell:** `styles/cams2-theme.css` loads last and owns the app chrome, dialogs, command palette, AI settings and shared controls. The Find & Replace dialog (`.find-modal` / `.find-*`) is styled there too: it previously had **no rules in any stylesheet**, so its inputs inherited only the shared `.modal-body input` rule while its buttons fell through to native OS widgets. App appearance is persisted as `appTheme` (`light|dark|system`) and applied as `body[data-app-theme]` so editor theme class churn cannot wipe it. Dark shell auto-switches a light editor theme to `onedark` and restores it on return to light (only if the user hasn't picked another theme meanwhile). Dialogs intentionally keep a **light** surface (`--modal-bg`) in both appearances for form legibility, while accents/shadows/backdrop follow the theme; legacy `--primary-dark`/`--accent-blue` now resolve to the CAMS2 brand. Lucide icons are created from `<i data-lucide="…">` placeholders by `window.Lucide.createIcons()`; a MutationObserver handles dynamic dialogs.
 
 ### Persistence
 
@@ -167,7 +170,7 @@ only when GitHub Releases are intentionally re-enabled.
 - No automated E2E; `tests/smoke-e2e-monospace.js` is a manual script.
 - `tests/lint-quality.test.js` fails on any ESLint "warning" text; `tests/no-diagnostic-logs.test.js` scans only `src/main.js` + `src/renderer.js`.
 - ESLint 10 flat config uses `sourceType: 'commonjs'` and `ecmaVersion: 'latest'`; `eslint-plugin-prettier` is installed but unused.
-- **Local baseline (2026-11-21, upgraded stack):** 1,232 passed / 2 skipped, 0 failures.
+- **Local baseline (2026-11-21, v4.17.2):** 1,251 passed / 2 skipped, 0 failures.
 - `npm audit --omit=dev` is clean (0 vulnerabilities). `npm audit` still reports 23 moderate advisories confined to the `electron-builder`/Jest dev toolchain (transitive `minimatch`/`glob`); they do not ship in the app.
 
 ## Known Gotchas / Drift
@@ -178,7 +181,7 @@ only when GitHub Releases are intentionally re-enabled.
 - Theme switching assigns `document.body.className`, wiping `mono-*`/`zen-mode` classes.
 - `const outlinePanelContainer = null` shadows the real panel container, so tab-creation outline refreshes are dead.
 - Two save conventions coexist: `save-file` (with `path`) and `save-current-file` (with `filePath`). Duplicate 30s autosave loops exist.
-- Preload whitelists `menu-open`/`export`/`show-table-generator` with no matching main listener/sender; conversely, `ai-assist-stream:*` listeners are used by the inline AI controller but absent from `ALLOWED_RECEIVE_CHANNELS`, so they are silently dropped.
+- `menu-open` / `export` now have main-process listeners (command-palette Open File and Export work); `show-table-generator` remains a listener with no sender. Conversely, `ai-assist-stream:*` listeners are used by the inline AI controller but absent from `ALLOWED_RECEIVE_CHANNELS`, so they are silently dropped.
 - Flowchart snap-to-grid is coded but unreachable from the UI; Mermaid export/import loses node colours and widths; SVG/PNG export includes selection rings/grips because it clones the live canvas.
 - Neural search and generative DocQA are not actually available: `@xenova/transformers` is not a dependency and DocQA only retrieves passages. MarkItDown is optional and not bundled in this checkout (`bin/linux` contains pandoc only).
 - No generated symbol map or changelog is checked in. If one is needed: install `universal-ctags`, run `~/.claude-shared/scripts/repo-map.sh . JavaScript > /tmp/repo-map.md`, use it, and discard it — checked-in maps rot silently.
@@ -197,6 +200,10 @@ Full detail is in git history; this is the shape of the product.
 
 | Version | Date | Highlights |
 |---|---|---|
+| **4.17.2** | 2026-11-21 | Find & Replace dialog rebuilt on CAMS2 controls: `.find-controls` had no stylesheet rule at all, so its buttons fell through to native OS widgets. Inputs now carry Lucide affordances (`search`, `replace`), match navigation is a pair of 32 px icon buttons with shortcut tooltips, "All" became the brand-accent **Replace All**, and the live match counter (`aria-live`) moved into the action row. Dialog widened to 380–460 px. README corrected: the finder is plain-text, not regex. |
+| **4.17.1** | 2026-11-21 | Flowchart connectors fixed: maxGraph ships no visible connect handle unless `connectImage` is set, so shapes could not be linked at all. `createEditorGraph` now installs a centre drag handle, and a new Connector tool (`C`) links shapes by click-source-then-click-target, chaining without re-arming. Shape-body drags still move nodes. |
+| **4.17.0** | 2026-11-21 | ASCII Art Studio rebuilt (live preview, 17 built-in + ~349 FIGlet fonts, searchable font gallery, wrap/spacing/align/smushing, six box styles incl. shadow, 16 template thumbnails, persisted options, Ctrl+Enter/Ctrl+Shift+C shortcuts). Export matrix corrected: ODP now converts PPTX→ODP via LibreOffice instead of writing HTML, XML exports real standalone JATS, YAML/TOML emit valid data documents (`DataExport`), universal converter pins `-t` writers for non-inferable extensions. Menu wiring fixed: command-palette Open File and Export now reach main-process handlers, and `insert-content` forwards from auxiliary windows to the editor. |
+| **4.16.1** | 2026-11-21 | Fix pdfjs-dist 6 document loading (`{data}` instead of a bare path), so PDF tabs render again. Light theme-aware dialogs in both appearances; brand-accent buttons replace legacy blue `--primary-dark`; sidebar icon outlines/inset borders removed; one-sided sidebar borders replaced with shadow; modern “Advanced…” controls and session-restore prompt. |
 | **4.16.0** | 2026-11-21 | CAMS2 app shell: brand `#e5461f`, warm gray scale, Inter UI, 8–16 px radii, modern dialogs; app Light/Dark/Follow System independent of editor themes; Lucide icon set replaces inline/unicode chrome icons (esbuild bundle). |
 | **4.15.0** | 2026-11-21 | AI/provenance metadata stripper (PNG/JPEG/WebP/SVG/PDF/DOCX/EPUB/MP3/WAV/MP4 + Markdown/HTML), lossless with content verification; clean-on-export default; PDF watermark-annotation removal + cover area; image crop/cover; AI paraphrase mitigation. Local-deb release flow (`build:deb:local`); GitHub Releases paused. |
 | **4.14.1** | 2026-11-21 | CI fixes: Windows pandoc extraction via bsdtar, MarkItDown smoke-failure cleanup and pandas inclusion; full Windows/macOS/Linux release. |
@@ -222,7 +229,7 @@ These design/implementation plans were removed as standalone files; their outcom
 | v5 platform design (2026-04-14) | Partially delivered; broader platform work diverged to `react-electron`. |
 | Monospace font embedding (2026-06-30) | Implemented — settings, CSS generation, DOCX/EPUB font embedding. |
 | Theme registry (2026-09-14) | Implemented — 37 themes via `ThemeRegistry.bootstrap.js`. |
-| ASCII art upgrade (2026-09-14) | Implemented — 17 hand-coded + FIGlet fonts, standalone window. |
+| ASCII art upgrade (2026-09-14) | Implemented — 17 hand-coded + FIGlet fonts, standalone window. Superseded in 4.17.0 by the ASCII Art Studio (gallery, box styles, template thumbnails, persisted options). |
 | Flowchart editor (2026-09-14) | Implemented but diverged — standalone window, not the sidebar panel; sidebar registration disabled. |
 | Quick switcher + inline AI (2026-09-30) | Implemented in 4.13.0; known follow-ups listed in Known Gotchas. |
 | Feature audit & hardening (2026-08-23) | Largely implemented; `git-diff` remains dead, main-window isolation and CSP remain open. |

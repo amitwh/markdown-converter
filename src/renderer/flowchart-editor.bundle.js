@@ -27406,6 +27406,9 @@
   }
 
   // src/flowchart-editor/model.js
+  var CONNECT_HANDLE_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"><circle cx="7" cy="7" r="6" fill="#e5461f" stroke="#ffffff" stroke-width="1.5"/><path d="M4.5 7h5M7 4.5v5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/></svg>'
+  );
   function isNil(value) {
     return value === null || value === void 0;
   }
@@ -27471,6 +27474,11 @@
     stylesheet.putDefaultEdgeStyle({ ...stylesheet.getDefaultEdgeStyle(), ...EDGE_STYLE });
     const selectionHandler = graph2.getPlugin("SelectionHandler");
     if (selectionHandler) selectionHandler.guidesEnabled = true;
+    const connectionHandler = graph2.getPlugin("ConnectionHandler");
+    if (connectionHandler) {
+      connectionHandler.connectImage = new ImageBox_default(CONNECT_HANDLE_SRC, 14, 14);
+      connectionHandler.cursorConnect = "crosshair";
+    }
     const fitPlugin = graph2.getPlugin("fit");
     if (fitPlugin) {
       fitPlugin.maxFitScale = 1.5;
@@ -27800,6 +27808,8 @@
   };
   var graph = null;
   var undoManager = null;
+  var connectMode = false;
+  var connectSource = null;
   var sessionPath = null;
   var saveTimer = null;
   var inspectorTimer = null;
@@ -28228,6 +28238,45 @@
     api.insertAtCursor("```mermaid\n" + source + "\n```");
     setStatus("Inserted at cursor");
   }
+  function setConnectMode(on) {
+    connectMode = !!on;
+    connectSource = null;
+    const button = document.querySelector('[data-action="connect"]');
+    if (button) button.setAttribute("aria-pressed", String(connectMode));
+    if (canvasEl) canvasEl.classList.toggle("fc-connecting", connectMode);
+    setStatus(
+      connectMode ? "Connector: click a source shape, then a target shape (Esc to exit)" : "Ready"
+    );
+  }
+  function wireConnector() {
+    graph.addListener(InternalEvent_default.CLICK, (_sender, evt) => {
+      if (!connectMode) return;
+      const cell = evt.getProperty("cell");
+      if (!cell || !cell.isVertex()) {
+        connectSource = null;
+        setStatus("Connector: click a source shape, then a target shape");
+        return;
+      }
+      if (!connectSource) {
+        connectSource = cell;
+        graph.setSelectionCell(cell);
+        setStatus(`Connector: source "${cellLabel(cell) || "shape"}" \u2014 now click the target`);
+        return;
+      }
+      if (cell === connectSource) {
+        connectSource = null;
+        setStatus("Connector: source cleared");
+        return;
+      }
+      const from = cellLabel(connectSource) || "shape";
+      const to = cellLabel(cell) || "shape";
+      addEdge(graph, connectSource, cell, "solid");
+      connectSource = null;
+      setStatus(`Connected ${from} \u2192 ${to}. Click another source to keep connecting.`);
+      refreshInspector();
+      updateUndoButtons();
+    });
+  }
   function wireToolbar() {
     document.querySelector(".fc-toolbar").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-action]");
@@ -28245,6 +28294,9 @@
           break;
         case "duplicate":
           duplicateSelection(graph);
+          break;
+        case "connect":
+          setConnectMode(!connectMode);
           break;
         case "zoom-out":
           graph.zoomOut();
@@ -28331,6 +28383,7 @@
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         if (shortcutsModal && !shortcutsModal.hidden) hideShortcuts();
+        else if (connectMode) setConnectMode(false);
         else graph.clearSelection();
         return;
       }
@@ -28342,6 +28395,11 @@
       if (!graph || isEditingField(event.target)) return;
       const meta = event.ctrlKey || event.metaKey;
       const key = event.key.toLowerCase();
+      if (!meta && key === "c") {
+        setConnectMode(!connectMode);
+        event.preventDefault();
+        return;
+      }
       if (meta && !event.shiftKey && key === "z") {
         if (undoManager.canUndo()) undoManager.undo();
         event.preventDefault();
@@ -28458,6 +28516,7 @@
     wireCanvasDrop();
     wireInspector();
     wireToolbar();
+    wireConnector();
     wireKeyboard();
     wireModelEvents();
     if (shortcutsOverlay) shortcutsOverlay.addEventListener("click", hideShortcuts);

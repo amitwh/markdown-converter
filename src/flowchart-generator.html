@@ -214,6 +214,13 @@
         display: block;
         max-width: 100%;
       }
+      /* Connector tool active — beats maxGraph's inline cursor */
+      #fc-canvas.fc-connecting {
+        cursor: crosshair !important;
+      }
+      #fc-canvas.fc-connecting svg {
+        cursor: crosshair !important;
+      }
       .fc-insp-empty {
         color: var(--fc-muted);
         line-height: 1.55;
@@ -363,6 +370,14 @@
           <div class="fc-toolbar-group">
             <button class="fc-btn icon" data-action="delete" title="Delete selection (Del)">🗑</button>
             <button class="fc-btn icon" data-action="duplicate" title="Duplicate (Ctrl+D)">⧉</button>
+            <button
+              class="fc-btn"
+              data-action="connect"
+              aria-pressed="false"
+              title="Connector tool (C) — click a source shape, then a target shape"
+            >
+              ↗ Connector
+            </button>
           </div>
           <div class="fc-toolbar-group">
             <button class="fc-btn icon" data-action="zoom-out" title="Zoom out">−</button>

@@ -251,22 +251,69 @@
         aria-labelledby="find-dialog-title"
       >
         <div class="modal-backdrop" data-close></div>
-        <div class="modal-content small">
+        <div class="modal-content small find-modal">
           <div class="modal-header">
             <h3 id="find-dialog-title">Find & Replace</h3>
             <button class="modal-close" id="btn-find-close" aria-label="Close"><i data-lucide="x"></i></button>
           </div>
           <div class="modal-body">
             <div class="find-controls">
-              <input type="text" id="find-input" placeholder="Find..." />
-              <input type="text" id="replace-input" placeholder="Replace..." />
-              <button id="btn-find-prev" title="Previous">↑</button>
-              <button id="btn-find-next" title="Next">↓</button>
-              <button id="btn-replace" title="Replace">Replace</button>
-              <button id="btn-replace-all" title="Replace All">All</button>
-            </div>
-            <div class="find-info">
-              <span id="find-count">0 matches</span>
+              <div class="find-field">
+                <i data-lucide="search" aria-hidden="true"></i>
+                <input
+                  type="text"
+                  id="find-input"
+                  placeholder="Find…"
+                  aria-label="Find"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+              <div class="find-field">
+                <i data-lucide="replace" aria-hidden="true"></i>
+                <input
+                  type="text"
+                  id="replace-input"
+                  placeholder="Replace…"
+                  aria-label="Replace with"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+              <div class="find-actions">
+                <div class="find-nav" role="group" aria-label="Match navigation">
+                  <button
+                    type="button"
+                    class="find-icon-btn"
+                    id="btn-find-prev"
+                    title="Previous match (Shift+Enter)"
+                    aria-label="Previous match"
+                  >
+                    <i data-lucide="arrow-up"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="find-icon-btn"
+                    id="btn-find-next"
+                    title="Next match (Enter)"
+                    aria-label="Next match"
+                  >
+                    <i data-lucide="arrow-down"></i>
+                  </button>
+                </div>
+                <span id="find-count" class="find-count" role="status" aria-live="polite">0 matches</span>
+                <button type="button" class="find-btn" id="btn-replace" title="Replace this match">
+                  Replace
+                </button>
+                <button
+                  type="button"
+                  class="find-btn find-btn-primary"
+                  id="btn-replace-all"
+                  title="Replace every match"
+                >
+                  Replace All
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1089,7 +1136,10 @@
             </div>
 
             <div class="batch-section">
-              <button id="batch-show-options" type="button">Advanced Export Options...</button>
+              <button id="batch-show-options" class="advanced-toggle-btn" type="button">
+                <i data-lucide="sliders-horizontal"></i>
+                Advanced Export Options
+              </button>
             </div>
 
             <div id="batch-progress" class="batch-progress hidden">

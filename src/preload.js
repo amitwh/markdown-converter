@@ -560,6 +560,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       copy: (text) => ipcRenderer.invoke('ascii:copy', text),
       save: (args) => ipcRenderer.invoke('ascii:save', args),
       lastFont: (font) => ipcRenderer.invoke('ascii:last-font', { font }),
+      // Studio options (wrap width, spacing, alignment, preview size/theme).
+      // Called with no argument to read, with an object to merge + persist.
+      options: (opts) => ipcRenderer.invoke('ascii:options', opts),
     },
   },
 

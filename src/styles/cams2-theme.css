@@ -55,6 +55,18 @@ body[data-app-theme] {
   --cams-muted: var(--cams-gray-500);
   --cams-hover: var(--cams-gray-100);
   --cams-ring: rgba(229, 70, 31, 0.28);
+  /* Legacy component variables resolve to the active CAMS2 accent. */
+  --primary-dark: var(--cams-brand);
+  --accent-blue: var(--cams-brand);
+  /* Dialogs stay light in both appearances (forms are easier to scan), while
+     accents, shadows and the backdrop follow the active app theme. */
+  --modal-bg: #ffffff;
+  --modal-bg-2: #f7f8fa;
+  --modal-text: #1f2429;
+  --modal-muted: #5e646b;
+  --modal-border: #e3e6ea;
+  --modal-input: #ffffff;
+  --modal-hover: #f2f4f6;
   /* Shadcn-compatible HSL tokens (keep components that use hsl(var(--x))) */
   --background: 0 0% 100%;
   --foreground: 0 0% 27%;
@@ -98,6 +110,15 @@ body[data-app-theme='dark'] {
   --cams-muted: #b0b0b0;
   --cams-hover: var(--cams-gray-800);
   --cams-ring: rgba(255, 107, 71, 0.35);
+  --primary-dark: var(--cams-brand);
+  --accent-blue: var(--cams-brand);
+  --modal-bg: #fbfaf9;
+  --modal-bg-2: #f3f1ef;
+  --modal-text: #1f1c1a;
+  --modal-muted: #5e5a56;
+  --modal-border: #ded9d4;
+  --modal-input: #ffffff;
+  --modal-hover: #f0ede9;
   --background: 0 0% 27%;
   --foreground: 0 0% 96%;
   --card: 0 0% 27%;
@@ -239,7 +260,7 @@ body[data-app-theme] .tab.active {
   background: var(--cams-surface);
   border-color: var(--cams-border);
   color: var(--cams-text);
-  box-shadow: 0 -1px 0 var(--cams-brand) inset;
+  box-shadow: 0 1px 2px rgba(13, 11, 9, 0.06);
 }
 body[data-app-theme] .tab-title {
   font-size: 12.5px;
@@ -300,7 +321,16 @@ body[data-app-theme] .main-content {
 }
 body[data-app-theme] .sidebar {
   background: var(--bg-secondary);
-  border-right: 1px solid var(--cams-border);
+  border-right: 0;
+}
+/* No one-sided rails/panel borders — separate with a soft shadow instead. */
+body[data-app-theme] .sidebar-icons {
+  background: transparent;
+  border-right: 0;
+}
+body[data-app-theme] .sidebar-panel {
+  border-right: 0;
+  box-shadow: 2px 0 14px rgba(13, 11, 9, 0.06);
 }
 body[data-app-theme] .sidebar-icon {
   width: 36px;
@@ -319,6 +349,79 @@ body[data-app-theme] .sidebar-icon.active,
 body[data-app-theme] .sidebar-icon[aria-pressed='true'] {
   background: rgba(229, 70, 31, 0.12);
   color: var(--cams-brand);
+  border: 0;
+  box-shadow: none;
+}
+body[data-app-theme] .sidebar-icon:focus-visible,
+body[data-app-theme] .sidebar-panel-close:focus-visible {
+  outline: 2px solid var(--cams-brand);
+  outline-offset: 2px;
+}
+
+/* Theme-driven buttons (replace legacy blue-purple --primary-dark) */
+body[data-app-theme] .btn-primary,
+body[data-app-theme] .git-commit-btn,
+body[data-app-theme] .git-push-btn,
+body[data-app-theme] .git-pull-btn {
+  background: var(--cams-brand);
+  border: 1px solid var(--cams-brand);
+  color: #ffffff;
+  border-radius: var(--cams-radius-md);
+  font-family: var(--cams-font-sans);
+  font-weight: 600;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+body[data-app-theme] .btn-primary:hover,
+body[data-app-theme] .git-commit-btn:hover,
+body[data-app-theme] .git-push-btn:hover,
+body[data-app-theme] .git-pull-btn:hover {
+  background: var(--cams-brand-dark);
+  border-color: var(--cams-brand-dark);
+}
+body[data-app-theme] .btn-secondary {
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  border: 1px solid var(--cams-border);
+  border-radius: var(--cams-radius-md);
+  font-family: var(--cams-font-sans);
+  font-weight: 600;
+}
+body[data-app-theme] .btn-secondary:hover {
+  background: var(--cams-hover);
+}
+body[data-app-theme] .git-branch-new {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+body[data-app-theme] .git-branch-input {
+  flex: 1;
+  min-width: 0;
+}
+body[data-app-theme] .git-branch-create-btn {
+  flex: none;
+  white-space: nowrap;
+}
+body[data-app-theme] .git-branch-create-btn,
+body[data-app-theme] .git-diff-btn,
+body[data-app-theme] .git-stage-btn {
+  background: var(--cams-surface);
+  color: var(--cams-text);
+  border: 1px solid var(--cams-border);
+  border-radius: var(--cams-radius-sm);
+  font-family: var(--cams-font-sans);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+body[data-app-theme] .git-branch-create-btn:hover,
+body[data-app-theme] .git-diff-btn:hover,
+body[data-app-theme] .git-stage-btn:hover {
+  background: var(--cams-hover);
+  border-color: var(--cams-border-strong);
 }
 body[data-app-theme='dark'] .toolbar button,
 body[data-app-theme='dark'] .sidebar-icon {
@@ -403,6 +506,7 @@ body[data-app-theme] :is(input, textarea)::placeholder {
 
 /* ── Modern desktop modals ─────────────────────────────────────────────── */
 body[data-app-theme] .modal {
+  color-scheme: light;
   padding: clamp(16px, 3vw, 40px);
 }
 body[data-app-theme] .modal-backdrop {
@@ -411,9 +515,9 @@ body[data-app-theme] .modal-backdrop {
   -webkit-backdrop-filter: blur(10px) saturate(115%);
 }
 body[data-app-theme] .modal-content {
-  background: var(--cams-surface);
-  color: var(--cams-text);
-  border: 1px solid var(--cams-border);
+  background: var(--modal-bg);
+  color: var(--modal-text);
+  border: 1px solid var(--modal-border);
   border-radius: var(--cams-radius-xl);
   box-shadow:
     0 1px 2px rgba(13, 11, 9, 0.06),
@@ -444,9 +548,9 @@ body[data-app-theme] .modal-content.full {
   min-width: min(96vw, 760px);
 }
 body[data-app-theme] .modal-header {
-  background: var(--cams-surface);
-  color: var(--cams-text);
-  border-bottom: 1px solid var(--cams-border);
+  background: var(--modal-bg);
+  color: var(--modal-text);
+  border-bottom: 1px solid var(--modal-border);
   padding: 18px 22px 14px;
   min-height: 58px;
 }
@@ -455,13 +559,13 @@ body[data-app-theme] .modal-header h3 {
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.015em;
-  color: var(--cams-text);
+  color: var(--modal-text);
 }
 body[data-app-theme] .modal-close {
   width: 30px;
   height: 30px;
   border-radius: var(--cams-radius-md);
-  color: var(--cams-muted);
+  color: var(--modal-muted);
   font-size: 0;
   background: transparent;
   transition:
@@ -469,19 +573,19 @@ body[data-app-theme] .modal-close {
     color 140ms ease;
 }
 body[data-app-theme] .modal-close:hover {
-  background: var(--cams-hover);
-  color: var(--cams-text);
+  background: var(--modal-hover);
+  color: var(--modal-text);
   transform: none;
 }
 body[data-app-theme] .modal-body {
-  background: var(--cams-surface);
-  color: var(--cams-text);
+  background: var(--modal-bg);
+  color: var(--modal-text);
   padding: 20px 22px;
   max-height: none;
   overscroll-behavior: contain;
 }
 body[data-app-theme] .modal-body .export-section {
-  border-bottom: 1px solid var(--cams-border);
+  border-bottom: 1px solid var(--modal-border);
   padding-bottom: 14px;
   margin-bottom: 14px;
 }
@@ -491,19 +595,19 @@ body[data-app-theme] .modal-body .export-section:last-child {
 }
 body[data-app-theme] .modal-body .export-section > label,
 body[data-app-theme] .modal-body .form-row label {
-  color: var(--cams-text);
+  color: var(--modal-text);
   font-size: 12.5px;
   font-weight: 600;
 }
 body[data-app-theme] .modal-body small,
 body[data-app-theme] .modal-body .export-help {
-  color: var(--cams-muted);
+  color: var(--modal-muted);
   font-size: 11.5px;
   line-height: 1.5;
 }
 body[data-app-theme] .modal-footer {
-  background: var(--cams-surface-2);
-  border-top: 1px solid var(--cams-border);
+  background: var(--modal-bg-2);
+  border-top: 1px solid var(--modal-border);
   padding: 14px 22px;
   gap: 8px;
 }
@@ -513,9 +617,9 @@ body[data-app-theme] .modal-body .btn {
   min-height: 34px;
   padding: 7px 15px;
   border-radius: var(--cams-radius-md);
-  border: 1px solid var(--cams-border-strong);
-  background: var(--cams-surface);
-  color: var(--cams-text);
+  border: 1px solid var(--modal-border);
+  background: var(--modal-bg);
+  color: var(--modal-text);
   font-family: var(--cams-font-sans);
   font-size: 13px;
   font-weight: 600;
@@ -529,8 +633,8 @@ body[data-app-theme] .modal-body .btn {
 body[data-app-theme] .modal-footer .btn:hover,
 body[data-app-theme] .modal-footer button:hover,
 body[data-app-theme] .modal-body .btn:hover {
-  background: var(--cams-hover);
-  border-color: var(--cams-gray-400);
+  background: var(--modal-hover);
+  border-color: var(--modal-muted);
 }
 body[data-app-theme] .modal-footer .btn-primary,
 body[data-app-theme] .modal-footer .btn.primary,
@@ -563,7 +667,7 @@ body[data-app-theme] .modal button:focus-visible {
 body[data-app-theme] .modal-content .checkbox-group label,
 body[data-app-theme] .modal-content .checkbox-label,
 body[data-app-theme] .modal-content label.checkbox-inline {
-  color: var(--cams-text);
+  color: var(--modal-text);
   font-size: 12.5px;
 }
 body[data-app-theme] .modal .folder-input-group {
@@ -580,22 +684,85 @@ body[data-app-theme] .modal .export-section > button {
   flex: none;
   min-height: 34px;
   padding: 6px 13px;
-  border: 1px solid var(--cams-border-strong);
+  border: 1px solid var(--modal-border);
   border-radius: var(--cams-radius-md);
-  background: var(--cams-surface);
-  color: var(--cams-text);
+  background: var(--modal-bg);
+  color: var(--modal-text);
   font: 600 12.5px var(--cams-font-sans);
   cursor: pointer;
 }
 body[data-app-theme] .modal .folder-input-group button:hover,
 body[data-app-theme] .modal .export-section > button:hover {
-  background: var(--cams-hover);
+  background: var(--modal-hover);
 }
 body[data-app-theme] .modal .checkbox-group {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 20px;
+}
+body[data-app-theme] .modal-body label:has(> input[type='checkbox']),
+body[data-app-theme] .modal-body label:has(> input[type='radio']) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body[data-app-theme] .modal-body input[type='checkbox'],
+body[data-app-theme] .modal-body input[type='radio'] {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--cams-brand);
+  flex: none;
+}
+body[data-app-theme] .modal .export-mode-toggle .checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin: 0 0 6px;
+  border: 1px solid var(--modal-border);
+  border-radius: var(--cams-radius-md);
+  background: var(--modal-bg-2);
+  font-weight: 600;
+  cursor: pointer;
+}
+body[data-app-theme] .modal .export-mode-toggle .checkbox-label:hover {
+  background: var(--modal-hover);
+}
+body[data-app-theme] .modal .export-mode-toggle .checkmark {
+  display: none;
+}
+body[data-app-theme] .modal .advanced-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 14px;
+  border: 1px solid var(--modal-border);
+  border-radius: var(--cams-radius-md);
+  background: var(--modal-bg);
+  color: var(--modal-text);
+  font: 600 13px var(--cams-font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+body[data-app-theme] .modal .advanced-toggle-btn:hover {
+  background: var(--modal-hover);
+  border-color: var(--modal-muted);
+}
+body[data-app-theme] .modal .advanced-toggle-btn:focus-visible {
+  outline: 2px solid var(--cams-brand);
+  outline-offset: 2px;
+}
+body[data-app-theme] .modal .advanced-toggle-btn svg.lucide {
+  width: 15px;
+  height: 15px;
 }
 body[data-app-theme] .modal .checkbox-group label,
 body[data-app-theme] .modal label.checkbox-inline {
@@ -637,6 +804,138 @@ body[data-app-theme] .modal .pdf-operation-section .export-section {
   max-width: 100%;
 }
 
+/* ── Find & Replace dialog ─────────────────────────────────────────────── */
+body[data-app-theme] .modal-content.find-modal {
+  max-width: 460px;
+  min-width: 380px;
+}
+body[data-app-theme] .find-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+body[data-app-theme] .find-field {
+  position: relative;
+  min-width: 0;
+}
+body[data-app-theme] .find-field > :is(i[data-lucide], svg.lucide) {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  transform: translateY(-50%);
+  color: var(--modal-muted);
+  pointer-events: none;
+  transition: color 140ms ease;
+}
+body[data-app-theme] .find-field:focus-within > :is(i[data-lucide], svg.lucide) {
+  color: var(--cams-brand);
+}
+body[data-app-theme] .modal .find-field input[type='text'] {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 12px 7px 34px;
+}
+body[data-app-theme] .find-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 2px;
+}
+body[data-app-theme] .find-nav {
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+}
+body[data-app-theme] .find-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--modal-border);
+  border-radius: var(--cams-radius-md);
+  background: var(--modal-bg);
+  color: var(--modal-muted);
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+body[data-app-theme] .find-icon-btn:hover {
+  background: var(--modal-hover);
+  border-color: var(--modal-muted);
+  color: var(--modal-text);
+}
+body[data-app-theme] .find-icon-btn:active {
+  background: rgba(229, 70, 31, 0.12);
+  border-color: var(--cams-brand);
+  color: var(--cams-brand);
+}
+body[data-app-theme] .find-icon-btn svg.lucide {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2;
+}
+body[data-app-theme] .find-count {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--modal-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body[data-app-theme] .find-btn {
+  flex: none;
+  min-height: 32px;
+  padding: 6px 13px;
+  border: 1px solid var(--modal-border);
+  border-radius: var(--cams-radius-md);
+  background: var(--modal-bg);
+  color: var(--modal-text);
+  font: 600 12.5px var(--cams-font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+body[data-app-theme] .find-btn:hover {
+  background: var(--modal-hover);
+  border-color: var(--modal-muted);
+}
+body[data-app-theme] .find-btn-primary {
+  background: var(--cams-brand);
+  border-color: var(--cams-brand);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(201, 58, 24, 0.25);
+}
+body[data-app-theme] .find-btn-primary:hover {
+  background: var(--cams-brand-dark);
+  border-color: var(--cams-brand-dark);
+}
+body[data-app-theme] .find-icon-btn:focus-visible,
+body[data-app-theme] .find-btn:focus-visible {
+  outline: 2px solid var(--cams-brand);
+  outline-offset: 2px;
+}
+
+body[data-app-theme] .modal-body :is(input[type='text'], input[type='search'], input[type='number'], input[type='url'], input[type='password'], textarea, select) {
+  background: var(--modal-input);
+  color: var(--modal-text);
+  border-color: var(--modal-border);
+}
+body[data-app-theme] .modal :is(input, textarea)::placeholder {
+  color: var(--modal-muted);
+}
 /* Command palette follows the same shell */
 body[data-app-theme] .command-palette-overlay {
   background: rgba(13, 11, 9, 0.45);
@@ -669,6 +968,72 @@ body[data-app-theme] .command-shortcut {
   color: var(--cams-muted);
 }
 
+/* Session-restore prompt follows the same light dialog surface. */
+body[data-app-theme] .session-restore-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(13, 11, 9, 0.5);
+  backdrop-filter: blur(10px) saturate(115%);
+}
+body[data-app-theme] .session-restore-dialog {
+  width: 100%;
+  max-width: 440px;
+  padding: 26px;
+  text-align: center;
+  background: var(--modal-bg);
+  color: var(--modal-text);
+  border: 1px solid var(--modal-border);
+  border-radius: var(--cams-radius-xl);
+  box-shadow:
+    0 1px 2px rgba(13, 11, 9, 0.06),
+    0 20px 56px rgba(13, 11, 9, 0.24);
+}
+body[data-app-theme] .session-restore-dialog h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--modal-text);
+}
+body[data-app-theme] .session-restore-dialog p {
+  margin: 0;
+  color: var(--modal-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+body[data-app-theme] .session-restore-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+body[data-app-theme] .session-restore-dialog .btn {
+  min-height: 34px;
+  padding: 7px 15px;
+  border-radius: var(--cams-radius-md);
+  border: 1px solid var(--modal-border);
+  background: var(--modal-input);
+  color: var(--modal-text);
+  font: 600 13px var(--cams-font-sans);
+  cursor: pointer;
+}
+body[data-app-theme] .session-restore-dialog .btn:hover {
+  background: var(--modal-hover);
+}
+body[data-app-theme] .session-restore-dialog .btn-primary {
+  background: var(--cams-brand);
+  border-color: var(--cams-brand);
+  color: #ffffff;
+}
+body[data-app-theme] .session-restore-dialog .btn-primary:hover {
+  background: var(--cams-brand-dark);
+}
+
 /* AI settings + analytics dialogs */
 body[data-app-theme] .ai-settings-overlay {
   background: rgba(13, 11, 9, 0.5);
@@ -676,9 +1041,9 @@ body[data-app-theme] .ai-settings-overlay {
 }
 body[data-app-theme] .ai-settings-dialog,
 body[data-app-theme] .analytics-modal {
-  background: var(--cams-surface);
-  color: var(--cams-text);
-  border: 1px solid var(--cams-border);
+  background: var(--modal-bg);
+  color: var(--modal-text);
+  border: 1px solid var(--modal-border);
   border-radius: var(--cams-radius-xl);
   box-shadow:
     0 1px 2px rgba(13, 11, 9, 0.06),
@@ -687,13 +1052,13 @@ body[data-app-theme] .analytics-modal {
 body[data-app-theme] .ai-settings-dialog h3,
 body[data-app-theme] .analytics-modal h2 {
   font-family: var(--cams-font-sans);
-  color: var(--cams-text);
+  color: var(--modal-text);
 }
 body[data-app-theme] .ai-settings-dialog input,
 body[data-app-theme] .ai-settings-dialog select {
-  background: var(--cams-surface);
-  color: var(--cams-text);
-  border: 1px solid var(--cams-border-strong);
+  background: var(--modal-input);
+  color: var(--modal-text);
+  border: 1px solid var(--modal-border);
   border-radius: var(--cams-radius-md);
 }
 

@@ -44,13 +44,13 @@ function listFigletFonts() {
   return _figletFonts.slice();
 }
 
-function generateFiglet(text, font) {
+function generateFiglet(text, font, options = {}) {
   const f = loadFiglet();
   if (!f) {
     throw new AsciiArtFigletError('figlet is not available');
   }
   try {
-    return f.textSync(String(text ?? ''), { font });
+    return f.textSync(String(text ?? ''), { ...options, font });
   } catch (err) {
     throw new AsciiArtFigletError(`figlet render failed for font "${font}": ${err.message}`, err);
   }
