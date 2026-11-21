@@ -107,6 +107,17 @@ class AiAssistantPlugin extends PluginAPI {
     context.commands.register('explain-selection', 'AI: Explain Selection', () =>
       runOnSelection('explain')
     );
+    context.commands.register(
+      'paraphrase-selection',
+      'AI: Paraphrase Selection (watermark mitigation)',
+      async () => {
+        const ok = await this._confirmBox(
+          'Paraphrase selection?',
+          'This rewrites the text. It can reduce some watermark signals but cannot guarantee removal of a statistical AI watermark, and it may change meaning.'
+        );
+        if (ok) runOnSelection('paraphrase');
+      }
+    );
     context.commands.register('translate-selection', 'AI: Translate Selection', () => {
       // window.prompt() is not supported in Electron renderers — use a small
       // inline dialog instead. Cancelling leaves everything untouched.
@@ -159,6 +170,52 @@ class AiAssistantPlugin extends PluginAPI {
       });
       document.body.appendChild(overlay);
       input.focus();
+    });
+  }
+
+  /**
+   * Minimal confirmation dialog for actions that carry a caveat (e.g. the
+   * paraphrase/watermark mitigation). Resolves true only on explicit OK.
+   * @returns {Promise<boolean>}
+   */
+  _confirmBox(title, message) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'ai-settings-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.innerHTML = `
+        <div class="ai-settings-dialog">
+          <h3 data-role="title"></h3>
+          <p data-role="message"></p>
+          <div class="ai-settings-actions">
+            <button data-role="ok" type="button" class="ws-btn ws-btn-primary">Continue</button>
+            <button data-role="cancel" type="button" class="ws-btn">Cancel</button>
+          </div>
+        </div>`;
+      overlay.querySelector('[data-role="title"]').textContent = title;
+      overlay.querySelector('[data-role="message"]').textContent = message;
+      const done = (value) => {
+        overlay.remove();
+        resolve(value);
+      };
+      overlay.querySelector('[data-role="ok"]').addEventListener('click', () => done(true));
+      overlay.querySelector('[data-role="cancel"]').addEventListener('click', () => done(false));
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) done(false);
+      });
+      document.addEventListener(
+        'keydown',
+        function onKey(event) {
+          if (event.key === 'Escape') {
+            document.removeEventListener('keydown', onKey);
+            done(false);
+          }
+        },
+        { once: true }
+      );
+      document.body.appendChild(overlay);
+      overlay.querySelector('[data-role="ok"]').focus();
     });
   }
 

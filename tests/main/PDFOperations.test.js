@@ -592,3 +592,57 @@ describe('PDFOperations - pdfSplit interval guard', () => {
     expect(fs.readdirSync(outputFolder).sort()).toEqual(['in_part_1.pdf', 'in_part_2.pdf']);
   });
 });
+
+describe('PDFOperations - watermark annotations and cover box', () => {
+  let tmpDir, inputPath;
+
+  beforeEach(async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdfops_marks_'));
+    inputPath = path.join(tmpDir, 'in.pdf');
+    const { PDFName } = require('@cantoo/pdf-lib');
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([600, 800]);
+    const annot = doc.context.obj({
+      Type: 'Annot',
+      Subtype: 'Watermark',
+      Rect: [10, 10, 200, 80],
+      NM: 'watermark-layer',
+    });
+    const ref = doc.context.register(annot);
+    page.node.set(PDFName.of('Annots'), doc.context.obj([ref]));
+    fs.writeFileSync(inputPath, await doc.save());
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('removes watermark annotations without touching page content', async () => {
+    const outputPath = path.join(tmpDir, 'clean.pdf');
+    const result = await PDFOperations.pdfRemoveWatermarks({ inputPath, outputPath });
+    expect(result.success).toBe(true);
+    expect(result.removed).toBe(1);
+    const { PDFDocument, PDFName } = require('@cantoo/pdf-lib');
+    const out = await PDFDocument.load(fs.readFileSync(outputPath));
+    const annots = out.getPage(0).node.get(PDFName.of('Annots'));
+    expect(annots ? annots.asArray().length : 0).toBe(0);
+  });
+
+  test('covers a rectangle on the requested pages', async () => {
+    const outputPath = path.join(tmpDir, 'covered.pdf');
+    const result = await PDFOperations.pdfCoverArea({
+      inputPath,
+      outputPath,
+      pageRange: 'all',
+      x: 20,
+      y: 20,
+      width: 120,
+      height: 40,
+      color: '#ffffff',
+      opacity: 1,
+    });
+    expect(result.success).toBe(true);
+    expect(result.pages).toBe(1);
+    expect(fs.existsSync(outputPath)).toBe(true);
+  });
+});

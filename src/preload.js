@@ -24,6 +24,7 @@ const ALLOWED_SEND_CHANNELS = [
   'clear-recent-files',
   'renderer-ready',
   'select-custom-css',
+  'metadata:strip',
 
   // Theme
   'get-theme',
@@ -443,6 +444,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ============================================
 
   // File Operations
+  // AI/provenance metadata stripping (lossless; supports md/html/images/pdf/
+  // docx/epub/audio/video). Paths are chosen by the renderer or a main-process
+  // dialog; the main process verifies content before writing.
+  metadata: {
+    strip: (paths, dryRun = false) =>
+      ipcRenderer.invoke('metadata:strip', { paths, dryRun }),
+  },
+
   file: {
     save: (filePath, content) => ipcRenderer.send('save-file', { path: filePath, content }),
     saveCurrent: (content) => ipcRenderer.send('save-current-file', content),

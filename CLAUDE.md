@@ -28,7 +28,7 @@ The earlier React + Tauri + PWA design was **not** executed as written: the v5 r
 | `src/preload.js` — IPC bridge | 626 |
 | `src/index.html` — single-page UI | 2,811 |
 | `src/**` total (JS/HTML/CSS) | ~56,600 |
-| Tests | 99 suites · 1,218 cases |
+| Tests | 100 suites · 1,234 cases |
 
 ## Architecture
 
@@ -36,7 +36,7 @@ The earlier React + Tauri + PWA design was **not** executed as written: the v5 r
 
 `src/main.js` is one monolith: path/tool discovery, `validatePath` helpers, single-instance lock, `createWindow`, `createMenu` (~800 lines), export dispatcher (`performExportWithOptions`), batch conversion, CLI conversion, and **all 128 `ipcMain` registrations**. Extracted modules under `src/main/` are pure/Electron-free where possible and are injected with `fs`, `path`, `execFile`:
 
-- Files/PDF/media: `PDFOperations`, `PDFBatchOperations`, `ImageOperations`, `AudioOperations`, `VideoOperations`, `PdfFontHeader`, `XlsxExporter`, `MarkItDown`.
+- Files/PDF/media: `PDFOperations`, `PDFBatchOperations`, `ImageOperations`, `AudioOperations`, `VideoOperations`, `PdfFontHeader`, `XlsxExporter`, `MarkItDown`, `MetadataStripper`.
 - Documents/export: `PandocArgs`, `ExportThemes`, `ExportPresets`, `ExportCss`, `OdtStyling`, `DocxFontEmbedder`, `EpubFontEmbedder`, `MonospaceFontConfig`.
 - Content/knowledge: `WorkspaceSearch`, `SemanticEngine`, `DocQA`, `UrlTitle`, `VersionHistory`, `DailyNotes`, `DailyNotesTemplates`, `AutosaveBuffer`, `collectFilesByExtension`.
 - AI/system: `AiProviders`, `auto-updater`, `GitOperations`, `ThemeRegistry` + `ThemeRegistry.bootstrap` + `themeMenuBuilder`, `settings/monospaceSettings`, `AsciiArt*`.
@@ -68,6 +68,8 @@ Exposes `window.electronAPI` namespaces (`file`, `theme`, `print`, `export`, `ba
 - **Wiki links/backlinks:** `[[target]]`, `[[target|alias]]`, `[[target#section]]`; relative paths only; backlinks panel does bounded BFS (depth 3, 500 files, 1 MB) on every render.
 - **Session/version/autosave:** localStorage `editor-session` v1 (2 MB budget); version snapshots at `<userData>/versions/by-path/<sha1>/` (keep 20); crash recovery at `<userData>/autosave/by-path/<sha1>/recovery.md`.
 - **Search/DocQA:** `WorkspaceSearch` TF-IDF ranking with facets; DocQA is retrieval-only (no generative answer); `SemanticEngine` neural mode needs `@xenova/transformers`, which is **not** in `package.json`, so it silently stays TF-IDF. MarkItDown is optional and this checkout has no bundled binary, so it falls back to a system install.
+- **Metadata stripping:** `MetadataStripper` removes AI/provenance containers losslessly and verifies the content payload: PNG (`caBX`/`tEXt`/`iTXt`/`zTXt`/`eXIf`), JPEG (APP1/APP3–15/COM), WebP (EXIF/XMP + VP8X flags), SVG `<metadata>`, PDF Info + XMP, DOCX `docProps`, EPUB generator meta/`META-INF/metadata.xml`, MP3 ID3, WAV LIST/id3, MP4/MOV/M4A ffmpeg remux, and Markdown/HTML AI frontmatter keys + provenance comments. Tools → Strip AI Metadata… runs a batch; `clean metadata on export` is on by default (`stripMetadataOnExport`).
+- **Visible marks:** PDF → Remove Watermark Annotations removes separate `/Watermark` annotation objects; PDF → Cover Area paints a rectangle; Image Tools has Crop and Cover Area. These alter content and cannot guarantee removal of burned-in/pixel watermarks. AI Assistant “Paraphrase Selection” is a mitigation only — statistical text watermarks are not reliably removable.
 
 ### Persistence
 
@@ -143,16 +145,16 @@ npm run dist | dist:all
 npm run download-tools     # fetch Pandoc 3.9.0.2
 npm run bundle:markitdown  # optional PyInstaller bundle
 npm run build:flowchart-editor  # bundle the maxGraph flowchart editor
-npm run release:local      # bump version, tag, build local deb + AppImage
+npm run build:deb:local    # bump + stamp buildInfo + local deb only (no GitHub release)
+npm run release:local      # optional: tag + local deb/AppImage when GitHub Releases are re-enabled
 npm run generate-icons
 ```
 
-Release flow: `npm run release:local` (optionally `-- --bump minor`) refuses a
-dirty tree, runs tests + lint, bumps the version, stamps `buildInfo` (date,
-commit, Electron version) for the About dialog, commits, tags, and builds
-`dist/*.deb` + `dist/*.AppImage`. Add `-- --publish` to push the branch and tag
-so GitHub Actions creates the release. Local artifacts are always built and
-verified before CI/CD is used.
+Current release flow: `npm run build:deb:local` (optionally `-- --bump minor`)
+runs tests + lint, bumps the version, stamps `buildInfo` for the About dialog,
+and builds `dist/*.deb`. It does **not** create a git tag, push, or publish a
+GitHub Release. `release:local` remains for the tag/CI flow; use `--publish`
+only when GitHub Releases are intentionally re-enabled.
 
 ## Testing, Lint & Quality Gates
 
@@ -162,7 +164,7 @@ verified before CI/CD is used.
 - No automated E2E; `tests/smoke-e2e-monospace.js` is a manual script.
 - `tests/lint-quality.test.js` fails on any ESLint "warning" text; `tests/no-diagnostic-logs.test.js` scans only `src/main.js` + `src/renderer.js`.
 - ESLint 10 flat config uses `sourceType: 'commonjs'` and `ecmaVersion: 'latest'`; `eslint-plugin-prettier` is installed but unused.
-- **Local baseline (2026-11-21, upgraded stack):** 1,216 passed / 2 skipped, 0 failures.
+- **Local baseline (2026-11-21, upgraded stack):** 1,232 passed / 2 skipped, 0 failures.
 - `npm audit --omit=dev` is clean (0 vulnerabilities). `npm audit` still reports 23 moderate advisories confined to the `electron-builder`/Jest dev toolchain (transitive `minimatch`/`glob`); they do not ship in the app.
 
 ## Known Gotchas / Drift
@@ -192,6 +194,8 @@ Full detail is in git history; this is the shape of the product.
 
 | Version | Date | Highlights |
 |---|---|---|
+| **4.15.0** | 2026-11-21 | AI/provenance metadata stripper (PNG/JPEG/WebP/SVG/PDF/DOCX/EPUB/MP3/WAV/MP4 + Markdown/HTML), lossless with content verification; clean-on-export default; PDF watermark-annotation removal + cover area; image crop/cover; AI paraphrase mitigation. Local-deb release flow (`build:deb:local`); GitHub Releases paused. |
+| **4.14.1** | 2026-11-21 | CI fixes: Windows pandoc extraction via bsdtar, MarkItDown smoke-failure cleanup and pandas inclusion; full Windows/macOS/Linux release. |
 | **4.14.0** | 2026-11-21 | Visio-style flowchart editor rebuilt on maxGraph 0.25 (direct manipulation, resize, snap/guides, inspector, multi-select, clean SVG/PNG/JPG, VSDX, versioned JSON persistence, Mermaid interop); legacy SVG canvas/store/bundle and 8 test suites removed. Dependency/platform refresh: Electron 45, Node 24 LTS, ESLint 10, Mermaid 12 (dagre pinned), pdfjs-dist 6, marked 18, KaTeX 0.19, simple-git 4, electron-builder 26.18, electron-updater 6.8; 9 unused packages removed. Added `release:local` (version bump + tag + local deb/AppImage) and build metadata in the About dialog. |
 | **4.13.0** | 2026-10-01 | Quick switcher (Ctrl+P), inline AI assist (Cmd+K), electron-updater wiring, flowchart C1–C19/D1 (undo/redo, zoom/pan/snap, clipboard, Mermaid import, resize, multi-select, align/distribute, SVG/PNG/JPG/VSDX export), Node 22 engines. |
 | 4.12.0 | 2026-09-15 | Flowchart: discoverable connect form, per-node colour, save-to-file export. |

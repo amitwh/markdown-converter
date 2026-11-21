@@ -103,6 +103,31 @@ const MEDIA_KIND_CONFIG = {
           { name: 'outputPath', label: 'Output File', type: 'save' },
         ],
       },
+      crop: {
+        label: 'Crop',
+        help: 'Crop to a rectangle. Coordinates are pixels from the top-left.',
+        fields: [
+          { name: 'inputPath', label: 'Input Image', type: 'file', accept: IMAGE_ACCEPT },
+          { name: 'left', label: 'Left (px)', type: 'number', min: 0, default: 0 },
+          { name: 'top', label: 'Top (px)', type: 'number', min: 0, default: 0 },
+          { name: 'width', label: 'Width (px)', type: 'number', min: 1, default: 800 },
+          { name: 'height', label: 'Height (px)', type: 'number', min: 1, default: 600 },
+          { name: 'outputPath', label: 'Output File', type: 'save' },
+        ],
+      },
+      cover: {
+        label: 'Cover Area',
+        help: 'Paint an opaque rectangle over a visible watermark or mark. Content is altered.',
+        fields: [
+          { name: 'inputPath', label: 'Input Image', type: 'file', accept: IMAGE_ACCEPT },
+          { name: 'left', label: 'Left (px)', type: 'number', min: 0, default: 0 },
+          { name: 'top', label: 'Top (px)', type: 'number', min: 0, default: 0 },
+          { name: 'width', label: 'Width (px)', type: 'number', min: 1, default: 200 },
+          { name: 'height', label: 'Height (px)', type: 'number', min: 1, default: 80 },
+          { name: 'color', label: 'Cover colour', type: 'text', default: '#ffffff' },
+          { name: 'outputPath', label: 'Output File', type: 'save' },
+        ],
+      },
     },
   },
   audio: {
@@ -520,6 +545,24 @@ function renderNumberField(field) {
   return wrapper;
 }
 
+function renderTextField(field) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'export-section';
+
+  const label = document.createElement('label');
+  label.setAttribute('for', fieldElId(field.name));
+  label.textContent = `${field.label}:`;
+  wrapper.appendChild(label);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = fieldElId(field.name);
+  if (field.default !== undefined) input.value = field.default;
+  wrapper.appendChild(input);
+
+  return wrapper;
+}
+
 function renderSelectField(field) {
   const wrapper = document.createElement('div');
   wrapper.className = 'export-section';
@@ -649,6 +692,9 @@ function renderSingleFields(opConfig) {
       case 'select':
         fieldEl = renderSelectField(field);
         break;
+      case 'text':
+        fieldEl = renderTextField(field);
+        break;
       case 'files':
         fieldEl = renderFilesField(field);
         break;
@@ -685,6 +731,8 @@ function renderBatchFields(opConfig) {
       els.fieldsContainer.appendChild(renderNumberField(field));
     } else if (field.type === 'select') {
       els.fieldsContainer.appendChild(renderSelectField(field));
+    } else if (field.type === 'text') {
+      els.fieldsContainer.appendChild(renderTextField(field));
     }
     // 'file' / 'save' / 'folder' single-file fields are intentionally skipped —
     // replaced by the Input/Output Folder fields below/above.
@@ -803,7 +851,7 @@ async function handleSingleProcess(kindConfig, opKey, opConfig) {
 function collectBatchParamData(opConfig) {
   const data = {};
   for (const field of opConfig.fields) {
-    if (field.type !== 'number' && field.type !== 'select') continue;
+    if (field.type !== 'number' && field.type !== 'select' && field.type !== 'text') continue;
     const input = document.getElementById(fieldElId(field.name));
     if (!input) continue;
 

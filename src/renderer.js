@@ -4755,6 +4755,22 @@ function showPDFEditorDialog(operation, openedFilePath = null) {
         if (cropInput) cropInput.value = openedFilePath;
       }
       break;
+    case 'removeWatermark':
+      sectionId = 'pdf-remove-watermark-section';
+      titleText = 'Remove Watermark Annotations';
+      if (openedFilePath) {
+        const input = document.getElementById('remove-watermark-input-path');
+        if (input) input.value = openedFilePath;
+      }
+      break;
+    case 'cover':
+      sectionId = 'pdf-cover-section';
+      titleText = 'Cover Area';
+      if (openedFilePath) {
+        const input = document.getElementById('cover-input-path');
+        if (input) input.value = openedFilePath;
+      }
+      break;
     case 'extractImages':
       sectionId = 'pdf-extract-images-section';
       titleText = 'Extract Images';
@@ -5029,6 +5045,26 @@ document.addEventListener('DOMContentLoaded', () => {
       saveDialog: true,
     },
     {
+      id: 'browse-remove-watermark-input',
+      inputId: 'remove-watermark-input-path',
+      saveDialog: false,
+    },
+    {
+      id: 'browse-remove-watermark-output',
+      inputId: 'remove-watermark-output-path',
+      saveDialog: true,
+    },
+    {
+      id: 'browse-cover-input',
+      inputId: 'cover-input-path',
+      saveDialog: false,
+    },
+    {
+      id: 'browse-cover-output',
+      inputId: 'cover-output-path',
+      saveDialog: true,
+    },
+    {
       id: 'browse-extract-images-input',
       inputId: 'extract-images-input-path',
       saveDialog: false,
@@ -5171,6 +5207,14 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       checkbox: 'crop-overwrite',
       section: 'crop-saveas-section',
+    },
+    {
+      checkbox: 'remove-watermark-overwrite',
+      section: 'remove-watermark-saveas-section',
+    },
+    {
+      checkbox: 'cover-overwrite',
+      section: 'cover-saveas-section',
     },
     {
       checkbox: 'fill-form-overwrite',
@@ -5555,6 +5599,46 @@ function processPDFOperation() {
             'Select an input PDF' + (operationData.overwrite ? '.' : ' and an output file path.'),
             '#crop-input-path'
           );
+          return;
+        }
+        break;
+      case 'removeWatermark':
+        operationData.inputPath = document.getElementById('remove-watermark-input-path').value.trim();
+        operationData.overwrite = document.getElementById('remove-watermark-overwrite').checked;
+        operationData.outputPath = operationData.overwrite
+          ? operationData.inputPath
+          : document.getElementById('remove-watermark-output-path').value.trim();
+        if (!operationData.inputPath || !operationData.outputPath) {
+          showPDFValidationMessage(
+            'Select an input PDF' + (operationData.overwrite ? '.' : ' and an output file path.'),
+            '#remove-watermark-input-path'
+          );
+          return;
+        }
+        break;
+      case 'cover':
+        operationData.inputPath = document.getElementById('cover-input-path').value.trim();
+        operationData.overwrite = document.getElementById('cover-overwrite').checked;
+        operationData.outputPath = operationData.overwrite
+          ? operationData.inputPath
+          : document.getElementById('cover-output-path').value.trim();
+        operationData.pageRange = document.getElementById('cover-page-range').value.trim() || 'all';
+        operationData.x = parseFloat(document.getElementById('cover-x').value) || 0;
+        operationData.y = parseFloat(document.getElementById('cover-y').value) || 0;
+        operationData.width = parseFloat(document.getElementById('cover-width').value) || 0;
+        operationData.height = parseFloat(document.getElementById('cover-height').value) || 0;
+        operationData.color = document.getElementById('cover-color').value.trim() || '#ffffff';
+        operationData.opacity = parseFloat(document.getElementById('cover-opacity').value);
+        if (Number.isNaN(operationData.opacity)) operationData.opacity = 1;
+        if (!operationData.inputPath || !operationData.outputPath) {
+          showPDFValidationMessage(
+            'Select an input PDF' + (operationData.overwrite ? '.' : ' and an output file path.'),
+            '#cover-input-path'
+          );
+          return;
+        }
+        if (operationData.width <= 0 || operationData.height <= 0) {
+          showPDFValidationMessage('Width and height must be positive.', '#cover-width');
           return;
         }
         break;

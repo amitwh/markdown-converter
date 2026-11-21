@@ -5,6 +5,7 @@ const os = require('os');
 const { execFile } = require('child_process');
 const WordTemplateExporter = require('./wordTemplateExporter');
 const PDFOperations = require('./main/PDFOperations');
+const MetadataStripper = require('./main/MetadataStripper');
 const ImageOperations = require('./main/ImageOperations');
 const AudioOperations = require('./main/AudioOperations');
 const VideoOperations = require('./main/VideoOperations');
@@ -381,6 +382,13 @@ ipcMain.handle('set-vim-mode', (_event, enabled) => {
   return enabled === true;
 });
 ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.handle('metadata:strip', async (_event, { paths, dryRun } = {}) => {
+  if (!Array.isArray(paths) || paths.length === 0) return [];
+  return MetadataStripper.stripFiles(
+    paths.filter((p) => typeof p === 'string' && p.length > 0),
+    { dryRun: !!dryRun }
+  );
+});
 
 // ============================================
 // SECURITY: Permission Request Handler
@@ -1315,6 +1323,14 @@ function createMenu() {
           click: () => showPDFEditorDialog('crop'),
         },
         {
+          label: 'Remove Watermark Annotations...',
+          click: () => showPDFEditorDialog('removeWatermark'),
+        },
+        {
+          label: 'Cover Area (visible marks)...',
+          click: () => showPDFEditorDialog('cover'),
+        },
+        {
           type: 'separator',
         },
         {
@@ -1373,6 +1389,19 @@ function createMenu() {
     {
       label: 'Tools',
       submenu: [
+        {
+          label: 'Strip AI Metadata…',
+          click: () => pickAndStripMetadata(),
+        },
+        {
+          label: 'Clean AI Metadata on Export',
+          type: 'checkbox',
+          checked: store.get('stripMetadataOnExport', true),
+          click: (item) => store.set('stripMetadataOnExport', !!item.checked),
+        },
+        {
+          type: 'separator',
+        },
         {
           label: 'Table Generator',
           accelerator: 'CmdOrCtrl+Shift+T',
@@ -3245,11 +3274,78 @@ function tryPdfFallback(inputFile, outputFile, engines, index, options, _lastErr
     }
   });
 }
-function showExportSuccess(outputFile) {
+async function showExportSuccess(outputFile) {
+  if (
+    store.get('stripMetadataOnExport', true) &&
+    outputFile &&
+    fs.existsSync(outputFile) &&
+    fs.statSync(outputFile).isFile()
+  ) {
+    try {
+      await MetadataStripper.stripFile(outputFile);
+    } catch (error) {
+      console.warn('[metadata] export cleanup failed:', error.message);
+    }
+  }
   dialog.showMessageBox(mainWindow, {
     type: 'info',
     title: 'Export Complete',
     message: `File exported successfully to ${outputFile}`,
+    buttons: ['OK'],
+  });
+}
+
+async function pickAndStripMetadata() {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Strip AI Metadata',
+    properties: ['openFile', 'multiSelections'],
+    filters: [
+      {
+        name: 'Supported files',
+        extensions: [
+          'png',
+          'jpg',
+          'jpeg',
+          'webp',
+          'svg',
+          'pdf',
+          'docx',
+          'epub',
+          'mp3',
+          'wav',
+          'mp4',
+          'mov',
+          'm4a',
+          'md',
+          'markdown',
+          'html',
+          'htm',
+        ],
+      },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled || !result.filePaths.length) return;
+  const results = await MetadataStripper.stripFiles(result.filePaths);
+  const changed = results.filter((r) => r.changed).length;
+  const failed = results.filter((r) => r.error || r.verified === false);
+  const removed = results.reduce((sum, r) => sum + (r.removed ? r.removed.length : 0), 0);
+  const detail = [
+    `${results.length} file(s) checked`,
+    `${changed} changed`,
+    `${removed} metadata item(s) removed`,
+    failed.length ? `${failed.length} failed` : 'all content checks passed',
+    '',
+    ...results
+      .filter((r) => r.changed || r.error)
+      .slice(0, 20)
+      .map((r) => `${path.basename(r.file)}: ${r.error || r.removed.join(', ') || 'clean'}`),
+  ].join('\n');
+  dialog.showMessageBox(mainWindow, {
+    type: failed.length ? 'warning' : 'info',
+    title: 'Strip AI Metadata',
+    message: changed ? `Metadata stripped from ${changed} file(s).` : 'No removable metadata found.',
+    detail,
     buttons: ['OK'],
   });
 }

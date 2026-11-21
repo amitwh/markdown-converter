@@ -40,6 +40,15 @@ const TASKS = {
     user: (text, targetLanguage) =>
       `Translate the following to ${targetLanguage || 'English'}:\n\n${text}`,
   },
+  paraphrase: {
+    // This is a mitigation, not a watermark remover: statistical watermarks
+    // cannot be reliably detected or guaranteed removed, and meaning may shift.
+    system:
+      'You are a careful editor. Rewrite the user text with different sentence structure ' +
+      'and word choice while preserving meaning, facts, names, and markdown formatting. ' +
+      'Return ONLY the rewritten markdown — no preamble, no explanations.',
+    user: (text) => `Paraphrase the following text:\n\n${text}`,
+  },
   chat: {
     // Free-form conversation; the panel supplies its own message history
     system:

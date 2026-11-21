@@ -22,6 +22,12 @@ describe('AI Assistant prompts', () => {
       expect(user).toContain('bonjour');
     });
 
+    it('builds a paraphrase prompt that preserves meaning', () => {
+      const { system, user } = buildTaskPrompt('paraphrase', 'original words');
+      expect(system).toMatch(/preserving meaning/i);
+      expect(user).toContain('original words');
+    });
+
     it('throws on unknown actions', () => {
       expect(() => buildTaskPrompt('nope', 'x')).toThrow(/Unknown AI task/);
     });

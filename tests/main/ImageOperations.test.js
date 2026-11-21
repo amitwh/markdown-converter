@@ -72,6 +72,39 @@ describe('ImageOperations', () => {
     expect(result.success).toBe(true);
   });
 
+  test('imageCrop extracts the requested rectangle', async () => {
+    const outputPath = path.join(tmpDir, 'crop.png');
+    const result = await ImageOperations.imageCrop({
+      inputPath,
+      outputPath,
+      left: 10,
+      top: 20,
+      width: 50,
+      height: 40,
+    });
+    expect(result.success).toBe(true);
+    const meta = await sharp(outputPath).metadata();
+    expect(meta.width).toBe(50);
+    expect(meta.height).toBe(40);
+  });
+
+  test('imageCover paints an opaque rectangle over the mark', async () => {
+    const outputPath = path.join(tmpDir, 'cover.png');
+    const result = await ImageOperations.imageCover({
+      inputPath,
+      outputPath,
+      left: 10,
+      top: 10,
+      width: 20,
+      height: 20,
+      color: '#ffffff',
+    });
+    expect(result.success).toBe(true);
+    const { data, info } = await sharp(outputPath).raw().toBuffer({ resolveWithObject: true });
+    const idx = (15 * info.width + 15) * info.channels;
+    expect([data[idx], data[idx + 1], data[idx + 2]]).toEqual([255, 255, 255]);
+  });
+
   test('unknown operation throws', async () => {
     await expect(ImageOperations.executeOperation('bogus', {})).rejects.toThrow();
   });

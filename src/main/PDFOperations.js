@@ -8,7 +8,7 @@ const path = require('path');
 // contains). A library that supports encryption passes the probe and the
 // password ops re-enable automatically. Probe errors fail closed (treated as
 // unsupported).
-const { PDFDocument, rgb, degrees, StandardFonts } = require('@cantoo/pdf-lib');
+const { PDFDocument, PDFName, rgb, degrees, StandardFonts } = require('@cantoo/pdf-lib');
 
 const pdfEncryptionSupported = (async () => {
   try {
@@ -702,6 +702,85 @@ async function pdfFillForm(data) {
   }
 }
 
+/**
+ * Remove watermark annotations that live as separate PDF objects. Marks drawn
+ * into page content are not annotations and cannot be removed this way.
+ */
+async function pdfRemoveWatermarks(data) {
+  try {
+    const { inputPath, outputPath } = data || {};
+    if (!inputPath || !outputPath) throw new Error('inputPath and outputPath are required');
+    const pdf = await PDFDocument.load(fs.readFileSync(inputPath));
+    let removed = 0;
+    for (const page of pdf.getPages()) {
+      const annotsRef = page.node.get(PDFName.of('Annots'));
+      if (!annotsRef) continue;
+      const annots = pdf.context.lookup(annotsRef);
+      if (!annots || typeof annots.asArray !== 'function') continue;
+      const keep = [];
+      for (const ref of annots.asArray()) {
+        const dict = pdf.context.lookup(ref);
+        const subtype = dict && dict.get(PDFName.of('Subtype'));
+        const subtypeName = subtype ? String(subtype) : '';
+        const name = dict && (dict.get(PDFName.of('NM')) || dict.get(PDFName.of('T')));
+        const nameText = name ? String(name) : '';
+        if (/watermark/i.test(subtypeName) || /watermark/i.test(nameText)) {
+          removed += 1;
+          continue;
+        }
+        keep.push(ref);
+      }
+      page.node.set(PDFName.of('Annots'), pdf.context.obj(keep));
+    }
+    const bytes = await pdf.save();
+    fs.writeFileSync(outputPath, bytes);
+    return {
+      success: true,
+      outputPath,
+      removed,
+      message: removed
+        ? `Removed ${removed} watermark annotation(s)`
+        : 'No watermark annotations found (marks drawn into page content are not removable this way)',
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Cover a rectangular area with an opaque/translucent fill. Intended for
+ * visible marks burned into page content; it does not remove source data.
+ */
+async function pdfCoverArea(data) {
+  try {
+    const { inputPath, outputPath } = data || {};
+    if (!inputPath || !outputPath) throw new Error('inputPath and outputPath are required');
+    const pdf = await PDFDocument.load(fs.readFileSync(inputPath));
+    const total = pdf.getPageCount();
+    const pageNumbers =
+      data.pageRange && String(data.pageRange).trim() && String(data.pageRange).trim() !== 'all'
+        ? parsePageRanges(String(data.pageRange), total)
+        : Array.from({ length: total }, (_, i) => i);
+    const x = Number(data.x) || 0;
+    const y = Number(data.y) || 0;
+    const width = Number(data.width) || 0;
+    const height = Number(data.height) || 0;
+    if (width <= 0 || height <= 0) throw new Error('width and height must be positive');
+    const opacity = Math.max(0, Math.min(1, Number(data.opacity ?? 1)));
+    const c = hexToRgb(data.color || '#ffffff');
+    const color = rgb(c.r, c.g, c.b);
+    for (const index of pageNumbers) {
+      const page = pdf.getPage(index);
+      page.drawRectangle({ x, y, width, height, color, opacity });
+    }
+    const bytes = await pdf.save();
+    fs.writeFileSync(outputPath, bytes);
+    return { success: true, outputPath, pages: pageNumbers.length };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 function executeOperation(operation, data) {
   switch (operation) {
     case 'merge':
@@ -730,6 +809,10 @@ function executeOperation(operation, data) {
       return pdfAddPageNumbers(data);
     case 'crop':
       return pdfCrop(data);
+    case 'removeWatermark':
+      return pdfRemoveWatermarks(data);
+    case 'cover':
+      return pdfCoverArea(data);
     case 'extractImages':
       return pdfExtractImages(data);
     case 'formFields':
@@ -765,6 +848,8 @@ module.exports = {
   pdfExtractText,
   pdfAddPageNumbers,
   pdfCrop,
+  pdfRemoveWatermarks,
+  pdfCoverArea,
   pdfExtractImages,
   pdfGetFormFields,
   pdfFillForm,

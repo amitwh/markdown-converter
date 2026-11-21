@@ -164,6 +164,50 @@ async function imageRotate(data) {
   }
 }
 
+function positiveInt(value, label) {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 0) throw new Error(`${label} must be a non-negative integer`);
+  return n;
+}
+
+async function imageCrop(data) {
+  try {
+    const sharp = loadSharp();
+    validateInput(data);
+    const { inputPath, outputPath } = data;
+    const left = positiveInt(data.left, 'left');
+    const top = positiveInt(data.top, 'top');
+    const width = positiveInt(data.width, 'width');
+    const height = positiveInt(data.height, 'height');
+    if (width < 1 || height < 1) throw new Error('width and height must be at least 1');
+    await sharp(inputPath).extract({ left, top, width, height }).toFile(outputPath);
+    return { success: true, outputPath };
+  } catch (error) {
+    throw new Error(`Image crop failed: ${error.message}`);
+  }
+}
+
+async function imageCover(data) {
+  try {
+    const sharp = loadSharp();
+    validateInput(data);
+    const { inputPath, outputPath } = data;
+    const left = positiveInt(data.left, 'left');
+    const top = positiveInt(data.top, 'top');
+    const width = positiveInt(data.width, 'width');
+    const height = positiveInt(data.height, 'height');
+    const color = /^#[0-9a-f]{6}$/i.test(data.color || '') ? data.color : '#ffffff';
+    if (width < 1 || height < 1) throw new Error('width and height must be at least 1');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="${color}"/></svg>`;
+    await sharp(inputPath)
+      .composite([{ input: Buffer.from(svg), left, top }])
+      .toFile(outputPath);
+    return { success: true, outputPath };
+  } catch (error) {
+    throw new Error(`Image cover failed: ${error.message}`);
+  }
+}
+
 function executeOperation(operation, data) {
   try {
     loadSharp();
@@ -184,6 +228,10 @@ function executeOperation(operation, data) {
       return imageCompress(data);
     case 'rotate':
       return imageRotate(data);
+    case 'crop':
+      return imageCrop(data);
+    case 'cover':
+      return imageCover(data);
     default:
       return Promise.reject(new Error(`Unknown operation: ${operation}`));
   }
@@ -195,4 +243,6 @@ module.exports = {
   imageResize,
   imageCompress,
   imageRotate,
+  imageCrop,
+  imageCover,
 };

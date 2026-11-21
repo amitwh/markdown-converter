@@ -72,6 +72,9 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 - **Vim mode & snippet expansion** - Vim keybindings toggle; Tab expands saved snippets
 - **Quick Note** - Global scratchpad (Ctrl+Alt+Q) that appends to `notes/quick-notes.md`
 - **Real PDF encryption** - Password protection, removal, and permissions actually work
+- **AI metadata stripping** - Tools → Strip AI Metadata… removes C2PA/JUMBF, EXIF/XMP, PDF Info, DOCX/EPUB docProps, media tags, and AI frontmatter/comments from `.md`/HTML — losslessly, with content verification. “Clean AI Metadata on Export” is on by default.
+- **Visible-mark tools** - Remove separate PDF watermark annotations, cover a PDF region, or crop/cover an image region. Burned-in marks require content editing; pixel-perfect automatic removal is not possible.
+- **AI paraphrase** - Rewrites selected text as a watermark *mitigation*; statistical AI text watermarks cannot be guaranteed removed and meaning may change.
 - **Auto-update** - Checks GitHub releases via `electron-updater` (Help → Check for Updates)
 - **Offline math & diagrams** - KaTeX is bundled; PlantUML renders locally when the CLI is installed, otherwise through the PlantUML server
 
@@ -111,14 +114,14 @@ npm run test:coverage
 npm run lint               # ESLint (flat config)
 npm run format             # Prettier
 npm run build:flowchart-editor  # bundle the maxGraph flowchart editor
-npm run release:local      # new version + local deb/AppImage (then tag-push for CI)
+npm run build:deb:local    # bump + stamp buildInfo + build a local deb only
 ```
 
-`release:local` refuses a dirty tree, runs tests and lint, bumps the patch
-version, stamps `buildInfo` (date + commit) for the About dialog, tags the
-release, and builds `dist/*.deb` + `dist/*.AppImage`. Add `-- --bump minor`
-for a minor release, or `-- --publish` to push the branch and tag so GitHub
-Actions creates the release.
+`build:deb:local` runs tests/lint, bumps the patch version, stamps `buildInfo`
+(date + commit) for the About dialog, and builds `dist/*.deb` without creating a
+Git tag or GitHub release. Add `-- --bump minor` for a minor release. The older
+`release:local` command remains available when GitHub Releases are re-enabled
+(`-- --publish` pushes the tag for CI).
 
 | Path | Contents |
 |---|---|

@@ -78,10 +78,12 @@ function replaceOnce(file, from, to) {
 const bump = option('--bump', 'patch');
 const publish = flag('--publish');
 const skipChecks = flag('--skip-checks');
+const noGit = flag('--no-git');
+const debOnly = flag('--deb-only');
 
 // 1. Refuse to release from a dirty tree unless explicitly overridden.
 const dirty = capture('git', ['status', '--porcelain']);
-if (dirty && !skipChecks) {
+if (dirty && !skipChecks && !noGit) {
   fail('Working tree is dirty. Commit/stash changes first (or use --skip-checks).');
 }
 
@@ -121,10 +123,12 @@ replaceOnce('README.md', `**Current release: v${oldVersion}**`, `**Current relea
 replaceOnce('README.md', `\nv${oldVersion}\n`, `\nv${newVersion}\n`);
 replaceOnce('CLAUDE.md', `**Version:** ${oldVersion}`, `**Version:** ${newVersion}`);
 
-// 6. Release commit + tag.
-run('git', ['add', '-A']);
-run('git', ['commit', '-m', `chore(release): v${newVersion}`]);
-run('git', ['tag', `v${newVersion}`]);
+// 6. Release commit + tag (unless --no-git: local deb-only builds).
+if (!noGit) {
+  run('git', ['add', '-A']);
+  run('git', ['commit', '-m', `chore(release): v${newVersion}`]);
+  run('git', ['tag', `v${newVersion}`]);
+}
 
 // 7. Local Linux release artifacts (deb + AppImage) — verified before CI.
 console.log(`[release:local] Building flowchart editor bundle…`);
@@ -136,8 +140,7 @@ run(npx, [
   '--config',
   'electron-builder.config.js',
   '--linux',
-  'deb',
-  'AppImage',
+  ...(debOnly ? ['deb'] : ['deb', 'AppImage']),
   '--publish=never',
 ]);
 
@@ -152,12 +155,14 @@ console.log(`\n[release:local] v${newVersion} built.`);
 for (const artifact of artifacts) console.log(`  dist/${artifact}`);
 console.log(`  tag: v${newVersion}`);
 
-if (publish) {
+if (publish && !noGit) {
   const branch = capture('git', ['branch', '--show-current']);
   console.log(`[release:local] Pushing ${branch} and v${newVersion}…`);
   run('git', ['push', 'origin', branch]);
   run('git', ['push', 'origin', `v${newVersion}`]);
   console.log('[release:local] Pushed — GitHub Actions will create the release.');
+} else if (noGit) {
+  console.log('[release:local] --no-git: no commit/tag/push performed. Commit the version files when ready.');
 } else {
   console.log(
     `[release:local] Not pushed. Publish with:\n  git push origin ${capture('git', ['branch', '--show-current'])} && git push origin v${newVersion}`

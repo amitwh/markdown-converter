@@ -31,6 +31,7 @@
     "bundle:markitdown": "node scripts/bundle-markitdown.js",
     "build:flowchart-editor": "node scripts/build-flowchart-editor.js",
     "release:local": "node scripts/release-local.js",
+    "build:deb:local": "node scripts/release-local.js --no-git --deb-only",
     "generate-icons": "node scripts/generate-icons.js"
   },
   "keywords": [

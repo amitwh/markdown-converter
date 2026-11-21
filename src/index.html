@@ -2016,6 +2016,100 @@
                 </div>
               </div>
 
+              <!-- Remove Watermark Annotations Section -->
+              <div id="pdf-remove-watermark-section" class="pdf-operation-section hidden">
+                <div class="export-section">
+                  <label>PDF File:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="remove-watermark-input-path"
+                      placeholder="Select PDF file..."
+                      readonly
+                    />
+                    <button id="browse-remove-watermark-input">Browse</button>
+                  </div>
+                </div>
+                <div class="export-section">
+                  <small
+                    >Removes watermark annotations stored as separate PDF objects. Marks drawn into
+                    page content are not removable this way — use Cover Area instead.</small
+                  >
+                </div>
+                <div class="export-section">
+                  <label class="checkbox-inline"
+                    ><input type="checkbox" id="remove-watermark-overwrite" /> Overwrite original
+                    file</label
+                  >
+                </div>
+                <div class="export-section" id="remove-watermark-saveas-section">
+                  <label>Save As:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="remove-watermark-output-path"
+                      placeholder="Select save location..."
+                      readonly
+                    />
+                    <button id="browse-remove-watermark-output">Save As</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cover Area Section -->
+              <div id="pdf-cover-section" class="pdf-operation-section hidden">
+                <div class="export-section">
+                  <label>PDF File:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="cover-input-path"
+                      placeholder="Select PDF file..."
+                      readonly
+                    />
+                    <button id="browse-cover-input">Browse</button>
+                  </div>
+                </div>
+                <div class="export-section">
+                  <label>Pages (e.g. 1,3-5 or all):</label>
+                  <input type="text" id="cover-page-range" value="all" />
+                </div>
+                <div class="export-section">
+                  <label>Cover rectangle (PDF points):</label>
+                  <div class="checkbox-group">
+                    <label>X: <input type="number" id="cover-x" value="0" /></label>
+                    <label>Y: <input type="number" id="cover-y" value="0" /></label>
+                    <label>Width: <input type="number" id="cover-width" value="200" /></label>
+                    <label>Height: <input type="number" id="cover-height" value="80" /></label>
+                  </div>
+                  <div class="checkbox-group">
+                    <label>Colour: <input type="text" id="cover-color" value="#ffffff" /></label>
+                    <label
+                      >Opacity (0-1):
+                      <input type="number" id="cover-opacity" min="0" max="1" step="0.1" value="1"
+                    /></label>
+                  </div>
+                  <small>Intended for visible marks burned into page content. This alters content.</small>
+                </div>
+                <div class="export-section">
+                  <label class="checkbox-inline"
+                    ><input type="checkbox" id="cover-overwrite" /> Overwrite original file</label
+                  >
+                </div>
+                <div class="export-section" id="cover-saveas-section">
+                  <label>Save As:</label>
+                  <div class="folder-input-group">
+                    <input
+                      type="text"
+                      id="cover-output-path"
+                      placeholder="Select save location..."
+                      readonly
+                    />
+                    <button id="browse-cover-output">Save As</button>
+                  </div>
+                </div>
+              </div>
+
               <!-- Extract Images Section -->
               <div id="pdf-extract-images-section" class="pdf-operation-section hidden">
                 <div class="export-section">
