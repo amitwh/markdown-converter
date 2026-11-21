@@ -1498,6 +1498,8 @@ function createMenu() {
 
 // Show About Dialog with logo
 function showAboutDialog() {
+  const pkg = require('../package.json');
+  const buildInfo = pkg.buildInfo || {};
   const aboutWindow = new BrowserWindow({
     width: 500,
     height: 600,
@@ -1545,7 +1547,8 @@ function showAboutDialog() {
     }
     .logo { width: 120px; margin-bottom: 20px; border-radius: 20px; }
     h1 { font-size: 24px; margin-bottom: 5px; color: #fff; }
-    .version { color: #e5461f; font-size: 14px; margin-bottom: 20px; }
+    .version { color: #e5461f; font-size: 14px; margin-bottom: 4px; }
+    .build { color: #9a9696; font-size: 11px; margin-bottom: 20px; }
     .company { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
     .company-logo { height: 24px; }
     .section { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin: 15px 0; text-align: left; }
@@ -1561,6 +1564,9 @@ function showAboutDialog() {
   <img src="${iconBase64}" class="logo" alt="MarkdownConverter">
   <h1>MarkdownConverter</h1>
   <div class="version">Version ${app.getVersion()}</div>
+  <div class="build">Electron ${process.versions.electron} · Chromium ${process.versions.chrome}${
+    buildInfo.date ? ` · Built ${buildInfo.date}` : ''
+  }${buildInfo.commit ? ` (${buildInfo.commit.slice(0, 7)})` : ''}</div>
 
   <div class="company">
     <span>by</span>
@@ -1575,7 +1581,9 @@ function showAboutDialog() {
       <li>Batch conversion for all media types</li>
       <li>Advanced PDF Editor (merge, split, watermark, encrypt)</li>
       <li>Export to PDF, DOCX, HTML, LaTeX, EPUB & more</li>
-      <li>23+ beautiful themes including ConcreteInfo theme</li>
+      <li>37 themes, including ConcreteInfo light/dark/warm</li>
+      <li>Visual flowchart editor with Mermaid/SVG/VSDX export</li>
+      <li>Quick switcher, inline AI assist, daily notes</li>
       <li>ASCII Art & Table generators</li>
       <li>Code file syntax highlighting</li>
     </ul>

@@ -1149,6 +1149,9 @@ class TabManager {
           window.mermaid.initialize({
             startOnLoad: false,
             theme,
+            // Mermaid 12 made ELK the default layout; keep the pre-v12 dagre
+            // layout so existing documents render the same way.
+            layout: 'dagre',
             securityLevel: 'loose',
           });
           window.mermaid

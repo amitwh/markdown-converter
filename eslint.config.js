@@ -1,6 +1,6 @@
 /**
- * ESLint Configuration for PanConverter
- * Uses flat config format (ESLint 9+)
+ * ESLint Configuration for MarkdownConverter
+ * Uses flat config format (ESLint 10+); the codebase is CommonJS.
  */
 
 module.exports = [
@@ -17,8 +17,8 @@ module.exports = [
     // JavaScript files
     files: ['**/*.js'],
     languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module',
+      ecmaVersion: 'latest',
+      sourceType: 'commonjs',
       globals: {
         // Node.js
         require: 'readonly',

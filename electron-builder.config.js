@@ -89,6 +89,8 @@ module.exports = {
   mac: {
     category: 'public.app-category.productivity',
     identity: null,
+    // Electron 44+ requires macOS 13 (Ventura) or later.
+    minimumSystemVersion: '13.0',
     extraFiles: toolExtraFiles('darwin'),
   },
   win: {

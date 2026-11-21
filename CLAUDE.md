@@ -7,7 +7,7 @@
 Electron desktop app for Markdown editing, PDF viewing/editing, and universal file conversion (Pandoc, FFmpeg, MarkItDown). Cross-platform (Win/macOS/Linux). Features: multi-tab CodeMirror 6 editor with live preview, 37 themes, PDF viewer/editor (merge/split/compress/rotate/delete/reorder/watermark/password/permissions), export to 20+ formats, batch conversion, Mermaid + visual flowchart generator, Git integration, quick switcher, inline AI assist, comments/wiki-links, version history, crash recovery, and a manifest-based plugin system.
 
 - **Version:** 4.13.0 · **License:** MIT · **App ID:** `com.concreteinfo.markdownconverter`
-- **Stack:** Electron 41, vanilla CommonJS JavaScript, **no bundler/transpiler/framework in the renderer**, CodeMirror 6, Jest 30 (jsdom).
+- **Stack:** Electron 45, Node 24 LTS, vanilla CommonJS JavaScript, **no bundler/transpiler/framework in the renderer**, CodeMirror 6, Jest 30 (jsdom).
 
 ## Branch Roles
 
@@ -28,7 +28,7 @@ The earlier React + Tauri + PWA design was **not** executed as written: the v5 r
 | `src/preload.js` — IPC bridge | 626 |
 | `src/index.html` — single-page UI | 2,811 |
 | `src/**` total (JS/HTML/CSS) | ~56,600 |
-| Tests | 106 suites · 1,330 cases |
+| Tests | 106 suites · 1,386 cases |
 
 ## Architecture
 
@@ -70,7 +70,7 @@ Exposes `window.electronAPI` namespaces (`file`, `theme`, `print`, `export`, `ba
 
 ### Persistence
 
-Custom JSON store (not `electron-store`, despite the dependency) under Electron `userData`:
+Custom JSON store (not `electron-store`) under Electron `userData`:
 `settings.json` (theme, vim mode, monospace, word/page/header-footer, export presets, last ASCII font, `plugins.ai-assistant.*`), `recent-files.json`, `snippets.json`, plus autosave/version-history/daily-notes data. **AI provider API keys are stored in plaintext in `settings.json`.**
 
 ## Security Model (as implemented — audit before touching)
@@ -108,7 +108,7 @@ Git-panel XSS (repo-derived names/messages rendered unescaped) was fixed with `e
 
 Config: `electron-builder.config.js` (**not** inline in `package.json`). Output `dist/`.
 
-- **Windows:** NSIS + portable + zip (x64). **macOS:** dmg, unsigned (`identity: null`). **Linux:** deb + AppImage + snap (strict/stable).
+- **Windows:** NSIS + portable + zip (x64). **macOS:** dmg, unsigned (`identity: null`), macOS 13+ (`minimumSystemVersion`). **Linux:** deb + AppImage + snap (strict/stable).
 - `files`: `src`, `assets`, `scripts`, all `node_modules`, legal docs. `asarUnpack`: `ffmpeg-static`, `sharp`, `@img`, `@napi-rs`, `assets/fonts`.
 - Tool binaries via `extraFiles`: Pandoc always; MarkItDown only when built for that platform (runtime falls back to system MarkItDown).
 - File associations: `.md`, `.markdown`, `.pdf`.
@@ -119,7 +119,7 @@ Config: `electron-builder.config.js` (**not** inline in `package.json`). Output 
 
 | Dependency | Required | Notes |
 |---|---|---|
-| **Node.js** | >= 22 | `engines` in package.json; CI workflows still use Node 20 (drift). |
+| **Node.js** | >= 24 | `engines` in package.json; CI workflows use Node 24. Electron 45 bundles Node 24.22. |
 | **Pandoc** | Bundled | 3.9.0.2 via `npm run download-tools` → `bin/<platform>/pandoc`; SHA-256 pinned except darwin. Falls back to system PATH. |
 | **FFmpeg** | Bundled | `ffmpeg-static`, asar-unpacked. |
 | **MarkItDown** | Bundled (optional) | `npm run bundle:markitdown` (PyInstaller); core formats work; audio/OCR need system `markitdown[all]`. |
@@ -142,8 +142,16 @@ npm run dist | dist:all
 npm run download-tools     # fetch Pandoc 3.9.0.2
 npm run bundle:markitdown  # optional PyInstaller bundle
 npm run build:bundle       # regenerate flowchart bundle
+npm run release:local      # bump version, tag, build local deb + AppImage
 npm run generate-icons
 ```
+
+Release flow: `npm run release:local` (optionally `-- --bump minor`) refuses a
+dirty tree, runs tests + lint, bumps the version, stamps `buildInfo` (date,
+commit, Electron version) for the About dialog, commits, tags, and builds
+`dist/*.deb` + `dist/*.AppImage`. Add `-- --publish` to push the branch and tag
+so GitHub Actions creates the release. Local artifacts are always built and
+verified before CI/CD is used.
 
 ## Testing, Lint & Quality Gates
 
@@ -152,8 +160,8 @@ npm run generate-icons
 - Coverage **excludes** `src/main.js`, `src/renderer.js`, `src/preload.js`; thresholds 10% branches / 15% functions-lines-statements.
 - No automated E2E; `tests/smoke-e2e-monospace.js` is a manual script.
 - `tests/lint-quality.test.js` fails on any ESLint "warning" text; `tests/no-diagnostic-logs.test.js` scans only `src/main.js` + `src/renderer.js`.
-- ESLint flat config declares `sourceType: 'module'` although the codebase is CommonJS; `eslint-plugin-prettier` is installed but unused.
-- **Local baseline (2026-11-21):** 1,323 passed / 7 skipped; 2 suites fail because `@cantoo/pdf-lib` is missing from `node_modules` — run `npm ci`/`npm install` before treating those as code failures.
+- ESLint 10 flat config uses `sourceType: 'commonjs'` and `ecmaVersion: 'latest'`; `eslint-plugin-prettier` is installed but unused.
+- **Local baseline (2026-11-21, upgraded stack):** 1,379 passed / 7 skipped, 0 failures.
 
 ## Known Gotchas / Drift
 
@@ -168,6 +176,11 @@ npm run generate-icons
 - Neural search and generative DocQA are not actually available: `@xenova/transformers` is not a dependency and DocQA only retrieves passages. MarkItDown is optional and not bundled in this checkout (`bin/linux` contains pandoc only).
 - No generated symbol map or changelog is checked in. If one is needed: install `universal-ctags`, run `~/.claude-shared/scripts/repo-map.sh . JavaScript > /tmp/repo-map.md`, use it, and discard it — checked-in maps rot silently.
 - Legacy context-menu scripts and the custom NSIS include were removed: `electron-builder.config.js` never referenced them and they targeted `PanConverter.exe` paths.
+- **Electron 42+ no longer downloads its binary in `postinstall`** — it downloads on first `npx electron`/`npm start`. CI builds still work; offline dev must run Electron once before packaging.
+- **npm 12 blocks install scripts by default.** `package.json` has `allowScripts: { "ffmpeg-static": true }` so the FFmpeg binary can download; other blocked scripts (`electron`, `electron-winstaller`, `@parcel/watcher`, `unrs-resolver`) are not required locally.
+- **Dependency cleanup (4.14):** removed unused `electron-store`, `docx`, `pdfkit`, `html2pdf.js`, `core-util-is`, `tslib`, `codemirror`, `@codemirror/lint`, and `@testing-library/dom`.
+- **Mermaid 12 defaults to ELK layout**; `renderer.js` pins `layout: 'dagre'` to preserve existing document appearance. Mermaid 12 requires ES2024 (Electron 45’s Chromium 156 is fine).
+- **pdfjs-dist 6** is ESM-first; the main process uses `legacy/build/pdf.mjs`, and the renderer relies on Node 24's `require(ESM)` support.
 - `CLAUDE.md` is the tracked single source of truth (removed from `.gitignore`); `.remember/` holds local session memory and is gitignored.
 
 ## Release History (condensed)
@@ -176,6 +189,7 @@ Full detail is in git history; this is the shape of the product.
 
 | Version | Date | Highlights |
 |---|---|---|
+| **4.14.0** | 2026-11-21 | Dependency/platform refresh: Electron 45, Node 24 LTS, ESLint 10, Mermaid 12 (dagre layout pinned), pdfjs-dist 6, marked 18, KaTeX 0.19, simple-git 4, electron-builder 26.18, electron-updater 6.8. Removed 9 unused packages. Added `release:local` (version bump + tag + local deb/AppImage) and build metadata in the About dialog. |
 | **4.13.0** | 2026-10-01 | Quick switcher (Ctrl+P), inline AI assist (Cmd+K), electron-updater wiring, flowchart C1–C19/D1 (undo/redo, zoom/pan/snap, clipboard, Mermaid import, resize, multi-select, align/distribute, SVG/PNG/JPG/VSDX export), Node 22 engines. |
 | 4.12.0 | 2026-09-15 | Flowchart: discoverable connect form, per-node colour, save-to-file export. |
 | 4.11.x | 2026-09-15 | Flowchart panel-driven interaction; removed `window.prompt`; debug-copy cleanup. |

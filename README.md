@@ -4,7 +4,7 @@
 
 # MarkdownConverter
 
-A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron. 100% open-source with no proprietary dependencies.
+A powerful cross-platform Markdown editor and document converter powered by Pandoc, built with Electron 45 and Node 24. 100% open-source with no proprietary dependencies.
 
 **Current release: v4.13.0** — quick switcher (Ctrl+P), inline AI assist (Cmd+K), a rebuilt visual flowchart generator (multi-select, alignment, SVG/PNG/JPG/VSDX export), and GitHub-based auto-updates.
 
@@ -78,7 +78,7 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 ## Installation
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) **v22 or later** (see `engines` in `package.json`) — development and builds only
+- [Node.js](https://nodejs.org/) **v24 or later** (see `engines` in `package.json`) — development and builds only
 - [Pandoc](https://pandoc.org/installing.html) **3.9.0.2** — bundled in release builds; in a source checkout run `npm run download-tools` (the app also falls back to a system Pandoc on `PATH`)
 - [MarkItDown](https://github.com/microsoft/markitdown) — bundled in release builds when `npm run bundle:markitdown` succeeds; otherwise the app uses a system `markitdown`. Core formats: PDF / DOCX / PPTX / XLSX / Outlook / EPUB / HTML / images / ZIP / CSV / JSON / XML
 - Optional for advanced import only: `pip install "markitdown[all]"` adds **audio transcription** (Whisper) and **OCR** (EasyOCR/Tesseract) — multi-GB model downloads, not bundled
@@ -111,7 +111,14 @@ npm run test:coverage
 npm run lint               # ESLint (flat config)
 npm run format             # Prettier
 npm run build:bundle       # regenerate the flowchart browser bundle
+npm run release:local      # new version + local deb/AppImage (then tag-push for CI)
 ```
+
+`release:local` refuses a dirty tree, runs tests and lint, bumps the patch
+version, stamps `buildInfo` (date + commit) for the About dialog, tags the
+release, and builds `dist/*.deb` + `dist/*.AppImage`. Add `-- --bump minor`
+for a minor release, or `-- --publish` to push the branch and tag so GitHub
+Actions creates the release.
 
 | Path | Contents |
 |---|---|
