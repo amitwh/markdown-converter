@@ -83,7 +83,8 @@ function main() {
     // document conversion — excluding them keeps the binary ~75MB
     '--exclude-module', 'torch',
     '--exclude-module', 'scipy',
-    '--exclude-module', 'pandas',
+    // pandas is imported by markitdown at module load time, so it must be
+    // bundled — excluding it produces a binary that fails on `--version`.
     '--exclude-module', 'matplotlib',
     '--exclude-module', 'tkinter',
     '--exclude-module', 'IPython',
@@ -98,12 +99,19 @@ function main() {
   fs.copyFileSync(path.join(workDir, 'dist', exeName), destFile);
   if (platform !== 'win32') fs.chmodSync(destFile, 0o755);
 
-  // Smoke test before declaring success
-  const version = execFileSync(destFile, ['--version'], { encoding: 'utf-8' }).trim();
-  if (!version.toLowerCase().includes('markitdown')) {
-    throw new Error(`Unexpected --version output: ${version}`);
+  // Smoke test before declaring success. A broken binary must not be left
+  // behind: the release workflow treats bundling as best-effort and continues,
+  // but the test suite would then try to execute it and fail.
+  try {
+    const version = execFileSync(destFile, ['--version'], { encoding: 'utf-8' }).trim();
+    if (!version.toLowerCase().includes('markitdown')) {
+      throw new Error(`Unexpected --version output: ${version}`);
+    }
+    console.log(`[bundle-markitdown] Built ${destFile} (${version})`);
+  } catch (err) {
+    fs.rmSync(destFile, { force: true });
+    throw err;
   }
-  console.log(`[bundle-markitdown] Built ${destFile} (${version})`);
 }
 
 try {

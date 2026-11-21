@@ -16,7 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
 const PANDOC_VERSION = '3.9.0.2';
 const FIRACODE_VERSION = '6.2';
@@ -95,7 +95,7 @@ const PANDOC_CONFIG = {
     extract(archivePath, destDir) {
       const tmpDir = path.join(os.tmpdir(), `pandoc-${Date.now()}`);
       fs.mkdirSync(tmpDir, { recursive: true });
-      execSync(`tar -xzf "${archivePath}" -C "${tmpDir}" pandoc-${PANDOC_VERSION}/bin/pandoc`);
+      execFileSync('tar', ['-xzf', archivePath, '-C', tmpDir, `pandoc-${PANDOC_VERSION}/bin/pandoc`]);
       const src = path.join(tmpDir, `pandoc-${PANDOC_VERSION}`, 'bin', 'pandoc');
       fs.copyFileSync(src, path.join(destDir, 'pandoc'));
       fs.chmodSync(path.join(destDir, 'pandoc'), 0o755);
@@ -109,11 +109,13 @@ const PANDOC_CONFIG = {
     extract(archivePath, destDir) {
       const tmpDir = path.join(os.tmpdir(), `pandoc-${Date.now()}`);
       fs.mkdirSync(tmpDir, { recursive: true });
-      execSync(
-        `powershell -Command "Expand-Archive -Force '${archivePath}' '${tmpDir}'"`,
-      );
-      const src = path.join(tmpDir, `pandoc-${PANDOC_VERSION}`, 'pandoc.exe');
-      fs.copyFileSync(src, path.join(destDir, 'pandoc.exe'));
+      // `tar` (bsdtar) ships with Windows 10+ and handles zip archives. It is
+      // more reliable in CI than PowerShell's Expand-Archive, whose internal
+      // ExtractToDirectory overload can fail on the runner image.
+      execFileSync('tar', ['-xf', archivePath, '-C', tmpDir]);
+      const found = findBinary(tmpDir, 'pandoc');
+      if (!found) throw new Error('pandoc.exe not found inside the Windows archive');
+      fs.copyFileSync(found, path.join(destDir, 'pandoc.exe'));
       fs.rmSync(tmpDir, { recursive: true, force: true });
     },
   },
@@ -124,7 +126,7 @@ const PANDOC_CONFIG = {
     extract(archivePath, destDir) {
       const tmpDir = path.join(os.tmpdir(), `pandoc-${Date.now()}`);
       fs.mkdirSync(tmpDir, { recursive: true });
-      execSync(`unzip -o "${archivePath}" -d "${tmpDir}"`);
+      execFileSync('unzip', ['-o', archivePath, '-d', tmpDir]);
       // macOS zips don't carry a stable layout (bin/ subdir vs. flat) —
       // locate the binary in the extracted tree instead of guessing a path
       const found = findBinary(tmpDir, 'pandoc');
@@ -201,7 +203,7 @@ async function downloadFiraCode() {
   const tmpZip = path.join(tmpDir, 'firacode.zip');
   console.log(`[download-tools] Downloading Fira Code ${FIRACODE_VERSION}...`);
   await download(zipUrl, tmpZip);
-  execSync(`unzip -o -j "${tmpZip}" "ttf/FiraCode-Regular.ttf" "ttf/FiraCode-Bold.ttf" -d "${tmpDir}"`);
+  execFileSync('unzip', ['-o', '-j', tmpZip, 'ttf/FiraCode-Regular.ttf', 'ttf/FiraCode-Bold.ttf', '-d', tmpDir]);
 
   fs.copyFileSync(path.join(tmpDir, 'FiraCode-Regular.ttf'), path.join(destDir, 'FiraCode-Regular.ttf'));
   fs.copyFileSync(path.join(tmpDir, 'FiraCode-Bold.ttf'), path.join(destDir, 'FiraCode-Bold.ttf'));
@@ -246,7 +248,7 @@ async function downloadPandoc() {
 
   try {
     fs.unlinkSync(tmpArchive);
-  } catch (_) {
+  } catch {
     /* ignore */
   }
 
