@@ -1,103 +1,212 @@
 # CLAUDE.md — MarkdownConverter (master)
 
-> General code-quality, JavaScript, git, security, and testing standards are in the **global CLAUDE.md**. This file holds project- and branch-specific notes.
+> **Single source of truth for project knowledge.** General code-quality, JavaScript, git, security, and testing standards are in the **global CLAUDE.md**; this file holds all project/branch/architecture/operations notes. `README.md` is the user-facing feature guide. `SOURCES.md`, `THIRD-PARTY-NOTICES.md`, and `third-party-licenses/` are legal-compliance files and must stay. No other project `.md` docs are maintained — history lives in git (`scripts/README.md` documents build tooling only).
 
 ## Project Overview
 
-Electron desktop app for Markdown editing and universal file conversion powered by Pandoc. Cross-platform (Win/macOS/Linux). Features: multi-tab editor with live preview, 25+ themes, PDF viewer/editor (merge/split/compress/rotate/watermark/password), export to 20+ formats (PDF/DOCX/ODT/EPUB/HTML/LaTeX/RTF/PPTX), batch conversion, syntax highlighting, diagram support (Mermaid), Git integration, and a plugin system.
+Electron desktop app for Markdown editing, PDF viewing/editing, and universal file conversion (Pandoc, FFmpeg, MarkItDown). Cross-platform (Win/macOS/Linux). Features: multi-tab CodeMirror 6 editor with live preview, 37 themes, PDF viewer/editor (merge/split/compress/rotate/delete/reorder/watermark/password/permissions), export to 20+ formats, batch conversion, Mermaid + visual flowchart generator, Git integration, quick switcher, inline AI assist, comments/wiki-links, version history, crash recovery, and a manifest-based plugin system.
 
-- **Version:** 4.4.5
-- **License:** MIT
-- **App ID:** `com.concreteinfo.markdownconverter`
+- **Version:** 4.13.0 · **License:** MIT · **App ID:** `com.concreteinfo.markdownconverter`
+- **Stack:** Electron 41, vanilla CommonJS JavaScript, **no bundler/transpiler/framework in the renderer**, CodeMirror 6, Jest 30 (jsdom).
 
-## Branch Specifics
+## Branch Roles
 
-This is the **primary/release branch** — a vanilla JavaScript Electron app with no bundler or framework in the renderer. The renderer is a single large `renderer.js` (5,300+ lines) loaded directly via `src/index.html`. All UI is hand-rolled DOM manipulation.
+| Branch | Purpose |
+|---|---|
+| **`master`** (here) | Release line — vanilla Electron app. `src/main.js` + `src/renderer.js` monoliths. |
+| `react-electron` | v5.0.1 rewrite: React 19 + TypeScript + Vite renderer, Vitest, `src/main/index.js`. Not Tauri. |
+| `origin/dev` | Currently level with `master`. `origin/windows`, `origin/new-dev` also exist. |
+
+The earlier React + Tauri + PWA design was **not** executed as written: the v5 rewrite landed as React + Electron on `react-electron`; there is no `src-tauri/` and no PWA service worker. The Flutter exploration was never pursued.
+
+## Codebase Scale
+
+| File | Lines |
+|---|---|
+| `src/main.js` — main process | 6,591 |
+| `src/renderer.js` — renderer entry | 6,763 |
+| `src/preload.js` — IPC bridge | 626 |
+| `src/index.html` — single-page UI | 2,811 |
+| `src/**` total (JS/HTML/CSS) | ~56,600 |
+| Tests | 106 suites · 1,330 cases |
 
 ## Architecture
 
-### Main Process (`src/main.js` — 4,260 lines)
-Monolithic main process file. Contains all IPC handlers, Pandoc invocation, file operations, menu definitions (600+ lines), and window lifecycle. Key modules extracted:
-- `src/main/PDFOperations.js` — PDF manipulation via `pdf-lib` (merge, split, compress, rotate, delete, reorder, watermark, encrypt, decrypt, permissions)
-- `src/main/GitOperations.js` — Git status/stage/commit/log via `simple-git`
+### Main process (`src/main.js` + `src/main/`)
 
-### Renderer (`src/renderer.js` — 5,361 lines)
-Vanilla JS, no framework. Directly manipulates DOM. Loads CodeMirror 6 via `src/editor/codemirror-setup.js`. Uses `marked` + `highlight.js` + `DOMPurify` + `mermaid` for rendering. Lazy-loads sidebar panels, REPL, command palette, zen mode.
+`src/main.js` is one monolith: path/tool discovery, `validatePath` helpers, single-instance lock, `createWindow`, `createMenu` (~800 lines), export dispatcher (`performExportWithOptions`), batch conversion, CLI conversion, and **all 128 `ipcMain` registrations**. Extracted modules under `src/main/` are pure/Electron-free where possible and are injected with `fs`, `path`, `execFile`:
 
-### Preload (`src/preload.js` — 448 lines)
-Exists as IPC bridge, but **`contextIsolation: false` and `nodeIntegration: true`** — the renderer has full Node access. Preload is effectively a thin passthrough.
+- Files/PDF/media: `PDFOperations`, `PDFBatchOperations`, `ImageOperations`, `AudioOperations`, `VideoOperations`, `PdfFontHeader`, `XlsxExporter`, `MarkItDown`.
+- Documents/export: `PandocArgs`, `ExportThemes`, `ExportPresets`, `ExportCss`, `OdtStyling`, `DocxFontEmbedder`, `EpubFontEmbedder`, `MonospaceFontConfig`.
+- Content/knowledge: `WorkspaceSearch`, `SemanticEngine`, `DocQA`, `UrlTitle`, `VersionHistory`, `DailyNotes`, `DailyNotesTemplates`, `AutosaveBuffer`, `collectFilesByExtension`.
+- AI/system: `AiProviders`, `auto-updater`, `GitOperations`, `ThemeRegistry` + `ThemeRegistry.bootstrap` + `themeMenuBuilder`, `settings/monospaceSettings`, `AsciiArt*`.
 
-### Security Model
-- `contextIsolation: false` + `nodeIntegration: true` (legacy; the react-electron branch fixes this)
-- Pandoc invoked via `execFile` (not `exec`) to prevent shell injection
-- Path traversal protection: `validatePath()`, `resolveWritablePath()`, blocks sensitive system dirs
-- Permission handler only allows `clipboard-read`/`clipboard-write`
-- Rate limiter on conversions (2-second minimum interval)
-- File size limit: 50MB
-- Error message sanitization strips absolute paths
+### Preload (`src/preload.js`)
 
-### Plugin System (`src/plugins/`)
-Manifest-based discovery (`manifest.json`). Built-in `writing-studio` plugin with sprint/goal/snapshot management. Plugin API exposed via `src/plugins/plugin-api.js`.
+Exposes `window.electronAPI` namespaces (`file`, `theme`, `print`, `export`, `batch`, `converter`, `headerFooter`, `page`, `pdf`, `generators`/`ascii`, `flowchart`, `quickSwitcher`, `aiAssist`, `updates`, `aiAssistant`) plus generic `send/invoke/on`. Whitelists: **122 send / 64 receive** channels. Gotcha: each namespace calls `ipcRenderer` directly, so the whitelist does not gate them; the **main window does not load preload at all** — the bridge serves the auxiliary windows.
 
-### Settings
-Custom JSON file store at `<userData>/settings.json` (NOT `electron-store` despite the dependency). Recent files at `<userData>/recent-files.json`.
+### Renderer
+
+- `src/renderer.js`: `TabManager` (tabs `Map`, preview cache, debounce timers), preview pipeline (`marked` → `DOMPurify` → TOC → KaTeX → Mermaid → PlantUML → wiki-links → footnotes), autosave/session persistence, toolbar/find-replace, export/PDF/table/ASCII dialogs. Lazy `get*` accessors keep optional modules out of startup.
+- `src/renderer/`: `autosave-client`, `ascii-controller`, `document-compare-dialog`, `export-presets`, `flowchart-controller` + generated `flowchart-bundle.js`, `footnote-preview`, `inline-ai-controller`, `media-operations-dialog`, `pdf-batch-dialog`.
+- `src/sidebar/`: `SidebarManager` + explorer, search, git, outline, backlinks, history, daily-notes, daily-templates, snippets, templates, flowchart panels. Panels are re-rendered from scratch on expand (stateless).
+- `src/editor/`: `codemirror-setup.js` (markdown, history, autocomplete, folding, Vim compartment, snippet-Tab) and `smart-paste.js` (CSV/TSV → table, URL → `[title](url)`).
+- `src/flowchart/`: pure model/geometry modules (`flowchart-store`, `-canvas`, `-viewport`, `-align`, `-clipboard`, `-shapes`, `-mermaid`, `-mermaid-parse`, `-vsdx-export`). `scripts/build-flowchart-bundle.js` concatenates them into `src/renderer/flowchart-bundle.js`; regenerate with `npm run build:bundle`.
+- `src/quick-switcher/`: fuzzy matcher, overlay, workspace dir resolver/file lister (Ctrl+P).
+- `src/ai-assist/`: inline popover + assist flows; `src/plugins/built-in/ai-assistant/` is the chat panel.
+- `src/plugins/`: loader (manifest discovery), registry, context/command API, event bus, settings store, format registry. Built-ins: `writing-studio`, `ai-assistant`, `collaboration`, `_sample`.
+- `src/styles/`: `tokens.css` (HSL tokens; primary is blue-purple, **not** brand `#e5461f`), layout CSS, `styles/themes/*.css` (37 themes applied via `body.theme-<id>`).
+- Standalone windows: `flowchart-generator.html`, `ascii-generator.html`, `table-generator.html`; quick-note and CLI dialogs are built as data URLs.
+
+### Feature Subsystem Notes
+
+- **Flowchart:** pure `flowchart-store` (graph, undo depth 50), SVG `-canvas`, `-shapes`, `-viewport`, `-align`, `-clipboard`, `-mermaid`, `-mermaid-parse`, `-vsdx-export`; `flowchart-bundle-tail.js` is the hand-written standalone-window controller; generated bundle is `src/renderer/flowchart-bundle.js`. Persists to `<userData>/flowchart-session.json` (500 ms debounce). 222 tests across 11 suites. Known gaps: snap toggle is implemented but never wired to UI; resize is width-only via one handle; Mermaid round-trip drops colours/widths; SVG/PNG export clones selection chrome; no flowchart C1–C19 plan doc is committed (labels are commit-message only).
+- **AI assist:** providers OpenAI/Anthropic/Ollama/LM Studio plus compatible endpoints (`AiProviders.js`, main-process only, 200 KB / 120 s caps). SSE streaming over `ai-assist-stream:start|cancel` → `chunk|done|error`; surfaces are Cmd+K inline popover (rewrite/shorten/expand) and the chat sidebar. Keys are plaintext in `settings.json`; the settings modal reads the key back across IPC. Known bugs: the inline controller listens on channels missing from `ALLOWED_RECEIVE_CHANNELS` (preload drops them — tests stub `on()` and mask it); first-use confirmation uses `window.confirm`, which Electron disables; chat panel ignores `{error, code}` responses.
+- **Quick switcher:** fuzzy matcher scores basenames only (exact/stem 1.0, prefix 0.8, subsequence 0.5, boundary/consecutive bonuses, recents ×2, open tabs ×1.5); workspace listing caps at 2,000 Markdown/text files; Ctrl+P.
+- **Comments:** `.comments/<doc>.md.json` sidecar with line + `anchorText` anchoring, F8 next-unresolved navigation, single identity (`'me'`), no threads.
+- **Wiki links/backlinks:** `[[target]]`, `[[target|alias]]`, `[[target#section]]`; relative paths only; backlinks panel does bounded BFS (depth 3, 500 files, 1 MB) on every render.
+- **Session/version/autosave:** localStorage `editor-session` v1 (2 MB budget); version snapshots at `<userData>/versions/by-path/<sha1>/` (keep 20); crash recovery at `<userData>/autosave/by-path/<sha1>/recovery.md`.
+- **Search/DocQA:** `WorkspaceSearch` TF-IDF ranking with facets; DocQA is retrieval-only (no generative answer); `SemanticEngine` neural mode needs `@xenova/transformers`, which is **not** in `package.json`, so it silently stays TF-IDF. MarkItDown is optional and this checkout has no bundled binary, so it falls back to a system install.
+
+### Persistence
+
+Custom JSON store (not `electron-store`, despite the dependency) under Electron `userData`:
+`settings.json` (theme, vim mode, monospace, word/page/header-footer, export presets, last ASCII font, `plugins.ai-assistant.*`), `recent-files.json`, `snippets.json`, plus autosave/version-history/daily-notes data. **AI provider API keys are stored in plaintext in `settings.json`.**
+
+## Security Model (as implemented — audit before touching)
+
+- **Main window is deliberately insecure:** `nodeIntegration: true`, `contextIsolation: false`, no preload (`src/main.js:603-614`). CSP allows `unsafe-inline` + `unsafe-eval` and remote PlantUML (`src/index.html:5-11`). Any XSS = RCE. The hidden PDF-export window, quick-note data-URL window, and CLI dialog are also Node-enabled.
+- **Auxiliary windows are hardened:** flowchart/ASCII/table/about/notices use `nodeIntegration: false`, `contextIsolation: true` + preload.
+- `validatePath` only normalizes and checks existence — it does **not** realpath symlinks and has no root allowlist. `isPathAccessible` is a small prefix blocklist (`/etc/passwd`, `/root`, `C:\Windows\System32`, …), bypassable.
+- `save-file` / `save-current-file` write renderer-supplied paths **without validation**; `save-pasted-image` trusts `currentFile`.
+- `read-text-file` / `write-text-file` compare with `startsWith(userData)` without a trailing separator; symlinks escape.
+- External commands use `execFile` with fixed argv (good); `execute-code` intentionally runs arbitrary Node/Python/Bash for the REPL.
+- Global 2-second rate limiter covers only 8 call sites; the 50 MB limit has gaps (`read-file`, autosave, version history, single PDF ops).
+- Permission handler allows only clipboard read/write. There is **no** `will-navigate`, `setWindowOpenHandler`, or `setPermissionCheckHandler`.
+- DOMPurify sanitizes preview HTML; PlantUML can fetch from `plantuml.com` when local CLI is absent.
+
+Do not add new privileged renderer code, new `eval`-like paths, or new unvalidated filesystem IPC without addressing the above.
+
+**Historical CVE register** (STRIDE assessment, 2026-03-15; status re-verified 2026-11-21):
+
+| CVE | Finding | CVSS | Current status |
+|---|---|---|---|
+| MC-001 | Insecure Electron config (`nodeIntegration: true` / `contextIsolation: false`) | 9.6 | **Open** in the main window; auxiliary windows fixed |
+| MC-002 | Arbitrary code execution via REPL (`execute-code`) | 9.3 | **Open by design** (10 s timeout); no confirmation gate |
+| MC-003 | XSS in Markdown preview | 8.0 | Mitigated by DOMPurify; residual risk because CSP allows inline/eval |
+| MC-004 | Path traversal | 7.8 | Partial — `validatePath`/prefix blocklist only, no realpath/allowlist |
+| MC-005 | Weak CSP (`unsafe-inline`/`unsafe-eval`, remote PlantUML) | 7.5 | **Open** |
+| MC-006 | PDF export window exploitation | 6.5 | Windows hardened elsewhere, hidden PDF window still Node-enabled |
+| MC-007 | PlantUML information disclosure | 5.3 | Open when local PlantUML is absent |
+| MC-008 | Inconsistent input validation | 5.5 | Partial — save paths still unvalidated |
+| MC-009 | Command execution surface | 4.4 | Mitigated — all external tools use `execFile` with argv arrays |
+| MC-010 | Dependency risk | 3.5 | Monitor — see dependency-vetting rule in global instructions |
+
+Git-panel XSS (repo-derived names/messages rendered unescaped) was fixed with `escapeHtml` across all sinks.
+
+## Build & Packaging
+
+Config: `electron-builder.config.js` (**not** inline in `package.json`). Output `dist/`.
+
+- **Windows:** NSIS + portable + zip (x64). **macOS:** dmg, unsigned (`identity: null`). **Linux:** deb + AppImage + snap (strict/stable).
+- `files`: `src`, `assets`, `scripts`, all `node_modules`, legal docs. `asarUnpack`: `ffmpeg-static`, `sharp`, `@img`, `@napi-rs`, `assets/fonts`.
+- Tool binaries via `extraFiles`: Pandoc always; MarkItDown only when built for that platform (runtime falls back to system MarkItDown).
+- File associations: `.md`, `.markdown`, `.pdf`.
+- Auto-update: `electron-updater`, `publish.provider: github` with `owner: concreteinfo`, `repo: markdownconverter`. **Mismatch:** `package.json` repository points to `amitwh/markdown-converter`, so update checks can read the wrong Releases page.
+- No custom NSIS `include`; installer options live entirely in `electron-builder.config.js`.
 
 ## System Dependencies
 
 | Dependency | Required | Notes |
 |---|---|---|
-| **Node.js** | >= 20 | Electron 41 bundles Node 20.x |
-| **Pandoc** | Yes (for exports) | Downloaded to `bin/<platform>/pandoc` via `scripts/download-tools.js` (v3.9.0.2). Falls back to system PATH. Must be present for DOCX/ODT/EPUB/LaTeX/PPTX export. |
-| **FFmpeg** | Bundled | `ffmpeg-static` npm package; `asarUnpacked` for packaged builds |
-| **MiKTeX / TeX Live** | Optional | For LaTeX PDF export; MiKTeX PATH injected on Windows automatically |
-| **ImageMagick** | Optional | Linux image conversion; listed as deb dependency |
-| **LibreOffice** | Optional | Enhanced document conversion; listed as deb dependency |
+| **Node.js** | >= 22 | `engines` in package.json; CI workflows still use Node 20 (drift). |
+| **Pandoc** | Bundled | 3.9.0.2 via `npm run download-tools` → `bin/<platform>/pandoc`; SHA-256 pinned except darwin. Falls back to system PATH. |
+| **FFmpeg** | Bundled | `ffmpeg-static`, asar-unpacked. |
+| **MarkItDown** | Bundled (optional) | `npm run bundle:markitdown` (PyInstaller); core formats work; audio/OCR need system `markitdown[all]`. |
+| **sharp** | Bundled | Image tooling; native binaries asar-unpacked. |
+| MiKTeX / TeX Live | Optional | LaTeX PDF; MiKTeX PATH injected on Windows. |
+| ImageMagick / LibreOffice | Optional | Extra conversion; deb dependencies. |
+| PlantUML + Java, Calibre | Optional | Local diagrams, MOBI. |
 
-## Development Commands
+## Commands
 
 ```bash
-npm start                  # Launch Electron app (dev mode)
-npm test                   # Jest test suite
-npm test:watch             # Jest in watch mode
-npm test:coverage          # Jest with coverage report
-npm run lint               # ESLint check (src + tests)
-npm run lint:fix           # ESLint auto-fix
-npm run format             # Prettier write
-npm run format:check       # Prettier check only
-npm run download-tools     # Download Pandoc binaries to bin/
-npm run generate-icons     # Generate app icons via sharp
+npm start                  # Electron dev launch
+npm test                   # Jest (106 suites)
+npm run test:watch | test:coverage
+npm run lint | lint:fix    # ESLint flat config (src + tests)
+npm run format | format:check
+npm run build              # electron-builder, current platform
+npm run build:win | build:mac | build:linux
+npm run dist | dist:all
+npm run download-tools     # fetch Pandoc 3.9.0.2
+npm run bundle:markitdown  # optional PyInstaller bundle
+npm run build:bundle       # regenerate flowchart bundle
+npm run generate-icons
 ```
 
-## Build & Package
+## Testing, Lint & Quality Gates
 
-**Tool:** `electron-builder` (v26.0.12), config inline in `package.json` (no separate config file).
+- Jest + jsdom; `testMatch tests/**/*.test.js`; no transform; `tests/setup.js` mocks `electronAPI`, marked, DOMPurify, hljs, localStorage.
+- Main-process modules are tested under `@jest-environment node` with injected runners (no real processes/network).
+- Coverage **excludes** `src/main.js`, `src/renderer.js`, `src/preload.js`; thresholds 10% branches / 15% functions-lines-statements.
+- No automated E2E; `tests/smoke-e2e-monospace.js` is a manual script.
+- `tests/lint-quality.test.js` fails on any ESLint "warning" text; `tests/no-diagnostic-logs.test.js` scans only `src/main.js` + `src/renderer.js`.
+- ESLint flat config declares `sourceType: 'module'` although the codebase is CommonJS; `eslint-plugin-prettier` is installed but unused.
+- **Local baseline (2026-11-21):** 1,323 passed / 7 skipped; 2 suites fail because `@cantoo/pdf-lib` is missing from `node_modules` — run `npm ci`/`npm install` before treating those as code failures.
 
-| Target | Platforms |
+## Known Gotchas / Drift
+
+- **Shortcut conflict:** `Ctrl+Shift+A` is both Tools → ASCII Art Generator (menu accelerator, wins) and the command-palette entry for Writing Analytics. `Ctrl+P` moved from Print to Quick Switcher; Print has no default accelerator. README now reflects this.
+- Flowchart sidebar panel is unregistered, but a `data-panel="flowchart"` rail icon remains (dead click).
+- `styles-concreteinfo.css` defines `--ci-accent:#e5461f` but the main window never applies `theme-concreteinfo`; only `flowchart-generator.html` links it. `styles-zen.css` is included twice.
+- Theme switching assigns `document.body.className`, wiping `mono-*`/`zen-mode` classes.
+- `const outlinePanelContainer = null` shadows the real panel container, so tab-creation outline refreshes are dead.
+- Two save conventions coexist: `save-file` (with `path`) and `save-current-file` (with `filePath`). Duplicate 30s autosave loops exist.
+- Preload whitelists `menu-open`/`export`/`show-table-generator` with no matching main listener/sender; conversely, `ai-assist-stream:*` listeners are used by the inline AI controller but absent from `ALLOWED_RECEIVE_CHANNELS`, so they are silently dropped.
+- Flowchart snap-to-grid is coded but unreachable from the UI; Mermaid export/import loses node colours and widths; SVG/PNG export includes selection rings/grips because it clones the live canvas.
+- Neural search and generative DocQA are not actually available: `@xenova/transformers` is not a dependency and DocQA only retrieves passages. MarkItDown is optional and not bundled in this checkout (`bin/linux` contains pandoc only).
+- No generated symbol map or changelog is checked in. If one is needed: install `universal-ctags`, run `~/.claude-shared/scripts/repo-map.sh . JavaScript > /tmp/repo-map.md`, use it, and discard it — checked-in maps rot silently.
+- Legacy context-menu scripts and the custom NSIS include were removed: `electron-builder.config.js` never referenced them and they targeted `PanConverter.exe` paths.
+- `CLAUDE.md` is the tracked single source of truth (removed from `.gitignore`); `.remember/` holds local session memory and is gitignored.
+
+## Release History (condensed)
+
+Full detail is in git history; this is the shape of the product.
+
+| Version | Date | Highlights |
+|---|---|---|
+| **4.13.0** | 2026-10-01 | Quick switcher (Ctrl+P), inline AI assist (Cmd+K), electron-updater wiring, flowchart C1–C19/D1 (undo/redo, zoom/pan/snap, clipboard, Mermaid import, resize, multi-select, align/distribute, SVG/PNG/JPG/VSDX export), Node 22 engines. |
+| 4.12.0 | 2026-09-15 | Flowchart: discoverable connect form, per-node colour, save-to-file export. |
+| 4.11.x | 2026-09-15 | Flowchart panel-driven interaction; removed `window.prompt`; debug-copy cleanup. |
+| 4.10.0 | 2026-09-15 | Flowchart selection toolbar, inline modals, bootstrap diagnostics. |
+| 4.9.x | 2026-09-14 | Standalone flowchart generator window, ASCII art upgrade, 37-theme registry. |
+| 4.6.0 | — | AI assistant, collaboration comments, knowledge-base/wiki-links, daily notes, version history, quick note. |
+| 4.2.0 | — | Writing Studio feature pack (zen mode, outline, analytics). |
+| 4.0.0 | — | Unified modal system (`ModalManager`). |
+
+## Historical Plans (consolidated outcomes)
+
+These design/implementation plans were removed as standalone files; their outcomes are:
+
+| Area | Outcome |
 |---|---|
-| `npm run build` | electron-builder (default platform) |
-| `npm run build:win` | Windows: NSIS installer + portable + zip (x64) |
-| `npm run build:mac` | macOS: default dmg |
-| `npm run build:linux` | Linux: deb + AppImage + snap |
-| `npm run dist` | Build without publish |
-| `npm run dist:all` | Build for all platforms |
+| Modal system (2026-03-24) | Implemented — `src/utils/ModalManager.js` + `src/styles/modal.css`, tested. |
+| Writing Studio pack (2026-04-06) | Implemented — `src/zen-mode.js`, `src/sidebar/outline-panel.js`, `src/analytics/`, `src/plugins/built-in/writing-studio/`. |
+| Plugin system (2026-04-14) | Implemented — loader/registry/context/event bus/format registry; manifests' `extensionPoints`/`settings` remain declarative only. |
+| v5 platform design (2026-04-14) | Partially delivered; broader platform work diverged to `react-electron`. |
+| Monospace font embedding (2026-06-30) | Implemented — settings, CSS generation, DOCX/EPUB font embedding. |
+| Theme registry (2026-09-14) | Implemented — 37 themes via `ThemeRegistry.bootstrap.js`. |
+| ASCII art upgrade (2026-09-14) | Implemented — 17 hand-coded + FIGlet fonts, standalone window. |
+| Flowchart editor (2026-09-14) | Implemented but diverged — standalone window, not the sidebar panel; sidebar registration disabled. |
+| Quick switcher + inline AI (2026-09-30) | Implemented in 4.13.0; known follow-ups listed in Known Gotchas. |
+| Feature audit & hardening (2026-08-23) | Largely implemented; `git-diff` remains dead, main-window isolation and CSP remain open. |
+| React + Tauri + PWA (2026-03-15) | Not executed as written — v5 is React + Electron; no Tauri/PWA. |
+| V4 + Flutter (2026-03-24) | Flutter not pursued; V4 enhancements shipped on Electron. |
 
-**Bundled with builds:** Pandoc binary per platform. FFmpeg via `ffmpeg-static` (asarUnpacked). NSIS installer uses custom script at `scripts/nsis-installer.nsh`.
+## Documentation (what remains)
 
-**Output:** `dist/` directory.
-
-**CI:** GitHub Actions workflows in `.github/workflows/` (ci.yml, release.yml).
-
-## Project Conventions / Gotchas
-
-- **No bundler/transpilation.** The app uses vanilla CommonJS JavaScript. `src/main.js` is loaded directly by Electron. No webpack, no Vite, no TypeScript, no Babel.
-- **Monolithic files.** `main.js` (4,260 lines) and `renderer.js` (5,361 lines) contain most logic. Not ideal but is the current state of this branch.
-- **CodeMirror 6** for the editor, configured in `src/editor/codemirror-setup.js`.
-- **PDF rendering** uses `pdfjs-dist`; **PDF manipulation** uses `pdf-lib` in the main process.
-- **Renderer security is weak** — full Node access in renderer. Do NOT introduce new privileged renderer code without understanding this.
-- **Pandoc is external.** Must be installed separately or downloaded via `npm run download-tools`. HTML and built-in PDF export work without Pandoc; other formats require it.
-- **PDF export fallback chain:** xelatex -> pdflatex -> lualatex -> Electron built-in `printToPDF()`.
-- **ESLint flat config** (`eslint.config.js`) with ECMAScript 2022. Prettier with 2-space indent, single quotes, semicolons, 100-char width.
-- **Tests:** Jest with jsdom environment, 15% coverage threshold. 24 test files in `tests/`.
-- **File associations:** `.md`, `.markdown`, `.pdf` registered at install.
-- **Single instance lock** enforced via `app.requestSingleInstanceLock()`.
-- **Adapters layer** (`src/adapters/`) abstracts file system operations for potential future non-Electron targets.
+- `README.md` — user-facing features, shortcuts, themes, licensing.
+- `SOURCES.md`, `THIRD-PARTY-NOTICES.md`, `third-party-licenses/` — GPL/third-party compliance (packaged with the app).
+- `LICENSE` — MIT.
+- This file — everything else.

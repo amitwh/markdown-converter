@@ -1,116 +1,35 @@
-# PanConverter Windows Explorer Context Menu Integration
+# Build & Tooling Scripts
 
-This directory contains scripts to add PanConverter to the Windows Explorer context menu, allowing you to right-click on files and convert them directly without opening the full application.
+Scripts in this directory support packaging, tool acquisition, and asset generation for **MarkdownConverter**. They are invoked from `package.json` scripts or CI; none are required at runtime.
 
-## Features
+## Build / tooling
 
-### Context Menu Options
-- **Convert with PanConverter**: Shows a format selection dialog for any supported file
-- **PanConverter > Convert to...**: Direct conversion options (for Markdown files)
-  - PDF
-  - HTML  
-  - DOCX
-  - LaTeX
-  - PowerPoint
+| Script | npm command | Purpose |
+|---|---|---|
+| `download-tools.js` | `npm run download-tools` | Downloads Pandoc **3.9.0.2** for the host platform into `bin/<platform>/pandoc` and Fira Code **6.2** fonts into `assets/fonts`. SHA-256 pins are verified where available (the darwin Pandoc hash is intentionally unpinned). |
+| `bundle-markitdown.js` | `npm run bundle:markitdown` | Builds an optional ~75 MB PyInstaller one-file `markitdown` binary into `bin/<platform>/`. Requires Python on the build host; excludes ML extras (audio/OCR). Failure is non-fatal — the app falls back to a system MarkItDown. |
+| `build-flowchart-bundle.js` | `npm run build:bundle` | Concatenates the pure modules in `src/flowchart/` plus `src/renderer/flowchart-bundle-tail.js` into `src/renderer/flowchart-bundle.js` for the standalone flowchart window. Rewrites `require`/`module.exports` to `window.Flowchart*` globals. |
+| `generate-icons.js` | `npm run generate-icons` | Rasterizes `assets/markdown-converter-assets/app-icon.svg` into the platform icon set via `sharp`. |
+| `create-selfsigned-cert.ps1` | `npm run create-cert` (Windows) | Creates a self-signed code-signing certificate for local Windows builds. |
 
-### Supported File Types
-- **Markdown**: `.md`, `.markdown`
-- **HTML**: `.html`, `.htm`
-- **Documents**: `.docx`, `.odt`, `.rtf`
-- **LaTeX**: `.tex`
-- **PDF**: `.pdf`
-- **Presentations**: `.pptx`, `.ppt`, `.odp`
+## Optional CI / release helpers
 
-## Installation Methods
+- `download-tools.js` and `bundle-markitdown.js` run in `.github/workflows/release.yml` before platform builds.
+- `bundle:markitdown` is best-effort in CI (`continue-on-error`); the Windows job uploads its logs when the bundle fails.
 
-### Method 1: Automatic (During PanConverter Installation)
-When installing PanConverter using the Windows installer, you'll be prompted to install context menu integration automatically.
+## Windows integration
 
-### Method 2: Manual Installation
+The legacy PanConverter-branded context-menu scripts (`install-context-menu.*`, `uninstall-context-menu.*`) and `nsis-installer.nsh` were removed. They pointed at `PanConverter.exe` / `%LOCALAPPDATA%\Programs\PanConverter\`, and the NSIS include was never wired into `electron-builder.config.js`. Windows file integration now relies on the associations declared in `electron-builder.config.js` (`.md`, `.markdown`, `.pdf`).
 
-#### Using PowerShell (Recommended)
-1. Right-click on `install-context-menu.ps1`
-2. Select "Run with PowerShell"
-3. Follow the prompts (will request administrator privileges)
+CLI conversion is still supported:
 
-#### Using Batch File
-1. Right-click on `install-context-menu.bat`
-2. Select "Run as administrator"
-3. Follow the prompts
-
-#### Using Registry File Directly
-1. Right-click on `install-context-menu.reg`
-2. Select "Merge" 
-3. Confirm the registry modification
-
-## Uninstallation
-
-### Using PowerShell
-```powershell
-.\install-context-menu.ps1 -Uninstall
+```bat
+MarkdownConverter.exe --convert "document.md"
+MarkdownConverter.exe --convert-to pdf "document.md"
 ```
-
-### Using Batch File
-Run `uninstall-context-menu.bat` as administrator
-
-### Using Registry File
-Run `uninstall-context-menu.reg`
-
-## How It Works
-
-### Command Line Interface
-The context menu integration works by passing command line arguments to PanConverter:
-
-- `--convert <file>`: Shows conversion dialog for the specified file
-- `--convert-to <format> <file>`: Directly converts to the specified format
-
-### Examples
-```batch
-# Show conversion dialog
-PanConverter.exe --convert "document.md"
-
-# Direct conversion to PDF
-PanConverter.exe --convert-to pdf "document.md"
-```
-
-### Conversion Process
-1. PanConverter reads the input file
-2. Creates a temporary file if needed
-3. Uses Pandoc to convert to the target format
-4. Saves the output in the same directory as the input file
-5. Shows a Windows notification when complete
 
 ## Requirements
 
-- PanConverter must be installed in the default location: `%LOCALAPPDATA%\Programs\PanConverter\`
-- Pandoc must be installed and accessible from the command line
-- Administrator privileges required for registry modifications
-
-## Troubleshooting
-
-### Context Menu Not Appearing
-1. Ensure you ran the installation script as administrator
-2. Try logging out and back in, or restart Windows Explorer
-3. Check if PanConverter is installed in the expected location
-
-### Conversion Failures
-1. Verify Pandoc is installed: `pandoc --version`
-2. Check if the input file is not corrupted or locked
-3. Ensure you have write permissions in the output directory
-
-### Permission Errors
-- The installation scripts require administrator privileges to modify the registry
-- If you get permission errors, right-click and "Run as administrator"
-
-## File Descriptions
-
-- `install-context-menu.reg`: Registry entries for context menu
-- `uninstall-context-menu.reg`: Registry entries removal
-- `install-context-menu.ps1`: PowerShell installation script
-- `install-context-menu.bat`: Batch installation script  
-- `uninstall-context-menu.bat`: Batch uninstallation script
-- `nsis-installer.nsh`: NSIS installer integration script
-
-## Security Note
-
-The scripts modify the Windows registry to add context menu entries. Only run these scripts if you trust the source and understand the changes being made to your system.
+- Node.js >= 22 for the JavaScript scripts.
+- Python 3 (host) only for `bundle-markitdown.js`.
+- PowerShell on Windows for `create-selfsigned-cert.ps1` and the context-menu `.ps1`.
