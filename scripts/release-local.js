@@ -143,7 +143,10 @@ run(npx, [
 
 const dist = path.join(ROOT, 'dist');
 const artifacts = fs.existsSync(dist)
-  ? fs.readdirSync(dist).filter((f) => /\.(deb|AppImage)$/.test(f))
+  ? fs
+      .readdirSync(dist)
+      .filter((f) => /\.(deb|AppImage)$/.test(f) && f.includes(newVersion))
+      .sort()
   : [];
 console.log(`\n[release:local] v${newVersion} built.`);
 for (const artifact of artifacts) console.log(`  dist/${artifact}`);
