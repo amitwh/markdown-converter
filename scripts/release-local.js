@@ -153,7 +153,7 @@ const artifacts = fs.existsSync(dist)
   : [];
 console.log(`\n[release:local] v${newVersion} built.`);
 for (const artifact of artifacts) console.log(`  dist/${artifact}`);
-console.log(`  tag: v${newVersion}`);
+if (!noGit) console.log(`  tag: v${newVersion}`);
 
 if (publish && !noGit) {
   const branch = capture('git', ['branch', '--show-current']);

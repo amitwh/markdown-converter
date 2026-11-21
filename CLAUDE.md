@@ -6,7 +6,7 @@
 
 Electron desktop app for Markdown editing, PDF viewing/editing, and universal file conversion (Pandoc, FFmpeg, MarkItDown). Cross-platform (Win/macOS/Linux). Features: multi-tab CodeMirror 6 editor with live preview, 37 themes, PDF viewer/editor (merge/split/compress/rotate/delete/reorder/watermark/password/permissions), export to 20+ formats, batch conversion, Mermaid + visual flowchart generator, Git integration, quick switcher, inline AI assist, comments/wiki-links, version history, crash recovery, and a manifest-based plugin system.
 
-- **Version:** 4.14.1 · **License:** MIT · **App ID:** `com.concreteinfo.markdownconverter`
+- **Version:** 4.15.0 · **License:** MIT · **App ID:** `com.concreteinfo.markdownconverter`
 - **Stack:** Electron 45, Node 24 LTS, vanilla CommonJS JavaScript, **no renderer framework/bundler except the maxGraph flowchart editor (esbuild)**, CodeMirror 6, Jest 30 (jsdom). Key libraries: maxGraph 0.25 (flowchart), marked 18, Mermaid 12, pdfjs-dist 6, KaTeX 0.19, simple-git 4, ESLint 10.
 
 ## Branch Roles
