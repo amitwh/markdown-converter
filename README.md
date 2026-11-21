@@ -8,10 +8,18 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 
 **Current release: v4.17.3** — dialog sizing and About-window fixes (the PDF Editor and print preview no longer stretch to the full viewport, and About renders the light CAMS2 surface instead of a hardcoded dark gradient), plus the restyled Find & Replace dialog, the ASCII Art Studio and the corrected export matrix from 4.17.x.
 
+![MarkdownConverter editor with live preview, CAMS2 light appearance](docs/screenshots/editor-light.png)
+
+| Surface | Surface |
+|---|---|
+| ![Visual flowchart editor](docs/screenshots/flowchart.png) | ![Find & Replace dialog](docs/screenshots/find-replace.png) |
+| **Visio-style flowchart editor** — maxGraph canvas, connector tool, SVG/PNG/VSDX export | **Find & Replace** — plain-text search with a live match counter |
+| ![PDF editor](docs/screenshots/pdf-editor.png) | ![About window](docs/screenshots/about.png) |
+| **PDF toolkit** — merge, split, rotate, delete, reorder, watermark, encrypt | **About** — version plus Electron/Chromium/build metadata |
+
 ## Features
 
 ### Markdown Editor
-<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/5f53ba94-7663-47c3-b12b-b7b8bd2645aa" />
 
 - **Multi-tab editing** - Work on multiple files simultaneously
 - **Live preview** - Real-time markdown rendering with syntax highlighting
@@ -23,7 +31,6 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 - **Math support** - KaTeX integration for mathematical expressions
 
 ### PDF Viewer & Editor
-<img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/f10f62be-af3d-496e-81df-37ab4f91abfd" />
 
 - **Built-in PDF viewer** - Open and view PDF files directly in the app
 - **Page navigation** - Navigate pages with keyboard or buttons
@@ -72,6 +79,8 @@ A powerful cross-platform Markdown editor and document converter powered by Pand
 - **Wiki-links & Backlinks** - `[[Note]]` links with click-to-create and a "what links here?" panel (local knowledge base)
 - **Crash recovery** - Session restore of open tabs and unsaved buffers after a crash
 - **Version history** - Automatic pre-save snapshots with restore/diff/delete from the History panel
+- **Git panel** - Working-tree status, staging, commit, history and branch switching, push and pull without leaving the editor (Ctrl+Shift+G, backed by `simple-git`)
+- **Writing Studio** - Zen mode (F11), a live document outline, and writing analytics reachable from the Command Palette
 - **Vim mode & snippet expansion** - Vim keybindings toggle; Tab expands saved snippets
 - **Quick Note** - Global scratchpad (Ctrl+Alt+Q) that appends to `notes/quick-notes.md`
 - **Real PDF encryption** - Password protection, removal, and permissions actually work
@@ -113,10 +122,12 @@ Build output goes to `dist/`. Linux produces deb + AppImage + snap; Windows prod
 
 ```bash
 npm test                   # Jest — 102 suites, ~1,260 tests
-npm run test:coverage
+npm run test:watch | test:coverage
 npm run lint               # ESLint (flat config)
 npm run format             # Prettier
 npm run build:flowchart-editor  # bundle the maxGraph flowchart editor
+npm run build:icons        # bundle the selected Lucide icons
+npm run dist               # electron-builder for the current platform
 npm run build:deb:local    # bump + stamp buildInfo + build a local deb only
 ```
 
@@ -135,10 +146,23 @@ Git tag or GitHub release. Add `-- --bump minor` for a minor release. The older
 | `src/plugins/` | Plugin loader/registry plus built-in plugins |
 | `tests/` | Jest suites (`tests/main/` uses the Node environment) |
 | `scripts/` | Tool download, MarkItDown bundling, flowchart bundling, icons |
+| `docs/plans/` | Written plans for work that is designed but not built (see [Roadmap](#roadmap)) |
 
 Architecture, security model, packaging details, and known issues live in
 [`CLAUDE.md`](CLAUDE.md); build tooling is documented in
 [`scripts/README.md`](scripts/README.md).
+
+## Roadmap
+
+Planned work lives in [`docs/plans/`](docs/plans/) so it can be reviewed before anything
+is built. Nothing listed there has started.
+
+- **Web version** — [`docs/plans/2026-11-21-web-version.md`](docs/plans/2026-11-21-web-version.md).
+  A browser-only build (editor, preview, themes, pdf-lib PDF toolkit, maxGraph flowchart,
+  figlet ASCII — all already browser-native) as a new `web` branch cut from `master`, with an
+  optional conversion API for Pandoc parity as a second phase. The plan records why this is a
+  second product rather than a build flag: the app's value lives in the main process spawning
+  external binaries, and a browser cannot do that.
 
 ## Keyboard Shortcuts
 
